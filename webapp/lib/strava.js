@@ -1,0 +1,51 @@
+import axios from 'axios';
+
+/**
+ * Exchange an authorisation code for Strava tokens.
+ *
+ * @param {string} code - The authorisation code returned from Strava.
+ * @param {string} clientId - Your Strava app client ID.
+ * @param {string} clientSecret - Your Strava app client secret.
+ * @param {string} redirectUri - Redirect URI registered with Strava.
+ */
+export async function exchangeToken(code, clientId, clientSecret, redirectUri) {
+  const params = new URLSearchParams();
+  params.append('client_id', clientId);
+  params.append('client_secret', clientSecret);
+  params.append('code', code);
+  params.append('grant_type', 'authorization_code');
+  if (redirectUri) params.append('redirect_uri', redirectUri);
+  const response = await axios.post('https://www.strava.com/api/v3/oauth/token', params);
+  return response.data;
+}
+
+/**
+ * Refresh an expired Strava access token.
+ *
+ * @param {string} refreshToken - The refresh token from Strava.
+ * @param {string} clientId
+ * @param {string} clientSecret
+ */
+export async function refreshToken(refreshToken, clientId, clientSecret) {
+  const params = new URLSearchParams();
+  params.append('client_id', clientId);
+  params.append('client_secret', clientSecret);
+  params.append('grant_type', 'refresh_token');
+  params.append('refresh_token', refreshToken);
+  const response = await axios.post('https://www.strava.com/api/v3/oauth/token', params);
+  return response.data;
+}
+
+/**
+ * Fetch recent activities for the authenticated athlete.
+ *
+ * @param {string} accessToken - Valid access token.
+ * @param {number} afterTimestamp - Unix timestamp (seconds) to filter activities after.
+ */
+export async function getRecentActivities(accessToken, afterTimestamp) {
+  const response = await axios.get('https://www.strava.com/api/v3/athlete/activities', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    params: { after: afterTimestamp, per_page: 50 },
+  });
+  return response.data;
+}
