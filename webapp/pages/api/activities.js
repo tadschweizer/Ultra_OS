@@ -20,6 +20,11 @@ export default async function handler(req, res) {
     .select('*')
     .eq('id', athleteId)
     .single();
+  if (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+    return;
+  }
   if (!athlete) {
     res.status(404).json({ error: 'Athlete not found' });
     return;
@@ -35,10 +40,13 @@ export default async function handler(req, res) {
       access_token = refreshed.access_token;
       refresh_token = refreshed.refresh_token;
       token_expires_at = new Date(refreshed.expires_at * 1000).toISOString();
-      await supabase
+      const { error: updateError } = await supabase
         .from('athletes')
         .update({ access_token, refresh_token, token_expires_at })
         .eq('id', athleteId);
+      if (updateError) {
+        throw updateError;
+      }
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Failed to refresh Strava token' });

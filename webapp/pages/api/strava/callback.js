@@ -19,43 +19,33 @@ export default async function handler(req, res) {
     const clientId = process.env.STRAVA_CLIENT_ID;
     const clientSecret = process.env.STRAVA_CLIENT_SECRET;
     const redirectUri = process.env.STRAVA_REDIRECT_URI;
+    if (!clientId || !clientSecret || !redirectUri) {
+      throw new Error(
+        'Missing Strava environment variables: STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET, and STRAVA_REDIRECT_URI are required.'
+      );
+    }
     const tokenData = await exchangeToken(code, clientId, clientSecret, redirectUri);
     const { access_token, refresh_token, expires_at, athlete } = tokenData;
-    // Upsert athlete record by Strava ID
-    const { data: existingAthlete } = await supabase
+    const athleteName = [athlete.firstname, athlete.lastname].filter(Boolean).join(' ').trim();
+    const { data: savedAthlete, error: athleteError } = await supabase
       .from('athletes')
-      .select('*')
-      .eq('strava_id', athlete.id.toString())
-      .maybeSingle();
-    let athleteId;
-    if (existingAthlete) {
-      await supabase
-        .from('athletes')
-        .update({
-          name: athlete.firstname + ' ' + athlete.lastname,
-          email: athlete.email || null,
-          access_token,
-          refresh_token,
-          token_expires_at: new Date(expires_at * 1000).toISOString(),
-        })
-        .eq('id', existingAthlete.id);
-      athleteId = existingAthlete.id;
-    } else {
-      const { data: inserted, error: insertError } = await supabase
-        .from('athletes')
-        .insert({
-          name: athlete.firstname + ' ' + athlete.lastname,
+      .upsert(
+        {
+          name: athleteName || null,
           email: athlete.email || null,
           strava_id: athlete.id.toString(),
           access_token,
           refresh_token,
           token_expires_at: new Date(expires_at * 1000).toISOString(),
-        })
-        .select()
-        .single();
-      if (insertError) throw insertError;
-      athleteId = inserted.id;
+        },
+        { onConflict: 'strava_id' }
+      )
+      .select('id')
+      .single();
+    if (athleteError) {
+      throw athleteError;
     }
+    const athleteId = savedAthlete.id;
     // Set a non‑httpOnly cookie to remember the athlete ID on the client.
     res.setHeader(
       'Set-Cookie',

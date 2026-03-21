@@ -15,16 +15,24 @@ export default async function handler(req, res) {
     return;
   }
   // Fetch athlete
-  const { data: athlete } = await supabase
+  const { data: athlete, error: athleteError } = await supabase
     .from('athletes')
     .select('id, name')
     .eq('id', athleteId)
     .single();
-  // Count interventions
-  const { data: interventionsList } = await supabase
+  if (athleteError) {
+    console.error(athleteError);
+    res.status(500).json({ error: athleteError.message });
+    return;
+  }
+  const { count, error: interventionsError } = await supabase
     .from('interventions')
-    .select('id')
+    .select('id', { count: 'exact', head: true })
     .eq('athlete_id', athleteId);
-  const count = interventionsList ? interventionsList.length : 0;
+  if (interventionsError) {
+    console.error(interventionsError);
+    res.status(500).json({ error: interventionsError.message });
+    return;
+  }
   res.status(200).json({ athlete, interventionCount: count });
 }
