@@ -28,7 +28,10 @@ export default function Dashboard() {
           const actRes = await fetch('/api/activities');
           if (actRes.ok) {
             const actData = await actRes.json();
-            setActivities(actData.activities);
+            const sortedActivities = [...actData.activities].sort(
+              (a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime()
+            );
+            setActivities(sortedActivities);
           }
         }
       } catch (err) {
@@ -77,7 +80,7 @@ export default function Dashboard() {
           Athlete Settings
         </a>
       </div>
-      <div className="mb-6 rounded-2xl border border-secondary bg-secondary/20 p-4">
+      <div className="mb-6 rounded-[26px] border border-white/10 bg-card/80 p-5">
         <p className="text-sm uppercase tracking-[0.2em] text-accent">Baseline Context</p>
         {settings ? (
           <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -96,6 +99,22 @@ export default function Dashboard() {
             <div>
               <p className="text-xs text-slate-300">Max HR</p>
               <p className="font-semibold">{settings.max_hr ?? '-'}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-300">Carbs</p>
+              <p className="font-semibold">{settings.normal_long_run_carb_g_per_hr ?? '-'} g/hr</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-300">Sodium</p>
+              <p className="font-semibold">{settings.sodium_target_mg_per_hr ?? '-'} mg/hr</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-300">Sweat Rate</p>
+              <p className="font-semibold">{settings.sweat_rate_l_per_hr ?? '-'} L/hr</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-300">Sleep</p>
+              <p className="font-semibold">{settings.typical_sleep_hours ?? '-'} hrs</p>
             </div>
           </div>
         ) : (

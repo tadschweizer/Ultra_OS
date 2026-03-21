@@ -22,6 +22,7 @@ const timingOptions = [
 ];
 const trainingPhases = ['Base', 'Build', 'Peak', 'Taper', 'Recovery', 'Race week'];
 const defaultRaceStorageKey = 'ultraos-default-race';
+const trainingPhaseStorageKey = 'ultraos-default-training-phase';
 
 function createEmptyForm(defaultRace = {}) {
   return {
@@ -83,6 +84,11 @@ function getPersistedRace() {
   }
 }
 
+function getPersistedTrainingPhase() {
+  if (typeof window === 'undefined') return '';
+  return window.localStorage.getItem(trainingPhaseStorageKey) || '';
+}
+
 /**
  * Page containing a form to log a new intervention. It fetches recent
  * activities for selection and posts the form data to the API.
@@ -101,7 +107,10 @@ export default function LogIntervention() {
         const res = await fetch('/api/activities');
         if (res.ok) {
           const { activities: fetchedActivities } = await res.json();
-          setActivities(fetchedActivities);
+          const sortedActivities = [...fetchedActivities].sort(
+            (a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime()
+          );
+          setActivities(sortedActivities);
         }
       } catch (err) {
         console.error(err);
@@ -113,6 +122,7 @@ export default function LogIntervention() {
     setForm((currentForm) => ({
       ...currentForm,
       ...getPersistedRace(),
+      training_phase: getPersistedTrainingPhase(),
     }));
 
     fetchActivities();
@@ -142,6 +152,17 @@ export default function LogIntervention() {
       })
     );
   }, [form.target_race, form.target_race_date]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    if (!form.training_phase) {
+      window.localStorage.removeItem(trainingPhaseStorageKey);
+      return;
+    }
+
+    window.localStorage.setItem(trainingPhaseStorageKey, form.training_phase);
+  }, [form.training_phase]);
 
   const selectedActivity = useMemo(
     () => activities.find((activity) => activity.id.toString() === form.activity_id),

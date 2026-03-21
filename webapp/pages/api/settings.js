@@ -7,6 +7,12 @@ function parseOptionalInt(value) {
   return Number.isNaN(parsed) ? null : parsed;
 }
 
+function parseOptionalFloat(value) {
+  if (value === '' || value === null || value === undefined) return null;
+  const parsed = parseFloat(value);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
 export default async function handler(req, res) {
   const cookies = cookie.parse(req.headers.cookie || '');
   const athleteId = cookies.athlete_id;
@@ -42,6 +48,11 @@ export default async function handler(req, res) {
       baseline_training_altitude_ft: parseOptionalInt(body.baseline_training_altitude_ft),
       resting_hr: parseOptionalInt(body.resting_hr),
       max_hr: parseOptionalInt(body.max_hr),
+      body_weight_lb: parseOptionalInt(body.body_weight_lb),
+      normal_long_run_carb_g_per_hr: parseOptionalInt(body.normal_long_run_carb_g_per_hr),
+      sweat_rate_l_per_hr: parseOptionalFloat(body.sweat_rate_l_per_hr),
+      sodium_target_mg_per_hr: parseOptionalInt(body.sodium_target_mg_per_hr),
+      typical_sleep_hours: parseOptionalFloat(body.typical_sleep_hours),
       hr_zone_1_min: parseOptionalInt(body.hr_zone_1_min),
       hr_zone_1_max: parseOptionalInt(body.hr_zone_1_max),
       hr_zone_2_min: parseOptionalInt(body.hr_zone_2_min),

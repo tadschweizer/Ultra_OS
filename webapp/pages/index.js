@@ -12,15 +12,15 @@ export default function Home() {
   const interventionHighlights = [
     {
       title: 'Heat Acclimation',
-      body: 'Track sauna blocks, hot-session exposure, and race-week timing against actual outcomes.',
+      body: 'Track sauna blocks, hot-session exposure, altitude-tent nights, and when those blocks actually translated on race day.',
     },
     {
       title: 'Fueling + Gut Training',
-      body: 'Log carbohydrate progression, GI response, and what actually held together past hour four.',
+      body: 'Preserve carbohydrate progression, sodium targets, GI response, and what still held up late in the session.',
     },
     {
-      title: 'Bicarb + Supplement Trials',
-      body: 'Preserve protocol details, tolerance, and whether the intervention helped or just added noise.',
+      title: 'Protocol Stack Review',
+      body: 'See the whole build around a race instead of a scattered trail of screenshots, notes, and memory.',
     },
   ];
 
@@ -33,51 +33,93 @@ export default function Home() {
     }
   }, []);
   return (
-    <main className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top,#1d4d8f_0%,#0b2545_40%,#061427_100%)] px-4 py-8 text-white">
+    <main className="min-h-screen bg-paper px-4 py-6 text-ink">
       <div className="mx-auto max-w-6xl">
-        <div className="mb-12 rounded-[36px] border border-white/10 bg-slate-950/35 p-6 backdrop-blur md:p-10">
-          <div className="grid gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
+        <div className="mb-6 flex items-center justify-between rounded-full border border-ink/10 bg-white/70 px-4 py-3 backdrop-blur">
+          <div>
+            <p className="text-xs uppercase tracking-[0.35em] text-accent">UltraOS</p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <a href="/settings" className="rounded-full border border-ink/10 px-4 py-2 text-sm font-medium text-ink">
+              Settings
+            </a>
+            {athleteId ? (
+              <a href="/dashboard" className="rounded-full bg-ink px-5 py-2 text-sm font-semibold text-paper">
+                Dashboard
+              </a>
+            ) : (
+              <a href="/api/strava/login" className="rounded-full bg-ink px-5 py-2 text-sm font-semibold text-paper">
+                Connect Strava
+              </a>
+            )}
+          </div>
+        </div>
+
+        <div className="mb-12 overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(135deg,#f7f2ea_0%,#ebe1d4_55%,#dcc9b0_100%)] p-6 md:p-10">
+          <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
             <div>
-              <p className="text-sm uppercase tracking-[0.35em] text-accent">UltraOS</p>
-              <h1 className="mt-4 max-w-4xl text-5xl font-bold leading-tight md:text-7xl">
-                Performance intelligence for athletes who go long.
+              <p className="text-sm uppercase tracking-[0.35em] text-accent">Performance Intelligence</p>
+              <h1 className="font-display mt-4 max-w-4xl text-5xl leading-tight md:text-7xl">
+                See the prep behind the result.
               </h1>
-              <p className="mt-6 max-w-2xl text-lg text-slate-200">
-                TrainingPeaks logs your workouts. UltraOS tracks the intervention stack around them:
-                heat blocks, gut training, sodium bicarbonate, altitude exposure, sleep manipulation,
-                and the race each protocol was supposed to help.
+              <p className="mt-6 max-w-2xl text-lg leading-8 text-ink/80">
+                UltraOS is the intervention layer around endurance training. It tracks heat work,
+                fueling, sodium bicarbonate, sleep manipulation, altitude, and the target race each
+                protocol was supposed to improve.
               </p>
               <div className="mt-8 flex flex-wrap gap-4">
                 {athleteId ? (
-                  <a href="/dashboard" className="rounded-full bg-accent px-6 py-3 font-semibold text-primary">
+                  <a href="/dashboard" className="rounded-full bg-ink px-6 py-3 font-semibold text-paper">
                     Go to Dashboard
                   </a>
                 ) : (
-                  <a href="/api/strava/login" className="rounded-full bg-accent px-6 py-3 font-semibold text-primary">
+                  <a href="/api/strava/login" className="rounded-full bg-ink px-6 py-3 font-semibold text-paper">
                     Login with Strava
                   </a>
                 )}
-                <a href="/log-intervention" className="rounded-full border border-white/20 px-6 py-3 font-semibold text-white">
-                  Explore the Log
+                <a href="/log-intervention" className="rounded-full border border-ink/20 bg-white/50 px-6 py-3 font-semibold text-ink">
+                  Log an Intervention
                 </a>
+              </div>
+
+              <div className="mt-8 grid gap-3 sm:grid-cols-3">
+                <div className="rounded-[24px] bg-white/70 p-4">
+                  <p className="text-xs uppercase tracking-[0.22em] text-accent">Context</p>
+                  <p className="mt-2 text-sm text-ink/80">Race target, training phase, and athlete baseline settings live with each entry.</p>
+                </div>
+                <div className="rounded-[24px] bg-white/70 p-4">
+                  <p className="text-xs uppercase tracking-[0.22em] text-accent">Activity Tie-In</p>
+                  <p className="mt-2 text-sm text-ink/80">Linked Strava activity date, duration, elevation, and altitude context get pulled automatically.</p>
+                </div>
+                <div className="rounded-[24px] bg-white/70 p-4">
+                  <p className="text-xs uppercase tracking-[0.22em] text-accent">Future Analysis</p>
+                  <p className="mt-2 text-sm text-ink/80">AI insight blocks remain placeholders until the intervention dataset is strong enough to trust.</p>
+                </div>
               </div>
             </div>
 
-            <div className="rounded-[28px] border border-white/10 bg-slate-950/60 p-6 shadow-2xl shadow-black/30">
-              <p className="text-sm uppercase tracking-[0.25em] text-accent">AI Insight Placeholder</p>
+            <div className="rounded-[34px] bg-panel p-6 text-white shadow-[0_40px_100px_rgba(0,0,0,0.28)]">
+              <div className="flex items-center justify-between">
+                <p className="text-sm uppercase tracking-[0.25em] text-accent">AI Insight Placeholder</p>
+                <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/80">Not live yet</span>
+              </div>
               <div className="mt-5 space-y-4">
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-sm font-semibold text-white">Race Build Pattern</p>
-                  <p className="mt-2 text-sm text-slate-300">
-                    Placeholder: upcoming models will compare intervention blocks against race outcomes,
-                    GI tolerance, and late-race fade points.
+                <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
+                  <p className="text-sm font-semibold text-white">Race Build Review</p>
+                  <p className="mt-2 text-sm text-white/75">
+                    Future versions will compare intervention blocks against race outcomes, GI tolerance, altitude load, and late-race fade points.
                   </p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-sm font-semibold text-white">What the platform will surface</p>
-                  <p className="mt-2 text-sm text-slate-300">
-                    Which protocol stacks repeated before strong races, which ones carried side effects,
-                    and how your response changed across prep cycles.
+                <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
+                  <p className="text-sm font-semibold text-white">What Will Matter</p>
+                  <p className="mt-2 text-sm text-white/75">
+                    Which protocol stacks kept recurring before good races, which ones added cost without payoff, and where your prep consistently broke down.
+                  </p>
+                </div>
+                <div className="rounded-[24px] border border-accent/30 bg-accent/10 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-accent">Current Focus</p>
+                  <p className="mt-2 text-sm text-white/80">
+                    Build cleaner intervention data first. The moat is the dataset, not the placeholder analysis card.
                   </p>
                 </div>
               </div>
@@ -87,25 +129,25 @@ export default function Home() {
 
         <section className="grid gap-4 md:grid-cols-3">
           {interventionHighlights.map((item) => (
-            <article key={item.title} className="rounded-[28px] border border-white/10 bg-slate-950/45 p-6">
+            <article key={item.title} className="rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
               <p className="text-sm uppercase tracking-[0.22em] text-accent">{item.title}</p>
-              <p className="mt-4 text-sm leading-6 text-slate-200">{item.body}</p>
+              <p className="mt-4 text-sm leading-6 text-ink/80">{item.body}</p>
             </article>
           ))}
         </section>
 
         <section className="mt-12 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="rounded-[30px] border border-white/10 bg-slate-950/45 p-6">
+          <div className="rounded-[30px] border border-ink/10 bg-white p-6">
             <p className="text-sm uppercase tracking-[0.25em] text-accent">What gets captured</p>
-            <ul className="mt-5 space-y-3 text-sm text-slate-200">
+            <ul className="mt-5 space-y-3 text-sm text-ink/80">
               <li>Intervention type, protocol details, and dosage or duration.</li>
-              <li>Linked Strava workout context, date, duration, and elevation gain.</li>
+              <li>Linked Strava workout context, date, duration, elevation, and altitude detail.</li>
               <li>Target race context, training phase, and athlete-reported response.</li>
             </ul>
           </div>
-          <div className="rounded-[30px] border border-white/10 bg-gradient-to-br from-white/10 to-transparent p-6">
+          <div className="rounded-[30px] bg-[linear-gradient(135deg,#1b2421_0%,#29302d_100%)] p-6 text-white">
             <p className="text-sm uppercase tracking-[0.25em] text-accent">Why this exists</p>
-            <p className="mt-5 max-w-3xl text-base leading-7 text-slate-100">
+            <p className="mt-5 max-w-3xl text-base leading-7 text-white/80">
               Serious endurance athletes run experiments constantly, but the protocol layer usually lives in
               scattered notes, screenshots, or memory. UltraOS turns that into a structured dataset that can
               eventually support real personal pattern recognition instead of generic advice.
