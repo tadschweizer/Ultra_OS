@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { sortActivitiesMostRecentFirst } from '../lib/activityInsights';
 
 const interventionTypes = [
   'Heat acclimation',
@@ -155,9 +156,7 @@ export default function LogIntervention() {
         const res = await fetch('/api/activities');
         if (res.ok) {
           const { activities: fetchedActivities } = await res.json();
-          const sortedActivities = [...fetchedActivities].sort(
-            (a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime()
-          );
+          const sortedActivities = sortActivitiesMostRecentFirst(fetchedActivities);
           setActivities(sortedActivities);
         }
       } catch (err) {

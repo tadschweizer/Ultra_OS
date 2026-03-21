@@ -1,17 +1,28 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  buildInsightCards,
+  classifyActivity,
+  metersToFeet,
+  metersToMiles,
+  secondsToHours,
+  sortActivitiesMostRecentFirst,
+  summarizeRecentTraining,
+} from '../lib/activityInsights';
 
 function formatActivityDate(startDate) {
   return new Date(startDate).toLocaleString();
 }
 
-function formatDistance(distanceMeters) {
-  if (!distanceMeters) return 'N/A';
-  return `${(distanceMeters / 1609.34).toFixed(1)} mi`;
+function formatMiles(value) {
+  return `${value.toFixed(1)} mi`;
 }
 
-function formatDuration(seconds) {
-  if (!seconds) return 'N/A';
-  return `${Math.round(seconds / 60)} min`;
+function formatFeet(value) {
+  return `${Math.round(value).toLocaleString()} ft`;
+}
+
+function formatHours(value) {
+  return `${value.toFixed(1)} hrs`;
 }
 
 export default function Dashboard() {
@@ -25,25 +36,22 @@ export default function Dashboard() {
     async function fetchData() {
       try {
         const meRes = await fetch('/api/me');
-        if (meRes.ok) {
-          const me = await meRes.json();
-          setAthlete(me.athlete);
-          setInterventionCount(me.interventionCount);
+        if (!meRes.ok) return;
 
-          const settingsRes = await fetch('/api/settings');
-          if (settingsRes.ok) {
-            const settingsData = await settingsRes.json();
-            setSettings(settingsData.settings);
-          }
+        const me = await meRes.json();
+        setAthlete(me.athlete);
+        setInterventionCount(me.interventionCount);
 
-          const actRes = await fetch('/api/activities');
-          if (actRes.ok) {
-            const actData = await actRes.json();
-            const sortedActivities = [...actData.activities].sort(
-              (a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime()
-            );
-            setActivities(sortedActivities);
-          }
+        const settingsRes = await fetch('/api/settings');
+        if (settingsRes.ok) {
+          const settingsData = await settingsRes.json();
+          setSettings(settingsData.settings);
+        }
+
+        const actRes = await fetch('/api/activities');
+        if (actRes.ok) {
+          const actData = await actRes.json();
+          setActivities(sortActivitiesMostRecentFirst(actData.activities));
         }
       } catch (err) {
         console.error(err);
@@ -54,6 +62,20 @@ export default function Dashboard() {
 
     fetchData();
   }, []);
+
+  const trainingSummary = useMemo(() => summarizeRecentTraining(activities), [activities]);
+  const insightCards = useMemo(
+    () => buildInsightCards(activities, interventionCount, settings || {}),
+    [activities, interventionCount, settings]
+  );
+  const classifiedActivities = useMemo(
+    () =>
+      activities.slice(0, 6).map((activity) => ({
+        ...activity,
+        classification: classifyActivity(activity, settings || {}),
+      })),
+    [activities, settings]
+  );
 
   if (loading) {
     return <div className="p-4">Loading...</div>;
@@ -81,6 +103,9 @@ export default function Dashboard() {
             <a href="/" className="rounded-full border border-ink/10 px-4 py-2 text-sm font-medium text-ink">
               Home
             </a>
+            <a href="/connections" className="rounded-full border border-ink/10 px-4 py-2 text-sm font-medium text-ink">
+              Connections
+            </a>
             <a href="/settings" className="rounded-full border border-ink/10 px-4 py-2 text-sm font-medium text-ink">
               Settings
             </a>
@@ -90,148 +115,178 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="mb-12 overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(135deg,#f7f2ea_0%,#ebe1d4_55%,#dcc9b0_100%)] p-6 md:p-10">
+        <div className="mb-10 overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(135deg,#f7f2ea_0%,#ebe1d4_55%,#dcc9b0_100%)] p-6 md:p-10">
           <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
             <div>
-              <p className="text-sm uppercase tracking-[0.35em] text-accent">Athlete Snapshot</p>
+              <p className="text-sm uppercase tracking-[0.35em] text-accent">Training Intelligence</p>
               <h1 className="font-display mt-4 max-w-4xl text-5xl leading-tight md:text-7xl">
                 Hello, {athlete.name}
               </h1>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-ink/80">
-                Your dashboard should feel like the landing page after login: same product language,
-                but now pointed at your actual intervention history, baseline context, and recent training data.
+                This is the operating surface. Weekly mileage, vertical, time, workout intent,
+                intervention coverage, and future AI pattern detection belong here.
               </p>
               <div className="mt-8 flex flex-wrap gap-4">
                 <a href="/log-intervention" className="rounded-full bg-ink px-6 py-3 font-semibold text-paper">
                   Log an Intervention
                 </a>
                 <a href="/history" className="rounded-full border border-ink/20 bg-white/50 px-6 py-3 font-semibold text-ink">
-                  View History
+                  Review History
                 </a>
-              </div>
-
-              <div className="mt-8 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-[24px] bg-white/70 p-4">
-                  <p className="text-xs uppercase tracking-[0.22em] text-accent">Recent Activities</p>
-                  <p className="mt-2 text-2xl font-semibold text-ink">{activities.length}</p>
-                  <p className="mt-1 text-sm text-ink/75">Last 7 days from Strava</p>
-                </div>
-                <div className="rounded-[24px] bg-white/70 p-4">
-                  <p className="text-xs uppercase tracking-[0.22em] text-accent">Interventions Logged</p>
-                  <p className="mt-2 text-2xl font-semibold text-ink">{interventionCount}</p>
-                  <p className="mt-1 text-sm text-ink/75">Structured entries in your log</p>
-                </div>
-                <div className="rounded-[24px] bg-white/70 p-4">
-                  <p className="text-xs uppercase tracking-[0.22em] text-accent">Settings Status</p>
-                  <p className="mt-2 text-2xl font-semibold text-ink">{settings ? 'Ready' : 'Needs Setup'}</p>
-                  <p className="mt-1 text-sm text-ink/75">Baseline context for later analysis</p>
-                </div>
               </div>
             </div>
 
             <div className="rounded-[34px] bg-panel p-6 text-white shadow-[0_40px_100px_rgba(0,0,0,0.28)]">
               <div className="flex items-center justify-between">
-                <p className="text-sm uppercase tracking-[0.25em] text-accent">Baseline Context</p>
-                <a href="/settings" className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/80">
-                  Edit
+                <p className="text-sm uppercase tracking-[0.25em] text-accent">7-Day Training Snapshot</p>
+                <a href="/connections" className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/80">
+                  Manage Sources
                 </a>
               </div>
-              {settings ? (
-                <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
-                    <p className="text-xs uppercase tracking-[0.2em] text-accent">Sleep Altitude</p>
-                    <p className="mt-2 text-xl font-semibold">{settings.baseline_sleep_altitude_ft ?? '-'} ft</p>
-                  </div>
-                  <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
-                    <p className="text-xs uppercase tracking-[0.2em] text-accent">Training Altitude</p>
-                    <p className="mt-2 text-xl font-semibold">{settings.baseline_training_altitude_ft ?? '-'} ft</p>
-                  </div>
-                  <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
-                    <p className="text-xs uppercase tracking-[0.2em] text-accent">Carbs</p>
-                    <p className="mt-2 text-xl font-semibold">{settings.normal_long_run_carb_g_per_hr ?? '-'} g/hr</p>
-                  </div>
-                  <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
-                    <p className="text-xs uppercase tracking-[0.2em] text-accent">Sodium</p>
-                    <p className="mt-2 text-xl font-semibold">{settings.sodium_target_mg_per_hr ?? '-'} mg/hr</p>
-                  </div>
-                  <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
-                    <p className="text-xs uppercase tracking-[0.2em] text-accent">Resting HR</p>
-                    <p className="mt-2 text-xl font-semibold">{settings.resting_hr ?? '-'}</p>
-                  </div>
-                  <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
-                    <p className="text-xs uppercase tracking-[0.2em] text-accent">Sleep</p>
-                    <p className="mt-2 text-xl font-semibold">{settings.typical_sleep_hours ?? '-'} hrs</p>
-                  </div>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-accent">Mileage</p>
+                  <p className="mt-2 text-xl font-semibold">{formatMiles(trainingSummary.mileage)}</p>
                 </div>
-              ) : (
-                <div className="mt-5 rounded-[24px] border border-accent/30 bg-accent/10 p-4">
-                  <p className="text-sm text-white/85">
-                    Add athlete settings so altitude, fueling, sodium, and HR-based analysis has usable baseline context.
-                  </p>
+                <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-accent">Elevation</p>
+                  <p className="mt-2 text-xl font-semibold">{formatFeet(trainingSummary.elevation)}</p>
                 </div>
-              )}
+                <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-accent">Time Spent</p>
+                  <p className="mt-2 text-xl font-semibold">{formatHours(trainingSummary.hours)}</p>
+                </div>
+                <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-accent">Interventions</p>
+                  <p className="mt-2 text-xl font-semibold">{interventionCount}</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <section className="grid gap-4 md:grid-cols-3">
+        <section className="grid gap-4 md:grid-cols-4">
           <article className="rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-            <p className="text-sm uppercase tracking-[0.22em] text-accent">Intervention Log</p>
-            <p className="mt-4 text-sm leading-6 text-ink/80">
-              Add the protocol, attach the workout when relevant, and keep race context tied to the entry.
-            </p>
+            <p className="text-sm uppercase tracking-[0.22em] text-accent">Activities</p>
+            <p className="mt-4 text-3xl font-semibold text-ink">{trainingSummary.activityCount}</p>
+            <p className="mt-2 text-sm text-ink/75">Sessions in the last 7 days.</p>
           </article>
           <article className="rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-            <p className="text-sm uppercase tracking-[0.22em] text-accent">History Review</p>
-            <p className="mt-4 text-sm leading-6 text-ink/80">
-              Review intervention entries by race, date, and subjective response instead of reconstructing prep from memory.
+            <p className="text-sm uppercase tracking-[0.22em] text-accent">Threshold Readiness</p>
+            <p className="mt-4 text-3xl font-semibold text-ink">
+              {settings?.hr_zone_3_min ? 'Configured' : 'Needs zones'}
             </p>
+            <p className="mt-2 text-sm text-ink/75">HR-zone-driven workout classification depends on saved zones.</p>
           </article>
           <article className="rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-            <p className="text-sm uppercase tracking-[0.22em] text-accent">Athlete Baselines</p>
-            <p className="mt-4 text-sm leading-6 text-ink/80">
-              Your altitude, fueling, sleep, and HR context live here so future analysis has something real to compare against.
-            </p>
+            <p className="text-sm uppercase tracking-[0.22em] text-accent">Source Coverage</p>
+            <p className="mt-4 text-3xl font-semibold text-ink">1</p>
+            <p className="mt-2 text-sm text-ink/75">Strava is active. Garmin, COROS, Zwift, and TrainingPeaks are next.</p>
+          </article>
+          <article className="rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+            <p className="text-sm uppercase tracking-[0.22em] text-accent">AI Status</p>
+            <p className="mt-4 text-3xl font-semibold text-ink">Seeded</p>
+            <p className="mt-2 text-sm text-ink/75">Heuristics are live. Personalized causal claims still need more paired data.</p>
           </article>
         </section>
 
-        <section className="mt-12 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="rounded-[30px] border border-ink/10 bg-white p-6">
-            <p className="text-sm uppercase tracking-[0.25em] text-accent">Action Shortcuts</p>
-            <div className="mt-5 flex flex-wrap gap-3">
-              <a href="/log-intervention" className="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-paper">
-                New Intervention
-              </a>
-              <a href="/history" className="rounded-full border border-ink/15 px-5 py-3 text-sm font-semibold text-ink">
-                Open History
-              </a>
-              <a href="/settings" className="rounded-full border border-ink/15 px-5 py-3 text-sm font-semibold text-ink">
-                Update Settings
-              </a>
-            </div>
-          </div>
-          <div className="rounded-[30px] bg-[linear-gradient(135deg,#1b2421_0%,#29302d_100%)] p-6 text-white">
-            <p className="text-sm uppercase tracking-[0.25em] text-accent">Recent Activity Feed</p>
-            <div className="mt-5 space-y-3">
-              {activities.slice(0, 5).map((act) => (
-                <div key={act.id} className="rounded-[22px] border border-white/10 bg-white/5 p-4">
-                  <p className="font-semibold text-white">{act.name}</p>
-                  <p className="mt-1 text-sm text-white/70">{formatActivityDate(act.start_date)}</p>
-                  <div className="mt-3 flex flex-wrap gap-4 text-sm text-white/80">
-                    <span>{formatDistance(act.distance)}</span>
-                    <span>{formatDuration(act.moving_time)}</span>
-                    <span>
-                      {act.total_elevation_gain
-                        ? `${Math.round(act.total_elevation_gain * 3.28084)} ft gain`
-                        : 'Elevation N/A'}
-                    </span>
-                  </div>
+        <section className="mt-12 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+          <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+            <p className="text-sm uppercase tracking-[0.25em] text-accent">AI Insight Queue</p>
+            <div className="mt-5 space-y-4">
+              {insightCards.map((card) => (
+                <div key={card.title} className="rounded-[24px] bg-paper p-4">
+                  <p className="text-sm font-semibold text-ink">{card.title}</p>
+                  <p className="mt-2 text-sm leading-6 text-ink/75">{card.body}</p>
                 </div>
               ))}
-              {activities.length === 0 ? (
+            </div>
+          </div>
+
+          <div className="rounded-[30px] bg-[linear-gradient(135deg,#1b2421_0%,#29302d_100%)] p-6 text-white">
+            <div className="flex items-center justify-between">
+              <p className="text-sm uppercase tracking-[0.25em] text-accent">Connection Roadmap</p>
+              <a href="/connections" className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/80">
+                Open
+              </a>
+            </div>
+            <div className="mt-5 space-y-3">
+              {[
+                'Strava connected now for activity + altitude context.',
+                'TrainingPeaks descriptions are the clearest path to workout-intent parsing.',
+                'Garmin, COROS, and Zwift should coexist so UltraOS is not tied to a single source.',
+              ].map((item) => (
+                <div key={item} className="rounded-[22px] border border-white/10 bg-white/5 p-4 text-sm text-white/80">
+                  {item}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-12 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+          <div className="rounded-[30px] bg-[linear-gradient(135deg,#1b2421_0%,#29302d_100%)] p-6 text-white">
+            <p className="text-sm uppercase tracking-[0.25em] text-accent">Recent Activity Feed</p>
+            <p className="mt-2 text-sm text-white/70">Most recent first.</p>
+            <div className="mt-5 space-y-3">
+              {classifiedActivities.map((activity) => (
+                <div key={activity.id} className="rounded-[22px] border border-white/10 bg-white/5 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-white">{activity.name}</p>
+                      <p className="mt-1 text-sm text-white/70">{formatActivityDate(activity.start_date)}</p>
+                    </div>
+                    <span className="rounded-full bg-accent px-3 py-1 text-xs font-semibold text-panel">
+                      {activity.classification.label}
+                    </span>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-4 text-sm text-white/80">
+                    <span>{formatMiles(metersToMiles(activity.distance))}</span>
+                    <span>{formatHours(secondsToHours(activity.moving_time))}</span>
+                    <span>{formatFeet(metersToFeet(activity.total_elevation_gain))}</span>
+                  </div>
+                  <p className="mt-3 text-sm text-white/70">{activity.classification.reason}</p>
+                </div>
+              ))}
+              {classifiedActivities.length === 0 ? (
                 <p className="text-sm text-white/70">No recent Strava activities were found.</p>
               ) : null}
             </div>
+          </div>
+
+          <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+            <div className="flex items-center justify-between">
+              <p className="text-sm uppercase tracking-[0.25em] text-accent">Inference Inputs</p>
+              <a href="/settings" className="rounded-full border border-ink/10 px-3 py-1 text-xs text-ink/80">
+                Edit
+              </a>
+            </div>
+            {settings ? (
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-[24px] bg-paper p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-accent">Resting HR</p>
+                  <p className="mt-2 text-xl font-semibold">{settings.resting_hr ?? '-'}</p>
+                </div>
+                <div className="rounded-[24px] bg-paper p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-accent">Zone 3 Min</p>
+                  <p className="mt-2 text-xl font-semibold">{settings.hr_zone_3_min ?? '-'}</p>
+                </div>
+                <div className="rounded-[24px] bg-paper p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-accent">Zone 4 Min</p>
+                  <p className="mt-2 text-xl font-semibold">{settings.hr_zone_4_min ?? '-'}</p>
+                </div>
+                <div className="rounded-[24px] bg-paper p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-accent">Sleep Altitude</p>
+                  <p className="mt-2 text-xl font-semibold">{settings.baseline_sleep_altitude_ft ?? '-'} ft</p>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-5 rounded-[24px] border border-ink/10 bg-paper p-4">
+                <p className="text-sm text-ink/75">
+                  Save HR zones and baseline settings so workout-intent classification and future insights have real anchors.
+                </p>
+              </div>
+            )}
           </div>
         </section>
       </div>
