@@ -10,6 +10,7 @@ export default function Dashboard() {
   const [athlete, setAthlete] = useState(null);
   const [activities, setActivities] = useState([]);
   const [interventionCount, setInterventionCount] = useState(0);
+  const [settings, setSettings] = useState(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -19,6 +20,11 @@ export default function Dashboard() {
           const me = await meRes.json();
           setAthlete(me.athlete);
           setInterventionCount(me.interventionCount);
+          const settingsRes = await fetch('/api/settings');
+          if (settingsRes.ok) {
+            const settingsData = await settingsRes.json();
+            setSettings(settingsData.settings);
+          }
           const actRes = await fetch('/api/activities');
           if (actRes.ok) {
             const actData = await actRes.json();
@@ -64,6 +70,39 @@ export default function Dashboard() {
         >
           View History
         </a>
+        <a
+          href="/settings"
+          className="border border-secondary px-4 py-2 rounded-md font-semibold"
+        >
+          Athlete Settings
+        </a>
+      </div>
+      <div className="mb-6 rounded-2xl border border-secondary bg-secondary/20 p-4">
+        <p className="text-sm uppercase tracking-[0.2em] text-accent">Baseline Context</p>
+        {settings ? (
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <p className="text-xs text-slate-300">Sleep Altitude</p>
+              <p className="font-semibold">{settings.baseline_sleep_altitude_ft ?? '-'} ft</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-300">Training Altitude</p>
+              <p className="font-semibold">{settings.baseline_training_altitude_ft ?? '-'} ft</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-300">Resting HR</p>
+              <p className="font-semibold">{settings.resting_hr ?? '-'}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-300">Max HR</p>
+              <p className="font-semibold">{settings.max_hr ?? '-'}</p>
+            </div>
+          </div>
+        ) : (
+          <p className="mt-3 text-sm text-slate-300">
+            Add your baseline altitude and heart-rate settings so intervention analysis has real context.
+          </p>
+        )}
       </div>
       <div className="grid gap-4">
         {activities.slice(0, 5).map((act) => (
