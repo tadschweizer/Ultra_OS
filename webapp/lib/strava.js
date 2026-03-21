@@ -49,3 +49,22 @@ export async function getRecentActivities(accessToken, afterTimestamp) {
   });
   return response.data;
 }
+
+export async function getDetailedActivity(accessToken, activityId) {
+  const response = await axios.get(`https://www.strava.com/api/v3/activities/${activityId}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    params: { include_all_efforts: false },
+  });
+  return response.data;
+}
+
+export async function getActivityStreams(accessToken, activityId, keys) {
+  const response = await axios.get(`https://www.strava.com/api/v3/activities/${activityId}/streams`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    params: {
+      keys: keys.join(','),
+      key_by_type: true,
+    },
+  });
+  return response.data;
+}

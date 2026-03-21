@@ -46,6 +46,11 @@ function formatMinutes(totalSeconds) {
   return `${Math.round(totalSeconds / 60)} min`;
 }
 
+function formatFeet(value) {
+  if (value === null || value === undefined) return 'N/A';
+  return `${value.toLocaleString()} ft`;
+}
+
 function getActivityDate(activity) {
   if (!activity?.start_date) return '';
   return activity.start_date.slice(0, 10);
@@ -87,6 +92,8 @@ export default function LogIntervention() {
   const [form, setForm] = useState(createEmptyForm());
   const [message, setMessage] = useState('');
   const [loadingActivities, setLoadingActivities] = useState(true);
+  const [activityDetails, setActivityDetails] = useState(null);
+  const [loadingActivityDetails, setLoadingActivityDetails] = useState(false);
 
   useEffect(() => {
     async function fetchActivities() {
@@ -140,6 +147,33 @@ export default function LogIntervention() {
     () => activities.find((activity) => activity.id.toString() === form.activity_id),
     [activities, form.activity_id]
   );
+
+  useEffect(() => {
+    async function fetchActivityDetails() {
+      if (!form.activity_id) {
+        setActivityDetails(null);
+        return;
+      }
+
+      setLoadingActivityDetails(true);
+      try {
+        const res = await fetch(`/api/activity-details?id=${form.activity_id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setActivityDetails(data.activity);
+        } else {
+          setActivityDetails(null);
+        }
+      } catch (err) {
+        console.error(err);
+        setActivityDetails(null);
+      } finally {
+        setLoadingActivityDetails(false);
+      }
+    }
+
+    fetchActivityDetails();
+  }, [form.activity_id]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -424,10 +458,46 @@ export default function LogIntervention() {
                     </p>
                   </div>
                 </div>
-                <p className="text-xs text-slate-400">
-                  Current Strava summary data gives duration, distance, and elevation gain. Average altitude and
-                  acclimation metrics need a deeper activity data pull plus athlete baseline settings.
-                </p>
+                {loadingActivityDetails ? (
+                  <p className="text-xs text-slate-400">Loading deeper altitude details...</p>
+                ) : activityDetails ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-3">
+                      <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Start Altitude</p>
+                      <p className="mt-1 text-lg font-semibold text-white">{formatFeet(activityDetails.start_altitude_ft)}</p>
+                    </div>
+                    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-3">
+                      <p className="text-xs uppercase tracking-[0.2em] text-slate-500">End Altitude</p>
+                      <p className="mt-1 text-lg font-semibold text-white">{formatFeet(activityDetails.end_altitude_ft)}</p>
+                    </div>
+                    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-3">
+                      <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Average Altitude</p>
+                      <p className="mt-1 text-lg font-semibold text-white">{formatFeet(activityDetails.average_altitude_ft)}</p>
+                    </div>
+                    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-3">
+                      <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Peak Altitude</p>
+                      <p className="mt-1 text-lg font-semibold text-white">
+                        {formatFeet(activityDetails.peak_altitude_ft ?? activityDetails.elev_high_ft)}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-3">
+                      <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Lowest Altitude</p>
+                      <p className="mt-1 text-lg font-semibold text-white">
+                        {formatFeet(activityDetails.low_altitude_ft ?? activityDetails.elev_low_ft)}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-3">
+                      <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Acclimation Use</p>
+                      <p className="mt-1 text-sm text-slate-300">
+                        Compare this workout altitude against your stored sleep and training baselines in athlete settings.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-400">
+                    Activity streams were not available for this workout, so only summary elevation data could be shown.
+                  </p>
+                )}
               </div>
             ) : (
               <p className="mt-4 text-sm text-slate-400">
