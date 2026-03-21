@@ -13,9 +13,10 @@ export default async function handler(req, res) {
   }
   const { data, error } = await supabase
     .from('interventions')
-    .select('id, date, intervention_type, gi_response, physical_response, subjective_feel, activity_id, target_race, target_race_date')
+    .select('id, date, inserted_at, intervention_type, gi_response, physical_response, subjective_feel, activity_id, target_race, target_race_date, race_id, races(name, event_date, distance_miles, elevation_gain_ft, location, surface)')
     .eq('athlete_id', athleteId)
-    .order('date', { ascending: false });
+    .order('date', { ascending: false })
+    .order('inserted_at', { ascending: false });
   if (error) {
     res.status(500).json({ error: error.message });
     return;

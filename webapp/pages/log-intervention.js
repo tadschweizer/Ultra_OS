@@ -21,11 +21,13 @@ const timingOptions = [
   'Race morning',
 ];
 const trainingPhases = ['Base', 'Build', 'Peak', 'Taper', 'Recovery', 'Race week'];
+const surfaceOptions = ['Trail', 'Road', 'Mixed', 'Track', 'Gravel', 'Treadmill'];
 const defaultRaceStorageKey = 'ultraos-default-race';
 const trainingPhaseStorageKey = 'ultraos-default-training-phase';
 
 function createEmptyForm(defaultRace = {}) {
   return {
+    race_id: defaultRace.race_id || '',
     activity_id: '',
     date: '',
     intervention_type: '',
@@ -35,10 +37,22 @@ function createEmptyForm(defaultRace = {}) {
     gi_response: '',
     physical_response: '',
     subjective_feel: '',
-    training_phase: '',
+    training_phase: defaultRace.training_phase || '',
     target_race: defaultRace.target_race || '',
     target_race_date: defaultRace.target_race_date || '',
     notes: '',
+  };
+}
+
+function createRaceDraft(defaultRace = {}) {
+  return {
+    name: defaultRace.target_race || '',
+    event_date: defaultRace.target_race_date || '',
+    distance_miles: defaultRace.distance_miles || '',
+    elevation_gain_ft: defaultRace.elevation_gain_ft || '',
+    location: defaultRace.location || '',
+    surface: defaultRace.surface || '',
+    notes: defaultRace.notes || '',
   };
 }
 
@@ -50,6 +64,11 @@ function formatMinutes(totalSeconds) {
 function formatFeet(value) {
   if (value === null || value === undefined) return 'N/A';
   return `${value.toLocaleString()} ft`;
+}
+
+function formatDistanceMiles(value) {
+  if (value === null || value === undefined || value === '') return 'N/A';
+  return `${Number(value).toFixed(1)} mi`;
 }
 
 function getActivityDate(activity) {
@@ -89,6 +108,28 @@ function getPersistedTrainingPhase() {
   return window.localStorage.getItem(trainingPhaseStorageKey) || '';
 }
 
+function applyRaceToForm(currentForm, race) {
+  return {
+    ...currentForm,
+    race_id: race.id || '',
+    target_race: race.name || '',
+    target_race_date: race.event_date || '',
+  };
+}
+
+function mapRaceToDraft(race) {
+  if (!race) return createRaceDraft();
+  return {
+    name: race.name || '',
+    event_date: race.event_date || '',
+    distance_miles: race.distance_miles ?? '',
+    elevation_gain_ft: race.elevation_gain_ft ?? '',
+    location: race.location || '',
+    surface: race.surface || '',
+    notes: race.notes || '',
+  };
+}
+
 /**
  * Page containing a form to log a new intervention. It fetches recent
  * activities for selection and posts the form data to the API.
@@ -100,6 +141,13 @@ export default function LogIntervention() {
   const [loadingActivities, setLoadingActivities] = useState(true);
   const [activityDetails, setActivityDetails] = useState(null);
   const [loadingActivityDetails, setLoadingActivityDetails] = useState(false);
+  const [raceOptions, setRaceOptions] = useState([]);
+  const [loadingRaces, setLoadingRaces] = useState(false);
+  const [raceProfile, setRaceProfile] = useState(null);
+  const [raceDraft, setRaceDraft] = useState(createRaceDraft());
+  const [raceDraftOpen, setRaceDraftOpen] = useState(false);
+  const [raceStatus, setRaceStatus] = useState('');
+  const [savingRace, setSavingRace] = useState(false);
 
   useEffect(() => {
     async function fetchActivities() {
@@ -119,11 +167,16 @@ export default function LogIntervention() {
       }
     }
 
+    const persistedRace = getPersistedRace();
+    const persistedTrainingPhase = getPersistedTrainingPhase();
+
     setForm((currentForm) => ({
       ...currentForm,
-      ...getPersistedRace(),
-      training_phase: getPersistedTrainingPhase(),
+      ...persistedRace,
+      training_phase: persistedTrainingPhase,
     }));
+    setRaceProfile(persistedRace.race_profile || null);
+    setRaceDraft(mapRaceToDraft(persistedRace.race_profile || persistedRace));
 
     fetchActivities();
   }, []);
@@ -147,11 +200,13 @@ export default function LogIntervention() {
     window.localStorage.setItem(
       defaultRaceStorageKey,
       JSON.stringify({
+        race_id: form.race_id,
         target_race: form.target_race,
         target_race_date: form.target_race_date,
+        race_profile: raceProfile,
       })
     );
-  }, [form.target_race, form.target_race_date]);
+  }, [form.race_id, form.target_race, form.target_race_date, raceProfile]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -196,6 +251,41 @@ export default function LogIntervention() {
     fetchActivityDetails();
   }, [form.activity_id]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchRaces() {
+      const query = form.target_race.trim();
+      if (!query && !raceDraftOpen) {
+        setRaceOptions([]);
+        return;
+      }
+
+      setLoadingRaces(true);
+      try {
+        const url = query ? `/api/races?q=${encodeURIComponent(query)}` : '/api/races';
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) {
+          setRaceOptions(data.races || []);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        if (!cancelled) {
+          setLoadingRaces(false);
+        }
+      }
+    }
+
+    const timeoutId = setTimeout(fetchRaces, 180);
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
+  }, [form.target_race, raceDraftOpen]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -213,7 +303,67 @@ export default function LogIntervention() {
       return;
     }
 
+    if (name === 'target_race') {
+      setForm((currentForm) => ({
+        ...currentForm,
+        target_race: value,
+        race_id: raceProfile?.name === value ? currentForm.race_id : '',
+      }));
+      setRaceStatus('');
+      setRaceDraft((currentDraft) => ({ ...currentDraft, name: value }));
+      if (!raceProfile || raceProfile.name !== value) {
+        setRaceProfile(null);
+      }
+      return;
+    }
+
+    if (name === 'target_race_date') {
+      setForm((currentForm) => ({ ...currentForm, target_race_date: value }));
+      setRaceDraft((currentDraft) => ({ ...currentDraft, event_date: value }));
+      return;
+    }
+
     setForm((currentForm) => ({ ...currentForm, [name]: value }));
+  };
+
+  const handleRaceDraftChange = (e) => {
+    const { name, value } = e.target;
+    setRaceDraft((currentDraft) => ({ ...currentDraft, [name]: value }));
+  };
+
+  const selectRace = (race) => {
+    setRaceProfile(race);
+    setRaceDraft(mapRaceToDraft(race));
+    setRaceDraftOpen(false);
+    setRaceStatus(`Loaded race profile for ${race.name}.`);
+    setForm((currentForm) => applyRaceToForm(currentForm, race));
+  };
+
+  const handleRaceSave = async (e) => {
+    e.preventDefault();
+    setSavingRace(true);
+    setRaceStatus('');
+
+    try {
+      const res = await fetch('/api/races', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(raceDraft),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setRaceStatus(`Error: ${data.error}`);
+        return;
+      }
+
+      selectRace(data.race);
+    } catch (err) {
+      console.error(err);
+      setRaceStatus('Error: Failed to save race.');
+    } finally {
+      setSavingRace(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -227,7 +377,8 @@ export default function LogIntervention() {
     if (res.ok) {
       const persistedRace = getPersistedRace();
       setMessage('Intervention logged.');
-      setForm(createEmptyForm(persistedRace));
+      setForm(createEmptyForm({ ...persistedRace, training_phase: getPersistedTrainingPhase() }));
+      setRaceProfile(persistedRace.race_profile || raceProfile);
     } else {
       const { error } = await res.json();
       setMessage(`Error: ${error}`);
@@ -318,6 +469,37 @@ export default function LogIntervention() {
                 placeholder="Leadville 100"
                 className="w-full rounded-2xl border border-slate-600 bg-slate-950 px-4 py-3 text-white"
               />
+              <div className="mt-3 space-y-2">
+                {loadingRaces ? <p className="text-xs text-slate-400">Searching saved races...</p> : null}
+                {!loadingRaces && raceOptions.length > 0 ? (
+                  <div className="rounded-[22px] border border-slate-700 bg-slate-950/80 p-2">
+                    {raceOptions.map((race) => (
+                      <button
+                        key={race.id}
+                        type="button"
+                        onClick={() => selectRace(race)}
+                        className="flex w-full items-center justify-between rounded-[16px] px-3 py-3 text-left transition hover:bg-slate-900"
+                      >
+                        <span>
+                          <span className="block text-sm font-semibold text-white">{race.name}</span>
+                          <span className="block text-xs text-slate-400">
+                            {race.event_date || 'Date TBD'}
+                            {race.location ? ` - ${race.location}` : ''}
+                          </span>
+                        </span>
+                        <span className="text-[11px] uppercase tracking-[0.2em] text-accent">Use</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => setRaceDraftOpen((current) => !current)}
+                  className="text-xs font-semibold uppercase tracking-[0.2em] text-accent"
+                >
+                  {raceDraftOpen ? 'Hide race profile editor' : 'Create race profile'}
+                </button>
+              </div>
             </div>
 
             <div>
@@ -333,6 +515,107 @@ export default function LogIntervention() {
                 This race stays as the default target until the date passes.
               </p>
             </div>
+
+            {raceDraftOpen ? (
+              <div className="md:col-span-2 rounded-[24px] border border-slate-700 bg-slate-950/70 p-4">
+                <div className="mb-4">
+                  <p className="text-sm font-semibold text-white">Race Profile</p>
+                  <p className="mt-1 text-xs text-slate-400">
+                    Save a reusable race so date, distance, elevation, and location can auto-fill in future logs.
+                  </p>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-sm font-semibold text-slate-100">Race Name</label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={raceDraft.name}
+                      onChange={handleRaceDraftChange}
+                      className="w-full rounded-2xl border border-slate-600 bg-slate-950 px-4 py-3 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-semibold text-slate-100">Location</label>
+                    <input
+                      type="text"
+                      name="location"
+                      value={raceDraft.location}
+                      onChange={handleRaceDraftChange}
+                      className="w-full rounded-2xl border border-slate-600 bg-slate-950 px-4 py-3 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-semibold text-slate-100">Distance (mi)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      name="distance_miles"
+                      value={raceDraft.distance_miles}
+                      onChange={handleRaceDraftChange}
+                      className="w-full rounded-2xl border border-slate-600 bg-slate-950 px-4 py-3 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-semibold text-slate-100">Elevation Gain (ft)</label>
+                    <input
+                      type="number"
+                      name="elevation_gain_ft"
+                      value={raceDraft.elevation_gain_ft}
+                      onChange={handleRaceDraftChange}
+                      className="w-full rounded-2xl border border-slate-600 bg-slate-950 px-4 py-3 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-semibold text-slate-100">Surface</label>
+                    <select
+                      name="surface"
+                      value={raceDraft.surface}
+                      onChange={handleRaceDraftChange}
+                      className="w-full rounded-2xl border border-slate-600 bg-slate-950 px-4 py-3 text-white"
+                    >
+                      <option value="">Select Surface</option>
+                      {surfaceOptions.map((surface) => (
+                        <option key={surface} value={surface}>
+                          {surface}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-semibold text-slate-100">Event Date</label>
+                    <input
+                      type="date"
+                      name="event_date"
+                      value={raceDraft.event_date}
+                      onChange={handleRaceDraftChange}
+                      className="w-full rounded-2xl border border-slate-600 bg-slate-950 px-4 py-3 text-white"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="mb-1 block text-sm font-semibold text-slate-100">Race Notes</label>
+                    <textarea
+                      name="notes"
+                      value={raceDraft.notes}
+                      onChange={handleRaceDraftChange}
+                      rows={3}
+                      className="w-full rounded-2xl border border-slate-600 bg-slate-950 px-4 py-3 text-white"
+                    />
+                  </div>
+                </div>
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleRaceSave}
+                    disabled={savingRace}
+                    className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-primary"
+                  >
+                    {savingRace ? 'Saving...' : 'Save Race Profile'}
+                  </button>
+                  {raceStatus ? <p className="text-sm text-slate-300">{raceStatus}</p> : null}
+                </div>
+              </div>
+            ) : null}
 
             <div className="md:col-span-2">
               <label className="mb-1 block text-sm font-semibold text-slate-100">Protocol Details</label>
@@ -528,12 +811,38 @@ export default function LogIntervention() {
           </div>
 
           <div className="rounded-[28px] border border-slate-700 bg-secondary/40 p-6">
-            <p className="text-sm uppercase tracking-[0.25em] text-accent">Data Direction</p>
-            <ul className="mt-4 space-y-3 text-sm text-slate-300">
-              <li>Target race and race date persist until the race passes.</li>
-              <li>Rest-day interventions still work because activity linking remains optional.</li>
-              <li>Altitude context is only partially available from the current Strava endpoint.</li>
-            </ul>
+            <p className="text-sm uppercase tracking-[0.25em] text-accent">Race Context</p>
+            {raceProfile ? (
+              <div className="mt-4 space-y-3 text-sm text-slate-300">
+                <div className="rounded-2xl border border-slate-700 bg-slate-950/70 p-4">
+                  <p className="text-base font-semibold text-white">{raceProfile.name}</p>
+                  <p className="mt-1 text-slate-400">
+                    {raceProfile.event_date || 'Date TBD'}
+                    {raceProfile.location ? ` - ${raceProfile.location}` : ''}
+                  </p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-slate-700 bg-slate-950/70 p-4">
+                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Distance</p>
+                    <p className="mt-1 text-lg font-semibold text-white">
+                      {formatDistanceMiles(raceProfile.distance_miles)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-700 bg-slate-950/70 p-4">
+                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Elevation Gain</p>
+                    <p className="mt-1 text-lg font-semibold text-white">
+                      {formatFeet(raceProfile.elevation_gain_ft)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <ul className="mt-4 space-y-3 text-sm text-slate-300">
+                <li>Target race and race date persist until the race passes.</li>
+                <li>Saved race profiles remove repeated data entry from the log.</li>
+                <li>Rest-day interventions still work because activity linking remains optional.</li>
+              </ul>
+            )}
           </div>
         </aside>
       </div>

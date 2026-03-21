@@ -4,3 +4,4 @@ node_modules/
 .vercel/
 *.log
 webapp/.env.local
+webapp/supabase/.temp/

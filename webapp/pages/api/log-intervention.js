@@ -22,6 +22,7 @@ export default async function handler(req, res) {
   try {
     const { error } = await supabase.from('interventions').insert({
       athlete_id: athleteId,
+      race_id: body.race_id || null,
       activity_id: body.activity_id || null,
       date: body.date || null,
       intervention_type: body.intervention_type || null,

@@ -29,6 +29,22 @@ create table if not exists public.interventions (
   inserted_at timestamptz default now()
 );
 
+create table if not exists public.races (
+  id uuid primary key default gen_random_uuid(),
+  athlete_id uuid references public.athletes (id) on delete cascade,
+  name text not null,
+  event_date date,
+  distance_miles numeric,
+  elevation_gain_ft integer,
+  location text,
+  surface text,
+  notes text,
+  inserted_at timestamptz default now()
+);
+
+alter table public.interventions
+add column if not exists race_id uuid references public.races (id) on delete set null;
+
 create table if not exists public.athlete_settings (
   athlete_id uuid primary key references public.athletes (id) on delete cascade,
   baseline_sleep_altitude_ft integer,
@@ -57,3 +73,10 @@ create table if not exists public.athlete_settings (
 alter table public.athletes disable row level security;
 alter table public.interventions disable row level security;
 alter table public.athlete_settings disable row level security;
+alter table public.races disable row level security;
+
+grant usage on schema public to anon, authenticated;
+grant select, insert, update, delete on table public.athletes to anon, authenticated;
+grant select, insert, update, delete on table public.interventions to anon, authenticated;
+grant select, insert, update, delete on table public.athlete_settings to anon, authenticated;
+grant select, insert, update, delete on table public.races to anon, authenticated;
