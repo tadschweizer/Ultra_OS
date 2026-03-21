@@ -33,6 +33,7 @@ export default async function handler(req, res) {
       subjective_feel: body.subjective_feel ? parseInt(body.subjective_feel, 10) : null,
       training_phase: body.training_phase || null,
       target_race: body.target_race || null,
+      target_race_date: body.target_race_date || null,
       notes: body.notes || null,
     });
     if (error) {

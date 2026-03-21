@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   }
   const { data, error } = await supabase
     .from('interventions')
-    .select('id, date, intervention_type, gi_response, physical_response, subjective_feel, activity_id')
+    .select('id, date, intervention_type, gi_response, physical_response, subjective_feel, activity_id, target_race, target_race_date')
     .eq('athlete_id', athleteId)
     .order('date', { ascending: false });
   if (error) {

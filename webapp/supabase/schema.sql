@@ -24,6 +24,7 @@ create table if not exists public.interventions (
   subjective_feel integer,
   training_phase text,
   target_race text,
+  target_race_date date,
   notes text,
   inserted_at timestamptz default now()
 );
