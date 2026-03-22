@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   buildInsightCards,
   classifyActivity,
+  classifyActivityType,
   metersToFeet,
   metersToMiles,
   secondsToHours,
@@ -9,6 +10,7 @@ import {
   summarizeRecentTraining,
 } from '../lib/activityInsights';
 import NavMenu from '../components/NavMenu';
+import DashboardTabs from '../components/DashboardTabs';
 
 function formatActivityDate(startDate) {
   return new Date(startDate).toLocaleString();
@@ -74,6 +76,7 @@ export default function Dashboard() {
       activities.slice(0, 5).map((activity) => ({
         ...activity,
         classification: classifyActivity(activity, settings || {}),
+        activityType: classifyActivityType(activity),
       })),
     [activities, settings]
   );
@@ -83,6 +86,7 @@ export default function Dashboard() {
     { href: '/history', label: 'Intervention History', description: 'Review logged protocol history.' },
     { href: '/settings', label: 'Settings', description: 'Edit athlete baselines and HR zones.' },
     { href: '/log-intervention', label: 'Log Intervention', description: 'Create a new intervention entry.' },
+    { href: '/content', label: 'Content', description: 'Track the content and community workstream.' },
   ];
 
   if (loading) {
@@ -113,6 +117,8 @@ export default function Dashboard() {
             primaryLink={{ href: '/log-intervention', label: 'Log Intervention' }}
           />
         </div>
+
+        <DashboardTabs activeHref="/dashboard" />
 
         <div className="mb-12 overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(135deg,#f7f2ea_0%,#ebe1d4_55%,#dcc9b0_100%)] p-6 md:p-10">
           <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
@@ -241,9 +247,14 @@ export default function Dashboard() {
                       <p className="font-semibold text-white">{activity.name}</p>
                       <p className="mt-1 text-sm text-white/70">{formatActivityDate(activity.start_date)}</p>
                     </div>
-                    <span className="rounded-full bg-accent px-3 py-1 text-xs font-semibold text-panel">
-                      {activity.classification.label}
-                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="rounded-full bg-paper/15 px-3 py-1 text-xs font-semibold text-white">
+                        {activity.activityType.label}
+                      </span>
+                      <span className="rounded-full bg-accent px-3 py-1 text-xs font-semibold text-panel">
+                        {activity.classification.label}
+                      </span>
+                    </div>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-4 text-sm text-white/80">
                     <span>{formatMiles(metersToMiles(activity.distance))}</span>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { sortActivitiesMostRecentFirst } from '../lib/activityInsights';
+import { classifyActivityType, sortActivitiesMostRecentFirst } from '../lib/activityInsights';
 import NavMenu from '../components/NavMenu';
+import DashboardTabs from '../components/DashboardTabs';
 
 const interventionTypes = [
   'Heat acclimation',
@@ -160,6 +161,7 @@ export default function LogIntervention() {
     { href: '/log-intervention', label: 'Log Intervention', description: 'Create a new intervention entry.' },
     { href: '/history', label: 'Intervention History', description: 'Review intervention records.' },
     { href: '/settings', label: 'Settings', description: 'Edit athlete baselines and zones.' },
+    { href: '/content', label: 'Content', description: 'Track the content and community workstream.' },
     { href: '/', label: 'Landing Page', description: 'Return to the public entry page.' },
   ];
 
@@ -410,6 +412,8 @@ export default function LogIntervention() {
           />
         </div>
 
+        <DashboardTabs activeHref="/log-intervention" />
+
         <div className="mb-10 overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(135deg,#f7f2ea_0%,#ebe1d4_55%,#dcc9b0_100%)] p-6 md:p-10">
           <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
             <div>
@@ -445,11 +449,14 @@ export default function LogIntervention() {
                 <label className="mb-1 block text-sm font-semibold text-ink">Link to Activity</label>
                 <select name="activity_id" value={form.activity_id} onChange={handleChange} className={fieldClassName()}>
                   <option value="">{loadingActivities ? 'Loading activities...' : 'Select Activity'}</option>
-                  {activities.map((act) => (
-                    <option key={act.id} value={act.id}>
-                      {new Date(act.start_date).toLocaleDateString()} - {act.name}
-                    </option>
-                  ))}
+                  {activities.map((act) => {
+                    const activityType = classifyActivityType(act);
+                    return (
+                      <option key={act.id} value={act.id}>
+                        {new Date(act.start_date).toLocaleDateString()} - {activityType.label} - {act.name}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
 
@@ -611,6 +618,10 @@ export default function LogIntervention() {
                   <div>
                     <p className="font-semibold text-white">{selectedActivity.name}</p>
                     <p className="text-white/65">{new Date(selectedActivity.start_date).toLocaleString()}</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                    <p className="text-xs uppercase tracking-[0.2em] text-accent">Activity Type</p>
+                    <p className="mt-1 text-lg font-semibold text-white">{classifyActivityType(selectedActivity).label}</p>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="rounded-2xl border border-white/10 bg-white/5 p-3">

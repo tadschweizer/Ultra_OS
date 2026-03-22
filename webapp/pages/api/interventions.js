@@ -1,25 +1,125 @@
 import { supabase } from '../../lib/supabaseClient';
 import cookie from 'cookie';
 
-/**
- * API route to fetch all interventions for the logged in athlete.
- */
-export default async function handler(req, res) {
+function getAthleteId(req) {
   const cookies = cookie.parse(req.headers.cookie || '');
-  const athleteId = cookies.athlete_id;
+  return cookies.athlete_id;
+}
+
+function parseOptionalInt(value) {
+  if (value === '' || value === null || value === undefined) return null;
+  const parsed = parseInt(value, 10);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+function normalizePayload(body = {}, athleteId) {
+  return {
+    athlete_id: athleteId,
+    race_id: body.race_id || null,
+    activity_id: body.activity_id || null,
+    date: body.date || null,
+    intervention_type: body.intervention_type || null,
+    details: body.details || null,
+    dose_duration: body.dose_duration || null,
+    timing: body.timing || null,
+    gi_response: parseOptionalInt(body.gi_response),
+    physical_response: parseOptionalInt(body.physical_response),
+    subjective_feel: parseOptionalInt(body.subjective_feel),
+    training_phase: body.training_phase || null,
+    target_race: body.target_race || null,
+    target_race_date: body.target_race_date || null,
+    notes: body.notes || null,
+  };
+}
+
+const interventionSelect =
+  'id, athlete_id, date, inserted_at, intervention_type, details, dose_duration, timing, gi_response, physical_response, subjective_feel, activity_id, training_phase, target_race, target_race_date, race_id, notes, races(id, name, event_date, distance_miles, elevation_gain_ft, location, surface, notes)';
+
+export default async function handler(req, res) {
+  const athleteId = getAthleteId(req);
   if (!athleteId) {
     res.status(401).json({ error: 'Not authenticated' });
     return;
   }
-  const { data, error } = await supabase
-    .from('interventions')
-    .select('id, date, inserted_at, intervention_type, gi_response, physical_response, subjective_feel, activity_id, target_race, target_race_date, race_id, races(name, event_date, distance_miles, elevation_gain_ft, location, surface)')
-    .eq('athlete_id', athleteId)
-    .order('date', { ascending: false })
-    .order('inserted_at', { ascending: false });
-  if (error) {
-    res.status(500).json({ error: error.message });
+
+  if (req.method === 'GET') {
+    const interventionId = typeof req.query.id === 'string' ? req.query.id : null;
+    let query = supabase
+      .from('interventions')
+      .select(interventionSelect)
+      .eq('athlete_id', athleteId);
+
+    if (interventionId) {
+      const { data, error } = await query.eq('id', interventionId).single();
+      if (error) {
+        res.status(500).json({ error: error.message });
+        return;
+      }
+      res.status(200).json({ intervention: data });
+      return;
+    }
+
+    const { data, error } = await query
+      .order('date', { ascending: false })
+      .order('inserted_at', { ascending: false });
+
+    if (error) {
+      res.status(500).json({ error: error.message });
+      return;
+    }
+
+    res.status(200).json({ interventions: data || [] });
     return;
   }
-  res.status(200).json({ interventions: data || [] });
+
+  if (req.method === 'PUT') {
+    const interventionId = req.body?.id;
+    if (!interventionId) {
+      res.status(400).json({ error: 'Intervention id is required' });
+      return;
+    }
+
+    const payload = normalizePayload(req.body, athleteId);
+    delete payload.athlete_id;
+
+    const { data, error } = await supabase
+      .from('interventions')
+      .update(payload)
+      .eq('id', interventionId)
+      .eq('athlete_id', athleteId)
+      .select(interventionSelect)
+      .single();
+
+    if (error) {
+      res.status(500).json({ error: error.message });
+      return;
+    }
+
+    res.status(200).json({ intervention: data });
+    return;
+  }
+
+  if (req.method === 'DELETE') {
+    const interventionId = typeof req.query.id === 'string' ? req.query.id : req.body?.id;
+    if (!interventionId) {
+      res.status(400).json({ error: 'Intervention id is required' });
+      return;
+    }
+
+    const { error } = await supabase
+      .from('interventions')
+      .delete()
+      .eq('id', interventionId)
+      .eq('athlete_id', athleteId);
+
+    if (error) {
+      res.status(500).json({ error: error.message });
+      return;
+    }
+
+    res.status(200).json({ success: true });
+    return;
+  }
+
+  res.status(405).end();
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import NavMenu from '../components/NavMenu';
+import DashboardTabs from '../components/DashboardTabs';
 
 const sources = [
   {
@@ -53,6 +54,7 @@ export default function Connections() {
         { href: '/log-intervention', label: 'Log Intervention', description: 'Add a new intervention entry.' },
         { href: '/history', label: 'Intervention History', description: 'Review what you have logged.' },
         { href: '/settings', label: 'Settings', description: 'Adjust athlete baselines and zones.' },
+        { href: '/content', label: 'Content', description: 'Track the content and community workstream.' },
         { href: '/', label: 'Landing Page', description: 'Return to the marketing/login surface.' },
       ]
     : [{ href: '/', label: 'Landing Page', description: 'Return to the UltraOS entry page.' }];
@@ -79,6 +81,8 @@ export default function Connections() {
             primaryLink={athleteId ? { href: '/dashboard', label: 'UltraOS Home' } : { href: '/', label: 'Landing Page', variant: 'secondary' }}
           />
         </div>
+
+        {athleteId ? <DashboardTabs activeHref="/connections" /> : null}
 
         <div className="mb-10 overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(135deg,#f7f2ea_0%,#ebe1d4_55%,#dcc9b0_100%)] p-6 md:p-10">
           <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">

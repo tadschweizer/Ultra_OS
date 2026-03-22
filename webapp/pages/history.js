@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import NavMenu from '../components/NavMenu';
+import DashboardTabs from '../components/DashboardTabs';
 
 function formatRaceSummary(race) {
   if (!race) return 'No saved race profile';
@@ -19,6 +20,7 @@ export default function History() {
     { href: '/history', label: 'Intervention History', description: 'Review intervention records.' },
     { href: '/log-intervention', label: 'Log Intervention', description: 'Create a new intervention entry.' },
     { href: '/settings', label: 'Settings', description: 'Edit baselines and zones.' },
+    { href: '/content', label: 'Content', description: 'Track the content and community workstream.' },
     { href: '/', label: 'Landing Page', description: 'Return to the public entry page.' },
   ];
 
@@ -58,6 +60,8 @@ export default function History() {
           />
         </div>
 
+        <DashboardTabs activeHref="/history" />
+
         <div className="mb-10 overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(135deg,#f7f2ea_0%,#ebe1d4_55%,#dcc9b0_100%)] p-6 md:p-10">
           <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
             <div>
@@ -93,9 +97,10 @@ export default function History() {
         ) : (
           <div className="space-y-4">
             {interventions.map((item) => (
-              <article
+              <a
                 key={item.id}
-                className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]"
+                href={`/interventions/${item.id}`}
+                className="block rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]"
               >
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
@@ -135,8 +140,11 @@ export default function History() {
                   <span className="rounded-full bg-paper px-3 py-2">
                     Elevation {item.races?.elevation_gain_ft ? `${item.races.elevation_gain_ft.toLocaleString()} ft` : 'n/a'}
                   </span>
+                  <span className="rounded-full bg-paper px-3 py-2">
+                    Open to edit
+                  </span>
                 </div>
-              </article>
+              </a>
             ))}
           </div>
         )}

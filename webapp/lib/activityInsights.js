@@ -4,6 +4,10 @@ export function sortActivitiesMostRecentFirst(activities = []) {
   );
 }
 
+function normalizeText(value) {
+  return (value || '').toString().toLowerCase();
+}
+
 export function metersToMiles(value) {
   if (!value) return 0;
   return value / 1609.34;
@@ -21,6 +25,70 @@ export function secondsToHours(value) {
 
 function includesAny(text, fragments) {
   return fragments.some((fragment) => text.includes(fragment));
+}
+
+export function classifyActivityType(activity = {}) {
+  const sportType = normalizeText(activity?.sport_type || activity?.type);
+  const text = `${normalizeText(activity?.name)} ${normalizeText(activity?.description)}`;
+  const elevationFeet = metersToFeet(activity?.total_elevation_gain);
+  const distanceMiles = metersToMiles(activity?.distance);
+
+  if (sportType.includes('virtualride')) {
+    return {
+      label: 'Virtual Ride',
+      family: 'bike',
+      reason: 'Strava marked the session as a virtual ride.',
+    };
+  }
+
+  if (sportType.includes('ride') || sportType.includes('ecycle')) {
+    return {
+      label: 'Bike Ride',
+      family: 'bike',
+      reason: 'Strava marked the session as a ride.',
+    };
+  }
+
+  if (sportType.includes('hike') || sportType.includes('walk')) {
+    return {
+      label: 'Hike',
+      family: 'hike',
+      reason: 'Strava marked the session as a hike or walk.',
+    };
+  }
+
+  if (sportType.includes('trailrun')) {
+    return {
+      label: 'Trail Run',
+      family: 'run',
+      reason: 'Strava marked the session as a trail run.',
+    };
+  }
+
+  if (sportType.includes('run')) {
+    if (
+      includesAny(text, ['trail', 'singletrack', 'mountain']) ||
+      (elevationFeet >= 800 && distanceMiles <= 15)
+    ) {
+      return {
+        label: 'Trail Run',
+        family: 'run',
+        reason: 'Run activity with trail language or terrain-heavy elevation profile.',
+      };
+    }
+
+    return {
+      label: 'Road Run',
+      family: 'run',
+      reason: 'Run activity without strong trail signals.',
+    };
+  }
+
+  return {
+    label: activity?.sport_type || activity?.type || 'General Activity',
+    family: 'other',
+    reason: 'Activity type is being passed through from the source.',
+  };
 }
 
 export function classifyActivity(activity, settings = {}) {
@@ -103,6 +171,7 @@ export function buildInsightCards(activities = [], interventionCount = 0, settin
   const classified = activities.slice(0, 12).map((activity) => ({
     ...activity,
     classification: classifyActivity(activity, settings),
+    activityType: classifyActivityType(activity),
   }));
 
   const thresholdCount = classified.filter(
@@ -113,6 +182,12 @@ export function buildInsightCards(activities = [], interventionCount = 0, settin
   ).length;
   const hillCount = classified.filter(
     (activity) => activity.classification.label === 'Hill Session'
+  ).length;
+  const trailRunCount = classified.filter(
+    (activity) => activity.activityType.label === 'Trail Run'
+  ).length;
+  const bikeRideCount = classified.filter(
+    (activity) => activity.activityType.family === 'bike'
   ).length;
 
   return [
@@ -129,6 +204,13 @@ export function buildInsightCards(activities = [], interventionCount = 0, settin
         thresholdCount + intervalCount + hillCount > 0
           ? `Recent sessions show ${thresholdCount} threshold, ${intervalCount} interval, and ${hillCount} hill-oriented workouts by title + HR heuristics.`
           : 'Workout intent is still mostly unclassified. Connecting planned workout descriptions later will make this far more reliable.',
+    },
+    {
+      title: 'Activity Type Read',
+      body:
+        trailRunCount + bikeRideCount > 0
+          ? `Recent training includes ${trailRunCount} trail runs and ${bikeRideCount} bike-oriented sessions, so intervention review can start separating modality instead of treating everything like generic mileage.`
+          : 'Activity modality is now being inferred from Strava sport type plus terrain signals. The next step is making this durable across every connected platform.',
     },
     {
       title: 'Future Parsing Path',
