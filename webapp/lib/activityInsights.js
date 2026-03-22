@@ -92,6 +92,7 @@ export function classifyActivityType(activity = {}) {
 }
 
 export function classifyActivity(activity, settings = {}) {
+  const activityType = classifyActivityType(activity);
   const text = `${activity?.name || ''} ${activity?.description || ''}`.toLowerCase();
   const avgHr = activity?.average_heartrate || 0;
   const movingHours = secondsToHours(activity?.moving_time);
@@ -101,6 +102,52 @@ export function classifyActivity(activity, settings = {}) {
   const hrZone2Max = settings?.hr_zone_2_max || 0;
   const hrZone3Min = settings?.hr_zone_3_min || 0;
   const hrZone4Min = settings?.hr_zone_4_min || 0;
+
+  if (activityType.family === 'run') {
+    const longRunDistance = activityType.label === 'Trail Run' ? 18 : 13;
+    const longRunHours = activityType.label === 'Trail Run' ? 2.75 : 2;
+
+    if (distanceMiles >= longRunDistance || movingHours >= longRunHours) {
+      return {
+        label: 'Long Run',
+        reason: 'Run modality plus duration or distance signals a long run.',
+      };
+    }
+  }
+
+  if (activityType.family === 'bike') {
+    if (
+      includesAny(text, ['interval', 'repeat', 'vo2', 'over-under']) ||
+      avgHr >= hrZone4Min
+    ) {
+      return {
+        label: 'Intervals',
+        reason: 'Bike session with repeat language or high average HR.',
+      };
+    }
+
+    if (
+      includesAny(text, ['threshold', 'tempo', 'sweet spot']) ||
+      (avgHr >= hrZone3Min && avgHr < hrZone4Min && movingHours >= 0.5)
+    ) {
+      return {
+        label: 'Threshold',
+        reason: 'Bike session with threshold language or sustained mid-high HR.',
+      };
+    }
+
+    if (distanceMiles >= 40 || movingHours >= 2.5) {
+      return {
+        label: 'Long Ride',
+        reason: 'Bike session duration or distance reads like an endurance ride.',
+      };
+    }
+
+    return {
+      label: 'Easy / Aerobic',
+      reason: 'Bike session without intensity signals.',
+    };
+  }
 
   if (
     includesAny(text, ['threshold', 'tempo', 'cruise']) ||

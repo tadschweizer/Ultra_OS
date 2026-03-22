@@ -127,10 +127,6 @@ export default function Dashboard() {
               <h1 className="font-display mt-4 max-w-4xl text-5xl leading-tight md:text-7xl">
                 Welcome back, {athlete.name}
               </h1>
-              <p className="mt-6 max-w-2xl text-lg leading-8 text-ink/80">
-                This is the logged-in UltraOS home page. It should be where you connect sources,
-                view insights, track trends, log new interventions, and review intervention history.
-              </p>
               <div className="mt-8 flex flex-wrap gap-4">
                 <a href="/connections" className="rounded-full bg-ink px-6 py-3 font-semibold text-paper">
                   Add Connection / Source
@@ -175,24 +171,20 @@ export default function Dashboard() {
           <article className="rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
             <p className="text-sm uppercase tracking-[0.22em] text-accent">Connections</p>
             <p className="mt-4 text-3xl font-semibold text-ink">1</p>
-            <p className="mt-2 text-sm text-ink/75">Strava is live. More sources should stack here over time.</p>
           </article>
           <article className="rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
             <p className="text-sm uppercase tracking-[0.22em] text-accent">Activities</p>
             <p className="mt-4 text-3xl font-semibold text-ink">{trainingSummary.activityCount}</p>
-            <p className="mt-2 text-sm text-ink/75">Recent sessions in the active training window.</p>
           </article>
           <article className="rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
             <p className="text-sm uppercase tracking-[0.22em] text-accent">Interventions</p>
             <p className="mt-4 text-3xl font-semibold text-ink">{interventionCount}</p>
-            <p className="mt-2 text-sm text-ink/75">Protocols logged and ready to compare against training context.</p>
           </article>
           <article className="rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
             <p className="text-sm uppercase tracking-[0.22em] text-accent">AI Readiness</p>
             <p className="mt-4 text-3xl font-semibold text-ink">
               {settings?.hr_zone_3_min ? 'Seeded' : 'Needs setup'}
             </p>
-            <p className="mt-2 text-sm text-ink/75">Better zones and more paired logs produce better insights.</p>
           </article>
         </section>
 
@@ -261,7 +253,6 @@ export default function Dashboard() {
                     <span>{formatHours(secondsToHours(activity.moving_time))}</span>
                     <span>{formatFeet(metersToFeet(activity.total_elevation_gain))}</span>
                   </div>
-                  <p className="mt-3 text-sm text-white/70">{activity.classification.reason}</p>
                 </div>
               ))}
               {classifiedActivities.length === 0 ? (

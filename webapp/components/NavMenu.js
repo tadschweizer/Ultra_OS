@@ -61,9 +61,6 @@ export default function NavMenu({ label = 'Menu', links = [], primaryLink = null
               className="block rounded-[18px] px-4 py-3 text-sm font-medium text-ink transition hover:bg-paper"
             >
               <span className="block">{link.label}</span>
-              {link.description ? (
-                <span className="mt-1 block text-xs text-ink/55">{link.description}</span>
-              ) : null}
             </a>
           ))}
         </div>
