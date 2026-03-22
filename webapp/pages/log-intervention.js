@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { sortActivitiesMostRecentFirst } from '../lib/activityInsights';
+import NavMenu from '../components/NavMenu';
 
 const interventionTypes = [
   'Heat acclimation',
@@ -153,6 +154,14 @@ export default function LogIntervention() {
   const [raceDraftOpen, setRaceDraftOpen] = useState(false);
   const [raceStatus, setRaceStatus] = useState('');
   const [savingRace, setSavingRace] = useState(false);
+  const navLinks = [
+    { href: '/dashboard', label: 'UltraOS Home', description: 'Insights, trends, and recent training.' },
+    { href: '/connections', label: 'Connections', description: 'Manage linked sources.' },
+    { href: '/log-intervention', label: 'Log Intervention', description: 'Create a new intervention entry.' },
+    { href: '/history', label: 'Intervention History', description: 'Review intervention records.' },
+    { href: '/settings', label: 'Settings', description: 'Edit athlete baselines and zones.' },
+    { href: '/', label: 'Landing Page', description: 'Return to the public entry page.' },
+  ];
 
   useEffect(() => {
     async function fetchActivities() {
@@ -394,11 +403,11 @@ export default function LogIntervention() {
           <div>
             <p className="text-xs uppercase tracking-[0.35em] text-accent">UltraOS Intervention Log</p>
           </div>
-          <div className="flex flex-wrap gap-3">
-            <a href="/dashboard" className="rounded-full border border-ink/10 px-4 py-2 text-sm font-medium text-ink">UltraOS Home</a>
-            <a href="/connections" className="rounded-full border border-ink/10 px-4 py-2 text-sm font-medium text-ink">Connections</a>
-            <a href="/history" className="rounded-full bg-ink px-5 py-2 text-sm font-semibold text-paper">History</a>
-          </div>
+          <NavMenu
+            label="Intervention navigation"
+            links={navLinks}
+            primaryLink={{ href: '/history', label: 'History' }}
+          />
         </div>
 
         <div className="mb-10 overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(135deg,#f7f2ea_0%,#ebe1d4_55%,#dcc9b0_100%)] p-6 md:p-10">

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import NavMenu from '../components/NavMenu';
 
 const emptySettings = {
   baseline_sleep_altitude_ft: '',
@@ -120,6 +121,14 @@ export default function Settings() {
   const [form, setForm] = useState(emptySettings);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
+  const navLinks = [
+    { href: '/dashboard', label: 'UltraOS Home', description: 'Insights, trends, and recent training.' },
+    { href: '/connections', label: 'Connections', description: 'Manage linked sources.' },
+    { href: '/log-intervention', label: 'Log Intervention', description: 'Create a new intervention entry.' },
+    { href: '/history', label: 'Intervention History', description: 'Review intervention records.' },
+    { href: '/settings', label: 'Settings', description: 'Edit athlete baselines and zones.' },
+    { href: '/', label: 'Landing Page', description: 'Return to the public entry page.' },
+  ];
 
   useEffect(() => {
     async function loadSettings() {
@@ -172,11 +181,11 @@ export default function Settings() {
           <div>
             <p className="text-xs uppercase tracking-[0.35em] text-accent">UltraOS Settings</p>
           </div>
-          <div className="flex flex-wrap gap-3">
-            <a href="/dashboard" className="rounded-full border border-ink/10 px-4 py-2 text-sm font-medium text-ink">UltraOS Home</a>
-            <a href="/connections" className="rounded-full border border-ink/10 px-4 py-2 text-sm font-medium text-ink">Connections</a>
-            <a href="/log-intervention" className="rounded-full bg-ink px-5 py-2 text-sm font-semibold text-paper">Log Intervention</a>
-          </div>
+          <NavMenu
+            label="Settings navigation"
+            links={navLinks}
+            primaryLink={{ href: '/log-intervention', label: 'Log Intervention' }}
+          />
         </div>
 
         <div className="mb-10 overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(135deg,#f7f2ea_0%,#ebe1d4_55%,#dcc9b0_100%)] p-6 md:p-10">

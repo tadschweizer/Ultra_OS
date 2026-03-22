@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import NavMenu from '../components/NavMenu';
 
 const sources = [
   {
@@ -45,6 +46,16 @@ const sources = [
 
 export default function Connections() {
   const [athleteId, setAthleteId] = useState(null);
+  const navLinks = athleteId
+    ? [
+        { href: '/dashboard', label: 'UltraOS Home', description: 'Insights, trends, and recent training.' },
+        { href: '/connections', label: 'Connections', description: 'Manage linked training sources.' },
+        { href: '/log-intervention', label: 'Log Intervention', description: 'Add a new intervention entry.' },
+        { href: '/history', label: 'Intervention History', description: 'Review what you have logged.' },
+        { href: '/settings', label: 'Settings', description: 'Adjust athlete baselines and zones.' },
+        { href: '/', label: 'Landing Page', description: 'Return to the marketing/login surface.' },
+      ]
+    : [{ href: '/', label: 'Landing Page', description: 'Return to the UltraOS entry page.' }];
 
   useEffect(() => {
     if (typeof document !== 'undefined') {
@@ -62,16 +73,11 @@ export default function Connections() {
           <div>
             <p className="text-xs uppercase tracking-[0.35em] text-accent">UltraOS Connections</p>
           </div>
-          <div className="flex flex-wrap gap-3">
-            <a href="/" className="rounded-full border border-ink/10 px-4 py-2 text-sm font-medium text-ink">
-              Home
-            </a>
-            {athleteId ? (
-              <a href="/dashboard" className="rounded-full bg-ink px-5 py-2 text-sm font-semibold text-paper">
-                Dashboard
-              </a>
-            ) : null}
-          </div>
+          <NavMenu
+            label="Connections navigation"
+            links={navLinks}
+            primaryLink={athleteId ? { href: '/dashboard', label: 'UltraOS Home' } : { href: '/', label: 'Landing Page', variant: 'secondary' }}
+          />
         </div>
 
         <div className="mb-10 overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(135deg,#f7f2ea_0%,#ebe1d4_55%,#dcc9b0_100%)] p-6 md:p-10">

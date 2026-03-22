@@ -1,7 +1,17 @@
 import { useEffect, useState } from 'react';
+import NavMenu from '../components/NavMenu';
 
 export default function Home() {
   const [athleteId, setAthleteId] = useState(null);
+  const navLinks = athleteId
+    ? [
+        { href: '/dashboard', label: 'UltraOS Home', description: 'Insights, trends, and recent training.' },
+        { href: '/connections', label: 'Connections', description: 'Link Strava and future sources.' },
+        { href: '/log-intervention', label: 'Log Intervention', description: 'Add a new protocol entry.' },
+        { href: '/history', label: 'Intervention History', description: 'Review your logged interventions.' },
+        { href: '/settings', label: 'Settings', description: 'Update athlete baselines and zones.' },
+      ]
+    : [{ href: '/api/strava/login', label: 'Login', description: 'Enter UltraOS with the current connected login flow.' }];
 
   useEffect(() => {
     if (typeof document !== 'undefined') {
@@ -19,11 +29,11 @@ export default function Home() {
           <div>
             <p className="text-xs uppercase tracking-[0.35em] text-accent">UltraOS</p>
           </div>
-          <div className="flex flex-wrap gap-3">
-            <a href="/connections" className="rounded-full bg-ink px-5 py-2 text-sm font-semibold text-paper">
-              {athleteId ? 'Connections' : 'Login'}
-            </a>
-          </div>
+          <NavMenu
+            label="Homepage navigation"
+            links={navLinks}
+            primaryLink={{ href: athleteId ? '/dashboard' : '/api/strava/login', label: athleteId ? 'UltraOS Home' : 'Login' }}
+          />
         </div>
 
         <div className="mb-12 overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(135deg,#f7f2ea_0%,#ebe1d4_55%,#dcc9b0_100%)] p-6 md:p-10">
@@ -39,12 +49,12 @@ export default function Home() {
                 decision was supposed to improve.
               </p>
               <div className="mt-8 flex flex-wrap gap-4">
-                <a href="/connections" className="rounded-full bg-ink px-6 py-3 font-semibold text-paper">
-                  {athleteId ? 'Open Connections' : 'Login'}
+                <a href={athleteId ? '/dashboard' : '/api/strava/login'} className="rounded-full bg-ink px-6 py-3 font-semibold text-paper">
+                  {athleteId ? 'Open UltraOS Home' : 'Login to UltraOS'}
                 </a>
                 {athleteId ? (
-                  <a href="/dashboard" className="rounded-full border border-ink/20 bg-white/50 px-6 py-3 font-semibold text-ink">
-                    Dashboard
+                  <a href="/connections" className="rounded-full border border-ink/20 bg-white/50 px-6 py-3 font-semibold text-ink">
+                    Add Connection / Source
                   </a>
                 ) : null}
               </div>

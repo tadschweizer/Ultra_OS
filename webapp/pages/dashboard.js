@@ -8,6 +8,7 @@ import {
   sortActivitiesMostRecentFirst,
   summarizeRecentTraining,
 } from '../lib/activityInsights';
+import NavMenu from '../components/NavMenu';
 
 function formatActivityDate(startDate) {
   return new Date(startDate).toLocaleString();
@@ -76,6 +77,13 @@ export default function Dashboard() {
       })),
     [activities, settings]
   );
+  const navLinks = [
+    { href: '/', label: 'Landing Page', description: 'Return to the UltraOS entry page.' },
+    { href: '/connections', label: 'Connections', description: 'Link Strava and future platforms.' },
+    { href: '/history', label: 'Intervention History', description: 'Review logged protocol history.' },
+    { href: '/settings', label: 'Settings', description: 'Edit athlete baselines and HR zones.' },
+    { href: '/log-intervention', label: 'Log Intervention', description: 'Create a new intervention entry.' },
+  ];
 
   if (loading) {
     return <div className="p-4">Loading...</div>;
@@ -99,17 +107,11 @@ export default function Dashboard() {
           <div>
             <p className="text-xs uppercase tracking-[0.35em] text-accent">UltraOS Home</p>
           </div>
-          <div className="flex flex-wrap gap-3">
-            <a href="/connections" className="rounded-full border border-ink/10 px-4 py-2 text-sm font-medium text-ink">
-              Connections
-            </a>
-            <a href="/history" className="rounded-full border border-ink/10 px-4 py-2 text-sm font-medium text-ink">
-              History
-            </a>
-            <a href="/log-intervention" className="rounded-full bg-ink px-5 py-2 text-sm font-semibold text-paper">
-              Log Intervention
-            </a>
-          </div>
+          <NavMenu
+            label="UltraOS home navigation"
+            links={navLinks}
+            primaryLink={{ href: '/log-intervention', label: 'Log Intervention' }}
+          />
         </div>
 
         <div className="mb-12 overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(135deg,#f7f2ea_0%,#ebe1d4_55%,#dcc9b0_100%)] p-6 md:p-10">
@@ -125,7 +127,7 @@ export default function Dashboard() {
               </p>
               <div className="mt-8 flex flex-wrap gap-4">
                 <a href="/connections" className="rounded-full bg-ink px-6 py-3 font-semibold text-paper">
-                  UltraOS Connections
+                  Add Connection / Source
                 </a>
                 <a href="/log-intervention" className="rounded-full border border-ink/20 bg-white/50 px-6 py-3 font-semibold text-ink">
                   Log an Intervention

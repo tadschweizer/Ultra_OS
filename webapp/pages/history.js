@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import NavMenu from '../components/NavMenu';
 
 function formatRaceSummary(race) {
   if (!race) return 'No saved race profile';
@@ -12,6 +13,14 @@ function formatRaceSummary(race) {
 export default function History() {
   const [interventions, setInterventions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navLinks = [
+    { href: '/dashboard', label: 'UltraOS Home', description: 'Insights, trends, and recent training.' },
+    { href: '/connections', label: 'Connections', description: 'Manage linked sources.' },
+    { href: '/history', label: 'Intervention History', description: 'Review intervention records.' },
+    { href: '/log-intervention', label: 'Log Intervention', description: 'Create a new intervention entry.' },
+    { href: '/settings', label: 'Settings', description: 'Edit baselines and zones.' },
+    { href: '/', label: 'Landing Page', description: 'Return to the public entry page.' },
+  ];
 
   useEffect(() => {
     async function fetchInterventions() {
@@ -42,17 +51,11 @@ export default function History() {
           <div>
             <p className="text-xs uppercase tracking-[0.35em] text-accent">UltraOS History</p>
           </div>
-          <div className="flex flex-wrap gap-3">
-            <a href="/" className="rounded-full border border-ink/10 px-4 py-2 text-sm font-medium text-ink">
-              Home
-            </a>
-            <a href="/dashboard" className="rounded-full border border-ink/10 px-4 py-2 text-sm font-medium text-ink">
-              Dashboard
-            </a>
-            <a href="/log-intervention" className="rounded-full bg-ink px-5 py-2 text-sm font-semibold text-paper">
-              Log Intervention
-            </a>
-          </div>
+          <NavMenu
+            label="History navigation"
+            links={navLinks}
+            primaryLink={{ href: '/log-intervention', label: 'Log Intervention' }}
+          />
         </div>
 
         <div className="mb-10 overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(135deg,#f7f2ea_0%,#ebe1d4_55%,#dcc9b0_100%)] p-6 md:p-10">
