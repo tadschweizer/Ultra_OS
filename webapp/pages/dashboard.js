@@ -70,7 +70,7 @@ export default function Dashboard() {
   );
   const classifiedActivities = useMemo(
     () =>
-      activities.slice(0, 6).map((activity) => ({
+      activities.slice(0, 5).map((activity) => ({
         ...activity,
         classification: classifyActivity(activity, settings || {}),
       })),
@@ -97,17 +97,14 @@ export default function Dashboard() {
       <div className="mx-auto max-w-6xl">
         <div className="mb-6 flex items-center justify-between rounded-full border border-ink/10 bg-white/70 px-4 py-3 backdrop-blur">
           <div>
-            <p className="text-xs uppercase tracking-[0.35em] text-accent">UltraOS Dashboard</p>
+            <p className="text-xs uppercase tracking-[0.35em] text-accent">UltraOS Home</p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <a href="/" className="rounded-full border border-ink/10 px-4 py-2 text-sm font-medium text-ink">
-              Home
-            </a>
             <a href="/connections" className="rounded-full border border-ink/10 px-4 py-2 text-sm font-medium text-ink">
               Connections
             </a>
-            <a href="/settings" className="rounded-full border border-ink/10 px-4 py-2 text-sm font-medium text-ink">
-              Settings
+            <a href="/history" className="rounded-full border border-ink/10 px-4 py-2 text-sm font-medium text-ink">
+              History
             </a>
             <a href="/log-intervention" className="rounded-full bg-ink px-5 py-2 text-sm font-semibold text-paper">
               Log Intervention
@@ -115,33 +112,34 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="mb-10 overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(135deg,#f7f2ea_0%,#ebe1d4_55%,#dcc9b0_100%)] p-6 md:p-10">
-          <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+        <div className="mb-12 overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(135deg,#f7f2ea_0%,#ebe1d4_55%,#dcc9b0_100%)] p-6 md:p-10">
+          <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
             <div>
-              <p className="text-sm uppercase tracking-[0.35em] text-accent">Training Intelligence</p>
+              <p className="text-sm uppercase tracking-[0.35em] text-accent">Training Intelligence Home</p>
               <h1 className="font-display mt-4 max-w-4xl text-5xl leading-tight md:text-7xl">
-                Hello, {athlete.name}
+                Welcome back, {athlete.name}
               </h1>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-ink/80">
-                This is the operating surface. Weekly mileage, vertical, time, workout intent,
-                intervention coverage, and future AI pattern detection belong here.
+                This is the logged-in UltraOS home page. It should be where you connect sources,
+                view insights, track trends, log new interventions, and review intervention history.
               </p>
               <div className="mt-8 flex flex-wrap gap-4">
-                <a href="/log-intervention" className="rounded-full bg-ink px-6 py-3 font-semibold text-paper">
+                <a href="/connections" className="rounded-full bg-ink px-6 py-3 font-semibold text-paper">
+                  UltraOS Connections
+                </a>
+                <a href="/log-intervention" className="rounded-full border border-ink/20 bg-white/50 px-6 py-3 font-semibold text-ink">
                   Log an Intervention
                 </a>
                 <a href="/history" className="rounded-full border border-ink/20 bg-white/50 px-6 py-3 font-semibold text-ink">
-                  Review History
+                  Intervention History
                 </a>
               </div>
             </div>
 
             <div className="rounded-[34px] bg-panel p-6 text-white shadow-[0_40px_100px_rgba(0,0,0,0.28)]">
               <div className="flex items-center justify-between">
-                <p className="text-sm uppercase tracking-[0.25em] text-accent">7-Day Training Snapshot</p>
-                <a href="/connections" className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/80">
-                  Manage Sources
-                </a>
+                <p className="text-sm uppercase tracking-[0.25em] text-accent">Current Trend Window</p>
+                <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/80">Last 7 Days</span>
               </div>
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
                 <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
@@ -167,32 +165,35 @@ export default function Dashboard() {
 
         <section className="grid gap-4 md:grid-cols-4">
           <article className="rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+            <p className="text-sm uppercase tracking-[0.22em] text-accent">Connections</p>
+            <p className="mt-4 text-3xl font-semibold text-ink">1</p>
+            <p className="mt-2 text-sm text-ink/75">Strava is live. More sources should stack here over time.</p>
+          </article>
+          <article className="rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
             <p className="text-sm uppercase tracking-[0.22em] text-accent">Activities</p>
             <p className="mt-4 text-3xl font-semibold text-ink">{trainingSummary.activityCount}</p>
-            <p className="mt-2 text-sm text-ink/75">Sessions in the last 7 days.</p>
+            <p className="mt-2 text-sm text-ink/75">Recent sessions in the active training window.</p>
           </article>
           <article className="rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-            <p className="text-sm uppercase tracking-[0.22em] text-accent">Threshold Readiness</p>
+            <p className="text-sm uppercase tracking-[0.22em] text-accent">Interventions</p>
+            <p className="mt-4 text-3xl font-semibold text-ink">{interventionCount}</p>
+            <p className="mt-2 text-sm text-ink/75">Protocols logged and ready to compare against training context.</p>
+          </article>
+          <article className="rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+            <p className="text-sm uppercase tracking-[0.22em] text-accent">AI Readiness</p>
             <p className="mt-4 text-3xl font-semibold text-ink">
-              {settings?.hr_zone_3_min ? 'Configured' : 'Needs zones'}
+              {settings?.hr_zone_3_min ? 'Seeded' : 'Needs setup'}
             </p>
-            <p className="mt-2 text-sm text-ink/75">HR-zone-driven workout classification depends on saved zones.</p>
-          </article>
-          <article className="rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-            <p className="text-sm uppercase tracking-[0.22em] text-accent">Source Coverage</p>
-            <p className="mt-4 text-3xl font-semibold text-ink">1</p>
-            <p className="mt-2 text-sm text-ink/75">Strava is active. Garmin, COROS, Zwift, and TrainingPeaks are next.</p>
-          </article>
-          <article className="rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-            <p className="text-sm uppercase tracking-[0.22em] text-accent">AI Status</p>
-            <p className="mt-4 text-3xl font-semibold text-ink">Seeded</p>
-            <p className="mt-2 text-sm text-ink/75">Heuristics are live. Personalized causal claims still need more paired data.</p>
+            <p className="mt-2 text-sm text-ink/75">Better zones and more paired logs produce better insights.</p>
           </article>
         </section>
 
-        <section className="mt-12 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+        <section className="mt-12 grid gap-6 lg:grid-cols-[1fr_1fr]">
           <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-            <p className="text-sm uppercase tracking-[0.25em] text-accent">AI Insight Queue</p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm uppercase tracking-[0.25em] text-accent">AI Insights</p>
+              <span className="rounded-full bg-paper px-3 py-1 text-xs text-ink/70">Early Heuristics</span>
+            </div>
             <div className="mt-5 space-y-4">
               {insightCards.map((card) => (
                 <div key={card.title} className="rounded-[24px] bg-paper p-4">
@@ -205,16 +206,16 @@ export default function Dashboard() {
 
           <div className="rounded-[30px] bg-[linear-gradient(135deg,#1b2421_0%,#29302d_100%)] p-6 text-white">
             <div className="flex items-center justify-between">
-              <p className="text-sm uppercase tracking-[0.25em] text-accent">Connection Roadmap</p>
+              <p className="text-sm uppercase tracking-[0.25em] text-accent">Trend Paths</p>
               <a href="/connections" className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/80">
-                Open
+                Expand Sources
               </a>
             </div>
             <div className="mt-5 space-y-3">
               {[
-                'Strava connected now for activity + altitude context.',
-                'TrainingPeaks descriptions are the clearest path to workout-intent parsing.',
-                'Garmin, COROS, and Zwift should coexist so UltraOS is not tied to a single source.',
+                'Weekly mileage, vertical, and time are live now.',
+                'Workout type inference is seeded from HR + activity title heuristics.',
+                'TrainingPeaks-style workout descriptions are the next big unlock for real session intent.',
               ].map((item) => (
                 <div key={item} className="rounded-[22px] border border-white/10 bg-white/5 p-4 text-sm text-white/80">
                   {item}
@@ -226,8 +227,10 @@ export default function Dashboard() {
 
         <section className="mt-12 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="rounded-[30px] bg-[linear-gradient(135deg,#1b2421_0%,#29302d_100%)] p-6 text-white">
-            <p className="text-sm uppercase tracking-[0.25em] text-accent">Recent Activity Feed</p>
-            <p className="mt-2 text-sm text-white/70">Most recent first.</p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm uppercase tracking-[0.25em] text-accent">Recent Training</p>
+              <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/80">Most Recent First</span>
+            </div>
             <div className="mt-5 space-y-3">
               {classifiedActivities.map((activity) => (
                 <div key={activity.id} className="rounded-[22px] border border-white/10 bg-white/5 p-4">
@@ -258,7 +261,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between">
               <p className="text-sm uppercase tracking-[0.25em] text-accent">Inference Inputs</p>
               <a href="/settings" className="rounded-full border border-ink/10 px-3 py-1 text-xs text-ink/80">
-                Edit
+                Edit Settings
               </a>
             </div>
             {settings ? (
@@ -283,7 +286,7 @@ export default function Dashboard() {
             ) : (
               <div className="mt-5 rounded-[24px] border border-ink/10 bg-paper p-4">
                 <p className="text-sm text-ink/75">
-                  Save HR zones and baseline settings so workout-intent classification and future insights have real anchors.
+                  Save HR zones and baseline settings so training trends and future insight quality improve.
                 </p>
               </div>
             )}
