@@ -91,10 +91,6 @@ export default function Connections() {
               <h1 className="font-display mt-4 max-w-4xl text-5xl leading-tight md:text-7xl">
                 Connect the sources behind your training.
               </h1>
-              <p className="mt-6 max-w-2xl text-lg leading-8 text-ink/80">
-                UltraOS should support multiple sources at the same time. This is where those connections belong.
-                Strava is active now. The rest of the integration surface is being seeded here deliberately.
-              </p>
             </div>
 
             <div className="rounded-[34px] bg-panel p-6 text-white shadow-[0_40px_100px_rgba(0,0,0,0.28)]">
@@ -102,15 +98,9 @@ export default function Connections() {
               <div className="mt-5 space-y-4">
                 <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
                   <p className="text-sm font-semibold text-white">One UltraOS login, multiple data sources.</p>
-                  <p className="mt-2 text-sm text-white/75">
-                    The app should not read like a Strava-only product. It should read like an intelligence layer that can sit above several ecosystems.
-                  </p>
                 </div>
                 <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
                   <p className="text-sm font-semibold text-white">Workout-intent parsing needs planned workout text.</p>
-                  <p className="mt-2 text-sm text-white/75">
-                    TrainingPeaks descriptions are the best future path for understanding sessions like threshold work and hill strides.
-                  </p>
                 </div>
               </div>
             </div>
@@ -124,7 +114,6 @@ export default function Connections() {
                 <p className="text-sm uppercase tracking-[0.22em] text-accent">{source.name}</p>
                 <span className="rounded-full bg-paper px-3 py-1 text-xs text-ink/70">{source.status}</span>
               </div>
-              <p className="mt-4 text-sm leading-6 text-ink/80">{source.description}</p>
               {source.enabled ? (
                 <a href={source.href} className="mt-6 inline-flex rounded-full bg-ink px-5 py-3 text-sm font-semibold text-paper">
                   {athleteId ? 'Reconnect' : source.action}

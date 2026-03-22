@@ -43,11 +43,6 @@ export default function Home() {
               <h1 className="font-display mt-4 max-w-4xl text-5xl leading-tight md:text-7xl">
                 Track the interventions behind race-day outcomes.
               </h1>
-              <p className="mt-6 max-w-2xl text-lg leading-8 text-ink/80">
-                UltraOS is not a training log. It is the layer that captures heat blocks, gut work,
-                bicarbonate protocols, sleep manipulation, altitude loading, and the target race each
-                decision was supposed to improve.
-              </p>
               <div className="mt-8 flex flex-wrap gap-4">
                 <a href={athleteId ? '/dashboard' : '/api/strava/login'} className="rounded-full bg-ink px-6 py-3 font-semibold text-paper">
                   {athleteId ? 'Open UltraOS Home' : 'Login to UltraOS'}
@@ -62,15 +57,12 @@ export default function Home() {
               <div className="mt-8 grid gap-3 sm:grid-cols-3">
                 <div className="rounded-[24px] bg-white/70 p-4">
                   <p className="text-xs uppercase tracking-[0.22em] text-accent">Interventions</p>
-                  <p className="mt-2 text-sm text-ink/80">Track the protocol itself, not just the workout it sat beside.</p>
                 </div>
                 <div className="rounded-[24px] bg-white/70 p-4">
                   <p className="text-xs uppercase tracking-[0.22em] text-accent">Connections</p>
-                  <p className="mt-2 text-sm text-ink/80">Strava now. Garmin, COROS, Zwift, and TrainingPeaks next.</p>
                 </div>
                 <div className="rounded-[24px] bg-white/70 p-4">
                   <p className="text-xs uppercase tracking-[0.22em] text-accent">Insights</p>
-                  <p className="mt-2 text-sm text-ink/80">The dashboard is where AI and training intelligence should live, not the landing page.</p>
                 </div>
               </div>
             </div>
@@ -83,21 +75,12 @@ export default function Home() {
               <div className="mt-5 space-y-4">
                 <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
                   <p className="text-sm font-semibold text-white">Training logs miss the protocol layer.</p>
-                  <p className="mt-2 text-sm text-white/75">
-                    They tell you what workout happened. They do not tell you whether the prep choices around that workout were useful.
-                  </p>
                 </div>
                 <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
                   <p className="text-sm font-semibold text-white">UltraOS is building the intervention dataset.</p>
-                  <p className="mt-2 text-sm text-white/75">
-                    Every entry becomes structured evidence for future AI signals about what actually helps your performance.
-                  </p>
                 </div>
                 <div className="rounded-[24px] border border-accent/30 bg-accent/10 p-4">
                   <p className="text-xs uppercase tracking-[0.2em] text-accent">Current Path</p>
-                  <p className="mt-2 text-sm text-white/80">
-                    Login, connect your sources, then use the dashboard as the real operating surface.
-                  </p>
                 </div>
               </div>
             </div>
@@ -121,7 +104,6 @@ export default function Home() {
           ].map((item) => (
             <article key={item.title} className="rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
               <p className="text-sm uppercase tracking-[0.22em] text-accent">{item.title}</p>
-              <p className="mt-4 text-sm leading-6 text-ink/80">{item.body}</p>
             </article>
           ))}
         </section>

@@ -1,131 +1,63 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
 
-const topicChips = [
-  'All',
-  'Heat Training',
-  'Bicarbonate',
+const topicOptions = [
+  'Heat Acclimation',
   'Gut Training',
-  'Altitude',
-  'Threshold',
+  'Sodium Bicarbonate',
   'Sleep',
+  'Respiratory Training',
+  'Altitude',
+  'Supplementation',
+  'Fueling & Nutrition',
+  'HRV',
+  'Recovery',
 ];
 
-const contentLibrary = [
-  {
-    id: 'heat-01',
-    title: 'Heat Acclimation Before Mountain 100s',
-    type: 'Research Digest',
-    topic: 'Heat Training',
-    source: 'UltraOS',
-    date: '2026-03-10',
-    tags: ['Heat Training', 'Leadville', 'Western States'],
-    summary:
-      'Short daily heat blocks still move the needle for late-race durability when the sessions are layered onto the existing training load instead of replacing key workouts.',
-    commentary:
-      'Best use case: 10-14 days before a hot race block, especially when the athlete already has stable long-run volume.',
-  },
-  {
-    id: 'heat-02',
-    title: 'Post-Exercise Sauna and Plasma Volume',
-    type: 'Study',
-    topic: 'Heat Training',
-    source: 'Journal Review',
-    date: '2025-11-18',
-    tags: ['Heat Training', 'Sauna', 'Recovery'],
-    summary:
-      'The useful signal is consistency, not extreme heat. Moderate repeated exposure after easier sessions appears more practical than sporadic maximal exposures.',
-    commentary:
-      'This fits athletes who can tolerate routine post-run sauna without derailing the next quality session.',
-  },
-  {
-    id: 'bicarb-01',
-    title: 'Bicarbonate Use in Long Endurance Events',
-    type: 'Research Article',
-    topic: 'Bicarbonate',
-    source: 'Applied Physiology Review',
-    date: '2025-08-22',
-    tags: ['Bicarbonate', 'Fueling', 'GI'],
-    summary:
-      'Bicarbonate remains situational. The performance upside is real for high-intensity segments, but the protocol only works when the gut can tolerate it.',
-    commentary:
-      'Good fit for race-specific workouts with sustained pressure, not for every long aerobic day.',
-  },
-  {
-    id: 'gut-01',
-    title: 'Gut Training for 90 to 120 g/hr',
-    type: 'Study',
-    topic: 'Gut Training',
-    source: 'Nutrition Review',
-    date: '2026-01-09',
-    tags: ['Gut Training', 'Fueling', 'Carbohydrate'],
-    summary:
-      'Absorption tolerance improves when athletes train the target intake repeatedly during real movement, not just in static lab-style protocols.',
-    commentary:
-      'The main practical question is whether the athlete can scale carbohydrate without creating a GI tradeoff that ruins the workout.',
-  },
-  {
-    id: 'alt-01',
-    title: 'Altitude Tent Use Without Overreaching',
-    type: 'Post',
-    topic: 'Altitude',
-    source: 'UltraOS',
-    date: '2026-02-27',
-    tags: ['Altitude', 'Sleep Altitude', 'Recovery'],
-    summary:
-      'Altitude tent use works better when the sleep target is stable and paired with a known baseline sleep altitude. Random jumps in exposure create noise instead of adaptation.',
-    commentary:
-      'This is where athlete settings matter. Without baseline sleep altitude, the intervention is harder to interpret.',
-  },
-  {
-    id: 'thr-01',
-    title: 'Threshold Density Across 12-Week Blocks',
-    type: 'Commentary',
-    topic: 'Threshold',
-    source: 'UltraOS',
-    date: '2026-03-03',
-    tags: ['Threshold', 'Training Theory', 'Long Run'],
-    summary:
-      'Threshold-heavy blocks often improve the first hour of long runs, but only when easy volume is still large enough to protect freshness and durability.',
-    commentary:
-      'This is the type of pattern the intervention engine should eventually surface automatically from the athlete’s own data.',
-  },
-  {
-    id: 'sleep-01',
-    title: 'Sleep Compression During Peak Build',
-    type: 'Research Digest',
-    topic: 'Sleep',
-    source: 'UltraOS',
-    date: '2026-02-14',
-    tags: ['Sleep', 'Recovery', 'Peak'],
-    summary:
-      'Small sleep losses compound quickly in high-volume blocks. The effect usually shows up first in perceived exertion before it shows up in pace.',
-    commentary:
-      'This becomes more valuable once Garmin or another wearable source can keep the baseline current.',
-  },
-  {
-    id: 'heat-03',
-    title: 'Heat Training Timing Before Race Week',
-    type: 'Commentary',
-    topic: 'Heat Training',
-    source: 'UltraOS',
-    date: '2026-03-15',
-    tags: ['Heat Training', 'Race Week', 'Taper'],
-    summary:
-      'The timing decision matters more than the total number of sessions. Pushing heat too deep into taper week can leave the athlete flat on race day.',
-    commentary:
-      'The right answer depends on the athlete’s total load and the climate of the target event.',
-  },
+const sportOptions = [
+  { key: 'ultra_score', label: 'Ultra' },
+  { key: 'gravel_score', label: 'Gravel' },
+  { key: 'triathlon_score', label: 'Triathlon' },
 ];
 
-function formatDate(value) {
-  return new Date(`${value}T12:00:00`).toLocaleDateString();
+function clampClass(open) {
+  if (open) return '';
+  return '[display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:3] overflow-hidden';
+}
+
+function formatDate(year, publicationDate) {
+  if (publicationDate) {
+    return new Date(`${publicationDate}T12:00:00`).getFullYear();
+  }
+  return year || '';
+}
+
+function ScorePips({ label, score }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs uppercase tracking-[0.18em] text-ink/55">{label}</span>
+      <div className="flex gap-1">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <span
+            key={`${label}-${index}`}
+            className={`h-2.5 w-2.5 rounded-full ${index < score ? 'bg-ink' : 'bg-ink/12'}`}
+          />
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default function Content() {
+  const [entries, setEntries] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
-  const [activeTopic, setActiveTopic] = useState('All');
+  const [selectedTopics, setSelectedTopics] = useState([]);
+  const [selectedSports, setSelectedSports] = useState([]);
+  const [expandedSummaries, setExpandedSummaries] = useState({});
+  const [visibleCount, setVisibleCount] = useState(50);
+
   const navLinks = [
     { href: '/dashboard', label: 'UltraOS Home' },
     { href: '/connections', label: 'Connections' },
@@ -133,26 +65,88 @@ export default function Content() {
     { href: '/history', label: 'Intervention History' },
     { href: '/settings', label: 'Settings' },
     { href: '/content', label: 'Content' },
+    { href: '/content/admin', label: 'Content Admin' },
     { href: '/', label: 'Landing Page' },
   ];
 
-  const filteredItems = useMemo(() => {
-    return contentLibrary.filter((item) => {
-      const matchesTopic = activeTopic === 'All' || item.topic === activeTopic;
-      const haystack = `${item.title} ${item.type} ${item.source} ${item.summary} ${item.commentary} ${item.tags.join(' ')}`.toLowerCase();
-      const matchesQuery = query.trim() ? haystack.includes(query.trim().toLowerCase()) : true;
-      return matchesTopic && matchesQuery;
-    });
-  }, [activeTopic, query]);
+  useEffect(() => {
+    async function loadEntries() {
+      try {
+        const res = await fetch('/api/research-library');
+        if (res.ok) {
+          const data = await res.json();
+          setEntries(data.entries || []);
+        }
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    }
 
-  const featuredItems = filteredItems.slice(0, 3);
+    loadEntries();
+  }, []);
+
+  // Client-side search is intentional while the library stays small.
+  // Switch this to Supabase full-text search once the published set moves beyond ~200 entries.
+  const filteredEntries = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    return entries.filter((entry) => {
+      const matchesQuery =
+        !normalizedQuery ||
+        [entry.title, entry.plain_english_summary, entry.practical_takeaway]
+          .filter(Boolean)
+          .some((field) => field.toLowerCase().includes(normalizedQuery));
+
+      const entryTags = entry.topic_tags || [];
+      const matchesTags =
+        selectedTopics.length === 0 ||
+        selectedTopics.every((selectedTopic) => entryTags.includes(selectedTopic));
+
+      const matchesSports =
+        selectedSports.length === 0 ||
+        selectedSports.some((sportKey) => Number(entry[sportKey] || 0) >= 4);
+
+      return matchesQuery && matchesTags && matchesSports;
+    });
+  }, [entries, query, selectedTopics, selectedSports]);
+
+  const visibleEntries = filteredEntries.slice(0, visibleCount);
+  const isZeroState = !loading && entries.length === 0;
+  const isEmptyState = !loading && entries.length > 0 && filteredEntries.length === 0;
+
+  function toggleTopic(topic) {
+    setVisibleCount(50);
+    setSelectedTopics((current) =>
+      current.includes(topic) ? current.filter((item) => item !== topic) : [...current, topic]
+    );
+  }
+
+  function toggleSport(sportKey) {
+    setVisibleCount(50);
+    setSelectedSports((current) =>
+      current.includes(sportKey) ? current.filter((item) => item !== sportKey) : [...current, sportKey]
+    );
+  }
+
+  function clearFilters() {
+    setQuery('');
+    setSelectedTopics([]);
+    setSelectedSports([]);
+    setVisibleCount(50);
+  }
+
+  function toggleSummary(id) {
+    setExpandedSummaries((current) => ({ ...current, [id]: !current[id] }));
+  }
 
   return (
     <main className="min-h-screen bg-paper px-4 py-6 text-ink">
       <div className="mx-auto max-w-6xl">
         <div className="mb-6 flex items-center justify-between rounded-full border border-ink/10 bg-white/70 px-4 py-3 backdrop-blur">
           <div>
-            <p className="text-xs uppercase tracking-[0.35em] text-accent">UltraOS Content</p>
+            <p className="text-xs uppercase tracking-[0.35em] text-accent">Research Library</p>
           </div>
           <NavMenu
             label="Content navigation"
@@ -163,130 +157,180 @@ export default function Content() {
 
         <DashboardTabs activeHref="/content" />
 
-        <div className="mb-10 overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(135deg,#f7f2ea_0%,#ebe1d4_55%,#dcc9b0_100%)] p-6 md:p-10">
-          <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
-            <div>
-              <p className="text-sm uppercase tracking-[0.35em] text-accent">Research Library</p>
-              <h1 className="font-display mt-4 text-5xl leading-tight md:text-7xl">Search the current intervention stack.</h1>
-            </div>
-            <div className="rounded-[32px] bg-panel p-5 text-white shadow-[0_40px_100px_rgba(0,0,0,0.28)]">
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-[22px] border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-accent">Results</p>
-                  <p className="mt-2 text-2xl font-semibold">{filteredItems.length}</p>
-                </div>
-                <div className="rounded-[22px] border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-accent">Topics</p>
-                  <p className="mt-2 text-2xl font-semibold">{topicChips.length - 1}</p>
-                </div>
-                <div className="rounded-[22px] border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-accent">Mode</p>
-                  <p className="mt-2 text-2xl font-semibold">AI Feed</p>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div className="mb-8 overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(135deg,#f7f2ea_0%,#ebe1d4_55%,#dcc9b0_100%)] p-6 md:p-10">
+          <h1 className="font-display text-5xl leading-tight md:text-7xl">Research Library</h1>
+          <p className="mt-6 max-w-4xl text-base leading-8 text-ink/82 md:text-lg">
+            Every study in this library has been read, summarized, and rated for relevance to long-endurance athletes. No paywalls. No academic jargon. Each entry links to the original paper on PubMed so you can go deeper if you want to. We add new studies as they&apos;re published - the ones that actually matter for how you prepare.
+          </p>
+        </div>
 
-          <div className="mt-8 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+        <section className="mb-8 rounded-[30px] border border-ink/10 bg-white p-5 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+          <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
             <input
               type="text"
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search heat training, bicarbonate, gut training..."
-              className="w-full rounded-full border border-ink/10 bg-white/85 px-5 py-4 text-base text-ink outline-none transition focus:border-ink/30"
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setVisibleCount(50);
+              }}
+              placeholder="Search studies"
+              className="w-full rounded-full border border-ink/10 bg-paper px-5 py-4 text-base text-ink outline-none transition focus:border-ink/30"
             />
+
+            <div className="flex items-center justify-end">
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="text-sm font-semibold text-ink/65 underline underline-offset-4"
+              >
+                Clear all filters
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-5">
+            <p className="mb-3 text-xs uppercase tracking-[0.25em] text-accent">Topics</p>
             <div className="flex flex-wrap gap-2">
-              {topicChips.map((chip) => (
+              {topicOptions.map((topic) => (
                 <button
-                  key={chip}
+                  key={topic}
                   type="button"
-                  onClick={() => setActiveTopic(chip)}
-                  className={`rounded-full px-4 py-3 text-sm font-semibold transition ${
-                    activeTopic === chip
+                  onClick={() => toggleTopic(topic)}
+                  className={`rounded-full px-4 py-2.5 text-sm font-semibold transition ${
+                    selectedTopics.includes(topic)
                       ? 'bg-ink text-paper'
-                      : 'border border-ink/10 bg-white/75 text-ink'
+                      : 'border border-ink/10 bg-paper text-ink'
                   }`}
                 >
-                  {chip}
+                  {topic}
                 </button>
               ))}
             </div>
           </div>
-        </div>
 
-        <section className="grid gap-6 lg:grid-cols-[1fr_0.95fr]">
-          <div className="rounded-[30px] bg-[linear-gradient(135deg,#1b2421_0%,#29302d_100%)] p-6 text-white">
-            <div className="flex items-center justify-between">
-              <p className="text-sm uppercase tracking-[0.25em] text-accent">Featured Now</p>
-              <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/80">Recent + Relevant</span>
-            </div>
-            <div className="mt-5 space-y-4">
-              {featuredItems.map((item) => (
-                <div key={item.id} className="rounded-[24px] border border-white/10 bg-white/5 p-5">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full bg-accent px-3 py-1 text-xs font-semibold text-panel">{item.topic}</span>
-                    <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/80">{item.type}</span>
-                    <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/80">{formatDate(item.date)}</span>
-                  </div>
-                  <h2 className="mt-4 text-xl font-semibold text-white">{item.title}</h2>
-                  <p className="mt-3 text-sm leading-6 text-white/80">{item.summary}</p>
-                  <div className="mt-4 rounded-[20px] border border-white/10 bg-black/10 p-4 text-sm text-white/78">
-                    {item.commentary}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-            <div className="flex items-center justify-between">
-              <p className="text-sm uppercase tracking-[0.25em] text-accent">Active Tracks</p>
-              <span className="rounded-full bg-paper px-3 py-1 text-xs text-ink/70">Dashboard + Email</span>
-            </div>
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              {['Heat Training', 'Bicarbonate', 'Gut Training', 'Altitude', 'Threshold', 'Sleep'].map((track) => (
+          <div className="mt-5">
+            <p className="mb-3 text-xs uppercase tracking-[0.25em] text-accent">Sport</p>
+            <div className="flex flex-wrap gap-2">
+              {sportOptions.map((sport) => (
                 <button
-                  key={track}
+                  key={sport.key}
                   type="button"
-                  onClick={() => setActiveTopic(track)}
-                  className="rounded-[22px] bg-paper px-4 py-5 text-left text-sm font-semibold text-ink transition hover:bg-[#e8ddd0]"
+                  onClick={() => toggleSport(sport.key)}
+                  className={`rounded-full px-4 py-2.5 text-sm font-semibold transition ${
+                    selectedSports.includes(sport.key)
+                      ? 'bg-ink text-paper'
+                      : 'border border-ink/10 bg-paper text-ink'
+                  }`}
                 >
-                  {track}
+                  {sport.label}
                 </button>
               ))}
             </div>
           </div>
         </section>
 
-        <section className="mt-10 rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm uppercase tracking-[0.25em] text-accent">Library</p>
-            <span className="rounded-full bg-paper px-3 py-1 text-xs text-ink/70">{filteredItems.length} items</span>
+        {loading ? (
+          <div className="rounded-[30px] border border-ink/10 bg-white p-6 text-sm text-ink/65">
+            Loading library...
           </div>
-          <div className="mt-5 grid gap-4 xl:grid-cols-2">
-            {filteredItems.map((item) => (
-              <article key={item.id} className="rounded-[24px] bg-paper p-5">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-ink">{item.type}</span>
-                  <span className="rounded-full bg-white px-3 py-1 text-xs text-ink/70">{item.source}</span>
-                  <span className="rounded-full bg-white px-3 py-1 text-xs text-ink/70">{formatDate(item.date)}</span>
-                </div>
-                <h3 className="mt-4 text-xl font-semibold text-ink">{item.title}</h3>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {item.tags.map((tag) => (
-                    <span key={tag} className="rounded-full border border-ink/10 px-3 py-1 text-xs text-ink/70">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-                <p className="mt-4 text-sm leading-6 text-ink/78">{item.summary}</p>
-                <div className="mt-4 rounded-[20px] border border-ink/10 bg-white px-4 py-4 text-sm text-ink/70">
-                  {item.commentary}
-                </div>
-              </article>
-            ))}
+        ) : null}
+
+        {isZeroState ? (
+          <div className="rounded-[30px] border border-ink/10 bg-white p-6 text-sm text-ink/72 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+            The library is being built. First studies drop with the next research digest.
           </div>
-        </section>
+        ) : null}
+
+        {isEmptyState ? (
+          <div className="rounded-[30px] border border-ink/10 bg-white p-6 text-sm text-ink/72 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+            No studies match those filters yet. We add new research monthly - check back after the next digest drops.
+          </div>
+        ) : null}
+
+        {!loading && !isZeroState && !isEmptyState ? (
+          <section className="grid gap-4">
+            {visibleEntries.map((entry) => {
+              const isExpanded = Boolean(expandedSummaries[entry.id]);
+              return (
+                <article
+                  key={entry.id}
+                  className="rounded-[30px] border border-ink/10 bg-white p-5 shadow-[0_18px_40px_rgba(19,24,22,0.06)]"
+                >
+                  <a
+                    href={entry.pubmed_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-2xl font-semibold leading-tight text-ink transition hover:text-ink/70 md:text-3xl"
+                  >
+                    {entry.title}
+                  </a>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {(entry.topic_tags || []).map((tag) => (
+                      <span key={tag} className="rounded-full bg-paper px-3 py-1.5 text-xs font-semibold text-ink">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-4">
+                    <ScorePips label="Ultra" score={entry.ultra_score || 0} />
+                    <ScorePips label="Gravel" score={entry.gravel_score || 0} />
+                    <ScorePips label="Triathlon" score={entry.triathlon_score || 0} />
+                  </div>
+
+                  <div className="mt-4">
+                    <p className={`text-sm leading-7 text-ink/78 ${clampClass(isExpanded)}`}>
+                      {entry.plain_english_summary || 'Summary coming soon.'}
+                    </p>
+                    {entry.plain_english_summary ? (
+                      <button
+                        type="button"
+                        onClick={() => toggleSummary(entry.id)}
+                        className="mt-2 text-sm font-semibold text-ink/70 underline underline-offset-4"
+                      >
+                        {isExpanded ? 'Show less' : 'Expand'}
+                      </button>
+                    ) : null}
+                  </div>
+
+                  <div className="mt-4 rounded-[22px] border-l-4 border-accent bg-paper px-4 py-4">
+                    <p className="text-xs uppercase tracking-[0.22em] text-accent">Practical Takeaway</p>
+                    <p className="mt-2 text-sm leading-7 text-ink/82">
+                      {entry.practical_takeaway || 'Practical takeaway coming soon.'}
+                    </p>
+                  </div>
+
+                  <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+                    <a
+                      href={entry.pubmed_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-semibold text-ink underline underline-offset-4"
+                    >
+                      Read the study →
+                    </a>
+                    <p className="text-xs text-ink/52">
+                      {entry.authors || 'Authors pending'} {entry.authors ? '•' : ''} {formatDate(entry.publication_year, entry.publication_date)}
+                    </p>
+                  </div>
+                </article>
+              );
+            })}
+          </section>
+        ) : null}
+
+        {!loading && filteredEntries.length > visibleCount ? (
+          <div className="mt-8 flex justify-center">
+            <button
+              type="button"
+              onClick={() => setVisibleCount((current) => current + 50)}
+              className="rounded-full bg-ink px-6 py-3 text-sm font-semibold text-paper"
+            >
+              Load more
+            </button>
+          </div>
+        ) : null}
       </div>
     </main>
   );
