@@ -131,10 +131,14 @@ function mapRaceToDraft(race) {
   };
 }
 
-/**
- * Page containing a form to log a new intervention. It fetches recent
- * activities for selection and posts the form data to the API.
- */
+function fieldClassName() {
+  return 'w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-ink';
+}
+
+function cardClassName() {
+  return 'rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]';
+}
+
 export default function LogIntervention() {
   const [activities, setActivities] = useState([]);
   const [form, setForm] = useState(createEmptyForm());
@@ -156,8 +160,7 @@ export default function LogIntervention() {
         const res = await fetch('/api/activities');
         if (res.ok) {
           const { activities: fetchedActivities } = await res.json();
-          const sortedActivities = sortActivitiesMostRecentFirst(fetchedActivities);
-          setActivities(sortedActivities);
+          setActivities(sortActivitiesMostRecentFirst(fetchedActivities));
         }
       } catch (err) {
         console.error(err);
@@ -385,466 +388,297 @@ export default function LogIntervention() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-sm uppercase tracking-[0.3em] text-accent">Intervention Intelligence</p>
-          <h1 className="text-3xl font-bold text-white">Log Intervention</h1>
-          <p className="mt-2 max-w-2xl text-sm text-slate-300">
-            Record the protocol, attach it to a workout when relevant, and preserve the race
-            context that gives the entry meaning later.
-          </p>
+    <main className="min-h-screen bg-paper px-4 py-6 text-ink">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-6 flex items-center justify-between rounded-full border border-ink/10 bg-white/70 px-4 py-3 backdrop-blur">
+          <div>
+            <p className="text-xs uppercase tracking-[0.35em] text-accent">UltraOS Intervention Log</p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <a href="/dashboard" className="rounded-full border border-ink/10 px-4 py-2 text-sm font-medium text-ink">UltraOS Home</a>
+            <a href="/connections" className="rounded-full border border-ink/10 px-4 py-2 text-sm font-medium text-ink">Connections</a>
+            <a href="/history" className="rounded-full bg-ink px-5 py-2 text-sm font-semibold text-paper">History</a>
+          </div>
         </div>
-        <div className="flex gap-3">
-          <a href="/dashboard" className="rounded-full border border-slate-600 px-4 py-2 text-sm text-slate-200">
-            Back to Dashboard
-          </a>
-          <a href="/history" className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-primary">
-            View History
-          </a>
-        </div>
-      </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1.4fr_0.8fr]">
-        <form onSubmit={handleSubmit} className="space-y-5 rounded-[28px] border border-slate-700 bg-secondary/60 p-6 shadow-2xl shadow-black/30">
-          {message && <p className="rounded-2xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm text-accent">{message}</p>}
-
-          <div className="grid gap-5 md:grid-cols-2">
-            <div className="md:col-span-2">
-              <label className="mb-1 block text-sm font-semibold text-slate-100">Link to Strava Activity</label>
-              <select
-                name="activity_id"
-                value={form.activity_id}
-                onChange={handleChange}
-                className="w-full rounded-2xl border border-slate-600 bg-slate-950 px-4 py-3 text-white"
-              >
-                <option value="">{loadingActivities ? 'Loading activities...' : 'Select Activity'}</option>
-                {activities.map((act) => (
-                  <option key={act.id} value={act.id}>
-                    {new Date(act.start_date).toLocaleDateString()} - {act.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
+        <div className="mb-10 overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(135deg,#f7f2ea_0%,#ebe1d4_55%,#dcc9b0_100%)] p-6 md:p-10">
+          <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
             <div>
-              <label className="mb-1 block text-sm font-semibold text-slate-100">Date</label>
-              <input
-                type="date"
-                name="date"
-                value={form.date}
-                onChange={handleChange}
-                className="w-full rounded-2xl border border-slate-600 bg-slate-950 px-4 py-3 text-white"
-              />
-              <p className="mt-2 text-xs text-slate-400">
-                If you link an activity, this defaults to the Strava activity date.
+              <p className="text-sm uppercase tracking-[0.35em] text-accent">Intervention Capture</p>
+              <h1 className="font-display mt-4 max-w-4xl text-5xl leading-tight md:text-7xl">Log the protocol with the race it was meant to improve.</h1>
+              <p className="mt-6 max-w-2xl text-lg leading-8 text-ink/80">
+                This page captures the intervention itself, attaches workout context when useful, and preserves the target race without making you retype it every time.
               </p>
             </div>
 
-            <div>
-              <label className="mb-1 block text-sm font-semibold text-slate-100">Intervention Type</label>
-              <select
-                name="intervention_type"
-                value={form.intervention_type}
-                onChange={handleChange}
-                className="w-full rounded-2xl border border-slate-600 bg-slate-950 px-4 py-3 text-white"
-              >
-                <option value="">Select Type</option>
-                {interventionTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
+            <div className="rounded-[34px] bg-panel p-6 text-white shadow-[0_40px_100px_rgba(0,0,0,0.28)]">
+              <p className="text-sm uppercase tracking-[0.25em] text-accent">Current Logging Model</p>
+              <div className="mt-5 space-y-4">
+                <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
+                  <p className="text-sm font-semibold text-white">Activity linking stays optional.</p>
+                  <p className="mt-2 text-sm text-white/75">Sauna, sleep, and other rest-day interventions still belong here even when there is no workout file.</p>
+                </div>
+                <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
+                  <p className="text-sm font-semibold text-white">Race context should persist.</p>
+                  <p className="mt-2 text-sm text-white/75">The selected target race and training phase stay sticky so the form gets faster across a build.</p>
+                </div>
+              </div>
             </div>
+          </div>
+        </div>
 
-            <div>
-              <label className="mb-1 block text-sm font-semibold text-slate-100">Primary Target Race</label>
-              <input
-                type="text"
-                name="target_race"
-                value={form.target_race}
-                onChange={handleChange}
-                placeholder="Leadville 100"
-                className="w-full rounded-2xl border border-slate-600 bg-slate-950 px-4 py-3 text-white"
-              />
-              <div className="mt-3 space-y-2">
-                {loadingRaces ? <p className="text-xs text-slate-400">Searching saved races...</p> : null}
-                {!loadingRaces && raceOptions.length > 0 ? (
-                  <div className="rounded-[22px] border border-slate-700 bg-slate-950/80 p-2">
-                    {raceOptions.map((race) => (
-                      <button
-                        key={race.id}
-                        type="button"
-                        onClick={() => selectRace(race)}
-                        className="flex w-full items-center justify-between rounded-[16px] px-3 py-3 text-left transition hover:bg-slate-900"
-                      >
-                        <span>
-                          <span className="block text-sm font-semibold text-white">{race.name}</span>
-                          <span className="block text-xs text-slate-400">
-                            {race.event_date || 'Date TBD'}
-                            {race.location ? ` - ${race.location}` : ''}
+        <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+          <form onSubmit={handleSubmit} className={cardClassName()}>
+            {message ? <p className="mb-5 rounded-2xl border border-accent/30 bg-accent/10 px-4 py-3 text-sm text-ink">{message}</p> : null}
+
+            <div className="grid gap-5 md:grid-cols-2">
+              <div className="md:col-span-2">
+                <label className="mb-1 block text-sm font-semibold text-ink">Link to Activity</label>
+                <select name="activity_id" value={form.activity_id} onChange={handleChange} className={fieldClassName()}>
+                  <option value="">{loadingActivities ? 'Loading activities...' : 'Select Activity'}</option>
+                  {activities.map((act) => (
+                    <option key={act.id} value={act.id}>
+                      {new Date(act.start_date).toLocaleDateString()} - {act.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-semibold text-ink">Date</label>
+                <input type="date" name="date" value={form.date} onChange={handleChange} className={fieldClassName()} />
+                <p className="mt-2 text-xs text-ink/60">If you link an activity, this defaults to the activity date.</p>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-semibold text-ink">Intervention Type</label>
+                <select name="intervention_type" value={form.intervention_type} onChange={handleChange} className={fieldClassName()}>
+                  <option value="">Select Type</option>
+                  {interventionTypes.map((type) => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-semibold text-ink">Primary Target Race</label>
+                <input type="text" name="target_race" value={form.target_race} onChange={handleChange} placeholder="Leadville 100" className={fieldClassName()} />
+                <div className="mt-3 space-y-2">
+                  {loadingRaces ? <p className="text-xs text-ink/60">Searching saved races...</p> : null}
+                  {!loadingRaces && raceOptions.length > 0 ? (
+                    <div className="rounded-[22px] border border-ink/10 bg-paper/70 p-2">
+                      {raceOptions.map((race) => (
+                        <button key={race.id} type="button" onClick={() => selectRace(race)} className="flex w-full items-center justify-between rounded-[16px] px-3 py-3 text-left transition hover:bg-white">
+                          <span>
+                            <span className="block text-sm font-semibold text-ink">{race.name}</span>
+                            <span className="block text-xs text-ink/55">{race.event_date || 'Date TBD'}{race.location ? ` - ${race.location}` : ''}</span>
                           </span>
-                        </span>
-                        <span className="text-[11px] uppercase tracking-[0.2em] text-accent">Use</span>
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={() => setRaceDraftOpen((current) => !current)}
-                  className="text-xs font-semibold uppercase tracking-[0.2em] text-accent"
-                >
-                  {raceDraftOpen ? 'Hide race profile editor' : 'Create race profile'}
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-semibold text-slate-100">Race Date</label>
-              <input
-                type="date"
-                name="target_race_date"
-                value={form.target_race_date}
-                onChange={handleChange}
-                className="w-full rounded-2xl border border-slate-600 bg-slate-950 px-4 py-3 text-white"
-              />
-              <p className="mt-2 text-xs text-slate-400">
-                This race stays as the default target until the date passes.
-              </p>
-            </div>
-
-            {raceDraftOpen ? (
-              <div className="md:col-span-2 rounded-[24px] border border-slate-700 bg-slate-950/70 p-4">
-                <div className="mb-4">
-                  <p className="text-sm font-semibold text-white">Race Profile</p>
-                  <p className="mt-1 text-xs text-slate-400">
-                    Save a reusable race so date, distance, elevation, and location can auto-fill in future logs.
-                  </p>
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <label className="mb-1 block text-sm font-semibold text-slate-100">Race Name</label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={raceDraft.name}
-                      onChange={handleRaceDraftChange}
-                      className="w-full rounded-2xl border border-slate-600 bg-slate-950 px-4 py-3 text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-sm font-semibold text-slate-100">Location</label>
-                    <input
-                      type="text"
-                      name="location"
-                      value={raceDraft.location}
-                      onChange={handleRaceDraftChange}
-                      className="w-full rounded-2xl border border-slate-600 bg-slate-950 px-4 py-3 text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-sm font-semibold text-slate-100">Distance (mi)</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      name="distance_miles"
-                      value={raceDraft.distance_miles}
-                      onChange={handleRaceDraftChange}
-                      className="w-full rounded-2xl border border-slate-600 bg-slate-950 px-4 py-3 text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-sm font-semibold text-slate-100">Elevation Gain (ft)</label>
-                    <input
-                      type="number"
-                      name="elevation_gain_ft"
-                      value={raceDraft.elevation_gain_ft}
-                      onChange={handleRaceDraftChange}
-                      className="w-full rounded-2xl border border-slate-600 bg-slate-950 px-4 py-3 text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-sm font-semibold text-slate-100">Surface</label>
-                    <select
-                      name="surface"
-                      value={raceDraft.surface}
-                      onChange={handleRaceDraftChange}
-                      className="w-full rounded-2xl border border-slate-600 bg-slate-950 px-4 py-3 text-white"
-                    >
-                      <option value="">Select Surface</option>
-                      {surfaceOptions.map((surface) => (
-                        <option key={surface} value={surface}>
-                          {surface}
-                        </option>
+                          <span className="text-[11px] uppercase tracking-[0.2em] text-accent">Use</span>
+                        </button>
                       ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-sm font-semibold text-slate-100">Event Date</label>
-                    <input
-                      type="date"
-                      name="event_date"
-                      value={raceDraft.event_date}
-                      onChange={handleRaceDraftChange}
-                      className="w-full rounded-2xl border border-slate-600 bg-slate-950 px-4 py-3 text-white"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="mb-1 block text-sm font-semibold text-slate-100">Race Notes</label>
-                    <textarea
-                      name="notes"
-                      value={raceDraft.notes}
-                      onChange={handleRaceDraftChange}
-                      rows={3}
-                      className="w-full rounded-2xl border border-slate-600 bg-slate-950 px-4 py-3 text-white"
-                    />
-                  </div>
-                </div>
-                <div className="mt-4 flex flex-wrap items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={handleRaceSave}
-                    disabled={savingRace}
-                    className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-primary"
-                  >
-                    {savingRace ? 'Saving...' : 'Save Race Profile'}
+                    </div>
+                  ) : null}
+                  <button type="button" onClick={() => setRaceDraftOpen((current) => !current)} className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
+                    {raceDraftOpen ? 'Hide race profile editor' : 'Create race profile'}
                   </button>
-                  {raceStatus ? <p className="text-sm text-slate-300">{raceStatus}</p> : null}
                 </div>
               </div>
-            ) : null}
 
-            <div className="md:col-span-2">
-              <label className="mb-1 block text-sm font-semibold text-slate-100">Protocol Details</label>
-              <textarea
-                name="details"
-                value={form.details}
-                onChange={handleChange}
-                rows={4}
-                className="w-full rounded-2xl border border-slate-600 bg-slate-950 px-4 py-3 text-white"
-              />
-            </div>
+              <div>
+                <label className="mb-1 block text-sm font-semibold text-ink">Race Date</label>
+                <input type="date" name="target_race_date" value={form.target_race_date} onChange={handleChange} className={fieldClassName()} />
+                <p className="mt-2 text-xs text-ink/60">This race stays as the default target until the date passes.</p>
+              </div>
 
-            <div>
-              <label className="mb-1 block text-sm font-semibold text-slate-100">Dose or Duration</label>
-              <input
-                type="text"
-                name="dose_duration"
-                value={form.dose_duration}
-                onChange={handleChange}
-                placeholder="40 min, 0.3 g/kg, 3 nights"
-                className="w-full rounded-2xl border border-slate-600 bg-slate-950 px-4 py-3 text-white"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-semibold text-slate-100">Timing</label>
-              <select
-                name="timing"
-                value={form.timing}
-                onChange={handleChange}
-                className="w-full rounded-2xl border border-slate-600 bg-slate-950 px-4 py-3 text-white"
-              >
-                <option value="">Select Timing</option>
-                {timingOptions.map((op) => (
-                  <option key={op} value={op}>
-                    {op}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-semibold text-slate-100">GI Response (1-10)</label>
-              <input
-                type="number"
-                name="gi_response"
-                value={form.gi_response}
-                onChange={handleChange}
-                min="1"
-                max="10"
-                className="w-full rounded-2xl border border-slate-600 bg-slate-950 px-4 py-3 text-white"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-semibold text-slate-100">Physical Response (1-10)</label>
-              <input
-                type="number"
-                name="physical_response"
-                value={form.physical_response}
-                onChange={handleChange}
-                min="1"
-                max="10"
-                className="w-full rounded-2xl border border-slate-600 bg-slate-950 px-4 py-3 text-white"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-semibold text-slate-100">Subjective Feel (1-10)</label>
-              <input
-                type="number"
-                name="subjective_feel"
-                value={form.subjective_feel}
-                onChange={handleChange}
-                min="1"
-                max="10"
-                className="w-full rounded-2xl border border-slate-600 bg-slate-950 px-4 py-3 text-white"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-semibold text-slate-100">Training Phase</label>
-              <select
-                name="training_phase"
-                value={form.training_phase}
-                onChange={handleChange}
-                className="w-full rounded-2xl border border-slate-600 bg-slate-950 px-4 py-3 text-white"
-              >
-                <option value="">Select Phase</option>
-                {trainingPhases.map((op) => (
-                  <option key={op} value={op}>
-                    {op}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="mb-1 block text-sm font-semibold text-slate-100">Notes</label>
-              <textarea
-                name="notes"
-                value={form.notes}
-                onChange={handleChange}
-                rows={4}
-                className="w-full rounded-2xl border border-slate-600 bg-slate-950 px-4 py-3 text-white"
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            className="rounded-full bg-accent px-5 py-3 font-semibold text-primary transition hover:brightness-110"
-          >
-            Submit
-          </button>
-        </form>
-
-        <aside className="space-y-5">
-          <div className="rounded-[28px] border border-slate-700 bg-slate-950/80 p-6">
-            <p className="text-sm uppercase tracking-[0.25em] text-accent">Linked Activity Context</p>
-            {selectedActivity ? (
-              <div className="mt-4 space-y-3 text-sm text-slate-200">
-                <div>
-                  <p className="font-semibold text-white">{selectedActivity.name}</p>
-                  <p className="text-slate-400">{new Date(selectedActivity.start_date).toLocaleString()}</p>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-2xl border border-slate-800 bg-slate-900 p-3">
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Duration</p>
-                    <p className="mt-1 text-lg font-semibold text-white">{formatMinutes(selectedActivity.moving_time) || 'N/A'}</p>
+              {raceDraftOpen ? (
+                <div className="md:col-span-2 rounded-[24px] bg-paper p-4">
+                  <div className="mb-4">
+                    <p className="text-sm font-semibold text-ink">Race Profile</p>
+                    <p className="mt-1 text-xs text-ink/60">Save a reusable race so date, distance, elevation, and location can auto-fill in future logs.</p>
                   </div>
-                  <div className="rounded-2xl border border-slate-800 bg-slate-900 p-3">
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Distance</p>
-                    <p className="mt-1 text-lg font-semibold text-white">
-                      {selectedActivity.distance ? `${(selectedActivity.distance / 1609.34).toFixed(1)} mi` : 'N/A'}
-                    </p>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="mb-1 block text-sm font-semibold text-ink">Race Name</label>
+                      <input type="text" name="name" value={raceDraft.name} onChange={handleRaceDraftChange} className={fieldClassName()} />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm font-semibold text-ink">Location</label>
+                      <input type="text" name="location" value={raceDraft.location} onChange={handleRaceDraftChange} className={fieldClassName()} />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm font-semibold text-ink">Distance (mi)</label>
+                      <input type="number" step="0.1" name="distance_miles" value={raceDraft.distance_miles} onChange={handleRaceDraftChange} className={fieldClassName()} />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm font-semibold text-ink">Elevation Gain (ft)</label>
+                      <input type="number" name="elevation_gain_ft" value={raceDraft.elevation_gain_ft} onChange={handleRaceDraftChange} className={fieldClassName()} />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm font-semibold text-ink">Surface</label>
+                      <select name="surface" value={raceDraft.surface} onChange={handleRaceDraftChange} className={fieldClassName()}>
+                        <option value="">Select Surface</option>
+                        {surfaceOptions.map((surface) => (
+                          <option key={surface} value={surface}>{surface}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm font-semibold text-ink">Event Date</label>
+                      <input type="date" name="event_date" value={raceDraft.event_date} onChange={handleRaceDraftChange} className={fieldClassName()} />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="mb-1 block text-sm font-semibold text-ink">Race Notes</label>
+                      <textarea name="notes" value={raceDraft.notes} onChange={handleRaceDraftChange} rows={3} className={fieldClassName()} />
+                    </div>
                   </div>
-                  <div className="rounded-2xl border border-slate-800 bg-slate-900 p-3 sm:col-span-2">
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Elevation Gain</p>
-                    <p className="mt-1 text-lg font-semibold text-white">
-                      {selectedActivity.total_elevation_gain
-                        ? `${Math.round(selectedActivity.total_elevation_gain * 3.28084)} ft`
-                        : 'Not provided by this Strava summary'}
-                    </p>
+                  <div className="mt-4 flex flex-wrap items-center gap-3">
+                    <button type="button" onClick={handleRaceSave} disabled={savingRace} className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-paper">
+                      {savingRace ? 'Saving...' : 'Save Race Profile'}
+                    </button>
+                    {raceStatus ? <p className="text-sm text-ink/65">{raceStatus}</p> : null}
                   </div>
                 </div>
-                {loadingActivityDetails ? (
-                  <p className="text-xs text-slate-400">Loading deeper altitude details...</p>
-                ) : activityDetails ? (
+              ) : null}
+
+              <div className="md:col-span-2">
+                <label className="mb-1 block text-sm font-semibold text-ink">Protocol Details</label>
+                <textarea name="details" value={form.details} onChange={handleChange} rows={4} className={fieldClassName()} />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-semibold text-ink">Dose or Duration</label>
+                <input type="text" name="dose_duration" value={form.dose_duration} onChange={handleChange} placeholder="40 min, 0.3 g/kg, 3 nights" className={fieldClassName()} />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-semibold text-ink">Timing</label>
+                <select name="timing" value={form.timing} onChange={handleChange} className={fieldClassName()}>
+                  <option value="">Select Timing</option>
+                  {timingOptions.map((op) => (
+                    <option key={op} value={op}>{op}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-semibold text-ink">GI Response (1-10)</label>
+                <input type="number" name="gi_response" value={form.gi_response} onChange={handleChange} min="1" max="10" className={fieldClassName()} />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-semibold text-ink">Physical Response (1-10)</label>
+                <input type="number" name="physical_response" value={form.physical_response} onChange={handleChange} min="1" max="10" className={fieldClassName()} />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-semibold text-ink">Subjective Feel (1-10)</label>
+                <input type="number" name="subjective_feel" value={form.subjective_feel} onChange={handleChange} min="1" max="10" className={fieldClassName()} />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-semibold text-ink">Training Phase</label>
+                <select name="training_phase" value={form.training_phase} onChange={handleChange} className={fieldClassName()}>
+                  <option value="">Select Phase</option>
+                  {trainingPhases.map((op) => (
+                    <option key={op} value={op}>{op}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="mb-1 block text-sm font-semibold text-ink">Notes</label>
+                <textarea name="notes" value={form.notes} onChange={handleChange} rows={4} className={fieldClassName()} />
+              </div>
+            </div>
+
+            <button type="submit" className="mt-5 rounded-full bg-ink px-6 py-3 font-semibold text-paper">Save Intervention</button>
+          </form>
+
+          <aside className="space-y-5">
+            <div className="rounded-[30px] bg-[linear-gradient(135deg,#1b2421_0%,#29302d_100%)] p-6 text-white">
+              <p className="text-sm uppercase tracking-[0.25em] text-accent">Linked Activity Context</p>
+              {selectedActivity ? (
+                <div className="mt-4 space-y-3 text-sm text-white/85">
+                  <div>
+                    <p className="font-semibold text-white">{selectedActivity.name}</p>
+                    <p className="text-white/65">{new Date(selectedActivity.start_date).toLocaleString()}</p>
+                  </div>
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-3">
-                      <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Start Altitude</p>
-                      <p className="mt-1 text-lg font-semibold text-white">{formatFeet(activityDetails.start_altitude_ft)}</p>
+                    <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                      <p className="text-xs uppercase tracking-[0.2em] text-accent">Duration</p>
+                      <p className="mt-1 text-lg font-semibold text-white">{formatMinutes(selectedActivity.moving_time) || 'N/A'}</p>
                     </div>
-                    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-3">
-                      <p className="text-xs uppercase tracking-[0.2em] text-slate-500">End Altitude</p>
-                      <p className="mt-1 text-lg font-semibold text-white">{formatFeet(activityDetails.end_altitude_ft)}</p>
+                    <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                      <p className="text-xs uppercase tracking-[0.2em] text-accent">Distance</p>
+                      <p className="mt-1 text-lg font-semibold text-white">{selectedActivity.distance ? `${(selectedActivity.distance / 1609.34).toFixed(1)} mi` : 'N/A'}</p>
                     </div>
-                    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-3">
-                      <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Average Altitude</p>
-                      <p className="mt-1 text-lg font-semibold text-white">{formatFeet(activityDetails.average_altitude_ft)}</p>
-                    </div>
-                    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-3">
-                      <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Peak Altitude</p>
+                    <div className="rounded-2xl border border-white/10 bg-white/5 p-3 sm:col-span-2">
+                      <p className="text-xs uppercase tracking-[0.2em] text-accent">Elevation Gain</p>
                       <p className="mt-1 text-lg font-semibold text-white">
-                        {formatFeet(activityDetails.peak_altitude_ft ?? activityDetails.elev_high_ft)}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-3">
-                      <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Lowest Altitude</p>
-                      <p className="mt-1 text-lg font-semibold text-white">
-                        {formatFeet(activityDetails.low_altitude_ft ?? activityDetails.elev_low_ft)}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-3">
-                      <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Acclimation Use</p>
-                      <p className="mt-1 text-sm text-slate-300">
-                        Compare this workout altitude against your stored sleep and training baselines in athlete settings.
+                        {selectedActivity.total_elevation_gain ? `${Math.round(selectedActivity.total_elevation_gain * 3.28084)} ft` : 'Not provided by this activity summary'}
                       </p>
                     </div>
                   </div>
-                ) : (
-                  <p className="text-xs text-slate-400">
-                    Activity streams were not available for this workout, so only summary elevation data could be shown.
-                  </p>
-                )}
-              </div>
-            ) : (
-              <p className="mt-4 text-sm text-slate-400">
-                Select a recent Strava activity to auto-fill the intervention date and attach workout context.
-              </p>
-            )}
-          </div>
+                  {loadingActivityDetails ? (
+                    <p className="text-xs text-white/60">Loading deeper altitude details...</p>
+                  ) : activityDetails ? (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                        <p className="text-xs uppercase tracking-[0.2em] text-accent">Start Altitude</p>
+                        <p className="mt-1 text-lg font-semibold text-white">{formatFeet(activityDetails.start_altitude_ft)}</p>
+                      </div>
+                      <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                        <p className="text-xs uppercase tracking-[0.2em] text-accent">End Altitude</p>
+                        <p className="mt-1 text-lg font-semibold text-white">{formatFeet(activityDetails.end_altitude_ft)}</p>
+                      </div>
+                      <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                        <p className="text-xs uppercase tracking-[0.2em] text-accent">Average Altitude</p>
+                        <p className="mt-1 text-lg font-semibold text-white">{formatFeet(activityDetails.average_altitude_ft)}</p>
+                      </div>
+                      <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                        <p className="text-xs uppercase tracking-[0.2em] text-accent">Peak Altitude</p>
+                        <p className="mt-1 text-lg font-semibold text-white">{formatFeet(activityDetails.peak_altitude_ft ?? activityDetails.elev_high_ft)}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-white/60">Activity streams were not available for this workout, so only summary elevation data could be shown.</p>
+                  )}
+                </div>
+              ) : (
+                <p className="mt-4 text-sm text-white/70">Select a recent activity to auto-fill the intervention date and attach workout context.</p>
+              )}
+            </div>
 
-          <div className="rounded-[28px] border border-slate-700 bg-secondary/40 p-6">
-            <p className="text-sm uppercase tracking-[0.25em] text-accent">Race Context</p>
-            {raceProfile ? (
-              <div className="mt-4 space-y-3 text-sm text-slate-300">
-                <div className="rounded-2xl border border-slate-700 bg-slate-950/70 p-4">
-                  <p className="text-base font-semibold text-white">{raceProfile.name}</p>
-                  <p className="mt-1 text-slate-400">
-                    {raceProfile.event_date || 'Date TBD'}
-                    {raceProfile.location ? ` - ${raceProfile.location}` : ''}
-                  </p>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-2xl border border-slate-700 bg-slate-950/70 p-4">
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Distance</p>
-                    <p className="mt-1 text-lg font-semibold text-white">
-                      {formatDistanceMiles(raceProfile.distance_miles)}
-                    </p>
+            <div className={cardClassName()}>
+              <p className="text-sm uppercase tracking-[0.25em] text-accent">Race Context</p>
+              {raceProfile ? (
+                <div className="mt-4 space-y-3 text-sm text-ink/75">
+                  <div className="rounded-2xl bg-paper p-4">
+                    <p className="text-base font-semibold text-ink">{raceProfile.name}</p>
+                    <p className="mt-1 text-ink/60">{raceProfile.event_date || 'Date TBD'}{raceProfile.location ? ` - ${raceProfile.location}` : ''}</p>
                   </div>
-                  <div className="rounded-2xl border border-slate-700 bg-slate-950/70 p-4">
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Elevation Gain</p>
-                    <p className="mt-1 text-lg font-semibold text-white">
-                      {formatFeet(raceProfile.elevation_gain_ft)}
-                    </p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-2xl bg-paper p-4">
+                      <p className="text-xs uppercase tracking-[0.2em] text-accent">Distance</p>
+                      <p className="mt-1 text-lg font-semibold text-ink">{formatDistanceMiles(raceProfile.distance_miles)}</p>
+                    </div>
+                    <div className="rounded-2xl bg-paper p-4">
+                      <p className="text-xs uppercase tracking-[0.2em] text-accent">Elevation Gain</p>
+                      <p className="mt-1 text-lg font-semibold text-ink">{formatFeet(raceProfile.elevation_gain_ft)}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ) : (
-              <ul className="mt-4 space-y-3 text-sm text-slate-300">
-                <li>Target race and race date persist until the race passes.</li>
-                <li>Saved race profiles remove repeated data entry from the log.</li>
-                <li>Rest-day interventions still work because activity linking remains optional.</li>
-              </ul>
-            )}
-          </div>
-        </aside>
+              ) : (
+                <ul className="mt-4 space-y-3 text-sm text-ink/75">
+                  <li>Target race and race date persist until the race passes.</li>
+                  <li>Saved race profiles reduce repeated data entry in the log.</li>
+                  <li>Rest-day interventions still work because activity linking remains optional.</li>
+                </ul>
+              )}
+            </div>
+          </aside>
+        </div>
       </div>
-    </div>
+    </main>
   );
 }
