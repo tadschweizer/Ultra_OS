@@ -10,7 +10,9 @@ const emptySettings = {
   body_weight_lb: '',
   normal_long_run_carb_g_per_hr: '',
   sweat_rate_l_per_hr: '',
+  sweat_sodium_concentration_mg_l: '',
   sodium_target_mg_per_hr: '',
+  fluid_target_ml_per_hr: '',
   typical_sleep_hours: '',
   hr_zone_1_min: '',
   hr_zone_1_max: '',
@@ -23,7 +25,7 @@ const emptySettings = {
   hr_zone_5_min: '',
   hr_zone_5_max: '',
   notes: '',
-  supplements: [{ supplement_name: '', dose: '' }],
+  supplements: [{ supplement_name: '', amount: '', unit: 'mg', frequency_per_day: '1' }],
 };
 
 const orderedZones = [
@@ -45,7 +47,9 @@ function toFormValues(settings) {
     body_weight_lb: settings.body_weight_lb ?? '',
     normal_long_run_carb_g_per_hr: settings.normal_long_run_carb_g_per_hr ?? '',
     sweat_rate_l_per_hr: settings.sweat_rate_l_per_hr ?? '',
+    sweat_sodium_concentration_mg_l: settings.sweat_sodium_concentration_mg_l ?? '',
     sodium_target_mg_per_hr: settings.sodium_target_mg_per_hr ?? '',
+    fluid_target_ml_per_hr: settings.fluid_target_ml_per_hr ?? '',
     typical_sleep_hours: settings.typical_sleep_hours ?? '',
     hr_zone_1_min: settings.hr_zone_1_min ?? '',
     hr_zone_1_max: settings.hr_zone_1_max ?? '',
@@ -62,9 +66,11 @@ function toFormValues(settings) {
       settings.supplements && settings.supplements.length > 0
         ? settings.supplements.map((item) => ({
             supplement_name: item.supplement_name ?? '',
-            dose: item.dose ?? '',
+            amount: item.amount ?? '',
+            unit: item.unit ?? 'mg',
+            frequency_per_day: item.frequency_per_day ?? '1',
           }))
-        : [{ supplement_name: '', dose: '' }],
+        : [{ supplement_name: '', amount: '', unit: 'mg', frequency_per_day: '1' }],
   };
 }
 
@@ -72,7 +78,7 @@ function cascadeZones(currentForm, fieldName, value) {
   const nextForm = { ...currentForm, [fieldName]: value };
   const zoneIndex = orderedZones.findIndex((zone) => zone.includes(fieldName));
 
-  if (zoneIndex === -1 || !fieldName.endsWith('_max')) {
+  if (zoneIndex === -1) {
     return nextForm;
   }
 
@@ -81,19 +87,37 @@ function cascadeZones(currentForm, fieldName, value) {
     return nextForm;
   }
 
-  for (let index = zoneIndex + 1; index < orderedZones.length; index += 1) {
-    const [minKey, maxKey] = orderedZones[index];
-    const previousMaxKey = orderedZones[index - 1][1];
-    const previousMaxValue = parseInt(nextForm[previousMaxKey], 10);
+  if (fieldName.endsWith('_max')) {
+    for (let index = zoneIndex + 1; index < orderedZones.length; index += 1) {
+      const [minKey, maxKey] = orderedZones[index];
+      const previousMaxKey = orderedZones[index - 1][1];
+      const previousMaxValue = parseInt(nextForm[previousMaxKey], 10);
 
-    if (Number.isNaN(previousMaxValue)) break;
+      if (Number.isNaN(previousMaxValue)) break;
 
-    nextForm[minKey] = String(previousMaxValue + 1);
+      nextForm[minKey] = String(previousMaxValue + 1);
 
-    const currentMaxValue = parseInt(nextForm[maxKey], 10);
-    if (!Number.isNaN(currentMaxValue) && currentMaxValue <= previousMaxValue) {
-      nextForm[maxKey] = '';
-      break;
+      const currentMaxValue = parseInt(nextForm[maxKey], 10);
+      if (!Number.isNaN(currentMaxValue) && currentMaxValue <= previousMaxValue) {
+        nextForm[maxKey] = '';
+        break;
+      }
+    }
+  }
+
+  if (fieldName.endsWith('_min') && zoneIndex > 0) {
+    const previousMaxKey = orderedZones[zoneIndex - 1][1];
+    nextForm[previousMaxKey] = String(parsedValue - 1);
+
+    for (let index = zoneIndex; index < orderedZones.length; index += 1) {
+      const [minKey, maxKey] = orderedZones[index];
+      const currentMinValue = parseInt(nextForm[minKey], 10);
+      const currentMaxValue = parseInt(nextForm[maxKey], 10);
+
+      if (!Number.isNaN(currentMinValue) && !Number.isNaN(currentMaxValue) && currentMaxValue < currentMinValue) {
+        nextForm[maxKey] = '';
+        break;
+      }
     }
   }
 
@@ -135,7 +159,8 @@ export default function Settings() {
     { href: '/connections', label: 'Connections', description: 'Manage linked sources.' },
     { href: '/log-intervention', label: 'Log Intervention', description: 'Create a new intervention entry.' },
     { href: '/history', label: 'Intervention History', description: 'Review intervention records.' },
-    { href: '/settings', label: 'Settings', description: 'Edit athlete baselines and zones.' },
+    { href: '/settings', label: 'Athlete Settings', description: 'Edit athlete baselines and zones.' },
+    { href: '/account', label: 'Account Settings', description: 'Manage account and security.' },
     { href: '/content', label: 'Content', description: 'Track the content and community workstream.' },
     { href: '/', label: 'Landing Page', description: 'Return to the public entry page.' },
   ];
@@ -169,8 +194,11 @@ export default function Settings() {
       );
 
       const lastItem = supplements[supplements.length - 1];
-      if (lastItem && (lastItem.supplement_name || lastItem.dose)) {
-        supplements.push({ supplement_name: '', dose: '' });
+      if (lastItem && (lastItem.supplement_name || lastItem.amount || lastItem.unit || lastItem.frequency_per_day)) {
+        const hasRealContent = lastItem.supplement_name || lastItem.amount;
+        if (hasRealContent) {
+          supplements.push({ supplement_name: '', amount: '', unit: 'mg', frequency_per_day: '1' });
+        }
       }
 
       return { ...current, supplements };
@@ -182,7 +210,10 @@ export default function Settings() {
       const supplements = current.supplements.filter((_, itemIndex) => itemIndex !== index);
       return {
         ...current,
-        supplements: supplements.length > 0 ? supplements : [{ supplement_name: '', dose: '' }],
+        supplements:
+          supplements.length > 0
+            ? supplements
+            : [{ supplement_name: '', amount: '', unit: 'mg', frequency_per_day: '1' }],
       };
     });
   }
@@ -214,10 +245,10 @@ export default function Settings() {
       <div className="mx-auto max-w-6xl">
         <div className="mb-6 flex items-center justify-between rounded-full border border-ink/10 bg-white/70 px-4 py-3 backdrop-blur">
           <div>
-            <p className="text-xs uppercase tracking-[0.35em] text-accent">UltraOS Settings</p>
+            <p className="text-xs uppercase tracking-[0.35em] text-accent">Athlete Settings</p>
           </div>
           <NavMenu
-            label="Settings navigation"
+            label="Athlete settings navigation"
             links={navLinks}
             primaryLink={{ href: '/log-intervention', label: 'Log Intervention' }}
           />
@@ -229,7 +260,7 @@ export default function Settings() {
           <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
             <div>
               <p className="text-sm uppercase tracking-[0.35em] text-accent">Athlete Profile</p>
-              <h1 className="font-display mt-4 max-w-4xl text-5xl leading-tight md:text-7xl">Save the baselines that make your data interpretable.</h1>
+              <h1 className="font-display mt-4 max-w-4xl text-5xl leading-tight md:text-7xl">Athlete Settings</h1>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-ink/80">
                 UltraOS needs stable anchors for altitude, fueling, hydration, sleep, and heart rate. This page is where those inputs live.
               </p>
@@ -310,10 +341,27 @@ export default function Settings() {
               </div>
             </Section>
 
-            <Section title="Baseline Supplements" body="Track the supplements you regularly take so the dashboard can start comparing training and intervention trends against your baseline stack.">
+            <Section title="Electrolyte Baselines" body="Units follow common field practice: sweat sodium concentration in mg/L and intake targets in mg/hr or ml/hr.">
+              <div className="grid gap-4 md:grid-cols-3">
+                <div>
+                  <label className="mb-1 block text-sm font-semibold text-ink">Sweat Sodium Concentration (mg/L)</label>
+                  <input type="number" name="sweat_sodium_concentration_mg_l" value={form.sweat_sodium_concentration_mg_l} onChange={handleChange} className={fieldClassName()} />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-semibold text-ink">Sodium Target (mg/hr)</label>
+                  <input type="number" name="sodium_target_mg_per_hr" value={form.sodium_target_mg_per_hr} onChange={handleChange} className={fieldClassName()} />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-semibold text-ink">Fluid Target (ml/hr)</label>
+                  <input type="number" name="fluid_target_ml_per_hr" value={form.fluid_target_ml_per_hr} onChange={handleChange} className={fieldClassName()} />
+                </div>
+              </div>
+            </Section>
+
+            <Section title="Baseline Supplements" body="Track your regular stack with dose, units, and daily frequency so later analysis can separate baseline behavior from interventions.">
               <div className="space-y-3">
                 {form.supplements.map((item, index) => (
-                  <div key={`supplement-${index}`} className="grid gap-3 md:grid-cols-[1.2fr_1fr_auto] md:items-center">
+                  <div key={`supplement-${index}`} className="grid gap-3 md:grid-cols-[1.2fr_0.8fr_0.8fr_0.9fr_auto] md:items-center">
                     <input
                       type="text"
                       value={item.supplement_name}
@@ -322,13 +370,31 @@ export default function Settings() {
                       className={fieldClassName()}
                     />
                     <input
-                      type="text"
-                      value={item.dose}
-                      onChange={(event) => handleSupplementChange(index, 'dose', event.target.value)}
-                      placeholder="Dose"
+                      type="number"
+                      step="0.1"
+                      value={item.amount}
+                      onChange={(event) => handleSupplementChange(index, 'amount', event.target.value)}
+                      placeholder="Amount"
                       className={fieldClassName()}
                     />
-                    {item.supplement_name || item.dose ? (
+                    <select
+                      value={item.unit}
+                      onChange={(event) => handleSupplementChange(index, 'unit', event.target.value)}
+                      className={fieldClassName()}
+                    >
+                      {['mg', 'g', 'mcg', 'capsule', 'tablet', 'scoop', 'serving', 'ml'].map((unit) => (
+                        <option key={unit} value={unit}>{unit}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="number"
+                      min="1"
+                      value={item.frequency_per_day}
+                      onChange={(event) => handleSupplementChange(index, 'frequency_per_day', event.target.value)}
+                      placeholder="Per day"
+                      className={fieldClassName()}
+                    />
+                    {item.supplement_name || item.amount ? (
                       <button
                         type="button"
                         onClick={() => removeSupplement(index)}
@@ -342,7 +408,7 @@ export default function Settings() {
               </div>
             </Section>
 
-            <Section title="Heart Rate Zones" body="If you enter a zone max, the next zone min auto-fills as one beat higher. Example: Zone 2 max 150 sets Zone 3 min to 151.">
+            <Section title="Heart Rate Zones" body="Zone boundaries now cascade both directions. Raising Zone 2 min will set Zone 1 max to one beat lower, and raising Zone 2 max will set Zone 3 min to one beat higher.">
               <div className="space-y-3">
                 <ZoneRow label="Zone 1" minName="hr_zone_1_min" maxName="hr_zone_1_max" form={form} onChange={handleChange} />
                 <ZoneRow label="Zone 2" minName="hr_zone_2_min" maxName="hr_zone_2_max" form={form} onChange={handleChange} />

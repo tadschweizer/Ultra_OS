@@ -57,40 +57,98 @@ function formatMetricValue(metric, value) {
 }
 
 function TrendChart({ points, metric }) {
-  const width = 520;
-  const height = 180;
-  const padding = 20;
+  const width = 760;
+  const height = 280;
+  const paddingTop = 18;
+  const paddingBottom = 34;
+  const paddingLeft = 56;
+  const paddingRight = 18;
   const maxValue = Math.max(...points.map((point) => point.value), 1);
-  const chartWidth = width - padding * 2;
-  const chartHeight = height - padding * 2;
+  const chartWidth = width - paddingLeft - paddingRight;
+  const chartHeight = height - paddingTop - paddingBottom;
+  const total = points.reduce((sum, point) => sum + point.value, 0);
+  const yTicks = [1, 0.75, 0.5, 0.25, 0].map((ratio) => ({
+    value: maxValue * ratio,
+    y: paddingTop + chartHeight - ratio * chartHeight,
+  }));
 
   const polyline = points
     .map((point, index) => {
-      const x = padding + (index / Math.max(points.length - 1, 1)) * chartWidth;
-      const y = padding + chartHeight - (point.value / maxValue) * chartHeight;
+      const x = paddingLeft + (index / Math.max(points.length - 1, 1)) * chartWidth;
+      const y = paddingTop + chartHeight - (point.value / maxValue) * chartHeight;
       return `${x},${y}`;
     })
     .join(' ');
 
+  const area = `${paddingLeft},${paddingTop + chartHeight} ${polyline} ${paddingLeft + chartWidth},${paddingTop + chartHeight}`;
+
   return (
     <div>
       <div className="mb-4 flex items-end justify-between gap-4">
-        <p className="text-3xl font-semibold text-ink">{formatMetricValue(metric, points.reduce((sum, point) => sum + point.value, 0))}</p>
+        <p className="text-3xl font-semibold text-ink">{formatMetricValue(metric, total)}</p>
         <p className="text-sm text-ink/55">{points.length > 0 ? `${points[0].label} - ${points[points.length - 1].label}` : ''}</p>
       </div>
-      <svg viewBox={`0 0 ${width} ${height}`} className="h-48 w-full">
+      <svg viewBox={`0 0 ${width} ${height}`} className="h-64 w-full">
         <rect x="0" y="0" width={width} height={height} rx="28" fill="#f3eadf" />
+        {yTicks.map((tick) => (
+          <g key={tick.y}>
+            <line
+              x1={paddingLeft}
+              y1={tick.y}
+              x2={paddingLeft + chartWidth}
+              y2={tick.y}
+              stroke="#18211f"
+              strokeOpacity="0.09"
+              strokeDasharray="4 6"
+            />
+            <text
+              x={paddingLeft - 10}
+              y={tick.y + 4}
+              textAnchor="end"
+              fill="#18211f"
+              fillOpacity="0.55"
+              fontSize="11"
+              letterSpacing="0.08em"
+            >
+              {formatMetricValue(metric, tick.value)}
+            </text>
+          </g>
+        ))}
+        <polygon points={area} fill="rgba(24,33,31,0.1)" />
         {points.map((point, index) => {
-          const x = padding + (index / Math.max(points.length - 1, 1)) * chartWidth;
-          const y = padding + chartHeight - (point.value / maxValue) * chartHeight;
+          const x = paddingLeft + (index / Math.max(points.length - 1, 1)) * chartWidth;
+          const y = paddingTop + chartHeight - (point.value / maxValue) * chartHeight;
           return <circle key={point.key} cx={x} cy={y} r="3.5" fill="#18211f" />;
         })}
         <polyline fill="none" stroke="#18211f" strokeWidth="3" points={polyline} strokeLinejoin="round" strokeLinecap="round" />
+        {points.map((point, index) => {
+          const x = paddingLeft + (index / Math.max(points.length - 1, 1)) * chartWidth;
+          return (
+            <text
+              key={`${point.key}-label`}
+              x={x}
+              y={height - 10}
+              textAnchor={index === 0 ? 'start' : index === points.length - 1 ? 'end' : 'middle'}
+              fill="#18211f"
+              fillOpacity={index % Math.ceil(points.length / 6 || 1) === 0 || index === points.length - 1 ? '0.6' : '0'}
+              fontSize="11"
+              letterSpacing="0.08em"
+            >
+              {point.label}
+            </text>
+          );
+        })}
       </svg>
-      <div className="mt-3 flex justify-between text-[11px] uppercase tracking-[0.18em] text-ink/45">
-        <span>{points[0]?.label}</span>
-        <span>{points[Math.floor(points.length / 2)]?.label}</span>
-        <span>{points[points.length - 1]?.label}</span>
+      <div className="mt-3 grid gap-2 text-xs text-ink/55 md:grid-cols-3">
+        <div className="rounded-[18px] bg-paper px-3 py-2">
+          Peak day: {formatMetricValue(metric, Math.max(...points.map((point) => point.value), 0))}
+        </div>
+        <div className="rounded-[18px] bg-paper px-3 py-2">
+          Avg/day: {formatMetricValue(metric, total / Math.max(points.length, 1))}
+        </div>
+        <div className="rounded-[18px] bg-paper px-3 py-2">
+          Active days: {points.filter((point) => point.value > 0).length}
+        </div>
       </div>
     </div>
   );
@@ -158,7 +216,8 @@ export default function Dashboard() {
     { href: '/', label: 'Landing Page', description: 'Return to the UltraOS entry page.' },
     { href: '/connections', label: 'Connections', description: 'Link Strava and future platforms.' },
     { href: '/history', label: 'Intervention History', description: 'Review logged protocol history.' },
-    { href: '/settings', label: 'Settings', description: 'Edit athlete baselines and HR zones.' },
+    { href: '/settings', label: 'Athlete Settings', description: 'Edit athlete baselines and HR zones.' },
+    { href: '/account', label: 'Account Settings', description: 'Manage account and security.' },
     { href: '/log-intervention', label: 'Log Intervention', description: 'Create a new intervention entry.' },
     { href: '/content', label: 'Content', description: 'Track the content and community workstream.' },
   ];
@@ -217,7 +276,7 @@ export default function Dashboard() {
             <div className="rounded-[34px] bg-panel p-6 text-white shadow-[0_40px_100px_rgba(0,0,0,0.28)]">
               <div className="flex items-center justify-between">
                 <p className="text-sm uppercase tracking-[0.25em] text-accent">Current Trend Window</p>
-                <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/80">Last 7 Days</span>
+                <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/80">Last {timeframe} Days</span>
               </div>
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
                 <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
@@ -320,7 +379,8 @@ export default function Dashboard() {
             </div>
             <div className="mt-5 space-y-3">
               {[
-                `${settings?.supplements?.filter((item) => item.supplement_name || item.dose).length || 0} baseline supplements are tracked.`,
+                `${settings?.supplements?.filter((item) => item.supplement_name || item.amount).length || 0} baseline supplements are tracked.`,
+                `${settings?.sweat_sodium_concentration_mg_l || '-'} mg/L sweat sodium concentration is available for electrolyte comparison.`,
                 `${interventionCount} intervention records are ready to compare against training load.`,
                 'Supplement trends will surface here once more workouts and intervention pairings accumulate.',
               ].map((item) => (
@@ -393,10 +453,14 @@ export default function Dashboard() {
                   <p className="text-xs uppercase tracking-[0.2em] text-accent">Sleep Altitude</p>
                   <p className="mt-2 text-xl font-semibold">{settings.baseline_sleep_altitude_ft ?? '-'} ft</p>
                 </div>
+                <div className="rounded-[24px] bg-paper p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-accent">Electrolytes</p>
+                  <p className="mt-2 text-xl font-semibold">{settings.sodium_target_mg_per_hr ?? '-'} mg/hr</p>
+                </div>
                 <div className="rounded-[24px] bg-paper p-4 sm:col-span-2">
                   <p className="text-xs uppercase tracking-[0.2em] text-accent">Baseline Supplements</p>
                   <p className="mt-2 text-xl font-semibold">
-                    {settings.supplements?.filter((item) => item.supplement_name || item.dose).length || 0}
+                    {settings.supplements?.filter((item) => item.supplement_name || item.amount).length || 0}
                   </p>
                 </div>
               </div>

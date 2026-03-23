@@ -2,7 +2,8 @@ const defaultTabs = [
   { href: '/connections', label: 'Connections' },
   { href: '/log-intervention', label: 'Intervention' },
   { href: '/history', label: 'Intervention History' },
-  { href: '/settings', label: 'Settings' },
+  { href: '/settings', label: 'Athlete Settings' },
+  { href: '/account', label: 'Account Settings' },
   { href: '/content', label: 'Content' },
 ];
 

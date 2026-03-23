@@ -46,30 +46,13 @@ function ScorePips({ label, score }) {
 
 function SummaryBlock({ entry, isExpanded, onToggle }) {
   const summary = entry.plain_english_summary || 'Summary coming soon.';
-  const canToggle = summary.length > 180;
+  const firstSentenceMatch = summary.match(/.+?[.!?](\s|$)/);
+  const collapsedSummary = firstSentenceMatch ? firstSentenceMatch[0].trim() : summary;
+  const canToggle = summary.length > collapsedSummary.length + 20;
 
   return (
     <div className="mt-4">
-      <div className={`relative ${isExpanded ? '' : 'overflow-hidden'}`}>
-        <p
-          className="text-sm leading-7 text-ink/78"
-          style={
-            isExpanded
-              ? undefined
-              : {
-                  display: '-webkit-box',
-                  WebkitBoxOrient: 'vertical',
-                  WebkitLineClamp: 3,
-                  overflow: 'hidden',
-                }
-          }
-        >
-          {summary}
-        </p>
-        {!isExpanded && canToggle ? (
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-white via-white/92 to-transparent" />
-        ) : null}
-      </div>
+      <p className="text-sm leading-7 text-ink/78">{isExpanded ? summary : collapsedSummary}</p>
       {canToggle ? (
         <button
           type="button"
@@ -97,7 +80,8 @@ export default function Content() {
     { href: '/connections', label: 'Connections' },
     { href: '/log-intervention', label: 'Log Intervention' },
     { href: '/history', label: 'Intervention History' },
-    { href: '/settings', label: 'Settings' },
+    { href: '/settings', label: 'Athlete Settings' },
+    { href: '/account', label: 'Account Settings' },
     { href: '/content', label: 'Content' },
     { href: '/content/admin', label: 'Content Admin' },
     { href: '/', label: 'Landing Page' },

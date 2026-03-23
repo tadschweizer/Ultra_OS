@@ -31,7 +31,7 @@ export default async function handler(req, res) {
 
     const { data: supplements, error: supplementsError } = await supabase
       .from('athlete_supplements')
-      .select('id, supplement_name, dose')
+      .select('id, supplement_name, amount, unit, frequency_per_day')
       .eq('athlete_id', athleteId)
       .order('inserted_at', { ascending: true });
 
@@ -51,9 +51,14 @@ export default async function handler(req, res) {
       ? body.supplements
           .map((item) => ({
             supplement_name: item?.supplement_name?.trim() || '',
-            dose: item?.dose?.trim() || '',
+            amount: item?.amount === '' || item?.amount === null || item?.amount === undefined ? null : parseOptionalFloat(item.amount),
+            unit: item?.unit?.trim() || 'mg',
+            frequency_per_day:
+              item?.frequency_per_day === '' || item?.frequency_per_day === null || item?.frequency_per_day === undefined
+                ? 1
+                : parseOptionalInt(item.frequency_per_day),
           }))
-          .filter((item) => item.supplement_name || item.dose)
+          .filter((item) => item.supplement_name || item.amount)
       : [];
 
     const payload = {
@@ -65,7 +70,9 @@ export default async function handler(req, res) {
       body_weight_lb: parseOptionalInt(body.body_weight_lb),
       normal_long_run_carb_g_per_hr: parseOptionalInt(body.normal_long_run_carb_g_per_hr),
       sweat_rate_l_per_hr: parseOptionalFloat(body.sweat_rate_l_per_hr),
+      sweat_sodium_concentration_mg_l: parseOptionalInt(body.sweat_sodium_concentration_mg_l),
       sodium_target_mg_per_hr: parseOptionalInt(body.sodium_target_mg_per_hr),
+      fluid_target_ml_per_hr: parseOptionalInt(body.fluid_target_ml_per_hr),
       typical_sleep_hours: parseOptionalFloat(body.typical_sleep_hours),
       hr_zone_1_min: parseOptionalInt(body.hr_zone_1_min),
       hr_zone_1_max: parseOptionalInt(body.hr_zone_1_max),
@@ -111,10 +118,12 @@ export default async function handler(req, res) {
           supplements.map((item) => ({
             athlete_id: athleteId,
             supplement_name: item.supplement_name,
-            dose: item.dose || null,
+            amount: item.amount,
+            unit: item.unit || 'mg',
+            frequency_per_day: item.frequency_per_day || 1,
           }))
         )
-        .select('id, supplement_name, dose');
+        .select('id, supplement_name, amount, unit, frequency_per_day');
 
       if (supplementsError) {
         console.error(supplementsError);

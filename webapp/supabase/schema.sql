@@ -54,7 +54,9 @@ create table if not exists public.athlete_settings (
   body_weight_lb integer,
   normal_long_run_carb_g_per_hr integer,
   sweat_rate_l_per_hr numeric,
+  sweat_sodium_concentration_mg_l integer,
   sodium_target_mg_per_hr integer,
+  fluid_target_ml_per_hr integer,
   typical_sleep_hours numeric,
   hr_zone_1_min integer,
   hr_zone_1_max integer,
@@ -74,7 +76,9 @@ create table if not exists public.athlete_supplements (
   id uuid primary key default gen_random_uuid(),
   athlete_id uuid references public.athletes (id) on delete cascade,
   supplement_name text,
-  dose text,
+  amount numeric,
+  unit text,
+  frequency_per_day integer default 1,
   inserted_at timestamptz default now()
 );
 
