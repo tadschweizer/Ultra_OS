@@ -53,8 +53,8 @@ export default async function handler(req, res) {
       return;
     }
   }
-  // Request activities from the past 180 days so dashboard analytics have enough history.
-  const since = Math.floor(Date.now() / 1000) - 180 * 24 * 3600;
+  // Default the live dashboard window to the most recent 60 days.
+  const since = Math.floor(Date.now() / 1000) - 60 * 24 * 3600;
   try {
     const activities = await getRecentActivities(access_token, since);
     res.status(200).json({ activities });

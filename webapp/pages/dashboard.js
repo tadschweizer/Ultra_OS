@@ -23,6 +23,7 @@ import DashboardTabs from '../components/DashboardTabs';
 const timeframeOptions = [
   { value: 7, label: '7D' },
   { value: 30, label: '30D' },
+  { value: 60, label: '60D' },
   { value: 90, label: '90D' },
 ];
 
@@ -193,7 +194,7 @@ export default function Dashboard() {
   const [interventions, setInterventions] = useState([]);
   const [interventionCount, setInterventionCount] = useState(0);
   const [settings, setSettings] = useState(null);
-  const [timeframe, setTimeframe] = useState(30);
+  const [timeframe, setTimeframe] = useState(60);
   const [metric, setMetric] = useState('mileage');
 
   useEffect(() => {
