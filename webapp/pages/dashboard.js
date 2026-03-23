@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   buildInsightCards,
+  buildTrendSeries,
   classifyActivity,
   classifyActivityType,
   metersToFeet,
@@ -11,6 +12,19 @@ import {
 } from '../lib/activityInsights';
 import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
+
+const timeframeOptions = [
+  { value: 7, label: '7D' },
+  { value: 30, label: '30D' },
+  { value: 90, label: '90D' },
+];
+
+const metricOptions = [
+  { value: 'mileage', label: 'Mileage' },
+  { value: 'elevation', label: 'Elevation' },
+  { value: 'hours', label: 'Time' },
+  { value: 'count', label: 'Sessions' },
+];
 
 function formatActivityDate(startDate) {
   return new Date(startDate).toLocaleString();
@@ -28,12 +42,68 @@ function formatHours(value) {
   return `${value.toFixed(1)} hrs`;
 }
 
+function formatMetricValue(metric, value) {
+  switch (metric) {
+    case 'elevation':
+      return `${Math.round(value).toLocaleString()} ft`;
+    case 'hours':
+      return `${value.toFixed(1)} hrs`;
+    case 'count':
+      return `${Math.round(value)}`;
+    case 'mileage':
+    default:
+      return `${value.toFixed(1)} mi`;
+  }
+}
+
+function TrendChart({ points, metric }) {
+  const width = 520;
+  const height = 180;
+  const padding = 20;
+  const maxValue = Math.max(...points.map((point) => point.value), 1);
+  const chartWidth = width - padding * 2;
+  const chartHeight = height - padding * 2;
+
+  const polyline = points
+    .map((point, index) => {
+      const x = padding + (index / Math.max(points.length - 1, 1)) * chartWidth;
+      const y = padding + chartHeight - (point.value / maxValue) * chartHeight;
+      return `${x},${y}`;
+    })
+    .join(' ');
+
+  return (
+    <div>
+      <div className="mb-4 flex items-end justify-between gap-4">
+        <p className="text-3xl font-semibold text-ink">{formatMetricValue(metric, points.reduce((sum, point) => sum + point.value, 0))}</p>
+        <p className="text-sm text-ink/55">{points.length > 0 ? `${points[0].label} - ${points[points.length - 1].label}` : ''}</p>
+      </div>
+      <svg viewBox={`0 0 ${width} ${height}`} className="h-48 w-full">
+        <rect x="0" y="0" width={width} height={height} rx="28" fill="#f3eadf" />
+        {points.map((point, index) => {
+          const x = padding + (index / Math.max(points.length - 1, 1)) * chartWidth;
+          const y = padding + chartHeight - (point.value / maxValue) * chartHeight;
+          return <circle key={point.key} cx={x} cy={y} r="3.5" fill="#18211f" />;
+        })}
+        <polyline fill="none" stroke="#18211f" strokeWidth="3" points={polyline} strokeLinejoin="round" strokeLinecap="round" />
+      </svg>
+      <div className="mt-3 flex justify-between text-[11px] uppercase tracking-[0.18em] text-ink/45">
+        <span>{points[0]?.label}</span>
+        <span>{points[Math.floor(points.length / 2)]?.label}</span>
+        <span>{points[points.length - 1]?.label}</span>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [athlete, setAthlete] = useState(null);
   const [activities, setActivities] = useState([]);
   const [interventionCount, setInterventionCount] = useState(0);
   const [settings, setSettings] = useState(null);
+  const [timeframe, setTimeframe] = useState(30);
+  const [metric, setMetric] = useState('mileage');
 
   useEffect(() => {
     async function fetchData() {
@@ -48,7 +118,7 @@ export default function Dashboard() {
         const settingsRes = await fetch('/api/settings');
         if (settingsRes.ok) {
           const settingsData = await settingsRes.json();
-          setSettings(settingsData.settings);
+          setSettings({ ...settingsData.settings, supplements: settingsData.supplements || [] });
         }
 
         const actRes = await fetch('/api/activities');
@@ -67,6 +137,10 @@ export default function Dashboard() {
   }, []);
 
   const trainingSummary = useMemo(() => summarizeRecentTraining(activities), [activities]);
+  const trendSeries = useMemo(
+    () => buildTrendSeries(activities, timeframe, metric),
+    [activities, timeframe, metric]
+  );
   const insightCards = useMemo(
     () => buildInsightCards(activities, interventionCount, settings || {}),
     [activities, interventionCount, settings]
@@ -190,6 +264,39 @@ export default function Dashboard() {
 
         <section className="mt-12 grid gap-6 lg:grid-cols-[1fr_1fr]">
           <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm uppercase tracking-[0.25em] text-accent">Trends</p>
+              <div className="flex flex-wrap gap-2">
+                {timeframeOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setTimeframe(option.value)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-semibold ${timeframe === option.value ? 'bg-ink text-paper' : 'bg-paper text-ink'}`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {metricOptions.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setMetric(option.value)}
+                  className={`rounded-full px-3 py-2 text-sm font-semibold ${metric === option.value ? 'bg-ink text-paper' : 'border border-ink/10 text-ink'}`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <div className="mt-6">
+              <TrendChart points={trendSeries} metric={metric} />
+            </div>
+          </div>
+
+          <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
             <div className="flex items-center justify-between">
               <p className="text-sm uppercase tracking-[0.25em] text-accent">AI Insights</p>
               <span className="rounded-full bg-paper px-3 py-1 text-xs text-ink/70">Early Heuristics</span>
@@ -206,16 +313,16 @@ export default function Dashboard() {
 
           <div className="rounded-[30px] bg-[linear-gradient(135deg,#1b2421_0%,#29302d_100%)] p-6 text-white">
             <div className="flex items-center justify-between">
-              <p className="text-sm uppercase tracking-[0.25em] text-accent">Trend Paths</p>
+              <p className="text-sm uppercase tracking-[0.25em] text-accent">Baseline Trends</p>
               <a href="/connections" className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/80">
                 Expand Sources
               </a>
             </div>
             <div className="mt-5 space-y-3">
               {[
-                'Weekly mileage, vertical, and time are live now.',
-                'Workout type inference is seeded from HR + activity title heuristics.',
-                'TrainingPeaks-style workout descriptions are the next big unlock for real session intent.',
+                `${settings?.supplements?.filter((item) => item.supplement_name || item.dose).length || 0} baseline supplements are tracked.`,
+                `${interventionCount} intervention records are ready to compare against training load.`,
+                'Supplement trends will surface here once more workouts and intervention pairings accumulate.',
               ].map((item) => (
                 <div key={item} className="rounded-[22px] border border-white/10 bg-white/5 p-4 text-sm text-white/80">
                   {item}
@@ -285,6 +392,12 @@ export default function Dashboard() {
                 <div className="rounded-[24px] bg-paper p-4">
                   <p className="text-xs uppercase tracking-[0.2em] text-accent">Sleep Altitude</p>
                   <p className="mt-2 text-xl font-semibold">{settings.baseline_sleep_altitude_ft ?? '-'} ft</p>
+                </div>
+                <div className="rounded-[24px] bg-paper p-4 sm:col-span-2">
+                  <p className="text-xs uppercase tracking-[0.2em] text-accent">Baseline Supplements</p>
+                  <p className="mt-2 text-xl font-semibold">
+                    {settings.supplements?.filter((item) => item.supplement_name || item.dose).length || 0}
+                  </p>
                 </div>
               </div>
             ) : (

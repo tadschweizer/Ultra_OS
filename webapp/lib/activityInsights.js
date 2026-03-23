@@ -214,6 +214,49 @@ export function summarizeRecentTraining(activities = []) {
   );
 }
 
+export function buildTrendSeries(activities = [], timeframe = 30, metric = 'mileage') {
+  const now = new Date();
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - (timeframe - 1));
+
+  const buckets = Array.from({ length: timeframe }).map((_, index) => {
+    const date = new Date(start);
+    date.setDate(start.getDate() + index);
+    return {
+      key: date.toISOString().slice(0, 10),
+      label: date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+      value: 0,
+    };
+  });
+
+  const bucketMap = new Map(buckets.map((bucket) => [bucket.key, bucket]));
+
+  activities.forEach((activity) => {
+    const key = activity?.start_date?.slice(0, 10);
+    const bucket = bucketMap.get(key);
+    if (!bucket) return;
+
+    switch (metric) {
+      case 'elevation':
+        bucket.value += metersToFeet(activity.total_elevation_gain);
+        break;
+      case 'hours':
+        bucket.value += secondsToHours(activity.moving_time);
+        break;
+      case 'count':
+        bucket.value += 1;
+        break;
+      case 'mileage':
+      default:
+        bucket.value += metersToMiles(activity.distance);
+        break;
+    }
+  });
+
+  return buckets;
+}
+
 export function buildInsightCards(activities = [], interventionCount = 0, settings = {}) {
   const classified = activities.slice(0, 12).map((activity) => ({
     ...activity,

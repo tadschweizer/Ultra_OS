@@ -21,11 +21,6 @@ const sportOptions = [
   { key: 'triathlon_score', label: 'Triathlon' },
 ];
 
-function clampClass(open) {
-  if (open) return '';
-  return '[display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:3] overflow-hidden';
-}
-
 function formatDate(year, publicationDate) {
   if (publicationDate) {
     return new Date(`${publicationDate}T12:00:00`).getFullYear();
@@ -45,6 +40,45 @@ function ScorePips({ label, score }) {
           />
         ))}
       </div>
+    </div>
+  );
+}
+
+function SummaryBlock({ entry, isExpanded, onToggle }) {
+  const summary = entry.plain_english_summary || 'Summary coming soon.';
+  const canToggle = summary.length > 180;
+
+  return (
+    <div className="mt-4">
+      <div className={`relative ${isExpanded ? '' : 'overflow-hidden'}`}>
+        <p
+          className="text-sm leading-7 text-ink/78"
+          style={
+            isExpanded
+              ? undefined
+              : {
+                  display: '-webkit-box',
+                  WebkitBoxOrient: 'vertical',
+                  WebkitLineClamp: 3,
+                  overflow: 'hidden',
+                }
+          }
+        >
+          {summary}
+        </p>
+        {!isExpanded && canToggle ? (
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-white via-white/92 to-transparent" />
+        ) : null}
+      </div>
+      {canToggle ? (
+        <button
+          type="button"
+          onClick={() => onToggle(entry.id)}
+          className="mt-3 text-sm font-semibold text-ink/70 underline underline-offset-4"
+        >
+          {isExpanded ? 'Show less' : 'Expand'}
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -251,6 +285,7 @@ export default function Content() {
           <section className="grid gap-4">
             {visibleEntries.map((entry) => {
               const isExpanded = Boolean(expandedSummaries[entry.id]);
+
               return (
                 <article
                   key={entry.id}
@@ -279,20 +314,7 @@ export default function Content() {
                     <ScorePips label="Triathlon" score={entry.triathlon_score || 0} />
                   </div>
 
-                  <div className="mt-4">
-                    <p className={`text-sm leading-7 text-ink/78 ${clampClass(isExpanded)}`}>
-                      {entry.plain_english_summary || 'Summary coming soon.'}
-                    </p>
-                    {entry.plain_english_summary ? (
-                      <button
-                        type="button"
-                        onClick={() => toggleSummary(entry.id)}
-                        className="mt-2 text-sm font-semibold text-ink/70 underline underline-offset-4"
-                      >
-                        {isExpanded ? 'Show less' : 'Expand'}
-                      </button>
-                    ) : null}
-                  </div>
+                  <SummaryBlock entry={entry} isExpanded={isExpanded} onToggle={toggleSummary} />
 
                   <div className="mt-4 rounded-[22px] border-l-4 border-accent bg-paper px-4 py-4">
                     <p className="text-xs uppercase tracking-[0.22em] text-accent">Practical Takeaway</p>

@@ -23,6 +23,7 @@ const emptySettings = {
   hr_zone_5_min: '',
   hr_zone_5_max: '',
   notes: '',
+  supplements: [{ supplement_name: '', dose: '' }],
 };
 
 const orderedZones = [
@@ -57,6 +58,13 @@ function toFormValues(settings) {
     hr_zone_5_min: settings.hr_zone_5_min ?? '',
     hr_zone_5_max: settings.hr_zone_5_max ?? '',
     notes: settings.notes ?? '',
+    supplements:
+      settings.supplements && settings.supplements.length > 0
+        ? settings.supplements.map((item) => ({
+            supplement_name: item.supplement_name ?? '',
+            dose: item.dose ?? '',
+          }))
+        : [{ supplement_name: '', dose: '' }],
   };
 }
 
@@ -138,7 +146,7 @@ export default function Settings() {
         const res = await fetch('/api/settings');
         if (res.ok) {
           const data = await res.json();
-          setForm(toFormValues(data.settings));
+          setForm(toFormValues({ ...data.settings, supplements: data.supplements || [] }));
         }
       } catch (err) {
         console.error(err);
@@ -152,6 +160,31 @@ export default function Settings() {
   function handleChange(event) {
     const { name, value } = event.target;
     setForm((current) => cascadeZones(current, name, value));
+  }
+
+  function handleSupplementChange(index, field, value) {
+    setForm((current) => {
+      const supplements = current.supplements.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, [field]: value } : item
+      );
+
+      const lastItem = supplements[supplements.length - 1];
+      if (lastItem && (lastItem.supplement_name || lastItem.dose)) {
+        supplements.push({ supplement_name: '', dose: '' });
+      }
+
+      return { ...current, supplements };
+    });
+  }
+
+  function removeSupplement(index) {
+    setForm((current) => {
+      const supplements = current.supplements.filter((_, itemIndex) => itemIndex !== index);
+      return {
+        ...current,
+        supplements: supplements.length > 0 ? supplements : [{ supplement_name: '', dose: '' }],
+      };
+    });
   }
 
   async function handleSubmit(event) {
@@ -170,7 +203,7 @@ export default function Settings() {
       return;
     }
 
-    setForm(toFormValues(data.settings));
+    setForm(toFormValues({ ...data.settings, supplements: data.supplements || [] }));
     setMessage('Settings saved.');
   }
 
@@ -274,6 +307,38 @@ export default function Settings() {
                   <label className="mb-1 block text-sm font-semibold text-ink">Typical Sleep (hours)</label>
                   <input type="number" step="0.1" name="typical_sleep_hours" value={form.typical_sleep_hours} onChange={handleChange} className={fieldClassName()} />
                 </div>
+              </div>
+            </Section>
+
+            <Section title="Baseline Supplements" body="Track the supplements you regularly take so the dashboard can start comparing training and intervention trends against your baseline stack.">
+              <div className="space-y-3">
+                {form.supplements.map((item, index) => (
+                  <div key={`supplement-${index}`} className="grid gap-3 md:grid-cols-[1.2fr_1fr_auto] md:items-center">
+                    <input
+                      type="text"
+                      value={item.supplement_name}
+                      onChange={(event) => handleSupplementChange(index, 'supplement_name', event.target.value)}
+                      placeholder="Supplement"
+                      className={fieldClassName()}
+                    />
+                    <input
+                      type="text"
+                      value={item.dose}
+                      onChange={(event) => handleSupplementChange(index, 'dose', event.target.value)}
+                      placeholder="Dose"
+                      className={fieldClassName()}
+                    />
+                    {item.supplement_name || item.dose ? (
+                      <button
+                        type="button"
+                        onClick={() => removeSupplement(index)}
+                        className="rounded-full border border-ink/10 px-4 py-3 text-sm font-semibold text-ink"
+                      >
+                        Remove
+                      </button>
+                    ) : null}
+                  </div>
+                ))}
               </div>
             </Section>
 

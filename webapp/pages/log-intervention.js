@@ -348,7 +348,7 @@ export default function LogIntervention() {
     setRaceProfile(race);
     setRaceDraft(mapRaceToDraft(race));
     setRaceDraftOpen(false);
-    setRaceStatus(`Loaded race profile for ${race.name}.`);
+    setRaceStatus(`Selected ${race.name}.`);
     setForm((currentForm) => applyRaceToForm(currentForm, race));
   };
 
@@ -484,12 +484,14 @@ export default function LogIntervention() {
                   {!loadingRaces && raceOptions.length > 0 ? (
                     <div className="rounded-[22px] border border-ink/10 bg-paper/70 p-2">
                       {raceOptions.map((race) => (
-                        <button key={race.id} type="button" onClick={() => selectRace(race)} className="flex w-full items-center justify-between rounded-[16px] px-3 py-3 text-left transition hover:bg-white">
+                        <button key={race.id} type="button" onClick={() => selectRace(race)} className={`flex w-full items-center justify-between rounded-[16px] px-3 py-3 text-left transition hover:bg-white ${form.race_id === race.id ? 'bg-white' : ''}`}>
                           <span>
                             <span className="block text-sm font-semibold text-ink">{race.name}</span>
                             <span className="block text-xs text-ink/55">{race.event_date || 'Date TBD'}{race.location ? ` - ${race.location}` : ''}</span>
                           </span>
-                          <span className="text-[11px] uppercase tracking-[0.2em] text-accent">Use</span>
+                          <span className="text-[11px] uppercase tracking-[0.2em] text-accent">
+                            {form.race_id === race.id ? 'Selected ✓' : 'Use'}
+                          </span>
                         </button>
                       ))}
                     </div>

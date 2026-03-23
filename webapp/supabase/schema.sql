@@ -70,6 +70,14 @@ create table if not exists public.athlete_settings (
   updated_at timestamptz default now()
 );
 
+create table if not exists public.athlete_supplements (
+  id uuid primary key default gen_random_uuid(),
+  athlete_id uuid references public.athletes (id) on delete cascade,
+  supplement_name text,
+  dose text,
+  inserted_at timestamptz default now()
+);
+
 create table if not exists public.research_library_entries (
   id uuid primary key default gen_random_uuid(),
   pubmed_id text unique,
@@ -103,6 +111,7 @@ create index if not exists research_library_entries_topic_tags_idx
 alter table public.athletes disable row level security;
 alter table public.interventions disable row level security;
 alter table public.athlete_settings disable row level security;
+alter table public.athlete_supplements disable row level security;
 alter table public.races disable row level security;
 alter table public.research_library_entries enable row level security;
 
@@ -117,5 +126,6 @@ grant usage on schema public to anon, authenticated;
 grant select, insert, update, delete on table public.athletes to anon, authenticated;
 grant select, insert, update, delete on table public.interventions to anon, authenticated;
 grant select, insert, update, delete on table public.athlete_settings to anon, authenticated;
+grant select, insert, update, delete on table public.athlete_supplements to anon, authenticated;
 grant select, insert, update, delete on table public.races to anon, authenticated;
 grant select on table public.research_library_entries to anon, authenticated;

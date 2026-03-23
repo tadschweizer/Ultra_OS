@@ -29,18 +29,32 @@ export default async function handler(req, res) {
       .eq('athlete_id', athleteId)
       .maybeSingle();
 
-    if (error) {
-      console.error(error);
-      res.status(500).json({ error: error.message });
+    const { data: supplements, error: supplementsError } = await supabase
+      .from('athlete_supplements')
+      .select('id, supplement_name, dose')
+      .eq('athlete_id', athleteId)
+      .order('inserted_at', { ascending: true });
+
+    if (error || supplementsError) {
+      console.error(error || supplementsError);
+      res.status(500).json({ error: error?.message || supplementsError?.message });
       return;
     }
 
-    res.status(200).json({ settings: data || null });
+    res.status(200).json({ settings: data || null, supplements: supplements || [] });
     return;
   }
 
   if (req.method === 'POST') {
     const body = req.body || {};
+    const supplements = Array.isArray(body.supplements)
+      ? body.supplements
+          .map((item) => ({
+            supplement_name: item?.supplement_name?.trim() || '',
+            dose: item?.dose?.trim() || '',
+          }))
+          .filter((item) => item.supplement_name || item.dose)
+      : [];
 
     const payload = {
       athlete_id: athleteId,
@@ -79,7 +93,40 @@ export default async function handler(req, res) {
       return;
     }
 
-    res.status(200).json({ settings: data });
+    const { error: deleteSupplementsError } = await supabase
+      .from('athlete_supplements')
+      .delete()
+      .eq('athlete_id', athleteId);
+
+    if (deleteSupplementsError) {
+      console.error(deleteSupplementsError);
+      res.status(500).json({ error: deleteSupplementsError.message });
+      return;
+    }
+
+    if (supplements.length > 0) {
+      const { data: savedSupplements, error: supplementsError } = await supabase
+        .from('athlete_supplements')
+        .insert(
+          supplements.map((item) => ({
+            athlete_id: athleteId,
+            supplement_name: item.supplement_name,
+            dose: item.dose || null,
+          }))
+        )
+        .select('id, supplement_name, dose');
+
+      if (supplementsError) {
+        console.error(supplementsError);
+        res.status(500).json({ error: supplementsError.message });
+        return;
+      }
+
+      res.status(200).json({ settings: data, supplements: savedSupplements || [] });
+      return;
+    }
+
+    res.status(200).json({ settings: data, supplements: [] });
     return;
   }
 
