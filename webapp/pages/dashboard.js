@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   buildInsightCards,
+  buildProtocolTrendCards,
   buildTrendSeries,
   classifyActivity,
   classifyActivityType,
@@ -158,6 +159,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [athlete, setAthlete] = useState(null);
   const [activities, setActivities] = useState([]);
+  const [interventions, setInterventions] = useState([]);
   const [interventionCount, setInterventionCount] = useState(0);
   const [settings, setSettings] = useState(null);
   const [timeframe, setTimeframe] = useState(30);
@@ -183,6 +185,12 @@ export default function Dashboard() {
         if (actRes.ok) {
           const actData = await actRes.json();
           setActivities(sortActivitiesMostRecentFirst(actData.activities));
+        }
+
+        const interventionsRes = await fetch('/api/interventions');
+        if (interventionsRes.ok) {
+          const interventionData = await interventionsRes.json();
+          setInterventions(interventionData.interventions || []);
         }
       } catch (err) {
         console.error(err);
@@ -211,6 +219,10 @@ export default function Dashboard() {
         activityType: classifyActivityType(activity),
       })),
     [activities, settings]
+  );
+  const protocolTrendCards = useMemo(
+    () => buildProtocolTrendCards(interventions, settings?.supplements || []),
+    [interventions, settings]
   );
   const navLinks = [
     { href: '/', label: 'Landing Page', description: 'Return to the UltraOS entry page.' },
@@ -362,6 +374,21 @@ export default function Dashboard() {
             </div>
             <div className="mt-5 space-y-4">
               {insightCards.map((card) => (
+                <div key={card.title} className="rounded-[24px] bg-paper p-4">
+                  <p className="text-sm font-semibold text-ink">{card.title}</p>
+                  <p className="mt-2 text-sm leading-6 text-ink/75">{card.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+            <div className="flex items-center justify-between">
+              <p className="text-sm uppercase tracking-[0.25em] text-accent">Protocol Signals</p>
+              <span className="rounded-full bg-paper px-3 py-1 text-xs text-ink/70">Interventions + baseline stack</span>
+            </div>
+            <div className="mt-5 space-y-4">
+              {protocolTrendCards.map((card) => (
                 <div key={card.title} className="rounded-[24px] bg-paper p-4">
                   <p className="text-sm font-semibold text-ink">{card.title}</p>
                   <p className="mt-2 text-sm leading-6 text-ink/75">{card.body}</p>

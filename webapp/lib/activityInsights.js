@@ -309,3 +309,81 @@ export function buildInsightCards(activities = [], interventionCount = 0, settin
     },
   ];
 }
+
+export function buildProtocolTrendCards(interventions = [], supplements = []) {
+  const completeInterventions = interventions.filter((item) => item.intervention_type);
+  const supplementCount = supplements.filter((item) => item.supplement_name || item.amount).length;
+
+  if (completeInterventions.length === 0) {
+    return [
+      {
+        title: 'Protocol Signal',
+        body: 'No intervention history is available yet. Once entries accumulate, UltraOS can compare type, timing, and subjective response instead of only counting logs.',
+      },
+      {
+        title: 'Baseline Stack',
+        body:
+          supplementCount > 0
+            ? `${supplementCount} baseline supplements are tracked. Trend detection will use that stack as the non-intervention background state.`
+            : 'No baseline supplements are tracked yet, so future supplement-vs-intervention comparisons still lack a default stack.',
+      },
+    ];
+  }
+
+  const groupedByType = completeInterventions.reduce((accumulator, intervention) => {
+    const key = intervention.intervention_type;
+    accumulator[key] = accumulator[key] || [];
+    accumulator[key].push(intervention);
+    return accumulator;
+  }, {});
+
+  const bestType = Object.entries(groupedByType)
+    .filter(([, items]) => items.length >= 2)
+    .map(([type, items]) => ({
+      type,
+      count: items.length,
+      avgFeel:
+        items.reduce((sum, item) => sum + Number(item.subjective_feel || 0), 0) /
+        Math.max(items.filter((item) => item.subjective_feel !== null && item.subjective_feel !== undefined).length, 1),
+    }))
+    .sort((a, b) => b.avgFeel - a.avgFeel)[0];
+
+  const bestTiming = Object.entries(
+    completeInterventions.reduce((accumulator, intervention) => {
+      if (!intervention.timing) return accumulator;
+      accumulator[intervention.timing] = accumulator[intervention.timing] || [];
+      accumulator[intervention.timing].push(intervention);
+      return accumulator;
+    }, {})
+  )
+    .filter(([, items]) => items.length >= 2)
+    .map(([timing, items]) => ({
+      timing,
+      avgPhysical:
+        items.reduce((sum, item) => sum + Number(item.physical_response || 0), 0) /
+        Math.max(items.filter((item) => item.physical_response !== null && item.physical_response !== undefined).length, 1),
+    }))
+    .sort((a, b) => b.avgPhysical - a.avgPhysical)[0];
+
+  return [
+    {
+      title: 'Best Early Signal',
+      body: bestType
+        ? `${bestType.type} is the strongest early signal so far, averaging ${bestType.avgFeel.toFixed(1)}/10 subjective feel across ${bestType.count} logs.`
+        : 'You have intervention history, but no protocol type has enough repeated entries yet to rank credibly.',
+    },
+    {
+      title: 'Timing Read',
+      body: bestTiming
+        ? `${bestTiming.timing} currently has the best physical-response average at ${bestTiming.avgPhysical.toFixed(1)}/10.`
+        : 'Timing data is still too sparse to distinguish pre-workout, post-workout, or race-week effects.',
+    },
+    {
+      title: 'Baseline Stack',
+      body:
+        supplementCount > 0
+          ? `${supplementCount} baseline supplements are tracked. That baseline is now available for separating routine intake from one-off interventions.`
+          : 'No baseline supplement stack is saved yet, so supplement-related patterns are still mixed with intervention events.',
+    },
+  ];
+}

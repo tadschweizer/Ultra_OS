@@ -67,13 +67,15 @@ export default function ContentAdmin() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
+  const [drafting, setDrafting] = useState(false);
 
   const navLinks = [
     { href: '/dashboard', label: 'UltraOS Home' },
     { href: '/connections', label: 'Connections' },
     { href: '/log-intervention', label: 'Log Intervention' },
     { href: '/history', label: 'Intervention History' },
-    { href: '/settings', label: 'Settings' },
+    { href: '/settings', label: 'Athlete Settings' },
+    { href: '/account', label: 'Account Settings' },
     { href: '/content', label: 'Content' },
     { href: '/content/admin', label: 'Content Admin' },
     { href: '/', label: 'Landing Page' },
@@ -186,6 +188,38 @@ export default function ContentAdmin() {
     } catch (error) {
       console.error(error);
       setMessage('Error: Failed to save entry.');
+    }
+  }
+
+  async function handleDraftGeneration() {
+    setDrafting(true);
+    setMessage('');
+
+    try {
+      const res = await fetch('/api/research-library/draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setMessage(`Error: ${data.error}`);
+        return;
+      }
+
+      setForm((current) => ({
+        ...current,
+        plain_english_summary: data.draft.plain_english_summary,
+        practical_takeaway: data.draft.practical_takeaway,
+        commentary: data.draft.commentary,
+      }));
+      setMessage('Draft copy generated. Review before publishing.');
+    } catch (error) {
+      console.error(error);
+      setMessage('Error: Failed to generate draft copy.');
+    } finally {
+      setDrafting(false);
     }
   }
 
@@ -352,6 +386,9 @@ export default function ContentAdmin() {
             <div className="mt-5 flex flex-wrap gap-3">
               <button type="submit" className="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-paper">
                 {form.id ? 'Update Entry' : 'Create Entry'}
+              </button>
+              <button type="button" onClick={handleDraftGeneration} className="rounded-full border border-ink/10 px-5 py-3 text-sm font-semibold text-ink">
+                {drafting ? 'Generating Draft...' : 'Generate Draft'}
               </button>
               <button type="button" onClick={() => setForm(emptyForm)} className="rounded-full border border-ink/10 px-5 py-3 text-sm font-semibold text-ink">
                 New Draft
