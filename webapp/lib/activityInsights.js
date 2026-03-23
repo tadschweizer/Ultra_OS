@@ -387,3 +387,156 @@ export function buildProtocolTrendCards(interventions = [], supplements = []) {
     },
   ];
 }
+
+function getWeekKey(dateLike) {
+  const date = new Date(dateLike);
+  if (Number.isNaN(date.getTime())) return null;
+  const day = date.getDay();
+  const diff = (day + 6) % 7;
+  date.setHours(0, 0, 0, 0);
+  date.setDate(date.getDate() - diff);
+  return date.toISOString().slice(0, 10);
+}
+
+function average(values = []) {
+  if (!values.length) return 0;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+export function buildWeeklyMetrics(activities = []) {
+  const weeks = new Map();
+
+  activities.forEach((activity) => {
+    const weekKey = getWeekKey(activity.start_date);
+    if (!weekKey) return;
+
+    if (!weeks.has(weekKey)) {
+      weeks.set(weekKey, {
+        key: weekKey,
+        mileage: 0,
+        elevation: 0,
+        hours: 0,
+        count: 0,
+        runHours: 0,
+        bikeHours: 0,
+        otherHours: 0,
+      });
+    }
+
+    const bucket = weeks.get(weekKey);
+    const hours = secondsToHours(activity.moving_time);
+    bucket.mileage += metersToMiles(activity.distance);
+    bucket.elevation += metersToFeet(activity.total_elevation_gain);
+    bucket.hours += hours;
+    bucket.count += 1;
+
+    const type = classifyActivityType(activity);
+    if (type.family === 'run') bucket.runHours += hours;
+    else if (type.family === 'bike') bucket.bikeHours += hours;
+    else bucket.otherHours += hours;
+  });
+
+  return [...weeks.values()].sort((a, b) => new Date(a.key).getTime() - new Date(b.key).getTime());
+}
+
+export function buildTrainingComparisonCards(activities = [], interventions = []) {
+  const weekly = buildWeeklyMetrics(activities);
+  const recentWeeks = weekly.slice(-8);
+  const lastFourWeeks = weekly.slice(-4);
+  const priorFourWeeks = weekly.slice(-8, -4);
+
+  const lastFourMileage = lastFourWeeks.reduce((sum, item) => sum + item.mileage, 0);
+  const priorFourMileage = priorFourWeeks.reduce((sum, item) => sum + item.mileage, 0);
+  const mileageDelta = lastFourMileage - priorFourMileage;
+
+  const crossTrainingShare = average(
+    recentWeeks.map((week) => (week.hours > 0 ? ((week.bikeHours + week.otherHours) / week.hours) * 100 : 0))
+  );
+  const peakWeek = recentWeeks.reduce(
+    (best, week) => (week.mileage > (best?.mileage || 0) ? week : best),
+    null
+  );
+
+  const interventionsByWeek = interventions.reduce((accumulator, intervention) => {
+    const key = getWeekKey(intervention.date || intervention.inserted_at);
+    if (!key) return accumulator;
+    accumulator[key] = (accumulator[key] || 0) + 1;
+    return accumulator;
+  }, {});
+
+  const interventionWeeks = recentWeeks.filter((week) => interventionsByWeek[week.key] > 0);
+  const nonInterventionWeeks = recentWeeks.filter((week) => !interventionsByWeek[week.key]);
+  const interventionWeekMileage = average(interventionWeeks.map((week) => week.mileage));
+  const nonInterventionWeekMileage = average(nonInterventionWeeks.map((week) => week.mileage));
+
+  return [
+    {
+      title: 'Weekly Load Shift',
+      body:
+        priorFourWeeks.length > 0
+          ? `Last 4 weeks averaged ${(lastFourMileage / Math.max(lastFourWeeks.length, 1)).toFixed(1)} mi/week, ${mileageDelta >= 0 ? 'up' : 'down'} ${Math.abs(mileageDelta).toFixed(1)} total miles from the prior 4-week block.`
+          : 'Weekly load shift needs at least 8 weeks of history before it becomes meaningful.',
+    },
+    {
+      title: 'Cross-Training Share',
+      body:
+        recentWeeks.length > 0
+          ? `Cross-training currently makes up ${crossTrainingShare.toFixed(0)}% of total training time across the last ${recentWeeks.length} weeks.`
+          : 'Cross-training share will appear after a few weeks of activity history.',
+    },
+    {
+      title: 'Peak Week',
+      body: peakWeek
+        ? `Highest recent load was the week of ${peakWeek.key}: ${peakWeek.mileage.toFixed(1)} miles, ${peakWeek.elevation.toFixed(0)} ft, ${peakWeek.hours.toFixed(1)} hours.`
+        : 'Peak-week detection needs more historical activity data.',
+    },
+    {
+      title: 'Intervention Weeks',
+      body:
+        interventionWeeks.length > 0 && nonInterventionWeeks.length > 0
+          ? `Weeks with interventions averaged ${interventionWeekMileage.toFixed(1)} miles versus ${nonInterventionWeekMileage.toFixed(1)} miles in weeks without logged interventions.`
+          : 'Intervention-week comparison needs both intervention and non-intervention weeks in the current history window.',
+    },
+  ];
+}
+
+export function buildModalitySplitCards(activities = []) {
+  const recent = activities.slice(0, 40);
+  const grouped = recent.reduce(
+    (accumulator, activity) => {
+      const type = classifyActivityType(activity);
+      const hours = secondsToHours(activity.moving_time);
+
+      if (type.family === 'run') accumulator.run += hours;
+      else if (type.family === 'bike') accumulator.bike += hours;
+      else accumulator.other += hours;
+
+      return accumulator;
+    },
+    { run: 0, bike: 0, other: 0 }
+  );
+
+  const total = grouped.run + grouped.bike + grouped.other;
+  const longestRun = recent
+    .filter((activity) => classifyActivityType(activity).family === 'run')
+    .reduce((best, activity) => {
+      const miles = metersToMiles(activity.distance);
+      return miles > (best?.miles || 0) ? { miles, date: activity.start_date.slice(0, 10) } : best;
+    }, null);
+
+  return [
+    {
+      title: 'Run / Bike Mix',
+      body:
+        total > 0
+          ? `Recent training time is ${(grouped.run / total * 100).toFixed(0)}% run, ${(grouped.bike / total * 100).toFixed(0)}% bike, and ${(grouped.other / total * 100).toFixed(0)}% other.`
+          : 'Modality mix will appear once recent sessions are available.',
+    },
+    {
+      title: 'Longest Run Marker',
+      body: longestRun
+        ? `Longest recent run was ${longestRun.miles.toFixed(1)} miles on ${longestRun.date}.`
+        : 'No run sessions are present yet for longest-run tracking.',
+    },
+  ];
+}

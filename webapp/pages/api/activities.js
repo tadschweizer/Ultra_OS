@@ -53,10 +53,10 @@ export default async function handler(req, res) {
       return;
     }
   }
-  // Request activities from the past 7 days
-  const sevenDaysAgo = Math.floor(Date.now() / 1000) - 7 * 24 * 3600;
+  // Request activities from the past 180 days so dashboard analytics have enough history.
+  const since = Math.floor(Date.now() / 1000) - 180 * 24 * 3600;
   try {
-    const activities = await getRecentActivities(access_token, sevenDaysAgo);
+    const activities = await getRecentActivities(access_token, since);
     res.status(200).json({ activities });
   } catch (err) {
     console.error(err);

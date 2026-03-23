@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   buildInsightCards,
+  buildModalitySplitCards,
   buildProtocolTrendCards,
+  buildTrainingComparisonCards,
   buildTrendSeries,
   classifyActivity,
   classifyActivityType,
@@ -224,6 +226,14 @@ export default function Dashboard() {
     () => buildProtocolTrendCards(interventions, settings?.supplements || []),
     [interventions, settings]
   );
+  const trainingComparisonCards = useMemo(
+    () => buildTrainingComparisonCards(activities, interventions),
+    [activities, interventions]
+  );
+  const modalityCards = useMemo(
+    () => buildModalitySplitCards(activities),
+    [activities]
+  );
   const navLinks = [
     { href: '/', label: 'Landing Page', description: 'Return to the UltraOS entry page.' },
     { href: '/connections', label: 'Connections', description: 'Link Strava and future platforms.' },
@@ -397,6 +407,21 @@ export default function Dashboard() {
             </div>
           </div>
 
+          <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+            <div className="flex items-center justify-between">
+              <p className="text-sm uppercase tracking-[0.25em] text-accent">Training Comparisons</p>
+              <span className="rounded-full bg-paper px-3 py-1 text-xs text-ink/70">Weekly load + intervention context</span>
+            </div>
+            <div className="mt-5 space-y-4">
+              {trainingComparisonCards.map((card) => (
+                <div key={card.title} className="rounded-[24px] bg-paper p-4">
+                  <p className="text-sm font-semibold text-ink">{card.title}</p>
+                  <p className="mt-2 text-sm leading-6 text-ink/75">{card.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div className="rounded-[30px] bg-[linear-gradient(135deg,#1b2421_0%,#29302d_100%)] p-6 text-white">
             <div className="flex items-center justify-between">
               <p className="text-sm uppercase tracking-[0.25em] text-accent">Baseline Trends</p>
@@ -498,6 +523,21 @@ export default function Dashboard() {
                 </p>
               </div>
             )}
+          </div>
+
+          <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+            <div className="flex items-center justify-between">
+              <p className="text-sm uppercase tracking-[0.25em] text-accent">Modality Breakdown</p>
+              <span className="rounded-full bg-paper px-3 py-1 text-xs text-ink/70">Run / bike / other</span>
+            </div>
+            <div className="mt-5 space-y-4">
+              {modalityCards.map((card) => (
+                <div key={card.title} className="rounded-[24px] bg-paper p-4">
+                  <p className="text-sm font-semibold text-ink">{card.title}</p>
+                  <p className="mt-2 text-sm leading-6 text-ink/75">{card.body}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
       </div>
