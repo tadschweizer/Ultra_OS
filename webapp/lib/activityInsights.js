@@ -540,3 +540,140 @@ export function buildModalitySplitCards(activities = []) {
     },
   ];
 }
+
+function buildAverageResponse(items = [], field) {
+  const values = items
+    .map((item) => Number(item[field]))
+    .filter((value) => !Number.isNaN(value) && value > 0);
+  return values.length ? average(values) : 0;
+}
+
+function getActivityLookup(activities = []) {
+  return new Map(activities.map((activity) => [String(activity.id), activity]));
+}
+
+export function buildInterventionContextCards(activities = [], interventions = [], settings = {}) {
+  if (!interventions.length) {
+    return [
+      {
+        title: 'Phase Response',
+        body: 'No intervention history is available yet for phase-based comparisons.',
+      },
+      {
+        title: 'Workout Context',
+        body: 'Workout-type comparisons start once interventions are linked to more sessions.',
+      },
+      {
+        title: 'Race Target',
+        body: 'Race-specific analysis appears once interventions accumulate against one recurring target.',
+      },
+    ];
+  }
+
+  const activityLookup = getActivityLookup(activities);
+  const enriched = interventions.map((intervention) => {
+    const activity = activityLookup.get(String(intervention.activity_id));
+    return {
+      ...intervention,
+      linkedActivity: activity || null,
+      linkedType: activity ? classifyActivityType(activity).label : null,
+      linkedClassification: activity ? classifyActivity(activity, settings).label : null,
+    };
+  });
+
+  const bestPhase = Object.entries(
+    enriched.reduce((accumulator, intervention) => {
+      if (!intervention.training_phase) return accumulator;
+      accumulator[intervention.training_phase] = accumulator[intervention.training_phase] || [];
+      accumulator[intervention.training_phase].push(intervention);
+      return accumulator;
+    }, {})
+  )
+    .filter(([, items]) => items.length >= 2)
+    .map(([phase, items]) => ({
+      phase,
+      count: items.length,
+      avgFeel: buildAverageResponse(items, 'subjective_feel'),
+    }))
+    .sort((a, b) => b.avgFeel - a.avgFeel)[0];
+
+  const bestWorkoutContext = Object.entries(
+    enriched.reduce((accumulator, intervention) => {
+      if (!intervention.linkedClassification) return accumulator;
+      accumulator[intervention.linkedClassification] = accumulator[intervention.linkedClassification] || [];
+      accumulator[intervention.linkedClassification].push(intervention);
+      return accumulator;
+    }, {})
+  )
+    .filter(([, items]) => items.length >= 2)
+    .map(([label, items]) => ({
+      label,
+      count: items.length,
+      avgPhysical: buildAverageResponse(items, 'physical_response'),
+    }))
+    .sort((a, b) => b.avgPhysical - a.avgPhysical)[0];
+
+  const crossTrainingLinked = enriched.filter((item) => item.linkedType && item.linkedType !== 'Road Run' && item.linkedType !== 'Trail Run');
+  const runLinked = enriched.filter((item) => item.linkedType === 'Road Run' || item.linkedType === 'Trail Run');
+
+  const raceLeader = Object.entries(
+    enriched.reduce((accumulator, intervention) => {
+      const key = intervention.races?.name || intervention.target_race;
+      if (!key) return accumulator;
+      accumulator[key] = accumulator[key] || [];
+      accumulator[key].push(intervention);
+      return accumulator;
+    }, {})
+  )
+    .filter(([, items]) => items.length >= 2)
+    .map(([race, items]) => ({
+      race,
+      count: items.length,
+      avgFeel: buildAverageResponse(items, 'subjective_feel'),
+    }))
+    .sort((a, b) => b.count - a.count)[0];
+
+  return [
+    {
+      title: 'Phase Response',
+      body: bestPhase
+        ? `${bestPhase.phase} currently has the best subjective response average at ${bestPhase.avgFeel.toFixed(1)}/10 across ${bestPhase.count} logged interventions.`
+        : 'Phase-based comparisons need repeated interventions inside the same build phase before the signal is credible.',
+    },
+    {
+      title: 'Workout Context',
+      body: bestWorkoutContext
+        ? `${bestWorkoutContext.label} is the strongest linked workout context so far, averaging ${bestWorkoutContext.avgPhysical.toFixed(1)}/10 physical response across ${bestWorkoutContext.count} interventions.`
+        : 'Workout-context comparisons need more interventions linked to activities before they separate threshold, long-run, and easy-day responses.',
+    },
+    {
+      title: 'Cross-Training Impact',
+      body:
+        crossTrainingLinked.length > 0 && runLinked.length > 0
+          ? `Interventions linked to non-run sessions average ${buildAverageResponse(crossTrainingLinked, 'subjective_feel').toFixed(1)}/10 subjective feel versus ${buildAverageResponse(runLinked, 'subjective_feel').toFixed(1)}/10 when linked to runs.`
+          : 'Cross-training impact needs interventions linked to both run and non-run sessions in the current dataset.',
+    },
+    {
+      title: 'Race Target',
+      body: raceLeader
+        ? `${raceLeader.race} has the deepest intervention history so far with ${raceLeader.count} logs and an average subjective feel of ${raceLeader.avgFeel.toFixed(1)}/10.`
+        : 'Race-specific analysis needs multiple interventions pointing at the same target race.',
+    },
+  ];
+}
+
+export function buildInterventionOverlay(interventions = [], timeframe = 30) {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - (timeframe - 1));
+
+  const counts = interventions.reduce((accumulator, intervention) => {
+    const key = (intervention.date || intervention.inserted_at || '').slice(0, 10);
+    if (!key) return accumulator;
+    if (new Date(`${key}T00:00:00`).getTime() < start.getTime()) return accumulator;
+    accumulator[key] = (accumulator[key] || 0) + 1;
+    return accumulator;
+  }, {});
+
+  return counts;
+}

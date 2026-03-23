@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   buildInsightCards,
+  buildInterventionContextCards,
+  buildInterventionOverlay,
   buildModalitySplitCards,
   buildProtocolTrendCards,
   buildTrainingComparisonCards,
@@ -59,7 +61,7 @@ function formatMetricValue(metric, value) {
   }
 }
 
-function TrendChart({ points, metric }) {
+function TrendChart({ points, metric, interventionOverlay = {} }) {
   const width = 760;
   const height = 280;
   const paddingTop = 18;
@@ -123,6 +125,28 @@ function TrendChart({ points, metric }) {
           const y = paddingTop + chartHeight - (point.value / maxValue) * chartHeight;
           return <circle key={point.key} cx={x} cy={y} r="3.5" fill="#18211f" />;
         })}
+        {points.map((point, index) => {
+          const interventionCount = interventionOverlay[point.key] || 0;
+          if (!interventionCount) return null;
+          const x = paddingLeft + (index / Math.max(points.length - 1, 1)) * chartWidth;
+          return (
+            <g key={`${point.key}-interventions`}>
+              <line
+                x1={x}
+                y1={paddingTop}
+                x2={x}
+                y2={paddingTop + chartHeight}
+                stroke="#ba7a36"
+                strokeOpacity="0.2"
+                strokeDasharray="3 5"
+              />
+              <circle cx={x} cy={paddingTop + 10} r="5" fill="#ba7a36" />
+              <text x={x} y={paddingTop + 14} textAnchor="middle" fill="#fff" fontSize="9" fontWeight="700">
+                {interventionCount}
+              </text>
+            </g>
+          );
+        })}
         <polyline fill="none" stroke="#18211f" strokeWidth="3" points={polyline} strokeLinejoin="round" strokeLinecap="round" />
         {points.map((point, index) => {
           const x = paddingLeft + (index / Math.max(points.length - 1, 1)) * chartWidth;
@@ -151,6 +175,9 @@ function TrendChart({ points, metric }) {
         </div>
         <div className="rounded-[18px] bg-paper px-3 py-2">
           Active days: {points.filter((point) => point.value > 0).length}
+        </div>
+        <div className="rounded-[18px] bg-paper px-3 py-2">
+          Intervention days: {points.filter((point) => interventionOverlay[point.key]).length}
         </div>
       </div>
     </div>
@@ -233,6 +260,14 @@ export default function Dashboard() {
   const modalityCards = useMemo(
     () => buildModalitySplitCards(activities),
     [activities]
+  );
+  const interventionContextCards = useMemo(
+    () => buildInterventionContextCards(activities, interventions, settings || {}),
+    [activities, interventions, settings]
+  );
+  const interventionOverlay = useMemo(
+    () => buildInterventionOverlay(interventions, timeframe),
+    [interventions, timeframe]
   );
   const navLinks = [
     { href: '/', label: 'Landing Page', description: 'Return to the UltraOS entry page.' },
@@ -373,7 +408,7 @@ export default function Dashboard() {
               ))}
             </div>
             <div className="mt-6">
-              <TrendChart points={trendSeries} metric={metric} />
+              <TrendChart points={trendSeries} metric={metric} interventionOverlay={interventionOverlay} />
             </div>
           </div>
 
@@ -532,6 +567,21 @@ export default function Dashboard() {
             </div>
             <div className="mt-5 space-y-4">
               {modalityCards.map((card) => (
+                <div key={card.title} className="rounded-[24px] bg-paper p-4">
+                  <p className="text-sm font-semibold text-ink">{card.title}</p>
+                  <p className="mt-2 text-sm leading-6 text-ink/75">{card.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+            <div className="flex items-center justify-between">
+              <p className="text-sm uppercase tracking-[0.25em] text-accent">Intervention Context</p>
+              <span className="rounded-full bg-paper px-3 py-1 text-xs text-ink/70">Phase / workout / race</span>
+            </div>
+            <div className="mt-5 space-y-4">
+              {interventionContextCards.map((card) => (
                 <div key={card.title} className="rounded-[24px] bg-paper p-4">
                   <p className="text-sm font-semibold text-ink">{card.title}</p>
                   <p className="mt-2 text-sm leading-6 text-ink/75">{card.body}</p>
