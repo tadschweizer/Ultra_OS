@@ -1,4 +1,6 @@
 const defaultTabs = [
+  { href: '/insights', label: 'Insights System' },
+  { href: '/coaches', label: 'Coaches' },
   { href: '/connections', label: 'Connections' },
   { href: '/log-intervention', label: 'Intervention' },
   { href: '/history', label: 'Intervention History' },

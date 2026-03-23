@@ -214,19 +214,105 @@ export function summarizeRecentTraining(activities = []) {
   );
 }
 
+function getMetricValue(activity, metric) {
+  switch (metric) {
+    case 'elevation':
+      return metersToFeet(activity.total_elevation_gain);
+    case 'hours':
+      return secondsToHours(activity.moving_time);
+    case 'count':
+      return 1;
+    case 'mileage':
+    default:
+      return metersToMiles(activity.distance);
+  }
+}
+
+function formatBucketLabel(dateLike, withYear = false) {
+  return new Date(dateLike).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    ...(withYear ? { year: 'numeric' } : {}),
+  });
+}
+
 export function buildTrendSeries(activities = [], timeframe = 30, metric = 'mileage') {
   const now = new Date();
   const start = new Date(now);
   start.setHours(0, 0, 0, 0);
   start.setDate(start.getDate() - (timeframe - 1));
 
+  if (timeframe === 90) {
+    const weekStart = new Date(start);
+    const day = weekStart.getDay();
+    const diff = (day + 6) % 7;
+    weekStart.setDate(weekStart.getDate() - diff);
+
+    const buckets = [];
+    const cursor = new Date(weekStart);
+
+    while (cursor <= now) {
+      const bucketStart = new Date(cursor);
+      const bucketEnd = new Date(cursor);
+      bucketEnd.setDate(bucketEnd.getDate() + 6);
+
+      const clampedStart = bucketStart < start ? new Date(start) : bucketStart;
+      const clampedEnd = bucketEnd > now ? new Date(now) : bucketEnd;
+      const daySpan = Math.max(
+        1,
+        Math.floor((clampedEnd.getTime() - clampedStart.getTime()) / (24 * 3600 * 1000)) + 1
+      );
+
+      buckets.push({
+        key: bucketStart.toISOString().slice(0, 10),
+        label: formatBucketLabel(clampedStart),
+        periodLabel: `${formatBucketLabel(clampedStart)} - ${formatBucketLabel(clampedEnd)}`,
+        rangeStart: clampedStart.toISOString().slice(0, 10),
+        rangeEnd: clampedEnd.toISOString().slice(0, 10),
+        value: 0,
+        totalValue: 0,
+        sessionCount: 0,
+        daySpan,
+        aggregation: 'weeklyAverage',
+      });
+
+      cursor.setDate(cursor.getDate() + 7);
+    }
+
+    const bucketMap = new Map(buckets.map((bucket) => [bucket.key, bucket]));
+
+    activities.forEach((activity) => {
+      const activityDate = new Date(activity.start_date);
+      if (Number.isNaN(activityDate.getTime()) || activityDate < start || activityDate > now) return;
+
+      const key = getWeekKey(activity.start_date);
+      const bucket = bucketMap.get(key);
+      if (!bucket) return;
+
+      bucket.totalValue += getMetricValue(activity, metric);
+      bucket.sessionCount += 1;
+    });
+
+    return buckets.map((bucket) => ({
+      ...bucket,
+      value: bucket.totalValue / bucket.daySpan,
+    }));
+  }
+
   const buckets = Array.from({ length: timeframe }).map((_, index) => {
     const date = new Date(start);
     date.setDate(start.getDate() + index);
     return {
       key: date.toISOString().slice(0, 10),
-      label: date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+      label: formatBucketLabel(date),
+      periodLabel: formatBucketLabel(date, true),
+      rangeStart: date.toISOString().slice(0, 10),
+      rangeEnd: date.toISOString().slice(0, 10),
       value: 0,
+      totalValue: 0,
+      sessionCount: 0,
+      daySpan: 1,
+      aggregation: 'daily',
     };
   });
 
@@ -237,21 +323,10 @@ export function buildTrendSeries(activities = [], timeframe = 30, metric = 'mile
     const bucket = bucketMap.get(key);
     if (!bucket) return;
 
-    switch (metric) {
-      case 'elevation':
-        bucket.value += metersToFeet(activity.total_elevation_gain);
-        break;
-      case 'hours':
-        bucket.value += secondsToHours(activity.moving_time);
-        break;
-      case 'count':
-        bucket.value += 1;
-        break;
-      case 'mileage':
-      default:
-        bucket.value += metersToMiles(activity.distance);
-        break;
-    }
+    const value = getMetricValue(activity, metric);
+    bucket.value += value;
+    bucket.totalValue += value;
+    bucket.sessionCount += 1;
   });
 
   return buckets;
@@ -667,15 +742,19 @@ export function buildInterventionOverlay(interventions = [], timeframe = 30) {
   start.setHours(0, 0, 0, 0);
   start.setDate(start.getDate() - (timeframe - 1));
 
-  const counts = interventions.reduce((accumulator, intervention) => {
-    const key = (intervention.date || intervention.inserted_at || '').slice(0, 10);
+  return interventions.reduce((accumulator, intervention) => {
+    const rawKey = (intervention.date || intervention.inserted_at || '').slice(0, 10);
+    if (!rawKey) return accumulator;
+
+    const timestamp = new Date(`${rawKey}T00:00:00`);
+    if (Number.isNaN(timestamp.getTime()) || timestamp.getTime() < start.getTime()) return accumulator;
+
+    const key = timeframe === 90 ? getWeekKey(rawKey) : rawKey;
     if (!key) return accumulator;
-    if (new Date(`${key}T00:00:00`).getTime() < start.getTime()) return accumulator;
+
     accumulator[key] = (accumulator[key] || 0) + 1;
     return accumulator;
   }, {});
-
-  return counts;
 }
 
 export function buildWeeklyTableRows(activities = [], interventions = []) {

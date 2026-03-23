@@ -6,12 +6,19 @@ export default function Home() {
   const navLinks = athleteId
     ? [
         { href: '/dashboard', label: 'UltraOS Home', description: 'Insights, trends, and recent training.' },
+        { href: '/insights', label: 'Insights System', description: 'Read the athlete and coach AI logic.' },
+        { href: '/coaches', label: 'Coaches', description: 'See the roster-level coach experience.' },
         { href: '/connections', label: 'Connections', description: 'Link Strava and future sources.' },
         { href: '/log-intervention', label: 'Log Intervention', description: 'Add a new protocol entry.' },
         { href: '/history', label: 'Intervention History', description: 'Review your logged interventions.' },
         { href: '/settings', label: 'Settings', description: 'Update athlete baselines and zones.' },
       ]
-    : [{ href: '/api/strava/login', label: 'Login', description: 'Enter UltraOS with the current connected login flow.' }];
+    : [
+        { href: '/insights', label: 'Insights System', description: 'Read how athlete and coach insights work.' },
+        { href: '/coaches', label: 'Coaches', description: 'See the roster-level coach experience.' },
+        { href: '/content', label: 'Research Library', description: 'Browse the evidence layer behind the product.' },
+        { href: '/api/strava/login', label: 'Login', description: 'Enter UltraOS with the current connected login flow.' },
+      ];
 
   useEffect(() => {
     if (typeof document !== 'undefined') {
@@ -41,11 +48,20 @@ export default function Home() {
             <div>
               <p className="text-sm uppercase tracking-[0.35em] text-accent">Performance Intelligence For Athletes Who Go Long</p>
               <h1 className="font-display mt-4 max-w-4xl text-5xl leading-tight md:text-7xl">
-                Track the interventions behind race-day outcomes.
+                Track the interventions behind race-day outcomes and turn them into decisions.
               </h1>
+              <p className="mt-6 max-w-3xl text-base leading-8 text-ink/80 md:text-lg">
+                UltraOS separates interventions, baseline variables, and training-load context so athlete insights stay specific and coach insights stay fast to triage.
+              </p>
               <div className="mt-8 flex flex-wrap gap-4">
                 <a href={athleteId ? '/dashboard' : '/api/strava/login'} className="rounded-full bg-ink px-6 py-3 font-semibold text-paper">
                   {athleteId ? 'Open UltraOS Home' : 'Login to UltraOS'}
+                </a>
+                <a href="/insights" className="rounded-full border border-ink/20 bg-white/50 px-6 py-3 font-semibold text-ink">
+                  View Insight System
+                </a>
+                <a href="/coaches" className="rounded-full border border-ink/20 bg-white/50 px-6 py-3 font-semibold text-ink">
+                  Explore Coach View
                 </a>
                 {athleteId ? (
                   <a href="/connections" className="rounded-full border border-ink/20 bg-white/50 px-6 py-3 font-semibold text-ink">
@@ -59,10 +75,10 @@ export default function Home() {
                   <p className="text-xs uppercase tracking-[0.22em] text-accent">Interventions</p>
                 </div>
                 <div className="rounded-[24px] bg-white/70 p-4">
-                  <p className="text-xs uppercase tracking-[0.22em] text-accent">Connections</p>
+                  <p className="text-xs uppercase tracking-[0.22em] text-accent">Baseline Variables</p>
                 </div>
                 <div className="rounded-[24px] bg-white/70 p-4">
-                  <p className="text-xs uppercase tracking-[0.22em] text-accent">Insights</p>
+                  <p className="text-xs uppercase tracking-[0.22em] text-accent">Coach Triage</p>
                 </div>
               </div>
             </div>
@@ -74,13 +90,14 @@ export default function Home() {
               </div>
               <div className="mt-5 space-y-4">
                 <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
-                  <p className="text-sm font-semibold text-white">Training logs miss the protocol layer.</p>
+                  <p className="text-sm font-semibold text-white">Training logs miss the protocol layer and the decision layer above it.</p>
                 </div>
                 <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
-                  <p className="text-sm font-semibold text-white">UltraOS is building the intervention dataset.</p>
+                  <p className="text-sm font-semibold text-white">UltraOS is building the intervention dataset, the sleep and fueling layer, and the coach triage view.</p>
                 </div>
                 <div className="rounded-[24px] border border-accent/30 bg-accent/10 p-4">
                   <p className="text-xs uppercase tracking-[0.2em] text-accent">Current Path</p>
+                  <p className="mt-2 text-sm text-white/82">Athlete dashboard, insight-system blueprint, and coach workflow.</p>
                 </div>
               </div>
             </div>
@@ -90,20 +107,21 @@ export default function Home() {
         <section className="grid gap-4 md:grid-cols-3">
           {[
             {
-              title: 'Heat, gut, sleep, altitude',
-              body: 'The product is designed around performance interventions serious endurance athletes actually test during race builds.',
+              title: 'Interventions are the primary AI subject',
+              body: 'Heat, gut, bicarbonate, altitude, respiratory work, supplementation, and other protocol-driven actions create the clearest race-prep signals.',
             },
             {
-              title: 'Multi-source by design',
-              body: 'The login button is for UltraOS. Source linking belongs one step deeper, where Strava is joined by future integrations.',
+              title: 'Sleep and fueling work on day one',
+              body: 'Baseline categories create value before an athlete has months of intervention history, which matters for retention in the first 30 days.',
             },
             {
-              title: 'Insights belong in dashboard',
-              body: 'Weekly totals, workout intent, intervention patterns, and AI inference should appear after login, not on the homepage.',
+              title: 'Coaches get flags, not essays',
+              body: 'The coach layer should answer who needs attention now, why, and how close they are to race day before anything else.',
             },
           ].map((item) => (
             <article key={item.title} className="rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
               <p className="text-sm uppercase tracking-[0.22em] text-accent">{item.title}</p>
+              <p className="mt-4 text-sm leading-7 text-ink/76">{item.body}</p>
             </article>
           ))}
         </section>

@@ -23,7 +23,6 @@ import DashboardTabs from '../components/DashboardTabs';
 const timeframeOptions = [
   { value: 7, label: '7D' },
   { value: 30, label: '30D' },
-  { value: 60, label: '60D' },
   { value: 90, label: '90D' },
 ];
 
@@ -64,6 +63,11 @@ function formatMetricValue(metric, value) {
   }
 }
 
+function formatAverageLabel(metric, value, timeframe) {
+  const unit = formatMetricValue(metric, value);
+  return timeframe === 90 ? `${unit}/day` : unit;
+}
+
 function TrendChart({ points, metric, interventionOverlay = {} }) {
   const width = 760;
   const height = 280;
@@ -71,14 +75,35 @@ function TrendChart({ points, metric, interventionOverlay = {} }) {
   const paddingBottom = 34;
   const paddingLeft = 56;
   const paddingRight = 18;
+  const [activeKey, setActiveKey] = useState(points[points.length - 1]?.key || null);
+
+  useEffect(() => {
+    setActiveKey(points[points.length - 1]?.key || null);
+  }, [points]);
+
+  if (!points.length) {
+    return (
+      <div className="rounded-[24px] bg-paper px-4 py-8 text-sm text-ink/60">
+        No training data is available for this window yet.
+      </div>
+    );
+  }
+
   const maxValue = Math.max(...points.map((point) => point.value), 1);
   const chartWidth = width - paddingLeft - paddingRight;
   const chartHeight = height - paddingTop - paddingBottom;
-  const total = points.reduce((sum, point) => sum + point.value, 0);
+  const total = points.reduce((sum, point) => sum + (point.totalValue ?? point.value), 0);
   const yTicks = [1, 0.75, 0.5, 0.25, 0].map((ratio) => ({
     value: maxValue * ratio,
     y: paddingTop + chartHeight - ratio * chartHeight,
   }));
+  const activePoint = points.find((point) => point.key === activeKey) || points[points.length - 1];
+  const intervalWidth = chartWidth / Math.max(points.length, 1);
+  const activeIndex = Math.max(
+    0,
+    points.findIndex((point) => point.key === activePoint.key)
+  );
+  const activeX = paddingLeft + (activeIndex / Math.max(points.length - 1, 1)) * chartWidth;
 
   const polyline = points
     .map((point, index) => {
@@ -93,8 +118,41 @@ function TrendChart({ points, metric, interventionOverlay = {} }) {
   return (
     <div>
       <div className="mb-4 flex items-end justify-between gap-4">
-        <p className="text-3xl font-semibold text-ink">{formatMetricValue(metric, total)}</p>
-        <p className="text-sm text-ink/55">{points.length > 0 ? `${points[0].label} - ${points[points.length - 1].label}` : ''}</p>
+        <div>
+          <p className="text-3xl font-semibold text-ink">{formatMetricValue(metric, total)}</p>
+          <p className="mt-1 text-xs uppercase tracking-[0.18em] text-ink/45">
+            {activePoint.aggregation === 'weeklyAverage' ? '90-day weekly average view' : 'Daily view'}
+          </p>
+        </div>
+        <p className="text-sm text-ink/55">{`${points[0].label} - ${points[points.length - 1].label}`}</p>
+      </div>
+      <div className="mb-4 grid gap-3 rounded-[24px] bg-paper p-4 md:grid-cols-4">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.18em] text-ink/45">Selected window</p>
+          <p className="mt-2 text-sm font-semibold text-ink">{activePoint.periodLabel}</p>
+        </div>
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.18em] text-ink/45">
+            {activePoint.aggregation === 'weeklyAverage' ? 'Avg/day' : 'Value'}
+          </p>
+          <p className="mt-2 text-sm font-semibold text-ink">
+            {formatAverageLabel(metric, activePoint.value, activePoint.aggregation === 'weeklyAverage' ? 90 : 30)}
+          </p>
+        </div>
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.18em] text-ink/45">
+            {activePoint.aggregation === 'weeklyAverage' ? 'Week total' : 'Sessions'}
+          </p>
+          <p className="mt-2 text-sm font-semibold text-ink">
+            {activePoint.aggregation === 'weeklyAverage'
+              ? formatMetricValue(metric, activePoint.totalValue ?? activePoint.value)
+              : activePoint.sessionCount}
+          </p>
+        </div>
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.18em] text-ink/45">Interventions</p>
+          <p className="mt-2 text-sm font-semibold text-ink">{interventionOverlay[activePoint.key] || 0}</p>
+        </div>
       </div>
       <svg viewBox={`0 0 ${width} ${height}`} className="h-64 w-full">
         <rect x="0" y="0" width={width} height={height} rx="28" fill="#f3eadf" />
@@ -118,15 +176,37 @@ function TrendChart({ points, metric, interventionOverlay = {} }) {
               fontSize="11"
               letterSpacing="0.08em"
             >
-              {formatMetricValue(metric, tick.value)}
+              {formatAverageLabel(metric, tick.value, activePoint.aggregation === 'weeklyAverage' ? 90 : 30)}
             </text>
           </g>
         ))}
         <polygon points={area} fill="rgba(24,33,31,0.1)" />
+        <line
+          x1={activeX}
+          y1={paddingTop}
+          x2={activeX}
+          y2={paddingTop + chartHeight}
+          stroke="#18211f"
+          strokeOpacity="0.16"
+          strokeDasharray="4 4"
+        />
         {points.map((point, index) => {
           const x = paddingLeft + (index / Math.max(points.length - 1, 1)) * chartWidth;
           const y = paddingTop + chartHeight - (point.value / maxValue) * chartHeight;
-          return <circle key={point.key} cx={x} cy={y} r="3.5" fill="#18211f" />;
+          const isActive = point.key === activePoint.key;
+          return (
+            <g key={point.key}>
+              <circle cx={x} cy={y} r={isActive ? '5.5' : '3.5'} fill={isActive ? '#ba7a36' : '#18211f'} />
+              <rect
+                x={paddingLeft + index * intervalWidth - intervalWidth / 2}
+                y={paddingTop}
+                width={intervalWidth}
+                height={chartHeight}
+                fill="transparent"
+                onMouseEnter={() => setActiveKey(point.key)}
+              />
+            </g>
+          );
         })}
         {points.map((point, index) => {
           const interventionCount = interventionOverlay[point.key] || 0;
@@ -171,16 +251,18 @@ function TrendChart({ points, metric, interventionOverlay = {} }) {
       </svg>
       <div className="mt-3 grid gap-2 text-xs text-ink/55 md:grid-cols-3">
         <div className="rounded-[18px] bg-paper px-3 py-2">
-          Peak day: {formatMetricValue(metric, Math.max(...points.map((point) => point.value), 0))}
+          Peak {activePoint.aggregation === 'weeklyAverage' ? 'avg/day' : 'day'}:{' '}
+          {formatAverageLabel(metric, Math.max(...points.map((point) => point.value), 0), activePoint.aggregation === 'weeklyAverage' ? 90 : 30)}
         </div>
         <div className="rounded-[18px] bg-paper px-3 py-2">
-          Avg/day: {formatMetricValue(metric, total / Math.max(points.length, 1))}
+          Avg/{activePoint.aggregation === 'weeklyAverage' ? 'week' : 'day'}:{' '}
+          {formatMetricValue(metric, total / Math.max(points.length, 1))}
         </div>
         <div className="rounded-[18px] bg-paper px-3 py-2">
-          Active days: {points.filter((point) => point.value > 0).length}
+          Active {activePoint.aggregation === 'weeklyAverage' ? 'weeks' : 'days'}: {points.filter((point) => point.value > 0).length}
         </div>
         <div className="rounded-[18px] bg-paper px-3 py-2">
-          Intervention days: {points.filter((point) => interventionOverlay[point.key]).length}
+          Intervention {activePoint.aggregation === 'weeklyAverage' ? 'weeks' : 'days'}: {points.filter((point) => interventionOverlay[point.key]).length}
         </div>
       </div>
     </div>
@@ -194,7 +276,7 @@ export default function Dashboard() {
   const [interventions, setInterventions] = useState([]);
   const [interventionCount, setInterventionCount] = useState(0);
   const [settings, setSettings] = useState(null);
-  const [timeframe, setTimeframe] = useState(60);
+  const [timeframe, setTimeframe] = useState(30);
   const [metric, setMetric] = useState('mileage');
 
   useEffect(() => {
@@ -282,6 +364,8 @@ export default function Dashboard() {
   );
   const navLinks = [
     { href: '/', label: 'Landing Page', description: 'Return to the UltraOS entry page.' },
+    { href: '/insights', label: 'Insights System', description: 'Read the athlete and coach AI logic.' },
+    { href: '/coaches', label: 'Coaches', description: 'Open the coach-facing triage view.' },
     { href: '/connections', label: 'Connections', description: 'Link Strava and future platforms.' },
     { href: '/history', label: 'Intervention History', description: 'Review logged protocol history.' },
     { href: '/settings', label: 'Athlete Settings', description: 'Edit athlete baselines and HR zones.' },
@@ -331,6 +415,9 @@ export default function Dashboard() {
               <div className="mt-8 flex flex-wrap gap-4">
                 <a href="/connections" className="rounded-full bg-ink px-6 py-3 font-semibold text-paper">
                   Add Connection / Source
+                </a>
+                <a href="/insights" className="rounded-full border border-ink/20 bg-white/50 px-6 py-3 font-semibold text-ink">
+                  Insight System
                 </a>
                 <a href="/log-intervention" className="rounded-full border border-ink/20 bg-white/50 px-6 py-3 font-semibold text-ink">
                   Log an Intervention
@@ -426,7 +513,7 @@ export default function Dashboard() {
           <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
             <div className="flex items-center justify-between">
               <p className="text-sm uppercase tracking-[0.25em] text-accent">AI Insights</p>
-              <span className="rounded-full bg-paper px-3 py-1 text-xs text-ink/70">Early Heuristics</span>
+              <span className="rounded-full bg-paper px-3 py-1 text-xs text-ink/70">Athlete-facing cards</span>
             </div>
             <div className="mt-5 space-y-4">
               {insightCards.map((card) => (
@@ -435,6 +522,12 @@ export default function Dashboard() {
                   <p className="mt-2 text-sm leading-6 text-ink/75">{card.body}</p>
                 </div>
               ))}
+              <a
+                href="/insights"
+                className="inline-flex rounded-full border border-ink/10 px-4 py-2 text-sm font-semibold text-ink transition hover:bg-white"
+              >
+                See the full insight-system rules
+              </a>
             </div>
           </div>
 
