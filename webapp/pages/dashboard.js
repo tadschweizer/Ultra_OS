@@ -5,8 +5,10 @@ import {
   buildInterventionOverlay,
   buildModalitySplitCards,
   buildProtocolTrendCards,
+  buildRaceFocusCards,
   buildTrainingComparisonCards,
   buildTrendSeries,
+  buildWeeklyTableRows,
   classifyActivity,
   classifyActivityType,
   metersToFeet,
@@ -268,6 +270,14 @@ export default function Dashboard() {
   const interventionOverlay = useMemo(
     () => buildInterventionOverlay(interventions, timeframe),
     [interventions, timeframe]
+  );
+  const weeklyTableRows = useMemo(
+    () => buildWeeklyTableRows(activities, interventions),
+    [activities, interventions]
+  );
+  const raceFocusCards = useMemo(
+    () => buildRaceFocusCards(interventions),
+    [interventions]
   );
   const navLinks = [
     { href: '/', label: 'Landing Page', description: 'Return to the UltraOS entry page.' },
@@ -587,6 +597,58 @@ export default function Dashboard() {
                   <p className="mt-2 text-sm leading-6 text-ink/75">{card.body}</p>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-12 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+          <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+            <div className="flex items-center justify-between">
+              <p className="text-sm uppercase tracking-[0.25em] text-accent">Race Focus</p>
+              <span className="rounded-full bg-paper px-3 py-1 text-xs text-ink/70">Target race slices</span>
+            </div>
+            <div className="mt-5 space-y-4">
+              {raceFocusCards.map((card) => (
+                <div key={card.title} className="rounded-[24px] bg-paper p-4">
+                  <p className="text-sm font-semibold text-ink">{card.title}</p>
+                  <p className="mt-2 text-sm leading-6 text-ink/75">{card.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+            <div className="flex items-center justify-between">
+              <p className="text-sm uppercase tracking-[0.25em] text-accent">Weekly Drill-down</p>
+              <span className="rounded-full bg-paper px-3 py-1 text-xs text-ink/70">Last 10 weeks</span>
+            </div>
+            <div className="mt-5 overflow-x-auto">
+              <table className="min-w-full text-sm text-ink">
+                <thead>
+                  <tr className="border-b border-ink/10 text-left text-xs uppercase tracking-[0.18em] text-ink/55">
+                    <th className="pb-3 pr-4">Week</th>
+                    <th className="pb-3 pr-4">Miles</th>
+                    <th className="pb-3 pr-4">Elev</th>
+                    <th className="pb-3 pr-4">Hours</th>
+                    <th className="pb-3 pr-4">Run %</th>
+                    <th className="pb-3 pr-4">Bike %</th>
+                    <th className="pb-3">Interventions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {weeklyTableRows.map((row) => (
+                    <tr key={row.key} className="border-b border-ink/8">
+                      <td className="py-3 pr-4 font-semibold">{row.key}</td>
+                      <td className="py-3 pr-4">{row.mileage.toFixed(1)}</td>
+                      <td className="py-3 pr-4">{row.elevation.toFixed(0)}</td>
+                      <td className="py-3 pr-4">{row.hours.toFixed(1)}</td>
+                      <td className="py-3 pr-4">{row.runShare.toFixed(0)}%</td>
+                      <td className="py-3 pr-4">{row.bikeShare.toFixed(0)}%</td>
+                      <td className="py-3 font-semibold">{row.interventions}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </section>

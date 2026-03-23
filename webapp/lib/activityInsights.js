@@ -677,3 +677,78 @@ export function buildInterventionOverlay(interventions = [], timeframe = 30) {
 
   return counts;
 }
+
+export function buildWeeklyTableRows(activities = [], interventions = []) {
+  const weekly = buildWeeklyMetrics(activities);
+  const interventionsByWeek = interventions.reduce((accumulator, intervention) => {
+    const key = getWeekKey(intervention.date || intervention.inserted_at);
+    if (!key) return accumulator;
+    accumulator[key] = accumulator[key] || [];
+    accumulator[key].push(intervention);
+    return accumulator;
+  }, {});
+
+  return weekly.slice(-10).reverse().map((week) => ({
+    ...week,
+    interventions: interventionsByWeek[week.key]?.length || 0,
+    runShare: week.hours > 0 ? (week.runHours / week.hours) * 100 : 0,
+    bikeShare: week.hours > 0 ? (week.bikeHours / week.hours) * 100 : 0,
+  }));
+}
+
+export function buildRaceFocusCards(interventions = []) {
+  const grouped = Object.entries(
+    interventions.reduce((accumulator, intervention) => {
+      const key = intervention.races?.name || intervention.target_race;
+      if (!key) return accumulator;
+      accumulator[key] = accumulator[key] || [];
+      accumulator[key].push(intervention);
+      return accumulator;
+    }, {})
+  )
+    .map(([race, items]) => ({
+      race,
+      count: items.length,
+      avgFeel: buildAverageResponse(items, 'subjective_feel'),
+      avgPhysical: buildAverageResponse(items, 'physical_response'),
+      latestDate: items
+        .map((item) => item.date || item.inserted_at)
+        .filter(Boolean)
+        .sort()
+        .slice(-1)[0] || null,
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  const topRace = grouped[0];
+  const secondRace = grouped[1];
+
+  if (!topRace) {
+    return [
+      {
+        title: 'Race Focus',
+        body: 'Race-specific slices will appear once multiple interventions point at a target race.',
+      },
+    ];
+  }
+
+  return [
+    {
+      title: 'Primary Race Build',
+      body: `${topRace.race} has ${topRace.count} logged interventions, averaging ${topRace.avgFeel.toFixed(1)}/10 subjective feel and ${topRace.avgPhysical.toFixed(1)}/10 physical response.`,
+    },
+    {
+      title: 'Latest Race-linked Activity',
+      body: topRace.latestDate
+        ? `Most recent intervention tied to ${topRace.race} was logged on ${topRace.latestDate.slice(0, 10)}.`
+        : `The ${topRace.race} block has race-linked interventions but no reliable date metadata yet.`,
+    },
+    ...(secondRace
+      ? [
+          {
+            title: 'Secondary Race Build',
+            body: `${secondRace.race} is the next-deepest target with ${secondRace.count} interventions and ${secondRace.avgFeel.toFixed(1)}/10 average feel.`,
+          },
+        ]
+      : []),
+  ];
+}
