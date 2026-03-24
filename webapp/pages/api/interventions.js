@@ -1,5 +1,6 @@
 import { supabase } from '../../lib/supabaseClient';
 import cookie from 'cookie';
+import { inferLegacyScores, normalizeProtocolPayload } from '../../lib/interventionCatalog';
 
 function getAthleteId(req) {
   const cookies = cookie.parse(req.headers.cookie || '');
@@ -13,18 +14,21 @@ function parseOptionalInt(value) {
 }
 
 function normalizePayload(body = {}, athleteId) {
+  const protocolPayload = normalizeProtocolPayload(body.intervention_type, body.protocol_payload || {});
+  const legacyFields = inferLegacyScores(body.intervention_type, protocolPayload);
   return {
     athlete_id: athleteId,
     race_id: body.race_id || null,
     activity_id: body.activity_id || null,
     date: body.date || null,
     intervention_type: body.intervention_type || null,
-    details: body.details || null,
-    dose_duration: body.dose_duration || null,
-    timing: body.timing || null,
-    gi_response: parseOptionalInt(body.gi_response),
-    physical_response: parseOptionalInt(body.physical_response),
-    subjective_feel: parseOptionalInt(body.subjective_feel),
+    details: body.details || legacyFields.details,
+    dose_duration: body.dose_duration || legacyFields.dose_duration,
+    timing: body.timing || legacyFields.timing,
+    protocol_payload: protocolPayload,
+    gi_response: parseOptionalInt(body.gi_response) ?? legacyFields.gi_response,
+    physical_response: parseOptionalInt(body.physical_response) ?? legacyFields.physical_response,
+    subjective_feel: parseOptionalInt(body.subjective_feel) ?? legacyFields.subjective_feel,
     training_phase: body.training_phase || null,
     target_race: body.target_race || null,
     target_race_date: body.target_race_date || null,
@@ -33,7 +37,7 @@ function normalizePayload(body = {}, athleteId) {
 }
 
 const interventionSelect =
-  'id, athlete_id, date, inserted_at, intervention_type, details, dose_duration, timing, gi_response, physical_response, subjective_feel, activity_id, training_phase, target_race, target_race_date, race_id, notes, races(id, name, event_date, distance_miles, elevation_gain_ft, location, surface, notes)';
+  'id, athlete_id, date, inserted_at, intervention_type, details, dose_duration, timing, protocol_payload, gi_response, physical_response, subjective_feel, activity_id, training_phase, target_race, target_race_date, race_id, notes, races(id, name, event_date, distance_miles, elevation_gain_ft, location, surface, notes)';
 
 export default async function handler(req, res) {
   const athleteId = getAthleteId(req);

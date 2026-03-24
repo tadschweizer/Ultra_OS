@@ -1,29 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { classifyActivityType, sortActivitiesMostRecentFirst } from '../../lib/activityInsights';
+import { createProtocolPayload, interventionCatalog } from '../../lib/interventionCatalog';
 import NavMenu from '../../components/NavMenu';
 import DashboardTabs from '../../components/DashboardTabs';
-
-const interventionTypes = [
-  'Heat acclimation',
-  'Sodium bicarbonate',
-  'Gut training',
-  'Sleep protocol',
-  'Respiratory training',
-  'BFR recovery',
-  'Altitude Tent',
-  'Probiotic',
-  'Supplement',
-  'Custom',
-];
-
-const timingOptions = [
-  'Morning',
-  'Pre-workout',
-  'During workout',
-  'Post-workout',
-  'Race week',
-  'Race morning',
-];
+import InterventionProtocolFields from '../../components/InterventionProtocolFields';
 
 const trainingPhases = ['Base', 'Build', 'Peak', 'Taper', 'Recovery', 'Race week'];
 
@@ -48,12 +28,11 @@ function interventionToForm(intervention) {
     activity_id: intervention.activity_id || '',
     date: intervention.date || '',
     intervention_type: intervention.intervention_type || '',
+    protocol_payload: createProtocolPayload(
+      intervention.intervention_type || '',
+      intervention.protocol_payload || {}
+    ),
     details: intervention.details || '',
-    dose_duration: intervention.dose_duration || '',
-    timing: intervention.timing || '',
-    gi_response: intervention.gi_response ?? '',
-    physical_response: intervention.physical_response ?? '',
-    subjective_feel: intervention.subjective_feel ?? '',
     training_phase: intervention.training_phase || '',
     target_race: intervention.target_race || intervention.races?.name || '',
     target_race_date: intervention.target_race_date || intervention.races?.event_date || '',
@@ -118,7 +97,10 @@ export default function InterventionDetail() {
   function handleChange(event) {
     const { name, value } = event.target;
     setForm((current) => {
-      const next = { ...current, [name]: value };
+      const next =
+        name === 'intervention_type'
+          ? { ...current, intervention_type: value, protocol_payload: createProtocolPayload(value) }
+          : { ...current, [name]: value };
       if (name === 'target_race') {
         next.race_id = '';
       }
@@ -133,6 +115,16 @@ export default function InterventionDetail() {
       }
       return next;
     });
+  }
+
+  function handleProtocolFieldChange(fieldKey, value) {
+    setForm((current) => ({
+      ...current,
+      protocol_payload: {
+        ...current.protocol_payload,
+        [fieldKey]: value,
+      },
+    }));
   }
 
   async function handleSubmit(event) {
@@ -286,8 +278,14 @@ export default function InterventionDetail() {
                 <label className="mb-1 block text-sm font-semibold text-ink">Intervention Type</label>
                 <select name="intervention_type" value={form.intervention_type} onChange={handleChange} className={fieldClassName()}>
                   <option value="">Select Type</option>
-                  {interventionTypes.map((type) => (
-                    <option key={type} value={type}>{type}</option>
+                  {interventionCatalog.map((group) => (
+                    <optgroup key={group.phase} label={group.phase}>
+                      {group.types.map((type) => (
+                        <option key={type.label} value={type.label}>
+                          {type.label}
+                        </option>
+                      ))}
+                    </optgroup>
                   ))}
                 </select>
               </div>
@@ -303,38 +301,11 @@ export default function InterventionDetail() {
               </div>
 
               <div className="md:col-span-2">
-                <label className="mb-1 block text-sm font-semibold text-ink">Protocol Details</label>
-                <textarea name="details" value={form.details} onChange={handleChange} rows={4} className={fieldClassName()} />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm font-semibold text-ink">Dose or Duration</label>
-                <input type="text" name="dose_duration" value={form.dose_duration} onChange={handleChange} className={fieldClassName()} />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm font-semibold text-ink">Timing</label>
-                <select name="timing" value={form.timing} onChange={handleChange} className={fieldClassName()}>
-                  <option value="">Select Timing</option>
-                  {timingOptions.map((option) => (
-                    <option key={option} value={option}>{option}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm font-semibold text-ink">GI Response</label>
-                <input type="number" min="1" max="10" name="gi_response" value={form.gi_response} onChange={handleChange} className={fieldClassName()} />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm font-semibold text-ink">Physical Response</label>
-                <input type="number" min="1" max="10" name="physical_response" value={form.physical_response} onChange={handleChange} className={fieldClassName()} />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm font-semibold text-ink">Subjective Feel</label>
-                <input type="number" min="1" max="10" name="subjective_feel" value={form.subjective_feel} onChange={handleChange} className={fieldClassName()} />
+                <InterventionProtocolFields
+                  interventionType={form.intervention_type}
+                  protocolPayload={form.protocol_payload}
+                  onFieldChange={handleProtocolFieldChange}
+                />
               </div>
 
               <div>
@@ -345,6 +316,11 @@ export default function InterventionDetail() {
                     <option key={phase} value={phase}>{phase}</option>
                   ))}
                 </select>
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="mb-1 block text-sm font-semibold text-ink">Additional Context</label>
+                <textarea name="details" value={form.details} onChange={handleChange} rows={3} className={fieldClassName()} />
               </div>
 
               <div className="md:col-span-2">

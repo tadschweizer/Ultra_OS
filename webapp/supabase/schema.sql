@@ -19,6 +19,7 @@ create table if not exists public.interventions (
   details text,
   dose_duration text,
   timing text,
+  protocol_payload jsonb not null default '{}'::jsonb,
   gi_response integer,
   physical_response integer,
   subjective_feel integer,
