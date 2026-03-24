@@ -6,6 +6,7 @@ export default function Home() {
   const navLinks = athleteId
     ? [
         { href: '/dashboard', label: 'UltraOS Home', description: 'Insights, trends, and recent training.' },
+        { href: '/onboarding', label: 'Onboarding', description: 'See the first-run athlete experience and thresholds.' },
         { href: '/insights', label: 'Insights System', description: 'Read the athlete and coach AI logic.' },
         { href: '/coaches', label: 'Coaches', description: 'See the roster-level coach experience.' },
         { href: '/connections', label: 'Connections', description: 'Link Strava and future sources.' },
@@ -14,6 +15,7 @@ export default function Home() {
         { href: '/settings', label: 'Settings', description: 'Update athlete baselines and zones.' },
       ]
     : [
+        { href: '/onboarding', label: 'Onboarding', description: 'See the first-run athlete experience and thresholds.' },
         { href: '/insights', label: 'Insights System', description: 'Read how athlete and coach insights work.' },
         { href: '/coaches', label: 'Coaches', description: 'See the roster-level coach experience.' },
         { href: '/content', label: 'Research Library', description: 'Browse the evidence layer behind the product.' },
@@ -59,6 +61,9 @@ export default function Home() {
                 </a>
                 <a href="/insights" className="rounded-full border border-ink/20 bg-white/50 px-6 py-3 font-semibold text-ink">
                   View Insight System
+                </a>
+                <a href="/onboarding" className="rounded-full border border-ink/20 bg-white/50 px-6 py-3 font-semibold text-ink">
+                  View Onboarding Flow
                 </a>
                 <a href="/coaches" className="rounded-full border border-ink/20 bg-white/50 px-6 py-3 font-semibold text-ink">
                   Explore Coach View
@@ -113,6 +118,10 @@ export default function Home() {
             {
               title: 'Sleep and fueling work on day one',
               body: 'Baseline categories create value before an athlete has months of intervention history, which matters for retention in the first 30 days.',
+            },
+            {
+              title: 'Onboarding is threshold-driven',
+              body: 'The first-run product should only ask for what directly moves the athlete toward activation: first sleep log, first intervention history, and race context.',
             },
             {
               title: 'Coaches get flags, not essays',

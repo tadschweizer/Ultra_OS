@@ -18,6 +18,7 @@ export default function CoachesPage() {
   const navLinks = [
     { href: '/', label: 'Landing Page' },
     { href: '/dashboard', label: 'UltraOS Home' },
+    { href: '/onboarding', label: 'Onboarding' },
     { href: '/insights', label: 'Insights System' },
     { href: '/connections', label: 'Connections' },
     { href: '/log-intervention', label: 'Log Intervention' },
@@ -25,6 +26,7 @@ export default function CoachesPage() {
   ];
 
   const tabs = [
+    { href: '/onboarding', label: 'Onboarding' },
     { href: '/coaches', label: 'Coaches' },
     { href: '/insights', label: 'Insights System' },
     { href: '/connections', label: 'Connections' },

@@ -1,4 +1,5 @@
 const defaultTabs = [
+  { href: '/onboarding', label: 'Onboarding' },
   { href: '/insights', label: 'Insights System' },
   { href: '/coaches', label: 'Coaches' },
   { href: '/connections', label: 'Connections' },

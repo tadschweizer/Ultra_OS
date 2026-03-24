@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
+import { buildProtocolSummary } from '../lib/interventionCatalog';
 
 function formatRaceSummary(race) {
   if (!race) return 'No saved race profile';
@@ -110,6 +111,9 @@ export default function History() {
                     <h2 className="mt-2 text-2xl font-semibold text-ink">
                       {item.intervention_type || 'Intervention'}
                     </h2>
+                    <p className="mt-3 max-w-2xl text-sm font-medium text-ink/75">
+                      {buildProtocolSummary(item.intervention_type, item.protocol_payload)}
+                    </p>
                     <p className="mt-2 text-sm text-ink/65">
                       {item.races?.name || item.target_race || 'No target race'}
                     </p>

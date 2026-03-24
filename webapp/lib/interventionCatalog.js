@@ -401,3 +401,147 @@ export function inferLegacyScores(interventionType, protocolPayload = {}) {
   };
 }
 
+export function buildProtocolSummary(interventionType, protocolPayload = {}) {
+  if (!interventionType) return 'No protocol details';
+
+  const payload = protocolPayload || {};
+  const parts = [];
+
+  switch (interventionType) {
+    case 'Heat Acclimation':
+      if (payload.method) parts.push(payload.method);
+      if (payload.temperature_f) parts.push(`${payload.temperature_f}F`);
+      if (payload.duration_minutes) parts.push(`${payload.duration_minutes} min`);
+      break;
+    case 'Altitude Acclimatization':
+      if (payload.method) parts.push(payload.method);
+      if (payload.elevation_ft) parts.push(`${payload.elevation_ft} ft`);
+      if (payload.exposure_hours_per_day) parts.push(`${payload.exposure_hours_per_day} hr/day`);
+      break;
+    case 'Respiratory Training':
+      if (payload.device) parts.push(payload.device);
+      if (payload.duration_minutes) parts.push(`${payload.duration_minutes} min`);
+      if (payload.week_in_block) parts.push(`Week ${payload.week_in_block}`);
+      break;
+    case 'Gut Training':
+      if (payload.carb_actual_g_per_hr) parts.push(`${payload.carb_actual_g_per_hr} g/hr`);
+      if (payload.session_duration_hours) parts.push(`${payload.session_duration_hours} hr`);
+      if (payload.gi_response) parts.push(`GI ${payload.gi_response}`);
+      break;
+    case 'Sodium Bicarbonate - Loading Protocol':
+    case 'Sodium Bicarbonate - Acute Race Use':
+      if (payload.dose || payload.dose_grams) parts.push(`${payload.dose || payload.dose_grams}`);
+      if (payload.timing_minutes_before_effort || payload.timing_minutes_before_effort_start) {
+        parts.push(
+          `${payload.timing_minutes_before_effort || payload.timing_minutes_before_effort_start} min pre`
+        );
+      }
+      if (payload.delivery) parts.push(payload.delivery);
+      break;
+    case 'Caffeine Cycling / Washout':
+      if (payload.days_caffeine_free) parts.push(`${payload.days_caffeine_free} days off`);
+      if (payload.usual_daily_intake_mg) parts.push(`${payload.usual_daily_intake_mg} mg baseline`);
+      break;
+    case 'Carbohydrate Loading':
+      if (payload.daily_carb_actual_g_per_kg) parts.push(`${payload.daily_carb_actual_g_per_kg} g/kg`);
+      if (payload.duration_days) parts.push(`${payload.duration_days} days`);
+      break;
+    case 'Cold Exposure - Adaptation Protocol':
+      if (payload.method) parts.push(payload.method);
+      if (payload.temperature_f) parts.push(`${payload.temperature_f}F`);
+      if (payload.duration_minutes) parts.push(`${payload.duration_minutes} min`);
+      break;
+    case 'BFR - Strength Maintenance':
+      if (payload.limb) parts.push(payload.limb);
+      if (payload.cuff_pressure) parts.push(payload.cuff_pressure);
+      if (payload.protocol_sets_reps) parts.push(payload.protocol_sets_reps);
+      break;
+    case 'Sleep Protocol':
+      if (payload.hours_slept) parts.push(`${payload.hours_slept} hr`);
+      if (payload.quality) parts.push(`Quality ${payload.quality}`);
+      if (Array.isArray(payload.interventions_used) && payload.interventions_used.length) {
+        parts.push(payload.interventions_used.join(', '));
+      }
+      break;
+    case 'Fueling - Mid-Effort':
+      if (payload.carb_intake_g_per_hr) parts.push(`${payload.carb_intake_g_per_hr} g/hr`);
+      if (Array.isArray(payload.sources) && payload.sources.length) parts.push(payload.sources.join(', '));
+      if (payload.energy_consistency) parts.push(`Energy ${payload.energy_consistency}`);
+      break;
+    case 'Hydration and Electrolytes':
+      if (payload.fluid_intake) parts.push(payload.fluid_intake);
+      if (payload.sodium_intake_mg_per_hr) parts.push(`${payload.sodium_intake_mg_per_hr} mg/hr`);
+      if (payload.cramping !== '' && payload.cramping !== undefined) parts.push(payload.cramping ? 'Cramping' : 'No cramping');
+      break;
+    case 'Caffeine - Mid-Effort':
+      if (payload.dose_mg) parts.push(`${payload.dose_mg} mg`);
+      if (payload.form) parts.push(payload.form);
+      if (payload.timing_hour_of_effort) parts.push(`Hour ${payload.timing_hour_of_effort}`);
+      break;
+    case 'Cooling Strategy':
+      if (payload.method) parts.push(payload.method);
+      if (payload.ambient_temperature_f) parts.push(`${payload.ambient_temperature_f}F`);
+      if (payload.duration_of_use) parts.push(payload.duration_of_use);
+      break;
+    case 'Massage Gun':
+      if (payload.body_region) parts.push(payload.body_region);
+      if (payload.duration_minutes) parts.push(`${payload.duration_minutes} min`);
+      if (payload.intensity) parts.push(payload.intensity);
+      break;
+    case 'Normatec / Pneumatic Compression':
+      if (payload.region) parts.push(payload.region);
+      if (payload.duration_minutes) parts.push(`${payload.duration_minutes} min`);
+      if (payload.timing_post_effort) parts.push(payload.timing_post_effort);
+      break;
+    case 'Ice Bath / Cold Immersion':
+      if (payload.temperature_f) parts.push(`${payload.temperature_f}F`);
+      if (payload.duration_minutes) parts.push(`${payload.duration_minutes} min`);
+      if (payload.perceived_recovery) parts.push(`Recovery ${payload.perceived_recovery}`);
+      break;
+    case 'Contrast Therapy':
+      if (payload.hot_protocol) parts.push(`Hot ${payload.hot_protocol}`);
+      if (payload.cold_protocol) parts.push(`Cold ${payload.cold_protocol}`);
+      if (payload.rounds_completed) parts.push(`${payload.rounds_completed} rounds`);
+      break;
+    case 'Sauna - Recovery':
+      if (payload.temperature_f) parts.push(`${payload.temperature_f}F`);
+      if (payload.duration_minutes) parts.push(`${payload.duration_minutes} min`);
+      if (payload.perceived_recovery) parts.push(`Recovery ${payload.perceived_recovery}`);
+      break;
+    case 'Compression Garments':
+      if (payload.type) parts.push(payload.type);
+      if (payload.duration_worn_hours) parts.push(`${payload.duration_worn_hours} hr`);
+      if (payload.timing) parts.push(payload.timing);
+      break;
+    case 'Elevation / Legs Up':
+      if (payload.duration_minutes) parts.push(`${payload.duration_minutes} min`);
+      if (payload.timing_post_effort) parts.push(payload.timing_post_effort);
+      break;
+    case 'Stretching / Mobility':
+      if (payload.type) parts.push(payload.type);
+      if (payload.duration_minutes) parts.push(`${payload.duration_minutes} min`);
+      if (payload.focus_area) parts.push(payload.focus_area);
+      break;
+    case 'Foam Rolling':
+      if (payload.body_region) parts.push(payload.body_region);
+      if (payload.duration_minutes) parts.push(`${payload.duration_minutes} min`);
+      if (payload.intensity) parts.push(payload.intensity);
+      break;
+    case 'Custom Intervention':
+      if (payload.name) parts.push(payload.name);
+      if (payload.phase) parts.push(payload.phase);
+      if (payload.key_metric) parts.push(payload.key_metric);
+      break;
+    default:
+      break;
+  }
+
+  if (!parts.length) {
+    const fallback = [payload.method, payload.device, payload.type, payload.dose, payload.duration_minutes]
+      .filter(Boolean)
+      .map((value) => String(value));
+    return fallback.join(' / ') || 'No protocol details';
+  }
+
+  return parts.join(' / ');
+}

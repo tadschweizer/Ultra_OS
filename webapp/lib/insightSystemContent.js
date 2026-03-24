@@ -223,3 +223,95 @@ export const coachDashboardSections = [
       'Sleep and nutrition trends are visible across the full roster so the coach can spot system-wide fatigue or underfueling patterns instead of reviewing every athlete one by one.',
   },
 ];
+
+export const onboardingStages = [
+  {
+    stage: 'Stage 1',
+    title: 'Account setup',
+    body:
+      'The athlete answers exactly four questions: primary sport, next target race, current training phase, and whether they already have a coach on UltraOS. Nothing else belongs in the first-run flow.',
+    details: [
+      'Primary sport: ultrarunning, gravel cycling, triathlon, or multi-sport',
+      'Target race: name, date, and distance',
+      'Training phase: base, build, peak, or taper',
+      'Coach status: yes and enter coach code, or no',
+    ],
+  },
+  {
+    stage: 'Stage 2',
+    title: 'Empty dashboard',
+    body:
+      'No empty charts. No dead cards. The dashboard should show a single prompt tied to the athlete’s race countdown and a five-milestone progress tracker focused on the fastest route to first value.',
+    details: [
+      'Lead prompt always asks for the most recent sleep entry first',
+      'Display race countdown immediately to create context',
+      'Show exactly five milestones with independent completion states',
+      'Frame logging as progress toward unlocking insights, not admin work',
+    ],
+  },
+  {
+    stage: 'Stage 3',
+    title: 'Activated dashboard',
+    body:
+      'The moment all five milestones are complete, onboarding mode disappears and the insight panel takes over. The athlete should feel that something unlocked because they created enough signal for the system to work.',
+    details: [
+      'Remove onboarding tracker once all milestones are complete',
+      'Show one insight immediately, even if it is flagged as an early signal',
+      'Avoid a jarring full reset of the page layout',
+      'Transition emphasis should be “you now have signal,” not “setup complete”',
+    ],
+  },
+];
+
+export const onboardingMilestones = [
+  'Log your first sleep entry',
+  'Log your first intervention',
+  'Log 3 nights of sleep',
+  'Log 3 interventions of any type',
+  'Add your race conditions',
+];
+
+export const onboardingThresholds = [
+  {
+    category: 'Sleep insights',
+    threshold: 'Activate after 5 consecutive days of sleep logging.',
+  },
+  {
+    category: 'Intervention insights',
+    threshold: 'Activate after 3 logged sessions of the same intervention type.',
+  },
+  {
+    category: 'Race retrospectives',
+    threshold: 'Activate after 1 completed race with outcome data.',
+  },
+  {
+    category: 'Self-selection explorer',
+    threshold: 'Activate after 10 total log entries of any type.',
+  },
+  {
+    category: 'Population benchmarks',
+    threshold: 'Only activate when 50 or more athletes have comparable data for that exact insight. Otherwise show nothing.',
+  },
+  {
+    category: 'Coach-assigned protocol tracking',
+    threshold: 'Activate immediately when a coach assigns a protocol, regardless of the athlete’s history.',
+  },
+];
+
+export const onboardingPrompts = [
+  {
+    title: 'First empty-state prompt',
+    body:
+      'Your race is X days away. Start with last night’s sleep so UltraOS has the fastest possible first data point.',
+  },
+  {
+    title: 'Quiet athlete re-engagement',
+    body:
+      'No logging in 7 days triggers a single prompt on the next login. It should show the race countdown and the one next entry most likely to unlock the next insight based on what the athlete already logged.',
+  },
+  {
+    title: 'Never restart onboarding',
+    body:
+      'If an athlete stalls after milestone 2 or 3, the product should resume from that exact point. No generic welcome-back copy and no reset to the beginning.',
+  },
+];

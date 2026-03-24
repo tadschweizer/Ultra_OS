@@ -364,6 +364,7 @@ export default function Dashboard() {
   );
   const navLinks = [
     { href: '/', label: 'Landing Page', description: 'Return to the UltraOS entry page.' },
+    { href: '/onboarding', label: 'Onboarding', description: 'See the first-run athlete activation flow.' },
     { href: '/insights', label: 'Insights System', description: 'Read the athlete and coach AI logic.' },
     { href: '/coaches', label: 'Coaches', description: 'Open the coach-facing triage view.' },
     { href: '/connections', label: 'Connections', description: 'Link Strava and future platforms.' },
@@ -418,6 +419,9 @@ export default function Dashboard() {
                 </a>
                 <a href="/insights" className="rounded-full border border-ink/20 bg-white/50 px-6 py-3 font-semibold text-ink">
                   Insight System
+                </a>
+                <a href="/onboarding" className="rounded-full border border-ink/20 bg-white/50 px-6 py-3 font-semibold text-ink">
+                  Onboarding Flow
                 </a>
                 <a href="/log-intervention" className="rounded-full border border-ink/20 bg-white/50 px-6 py-3 font-semibold text-ink">
                   Log an Intervention
