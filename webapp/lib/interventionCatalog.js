@@ -193,6 +193,22 @@ export const interventionCatalog = [
           { key: 'perceived_cooling_benefit', label: 'Perceived cooling benefit (1-10)', type: 'number', min: 1, max: 10 },
         ],
       },
+      {
+        label: 'Trekking Poles',
+        fields: [
+          {
+            key: 'terrain_type',
+            label: 'Terrain type',
+            type: 'select',
+            options: ['Steep Climb', 'Technical Trail', 'Rocky / Rooty', 'Descent', 'Mixed', 'Flat / Road'],
+          },
+          { key: 'duration_hours', label: 'Hours used', type: 'number', step: '0.1' },
+          { key: 'effort_phase', label: 'Effort phase or section (e.g. miles 20–40)', type: 'text' },
+          { key: 'perceived_effort_reduction', label: 'Perceived effort reduction (1=none, 10=major)', type: 'number', min: 1, max: 10 },
+          { key: 'efficiency_feel', label: 'Movement efficiency feel (1=clunky, 10=fluid)', type: 'number', min: 1, max: 10 },
+          { key: 'upper_body_fatigue', label: 'Upper body fatigue added (1=none, 10=significant)', type: 'number', min: 1, max: 10 },
+        ],
+      },
     ],
   },
   {
@@ -320,6 +336,7 @@ const interventionIcons = {
   'Caffeine - Mid-Effort': '🚀',
   'Sodium Bicarbonate - Acute Race Use': '🧫',
   'Cooling Strategy': '❄️',
+  'Trekking Poles': '🥢',
   'Massage Gun': '🔧',
   'Normatec / Pneumatic Compression': '🦵',
   'Ice Bath / Cold Immersion': '🛁',
@@ -412,6 +429,8 @@ export function inferLegacyScores(interventionType, protocolPayload = {}) {
     protocolPayload.recovery_feel,
     protocolPayload.perceived_recovery,
     protocolPayload.perceived_effort,
+    protocolPayload.perceived_effort_reduction,
+    protocolPayload.efficiency_feel,
   ];
 
   const subjectiveFeel =
@@ -547,6 +566,12 @@ export function buildProtocolSummary(interventionType, protocolPayload = {}) {
       if (payload.method) parts.push(payload.method);
       if (payload.ambient_temperature_f) parts.push(`${payload.ambient_temperature_f}F`);
       if (payload.duration_of_use) parts.push(payload.duration_of_use);
+      break;
+    case 'Trekking Poles':
+      if (payload.terrain_type) parts.push(payload.terrain_type);
+      if (payload.duration_hours) parts.push(`${payload.duration_hours} hr`);
+      if (payload.perceived_effort_reduction) parts.push(`RPE reduction ${payload.perceived_effort_reduction}/10`);
+      if (payload.efficiency_feel) parts.push(`Efficiency ${payload.efficiency_feel}/10`);
       break;
     case 'Massage Gun':
       if (payload.body_region) parts.push(payload.body_region);
