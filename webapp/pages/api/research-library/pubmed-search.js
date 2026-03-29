@@ -19,8 +19,11 @@ export default async function handler(req, res) {
     return;
   }
 
+  const requestedRetmax = parseInt(req.query.retmax, 10);
+  const retmax = Number.isFinite(requestedRetmax) ? Math.min(Math.max(requestedRetmax, 1), 25) : 12;
+
   try {
-    const pmids = await searchPubMed(query, 8);
+    const pmids = await searchPubMed(query, retmax);
     const studies = await summarizePubMed(pmids);
     res.status(200).json({ studies });
   } catch (error) {

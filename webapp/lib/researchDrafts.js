@@ -7,14 +7,14 @@ function joinTags(tags = []) {
 
 function sportRead(form = {}) {
   const scores = [
-    { label: 'ultra-endurance athletes', score: Number(form.ultra_score || 0) },
+    { label: 'runners from the mile through marathon+ events', score: Number(form.ultra_score || 0) },
     { label: 'gravel athletes', score: Number(form.gravel_score || 0) },
     { label: 'triathletes', score: Number(form.triathlon_score || 0) },
   ]
     .filter((item) => item.score >= 4)
     .map((item) => item.label);
 
-  if (!scores.length) return 'long-endurance athletes';
+  if (!scores.length) return 'endurance athletes';
   if (scores.length === 1) return scores[0];
   return `${scores.slice(0, -1).join(', ')} and ${scores[scores.length - 1]}`;
 }

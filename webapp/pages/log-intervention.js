@@ -695,7 +695,7 @@ export default function LogIntervention() {
                   <div className="mt-3 space-y-2">
                     {loadingRaces ? <p className="text-xs text-ink/60">Searching saved races...</p> : null}
                     {!loadingRaces && raceOptions.length > 0 ? (
-                      <div className="rounded-[22px] border border-ink/10 bg-paper/70 p-2">
+                      <div className="rounded-[22px] border border-ink/10 bg-paper/70 p-2 shadow-sm">
                         {raceOptions.map((race) => (
                           <button
                             key={race.id}

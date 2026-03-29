@@ -146,7 +146,7 @@ export default function InvitePage() {
           </form>
 
           {newLink ? (
-            <div className="mt-6 rounded-[22px] bg-paper p-4">
+            <div className="mt-6 rounded-[22px] border border-ink/10 bg-paper p-4">
               <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-accent">Invite link — share this</p>
               <p className="break-all rounded-xl bg-white px-4 py-3 text-sm font-mono text-ink shadow-inner">
                 {newLink}
@@ -177,7 +177,7 @@ export default function InvitePage() {
               {invites.map((invite) => (
                 <div
                   key={invite.id}
-                  className={`flex items-center justify-between rounded-[18px] px-4 py-3 ${
+                  className={`flex items-center justify-between rounded-[18px] border border-ink/10 px-4 py-3 ${
                     invite.used_at ? 'bg-ink/4' : 'bg-paper'
                   }`}
                 >

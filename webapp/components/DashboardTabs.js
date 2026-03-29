@@ -1,6 +1,8 @@
 const defaultTabs = [
-  { href: '/onboarding', label: 'Onboarding' },
-  { href: '/insights', label: 'Insights System' },
+  { href: '/guide', label: 'Guide' },
+  { href: '/pricing', label: 'Pricing' },
+  { href: '/explorer', label: 'Explorer' },
+  { href: '/insights', label: 'Insights' },
   { href: '/coaches', label: 'Coaches' },
   { href: '/connections', label: 'Connections' },
   { href: '/log-intervention', label: 'Intervention' },
@@ -11,32 +13,23 @@ const defaultTabs = [
 ];
 
 export default function DashboardTabs({ activeHref = '/dashboard', tabs = defaultTabs }) {
+  if (activeHref === '/dashboard') {
+    return null;
+  }
+
+  const activeTab = tabs.find((tab) => tab.href === activeHref);
+  const activeLabel = activeTab?.label || 'Section';
+
   return (
-    <div className="mb-8 ml-2 md:ml-12">
+    <div className="mb-8 lg:hidden">
       <div className="flex flex-wrap gap-3">
         <a
           href="/dashboard"
-          className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-            activeHref === '/dashboard'
-              ? 'bg-ink text-paper'
-              : 'border border-ink/10 bg-white/70 text-ink hover:bg-white'
-          }`}
+          className="ui-button-secondary bg-white/70 py-2"
         >
-          Home
+          Back to Home
         </a>
-        {tabs.map((tab) => (
-          <a
-            key={tab.href}
-            href={tab.href}
-            className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-              activeHref === tab.href
-                ? 'bg-ink text-paper'
-                : 'border border-ink/10 bg-white/70 text-ink hover:bg-white'
-            }`}
-          >
-            {tab.label}
-          </a>
-        ))}
+        <span className="ui-button-primary py-2">{activeLabel}</span>
       </div>
     </div>
   );

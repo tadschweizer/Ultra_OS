@@ -7,7 +7,12 @@ create table if not exists public.athletes (
   strava_id text unique,
   access_token text,
   refresh_token text,
-  token_expires_at timestamptz
+  token_expires_at timestamptz,
+  onboarding_complete boolean not null default false,
+  primary_sports text[] not null default '{}'::text[],
+  years_racing_band text,
+  weekly_training_hours_band text,
+  home_elevation_ft integer
 );
 
 create table if not exists public.interventions (
@@ -35,6 +40,7 @@ create table if not exists public.races (
   athlete_id uuid references public.athletes (id) on delete cascade,
   name text not null,
   event_date date,
+  race_type text,
   distance_miles numeric,
   elevation_gain_ft integer,
   location text,
@@ -42,6 +48,26 @@ create table if not exists public.races (
   notes text,
   inserted_at timestamptz default now()
 );
+
+alter table public.athletes
+add column if not exists target_race_id uuid references public.races (id) on delete set null;
+
+create table if not exists public.race_catalog (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  event_date date,
+  city text,
+  state text,
+  country text not null default 'USA',
+  distance_miles numeric,
+  sport_type text not null
+);
+
+create index if not exists race_catalog_name_idx
+  on public.race_catalog using gin (to_tsvector('simple', name));
+
+create index if not exists race_catalog_sport_type_idx
+  on public.race_catalog (sport_type);
 
 alter table public.interventions
 add column if not exists race_id uuid references public.races (id) on delete set null;
@@ -107,6 +133,47 @@ create table if not exists public.research_library_entries (
   constraint research_library_entries_triathlon_score_check check (triathlon_score between 0 and 5)
 );
 
+create table if not exists public.coach_profiles (
+  id uuid primary key default gen_random_uuid(),
+  athlete_id uuid unique references public.athletes (id) on delete cascade,
+  display_name text not null,
+  coach_code text not null unique,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.coach_athlete_links (
+  id uuid primary key default gen_random_uuid(),
+  athlete_id uuid not null references public.athletes (id) on delete cascade,
+  coach_id uuid not null references public.coach_profiles (id) on delete cascade,
+  role text not null check (role in ('primary', 'secondary')),
+  status text not null default 'active' check (status in ('active', 'inactive')),
+  created_at timestamptz not null default now()
+);
+
+create unique index if not exists coach_athlete_links_unique_active_role_idx
+  on public.coach_athlete_links (athlete_id, role)
+  where status = 'active';
+
+create table if not exists public.coach_protocol_assignments (
+  id uuid primary key default gen_random_uuid(),
+  athlete_id uuid not null references public.athletes (id) on delete cascade,
+  coach_id uuid not null references public.coach_profiles (id) on delete cascade,
+  target_race_id uuid references public.races (id) on delete set null,
+  intervention_type text not null,
+  start_date date not null,
+  target_completion_date date not null,
+  frequency_type text not null check (frequency_type in ('daily', 'every_other_day', 'weekly', 'custom')),
+  frequency_details jsonb not null default '{}'::jsonb,
+  planned_sessions integer not null default 0 check (planned_sessions >= 0),
+  note text,
+  status text not null default 'active' check (status in ('active', 'completed', 'archived')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists coach_protocol_assignments_athlete_status_idx
+  on public.coach_protocol_assignments (athlete_id, status, target_completion_date desc);
+
 create index if not exists research_library_entries_published_idx
   on public.research_library_entries (published);
 
@@ -118,6 +185,10 @@ alter table public.interventions disable row level security;
 alter table public.athlete_settings disable row level security;
 alter table public.athlete_supplements disable row level security;
 alter table public.races disable row level security;
+alter table public.coach_profiles disable row level security;
+alter table public.coach_athlete_links disable row level security;
+alter table public.coach_protocol_assignments disable row level security;
+alter table public.race_catalog disable row level security;
 alter table public.research_library_entries enable row level security;
 
 drop policy if exists "Published research entries are public readable" on public.research_library_entries;
@@ -133,4 +204,8 @@ grant select, insert, update, delete on table public.interventions to anon, auth
 grant select, insert, update, delete on table public.athlete_settings to anon, authenticated;
 grant select, insert, update, delete on table public.athlete_supplements to anon, authenticated;
 grant select, insert, update, delete on table public.races to anon, authenticated;
+grant select, insert, update, delete on table public.coach_profiles to anon, authenticated;
+grant select, insert, update, delete on table public.coach_athlete_links to anon, authenticated;
+grant select, insert, update, delete on table public.coach_protocol_assignments to anon, authenticated;
+grant select, insert, update, delete on table public.race_catalog to anon, authenticated;
 grant select on table public.research_library_entries to anon, authenticated;

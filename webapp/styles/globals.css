@@ -2,13 +2,67 @@
 @tailwind components;
 @tailwind utilities;
 
-/*
-  Global styles for UltraOS. We set a dark background
-  and white text to match the mood of the Wasatch Yard website.
-*/
+:root {
+  --color-page-background: #eae4da;
+  --color-surface-light: #f5f0e8;
+  --color-surface-white: #ffffff;
+  --color-surface-dark: #1c1a17;
+  --color-surface-dark-raised: #252320;
+  --color-border-subtle: #ddd6ca;
+  --color-border-default: #c8b8a8;
+  --color-text-primary: #1c1a17;
+  --color-text-secondary: #4a3a2a;
+  --color-text-muted: #7a6a5a;
+  --color-text-faint: #b8a898;
+  --color-text-on-dark: #f0eae0;
+  --color-text-muted-on-dark: #b6a899;
+  --color-accent-amber: #b8752a;
+  --color-accent-amber-light: #d4893a;
+  --color-accent-amber-dim: rgba(184, 117, 42, 0.14);
+  --color-hero-start: #f5f0e8;
+  --color-hero-mid: #eadcc7;
+  --color-hero-end: #d5bf9f;
+  --color-hero-dark-mid: #302b25;
+  --color-hero-dark-end: #7d684d;
+  --color-category-heat: #d8bf98;
+  --color-category-gut: #d8a56a;
+  --color-category-respiratory: #c99068;
+  --color-category-supplementation: #b98562;
+  --color-category-recovery: #b8a084;
+  --color-category-altitude: #a88f6f;
+  --color-category-nutrition: #d9ba85;
+  --color-category-sleep: #c9b29a;
+}
+
+html {
+  scrollbar-color: var(--color-accent-amber) var(--color-surface-light);
+  scrollbar-width: thin;
+}
+
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+body::-webkit-scrollbar-track,
+*::-webkit-scrollbar-track {
+  background: var(--color-surface-light);
+}
+
+body::-webkit-scrollbar-thumb,
+*::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--color-accent-amber) 72%, white);
+  border-radius: 9999px;
+}
+
 body {
-  @apply bg-paper text-ink;
+  @apply bg-paper text-ink font-sans;
   font-family: "Aptos", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  color: var(--color-text-primary);
+  background-color: var(--color-page-background);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 a {
@@ -17,4 +71,169 @@ a {
 
 .font-display {
   font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+}
+
+.font-data,
+.ui-data,
+time,
+.tabular-nums {
+  font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+input,
+select,
+textarea {
+  background: var(--color-surface-light);
+  border-color: var(--color-border-default);
+  border-radius: 8px;
+  color: var(--color-text-primary);
+  transition: border-color 100ms ease;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-text-muted);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--color-accent-amber);
+  box-shadow: none;
+}
+
+button {
+  transition: transform 80ms ease-out, background-color 160ms ease, border-color 160ms ease, color 160ms ease, opacity 160ms ease;
+}
+
+button:active,
+.ui-button-primary:active,
+.ui-button-secondary:active,
+.ui-button-ghost:active {
+  transform: scale(0.97);
+}
+
+@layer components {
+  .ui-page {
+    animation: fadeInUp 200ms ease-out;
+  }
+
+  .ui-shell {
+    @apply mx-auto max-w-[1280px] px-4 py-4 md:px-6 lg:px-8 lg:py-7;
+  }
+
+  .ui-section {
+    @apply mt-6;
+  }
+
+  .ui-card {
+    @apply rounded-card border bg-white p-5 shadow-warm;
+    border-color: var(--color-border-subtle);
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .ui-card-cream {
+    @apply rounded-card border p-5 shadow-warm;
+    background: var(--color-surface-light);
+    border-color: var(--color-border-subtle);
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .ui-card-dark {
+    @apply rounded-card p-5 text-text-dark shadow-panel;
+    background: linear-gradient(135deg, var(--color-surface-dark) 0%, var(--color-surface-dark-raised) 100%);
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .ui-hero {
+    @apply overflow-hidden rounded-[24px] border p-6 md:p-10;
+    border-color: var(--color-border-subtle);
+    background: linear-gradient(145deg, var(--color-hero-start) 0%, var(--color-hero-mid) 48%, var(--color-hero-end) 100%);
+    min-width: 0;
+  }
+
+  .ui-hero-dark {
+    @apply overflow-hidden rounded-[24px] border p-6 text-text-dark md:p-10;
+    border-color: color-mix(in srgb, var(--color-text-on-dark) 10%, transparent);
+    background: linear-gradient(140deg, var(--color-surface-dark) 0%, var(--color-hero-dark-mid) 42%, var(--color-hero-dark-end) 100%);
+    min-width: 0;
+  }
+
+  .ui-eyebrow {
+    @apply font-mono text-[10px] uppercase;
+    letter-spacing: 0.15em;
+    color: color-mix(in srgb, var(--color-accent-amber) 78%, white);
+  }
+
+  .ui-button-primary {
+    @apply inline-flex items-center justify-center rounded-pill px-5 py-3 text-sm font-semibold;
+    background: var(--color-surface-dark);
+    color: var(--color-text-on-dark);
+    min-width: 0;
+    white-space: normal;
+  }
+
+  .ui-button-secondary {
+    @apply inline-flex items-center justify-center rounded-pill border px-5 py-3 text-sm font-medium;
+    border-color: var(--color-border-default);
+    color: var(--color-text-primary);
+    background: transparent;
+    min-width: 0;
+    white-space: normal;
+  }
+
+  .ui-button-ghost {
+    @apply inline-flex items-center justify-center rounded-pill px-4 py-2 text-sm font-medium;
+    color: var(--color-text-muted);
+    background: transparent;
+    min-width: 0;
+    white-space: normal;
+  }
+
+  .ui-button-ghost:hover {
+    background: color-mix(in srgb, var(--color-surface-light) 75%, white);
+  }
+
+  .ui-badge {
+    @apply inline-flex items-center rounded-pill px-[10px] py-[4px] font-mono text-[10px] uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .ui-input {
+    @apply w-full rounded-lg border px-4 py-2.5 text-sm;
+    background: var(--color-surface-light);
+    border-color: var(--color-border-default);
+    color: var(--color-text-primary);
+  }
+
+  .ui-card-grid {
+    @apply grid gap-4;
+  }
+
+  .ui-skeleton {
+    background: linear-gradient(
+      90deg,
+      var(--color-surface-light) 0%,
+      color-mix(in srgb, var(--color-surface-light) 55%, white) 50%,
+      var(--color-surface-light) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.4s linear infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
