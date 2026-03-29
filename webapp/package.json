@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@ducanh2912/next-pwa": "^10.2.9",
     "@supabase/supabase-js": "^2.39.0",
     "autoprefixer": "^10.4.15",
     "axios": "^1.6.7",
@@ -17,6 +18,7 @@
     "postcss": "^8.4.24",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "tailwindcss": "^3.4.0"
+    "tailwindcss": "^3.4.0",
+    "workbox-webpack-plugin": "^7.4.0"
   }
 }

@@ -204,7 +204,8 @@ export const interventionCatalog = [
           },
           { key: 'duration_hours', label: 'Hours used', type: 'number', step: '0.1' },
           { key: 'effort_phase', label: 'Effort phase or section (e.g. miles 20–40)', type: 'text' },
-          { key: 'perceived_effort_reduction', label: 'Perceived effort reduction (1=none, 10=major)', type: 'number', min: 1, max: 10 },
+          { key: 'avg_hr_bpm', label: 'Avg HR during pole use (bpm)', type: 'number' },
+          { key: 'pace_or_grade', label: 'Pace or grade context (e.g. 20min/mi, 15% grade)', type: 'text' },
           { key: 'efficiency_feel', label: 'Movement efficiency feel (1=clunky, 10=fluid)', type: 'number', min: 1, max: 10 },
           { key: 'upper_body_fatigue', label: 'Upper body fatigue added (1=none, 10=significant)', type: 'number', min: 1, max: 10 },
         ],
@@ -429,7 +430,6 @@ export function inferLegacyScores(interventionType, protocolPayload = {}) {
     protocolPayload.recovery_feel,
     protocolPayload.perceived_recovery,
     protocolPayload.perceived_effort,
-    protocolPayload.perceived_effort_reduction,
     protocolPayload.efficiency_feel,
   ];
 
@@ -570,7 +570,7 @@ export function buildProtocolSummary(interventionType, protocolPayload = {}) {
     case 'Trekking Poles':
       if (payload.terrain_type) parts.push(payload.terrain_type);
       if (payload.duration_hours) parts.push(`${payload.duration_hours} hr`);
-      if (payload.perceived_effort_reduction) parts.push(`RPE reduction ${payload.perceived_effort_reduction}/10`);
+      if (payload.avg_hr_bpm) parts.push(`${payload.avg_hr_bpm} bpm`);
       if (payload.efficiency_feel) parts.push(`Efficiency ${payload.efficiency_feel}/10`);
       break;
     case 'Massage Gun':

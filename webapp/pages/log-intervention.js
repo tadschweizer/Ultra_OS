@@ -7,6 +7,7 @@ import {
   favoriteInterventionStorageKey,
   getAllInterventionDefinitions,
   getInterventionDefinition,
+  getInterventionIcon,
 } from '../lib/interventionCatalog';
 import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
@@ -588,34 +589,52 @@ export default function LogIntervention() {
             </div>
 
             <div id="type-selector-section" className="grid gap-5">
-              {interventions.length > 0 ? (
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-ink">Fast repeat</label>
-                  <FavoriteTypeButtons favorites={favoriteTypes} selectedType={form.intervention_type} onSelect={selectInterventionType} />
-                </div>
-              ) : null}
-
-              <div>
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <label className="block text-sm font-semibold text-ink">Choose intervention</label>
-                  {form.intervention_type ? (
+              {/* When a type is selected, collapse the picker to a compact chip */}
+              {form.intervention_type ? (
+                <div className="flex items-center justify-between rounded-[24px] border border-ink/10 bg-paper px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">{getInterventionIcon(form.intervention_type)}</span>
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.2em] text-accent">Selected</p>
+                      <p className="text-sm font-semibold text-ink">{form.intervention_type}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={toggleFavoriteType}
                       className="rounded-full border border-ink/10 px-3 py-1.5 text-xs font-semibold text-ink"
                     >
-                      {favoriteTypes.includes(form.intervention_type) ? 'Remove Favorite' : 'Add Favorite'}
+                      {favoriteTypes.includes(form.intervention_type) ? '★ Saved' : '☆ Save'}
                     </button>
-                  ) : null}
+                    <button
+                      type="button"
+                      onClick={() => selectInterventionType('')}
+                      className="rounded-full bg-ink/8 px-3 py-1.5 text-xs font-semibold text-ink"
+                    >
+                      Change
+                    </button>
+                  </div>
                 </div>
-
-                <CategoryGrid
-                  definitions={interventionDefinitions}
-                  selectedType={form.intervention_type}
-                  counts={recentCategoryCounts}
-                  onSelect={selectInterventionType}
-                />
-              </div>
+              ) : (
+                <>
+                  {interventions.length > 0 ? (
+                    <div>
+                      <label className="mb-2 block text-sm font-semibold text-ink">Fast repeat</label>
+                      <FavoriteTypeButtons favorites={favoriteTypes} selectedType={form.intervention_type} onSelect={selectInterventionType} />
+                    </div>
+                  ) : null}
+                  <div>
+                    <label className="mb-3 block text-sm font-semibold text-ink">Choose intervention</label>
+                    <CategoryGrid
+                      definitions={interventionDefinitions}
+                      selectedType={form.intervention_type}
+                      counts={recentCategoryCounts}
+                      onSelect={selectInterventionType}
+                    />
+                  </div>
+                </>
+              )}
 
               <div>
                 <InterventionProtocolFields
