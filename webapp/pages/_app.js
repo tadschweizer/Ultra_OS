@@ -36,6 +36,9 @@ export default function MyApp({ Component, pageProps }) {
     '/settings': 'Athlete Settings',
     '/notifications': 'Notifications',
     '/onboarding': 'Onboarding',
+    '/join': 'Join UltraOS',
+    '/invite': 'Invite Athletes',
+    '/admin': 'Admin',
   };
   const pageName = pageTitleMap[router.pathname] || 'UltraOS';
   const title = pageName === 'UltraOS' ? 'UltraOS' : `${pageName} — UltraOS`;

@@ -45,6 +45,7 @@ const sheetSections = [
       { href: '/account', label: 'Account Settings', description: 'Email, billing, security' },
       { href: '/guide', label: 'Guide', description: 'How UltraOS works' },
       { href: '/pricing', label: 'Pricing', description: 'Plans and upgrades' },
+      { href: '/admin', label: 'Admin', description: 'Athlete management' },
     ],
   },
 ];
