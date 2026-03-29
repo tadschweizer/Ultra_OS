@@ -37,7 +37,7 @@ function normalizePayload(body = {}, athleteId) {
 }
 
 const interventionSelect =
-  'id, athlete_id, date, inserted_at, intervention_type, details, dose_duration, timing, protocol_payload, gi_response, physical_response, subjective_feel, activity_id, training_phase, target_race, target_race_date, race_id, notes, races(id, name, event_date, distance_miles, elevation_gain_ft, location, surface, notes)';
+  'id, athlete_id, date, inserted_at, intervention_type, details, dose_duration, timing, protocol_payload, gi_response, physical_response, subjective_feel, activity_id, training_phase, target_race, target_race_date, race_id, notes, races(id, name, event_date, race_type, distance_miles, elevation_gain_ft, location, surface, notes)';
 
 export default async function handler(req, res) {
   const athleteId = getAthleteId(req);

@@ -166,21 +166,21 @@ export default function JoinPage() {
           </p>
 
           <div className="mt-8 space-y-3">
-            <div className="flex items-start gap-3 rounded-[18px] bg-paper px-4 py-3">
+            <div className="flex items-start gap-3 rounded-[18px] border border-ink/10 bg-paper px-4 py-3">
               <span className="mt-0.5 text-base">📊</span>
               <div>
                 <p className="text-sm font-semibold text-ink">N=1 correlations</p>
                 <p className="mt-0.5 text-xs leading-5 text-ink/55">See what interventions actually move the needle for your body</p>
               </div>
             </div>
-            <div className="flex items-start gap-3 rounded-[18px] bg-paper px-4 py-3">
+            <div className="flex items-start gap-3 rounded-[18px] border border-ink/10 bg-paper px-4 py-3">
               <span className="mt-0.5 text-base">🔬</span>
               <div>
                 <p className="text-sm font-semibold text-ink">72+ research studies</p>
                 <p className="mt-0.5 text-xs leading-5 text-ink/55">Curated endurance research with plain-English takeaways</p>
               </div>
             </div>
-            <div className="flex items-start gap-3 rounded-[18px] bg-paper px-4 py-3">
+            <div className="flex items-start gap-3 rounded-[18px] border border-ink/10 bg-paper px-4 py-3">
               <span className="mt-0.5 text-base">🏁</span>
               <div>
                 <p className="text-sm font-semibold text-ink">Race blueprints</p>

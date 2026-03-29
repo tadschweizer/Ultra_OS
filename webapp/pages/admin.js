@@ -147,7 +147,7 @@ export default function AdminPage() {
       <div className="mx-auto max-w-4xl">
 
         {/* Header */}
-        <div className="mb-6 flex items-center justify-between rounded-full border border-ink/10 bg-white/70 px-4 py-3 backdrop-blur">
+        <div className="mb-6 flex items-center justify-between rounded-full border border-ink/10 bg-white/70 px-4 py-3 shadow-sm backdrop-blur">
           <div className="flex items-center gap-2">
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-white">A</span>
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-700">Admin</p>
@@ -166,19 +166,19 @@ export default function AdminPage() {
         {/* Stats row */}
         {!loading && (
           <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div className="rounded-[22px] border border-ink/8 bg-white px-4 py-4 shadow-sm">
+            <div className="rounded-[22px] border border-ink/10 bg-white px-4 py-4 shadow-sm">
               <p className="text-2xl font-semibold text-ink">{athletes.length}</p>
               <p className="mt-0.5 text-xs text-ink/45">Athletes total</p>
             </div>
-            <div className="rounded-[22px] border border-ink/8 bg-white px-4 py-4 shadow-sm">
+            <div className="rounded-[22px] border border-ink/10 bg-white px-4 py-4 shadow-sm">
               <p className="text-2xl font-semibold text-emerald-600">{activeThisWeek}</p>
               <p className="mt-0.5 text-xs text-ink/45">Active this week</p>
             </div>
-            <div className="rounded-[22px] border border-ink/8 bg-white px-4 py-4 shadow-sm">
+            <div className="rounded-[22px] border border-ink/10 bg-white px-4 py-4 shadow-sm">
               <p className="text-2xl font-semibold text-ink">{onboarded}</p>
               <p className="mt-0.5 text-xs text-ink/45">Onboarded</p>
             </div>
-            <div className="rounded-[22px] border border-ink/8 bg-white px-4 py-4 shadow-sm">
+            <div className="rounded-[22px] border border-ink/10 bg-white px-4 py-4 shadow-sm">
               <p className="text-2xl font-semibold text-ink">{totalInterventions}</p>
               <p className="mt-0.5 text-xs text-ink/45">Total logs</p>
             </div>
@@ -283,7 +283,7 @@ export default function AdminPage() {
                         ) : (
                           <div className="space-y-2">
                             {logs.filter((l) => l.athlete_id === athlete.id).slice(0, 5).map((log) => (
-                              <div key={log.id} className="flex items-center gap-3 rounded-[14px] bg-white px-3 py-2.5">
+                              <div key={log.id} className="flex items-center gap-3 rounded-[14px] border border-ink/10 bg-white px-3 py-2.5">
                                 <span className="text-base">{typeIcon(log.intervention_type)}</span>
                                 <div className="flex-1">
                                   <p className="text-sm font-semibold text-ink">{log.intervention_type}</p>

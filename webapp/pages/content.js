@@ -386,7 +386,7 @@ export default function Content() {
           {pubmedResults.length ? (
             <div className="mt-5 grid gap-3">
               {pubmedResults.map((result) => (
-                <article key={result.pubmed_id} className="rounded-[24px] bg-paper p-4">
+                <article key={result.pubmed_id} className="rounded-[24px] border border-ink/10 bg-paper p-4">
                   <a
                     href={result.pubmed_url}
                     target="_blank"

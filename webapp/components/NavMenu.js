@@ -95,7 +95,7 @@ export default function NavMenu({ primaryLink = null }) {
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="relative inline-flex h-11 w-11 items-center justify-center rounded-pill border border-border-subtle bg-white/70 text-ink backdrop-blur transition"
+          className="relative inline-flex h-11 w-11 items-center justify-center rounded-pill border border-ink/10 bg-white/70 text-ink backdrop-blur transition"
           aria-expanded={open}
           aria-label={open ? 'Close menu' : 'Open menu'}
         >

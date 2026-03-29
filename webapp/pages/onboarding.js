@@ -1,222 +1,490 @@
-import DashboardTabs from '../components/DashboardTabs';
-import NavMenu from '../components/NavMenu';
-import {
-  onboardingMilestones,
-  onboardingPrompts,
-  onboardingStages,
-  onboardingThresholds,
-} from '../lib/insightSystemContent';
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/router';
 
-const setupQuestions = [
-  'Primary sport',
-  'Next target race',
-  'Current training phase',
-  'Coach on platform?',
+const sportOptions = [
+  'Ultrarunner',
+  'Trail Runner',
+  'Marathoner',
+  'Half Marathoner',
+  'Road Racer (5K-10K)',
+  'Gravel Cyclist',
+  'Long-Course Triathlete',
 ];
 
-const reengagementExamples = [
-  {
-    athlete: 'Athlete with only 1 sleep log',
-    prompt: 'Your race is 86 days away. Log last night’s sleep to start the five-day streak that unlocks your first sleep insight.',
-  },
-  {
-    athlete: 'Athlete with 3 sleep logs and 1 intervention',
-    prompt: 'Your race is 52 days away. Log tonight’s sleep to stay on pace for your first sleep insight before next week starts.',
-  },
-  {
-    athlete: 'Athlete with 3 interventions but no race conditions',
-    prompt: 'Your race is 31 days away. Add race conditions next so UltraOS can interpret those intervention sessions in the right context.',
-  },
-];
+const yearsOptions = ['1', '2-3', '4-6', '7+'];
+const hoursOptions = ['<8', '8-12', '12-16', '16-20', '20+'];
+const stepLabels = ['Your Race', 'Your Sport', 'Connect Data'];
+
+function fieldClassName() {
+  return 'w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-ink';
+}
+
+function StepIndicator({ step }) {
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <span className="rounded-full bg-panel px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-paper">
+        Step {step} of 3
+      </span>
+      {stepLabels.map((label, index) => (
+        <span
+          key={label}
+          className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] ${
+            index + 1 === step ? 'bg-white text-ink' : 'bg-white/50 text-ink/52'
+          }`}
+        >
+          {label}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 export default function OnboardingPage() {
-  const navLinks = [
-    { href: '/', label: 'Landing Page' },
-    { href: '/dashboard', label: 'UltraOS Home' },
-    { href: '/insights', label: 'Insights System' },
-    { href: '/coaches', label: 'Coaches' },
-    { href: '/connections', label: 'Connections' },
-    { href: '/log-intervention', label: 'Log Intervention' },
-  ];
+  const router = useRouter();
+  const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [catalogQuery, setCatalogQuery] = useState('');
+  const [catalogResults, setCatalogResults] = useState([]);
+  const [manualRace, setManualRace] = useState(false);
+  const [stravaName, setStravaName] = useState('');
+  const [form, setForm] = useState({
+    target_race_id: '',
+    target_race: null,
+    primary_sports: [],
+    years_racing_band: '',
+    weekly_training_hours_band: '',
+    home_elevation_ft: '',
+  });
 
-  const tabs = [
-    { href: '/onboarding', label: 'Onboarding' },
-    { href: '/insights', label: 'Insights System' },
-    { href: '/coaches', label: 'Coaches' },
-    { href: '/connections', label: 'Connections' },
-    { href: '/log-intervention', label: 'Intervention' },
-    { href: '/content', label: 'Research' },
-  ];
+  useEffect(() => {
+    async function loadOnboarding() {
+      try {
+        const res = await fetch('/api/onboarding');
+        if (!res.ok) {
+          setLoading(false);
+          return;
+        }
+        const data = await res.json();
+        setForm({
+          target_race_id: data.targetRace?.id || '',
+          target_race: data.targetRace
+            ? {
+                name: data.targetRace.name,
+                event_date: data.targetRace.event_date,
+                distance_miles: data.targetRace.distance_miles || '',
+                location: data.targetRace.location || '',
+                race_type: data.targetRace.race_type || '',
+              }
+            : null,
+          primary_sports: data.athlete?.primary_sports || [],
+          years_racing_band: data.athlete?.years_racing_band || '',
+          weekly_training_hours_band: data.athlete?.weekly_training_hours_band || '',
+          home_elevation_ft: data.athlete?.home_elevation_ft ?? '',
+        });
+        if (router.query.name) {
+          setStravaName(String(router.query.name));
+        }
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadOnboarding();
+  }, [router.query.name]);
+
+  useEffect(() => {
+    if (!manualRace && catalogQuery.trim().length < 2) {
+      setCatalogResults([]);
+      return;
+    }
+
+    let cancelled = false;
+    async function searchCatalog() {
+      const res = await fetch(`/api/race-catalog?q=${encodeURIComponent(catalogQuery.trim())}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!cancelled) {
+        setCatalogResults(data.races || []);
+      }
+    }
+
+    const id = setTimeout(searchCatalog, 180);
+    return () => {
+      cancelled = true;
+      clearTimeout(id);
+    };
+  }, [catalogQuery, manualRace]);
+
+  useEffect(() => {
+    if (!navigator.geolocation || form.home_elevation_ft) return;
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        if (position.coords.altitude !== null && position.coords.altitude !== undefined) {
+          setForm((current) => ({
+            ...current,
+            home_elevation_ft: Math.round(position.coords.altitude * 3.28084),
+          }));
+        }
+      },
+      () => {}
+    );
+  }, [form.home_elevation_ft]);
+
+  const slides = useMemo(
+    () => [
+      <section key="race" className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr]">
+        <div>
+          <p className="text-sm uppercase tracking-[0.35em] text-accent">Your next target</p>
+          <h1 className="font-display mt-4 text-5xl leading-tight md:text-7xl">Set your target race.</h1>
+          <p className="mt-6 max-w-2xl text-base leading-8 text-ink/76">
+            Search the catalog first. If your event is not there, add it manually and keep moving.
+          </p>
+        </div>
+
+        <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+          <label className="mb-2 block text-sm font-semibold text-ink">Search race catalog</label>
+          <input
+            type="text"
+            value={catalogQuery}
+            onChange={(event) => {
+              setManualRace(false);
+              setCatalogQuery(event.target.value);
+            }}
+            placeholder="Western States 100"
+            className={fieldClassName()}
+          />
+          <div className="mt-4 max-h-72 space-y-2 overflow-y-auto pr-1">
+            {catalogResults.map((race) => (
+              <button
+                key={race.id}
+                type="button"
+                onClick={() =>
+                  setForm((current) => ({
+                    ...current,
+                    target_race_id: '',
+                    target_race: {
+                      name: race.name,
+                      event_date: race.event_date,
+                      distance_miles: race.distance_miles,
+                      location: [race.city, race.state, race.country].filter(Boolean).join(', '),
+                      race_type: race.sport_type,
+                    },
+                  }))
+                }
+                className="w-full rounded-[22px] border border-ink/10 bg-paper px-4 py-3 text-left transition hover:bg-[#efe7dc]"
+              >
+                <p className="text-sm font-semibold text-ink">{race.name}</p>
+                <p className="mt-1 text-xs uppercase tracking-[0.16em] text-accent">{race.sport_type}</p>
+                <p className="mt-2 text-sm text-ink/64">
+                  {race.event_date} · {[race.city, race.state, race.country].filter(Boolean).join(', ')} · {race.distance_miles} mi
+                </p>
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-5 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setManualRace((current) => !current);
+                setCatalogResults([]);
+              }}
+              className="text-sm font-semibold text-accent"
+            >
+              {manualRace ? 'Hide manual race entry' : 'Race not listed? Enter it manually'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setForm((current) => ({ ...current, target_race_id: '', target_race: null }));
+                setStep(2);
+              }}
+              className="text-sm font-semibold text-ink/62"
+            >
+              I’ll add my race later
+            </button>
+          </div>
+
+          {manualRace ? (
+            <div className="mt-5 grid gap-4">
+              <input
+                type="text"
+                placeholder="Race name"
+                value={form.target_race?.name || ''}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    target_race_id: '',
+                    target_race: { ...(current.target_race || {}), name: event.target.value },
+                  }))
+                }
+                className={fieldClassName()}
+              />
+              <div className="grid gap-4 md:grid-cols-2">
+                <input
+                  type="date"
+                  value={form.target_race?.event_date || ''}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      target_race_id: '',
+                      target_race: { ...(current.target_race || {}), event_date: event.target.value },
+                    }))
+                  }
+                  className={fieldClassName()}
+                />
+                <input
+                  type="number"
+                  step="0.1"
+                  placeholder="Distance (mi)"
+                  value={form.target_race?.distance_miles || ''}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      target_race_id: '',
+                      target_race: { ...(current.target_race || {}), distance_miles: event.target.value },
+                    }))
+                  }
+                  className={fieldClassName()}
+                />
+              </div>
+              <input
+                type="text"
+                placeholder="Location"
+                value={form.target_race?.location || ''}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    target_race_id: '',
+                    target_race: { ...(current.target_race || {}), location: event.target.value },
+                  }))
+                }
+                className={fieldClassName()}
+              />
+            </div>
+          ) : null}
+
+          {form.target_race ? (
+            <div className="mt-5 rounded-[24px] bg-paper p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-accent">Selected race</p>
+              <p className="mt-2 text-lg font-semibold text-ink">{form.target_race.name}</p>
+              <p className="mt-2 text-sm text-ink/68">
+                {form.target_race.event_date} · {form.target_race.location || 'Location needed'} · {form.target_race.distance_miles || 'Distance needed'} mi
+              </p>
+            </div>
+          ) : null}
+        </div>
+      </section>,
+      <section key="sport" className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr]">
+        <div>
+          <p className="text-sm uppercase tracking-[0.35em] text-accent">Your background</p>
+          <h1 className="font-display mt-4 text-5xl leading-tight md:text-7xl">Tell UltraOS how you train.</h1>
+          <p className="mt-6 max-w-2xl text-base leading-8 text-ink/76">
+            This gives the dashboard and future insights the context they need from day one.
+          </p>
+        </div>
+
+        <div className="space-y-5 rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+          <div className="grid gap-3 sm:grid-cols-2">
+            {sportOptions.map((sport) => {
+              const active = form.primary_sports.includes(sport);
+              return (
+                <button
+                  key={sport}
+                  type="button"
+                  onClick={() =>
+                    setForm((current) => ({
+                      ...current,
+                      primary_sports: active
+                        ? current.primary_sports.filter((item) => item !== sport)
+                        : [...current.primary_sports, sport],
+                    }))
+                  }
+                  className={`rounded-[24px] border px-4 py-4 text-left transition ${
+                    active ? 'border-ink bg-panel text-paper' : 'border-ink/10 bg-paper text-ink hover:bg-[#efe7dc]'
+                  }`}
+                >
+                  <p className="text-base font-semibold">{sport}</p>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <select
+              value={form.years_racing_band}
+              onChange={(event) => setForm((current) => ({ ...current, years_racing_band: event.target.value }))}
+              className={fieldClassName()}
+            >
+              <option value="">Years racing at this distance</option>
+              {yearsOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={form.weekly_training_hours_band}
+              onChange={(event) => setForm((current) => ({ ...current, weekly_training_hours_band: event.target.value }))}
+              className={fieldClassName()}
+            >
+              <option value="">Weekly training hours</option>
+              {hoursOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+
+            <input
+              type="number"
+              placeholder="Home elevation (ft)"
+              value={form.home_elevation_ft}
+              onChange={(event) => setForm((current) => ({ ...current, home_elevation_ft: event.target.value }))}
+              className={fieldClassName()}
+            />
+          </div>
+        </div>
+      </section>,
+      <section key="strava" className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr]">
+        <div>
+          <p className="text-sm uppercase tracking-[0.35em] text-accent">Training context</p>
+          <h1 className="font-display mt-4 text-5xl leading-tight md:text-7xl">
+            Connect Strava to add training context to every protocol you log
+          </h1>
+          <p className="mt-6 max-w-2xl text-base leading-8 text-ink/76">
+            UltraOS uses your Strava activity data to link interventions to specific workouts — so you can see whether your heat block happened on a hard week or an easy week.
+          </p>
+        </div>
+
+        <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+          {router.query.strava === 'connected' ? (
+            <div className="rounded-[24px] bg-paper p-5">
+              <p className="text-sm uppercase tracking-[0.22em] text-accent">Connected</p>
+              <p className="mt-3 text-xl font-semibold text-ink">{stravaName || 'Strava connected'}</p>
+              <p className="mt-2 text-sm text-ink/68">Training context is ready. Finish setup to open your dashboard.</p>
+            </div>
+          ) : null}
+
+          <div className="mt-5 space-y-3">
+            <a href="/api/strava/login" className="inline-flex w-full items-center justify-center rounded-full bg-panel px-6 py-3 text-sm font-semibold text-paper">
+              Connect Strava
+            </a>
+            <p className="text-center text-xs text-ink/45">Strava is live today. Garmin and COROS are coming soon.</p>
+            <button
+              type="button"
+              onClick={() => completeOnboarding()}
+              className="w-full rounded-full border border-ink/10 bg-paper px-6 py-3 text-sm font-semibold text-ink transition hover:bg-white"
+            >
+              Skip — I&apos;ll connect later
+            </button>
+            <p className="text-center text-xs text-ink/40">You can connect or manually log activities any time from Connections.</p>
+          </div>
+        </div>
+      </section>,
+    ],
+    [catalogQuery, catalogResults, form, manualRace, router.query.strava, stravaName]
+  );
+
+  async function saveProgress(onboardingComplete = false) {
+    setSaving(true);
+    const payload = {
+      onboarding_complete: onboardingComplete,
+      primary_sports: form.primary_sports,
+      years_racing_band: form.years_racing_band,
+      weekly_training_hours_band: form.weekly_training_hours_band,
+      home_elevation_ft: form.home_elevation_ft,
+      target_race: form.target_race,
+      target_race_id: form.target_race_id || null,
+    };
+    const res = await fetch('/api/onboarding', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    setSaving(false);
+    return res.ok;
+  }
+
+  async function nextFromRace() {
+    if (manualRace && form.target_race && (!form.target_race.name || !form.target_race.event_date || !form.target_race.distance_miles || !form.target_race.location)) {
+      return;
+    }
+    await saveProgress(false);
+    setStep(2);
+  }
+
+  async function nextFromSport() {
+    if (!form.primary_sports.length || !form.years_racing_band || !form.weekly_training_hours_band) {
+      return;
+    }
+    await saveProgress(false);
+    setStep(3);
+  }
+
+  async function completeOnboarding() {
+    const ok = await saveProgress(true);
+    if (ok) {
+      router.push('/dashboard?welcome=1');
+    }
+  }
+
+  useEffect(() => {
+    if (router.query.strava === 'connected' && !loading) {
+      const timeoutId = setTimeout(() => {
+        completeOnboarding();
+      }, 1200);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [router.query.strava, loading]);
+
+  if (loading) {
+    return <div className="flex min-h-screen items-center justify-center bg-paper text-ink">Loading...</div>;
+  }
 
   return (
     <main className="min-h-screen bg-paper px-4 py-6 text-ink">
       <div className="mx-auto max-w-6xl">
-        <div className="mb-6 flex items-center justify-between rounded-full border border-ink/10 bg-white/70 px-4 py-3 backdrop-blur">
-          <div>
-            <p className="text-xs uppercase tracking-[0.35em] text-accent">UltraOS Onboarding</p>
+        <section className="overflow-hidden rounded-[42px] border border-ink/10 bg-[linear-gradient(135deg,#f7f2ea_0%,#ebe1d4_55%,#dcc9b0_100%)] p-6 md:p-10">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <p className="text-xs uppercase tracking-[0.35em] text-accent">UltraOS onboarding</p>
+            <StepIndicator step={step} />
           </div>
-          <NavMenu
-            label="Onboarding page navigation"
-            links={navLinks}
-            primaryLink={{ href: '/insights', label: 'Insight System', variant: 'secondary' }}
-          />
-        </div>
 
-        <DashboardTabs activeHref="/onboarding" tabs={tabs} />
-
-        <section className="overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(145deg,#efe8da_0%,#ddd0b7_45%,#b89b77_100%)] p-6 md:p-10">
-          <div className="grid gap-10 lg:grid-cols-[1.08fr_0.92fr] lg:items-end">
-            <div>
-              <p className="text-sm uppercase tracking-[0.35em] text-accent">First-run product flow</p>
-              <h1 className="font-display mt-4 max-w-4xl text-5xl leading-tight md:text-7xl">
-                Onboarding should feel like signal is building, not like forms are piling up.
-              </h1>
-              <p className="mt-6 max-w-3xl text-base leading-8 text-ink/80 md:text-lg">
-                The job of onboarding is narrow: get a new athlete to enough useful data, fast. Every screen should push toward the next likely insight and remove anything that feels like homework.
-              </p>
-            </div>
-
-            <div className="rounded-[34px] bg-panel p-6 text-white shadow-[0_40px_100px_rgba(0,0,0,0.28)]">
-              <p className="text-sm uppercase tracking-[0.25em] text-accent">First-run rules</p>
-              <div className="mt-5 space-y-3">
-                {[
-                  'Ask only four setup questions before the first dashboard.',
-                  'Show no empty charts and no gray placeholders on first visit.',
-                  'Use a five-milestone tracker with no locked order.',
-                  'Switch to active mode the moment all five milestones are complete.',
-                ].map((item) => (
-                  <div key={item} className="rounded-[22px] border border-white/10 bg-white/5 p-4 text-sm leading-6 text-white/82">
-                    {item}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="mt-12">
-          <p className="text-sm uppercase tracking-[0.25em] text-accent">Three Stages</p>
-          <h2 className="font-display mt-2 text-4xl leading-tight md:text-5xl">What the new athlete sees from day zero to activation.</h2>
-          <div className="mt-6 grid gap-4 lg:grid-cols-3">
-            {onboardingStages.map((item) => (
-              <article key={item.stage} className="rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-                <p className="text-xs uppercase tracking-[0.22em] text-accent">{item.stage}</p>
-                <h3 className="mt-4 text-2xl font-semibold text-ink">{item.title}</h3>
-                <p className="mt-4 text-sm leading-7 text-ink/78">{item.body}</p>
-                <div className="mt-4 space-y-2">
-                  {item.details.map((detail) => (
-                    <div key={detail} className="rounded-[18px] bg-paper px-4 py-3 text-sm text-ink/80">
-                      {detail}
-                    </div>
-                  ))}
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className="mt-12 grid gap-6 lg:grid-cols-[0.92fr_1.08fr]">
-          <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-            <p className="text-sm uppercase tracking-[0.25em] text-accent">Stage 1 Inputs</p>
-            <h2 className="mt-2 text-3xl font-semibold text-ink">Exactly four setup questions.</h2>
-            <div className="mt-5 grid gap-3">
-              {setupQuestions.map((question, index) => (
-                <div key={question} className="flex items-center gap-3 rounded-[22px] bg-paper px-4 py-4">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-ink text-sm font-semibold text-paper">
-                    {index + 1}
-                  </span>
-                  <p className="text-sm font-semibold text-ink">{question}</p>
+          <div className="mt-10 overflow-hidden">
+            <div
+              className="flex transition-transform duration-500 ease-out"
+              style={{ transform: `translateX(-${(step - 1) * 100}%)` }}
+            >
+              {slides.map((slide, index) => (
+                <div key={index} className="w-full shrink-0 pr-4">
+                  {slide}
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="rounded-[30px] bg-[linear-gradient(135deg,#1b2421_0%,#29302d_100%)] p-6 text-white">
-            <p className="text-sm uppercase tracking-[0.25em] text-accent">Stage 2 Empty Dashboard</p>
-            <h2 className="mt-2 text-3xl font-semibold text-white">One prompt. Five visible milestones.</h2>
-            <div className="mt-5 rounded-[24px] border border-white/10 bg-white/5 p-5">
-              <p className="text-xs uppercase tracking-[0.22em] text-accent">First prompt copy</p>
-              <p className="mt-3 text-base leading-8 text-white/84">
-                Your race is 74 days away. Start by logging last night&apos;s sleep so UltraOS can begin building your first useful signal.
-              </p>
-            </div>
-            <div className="mt-5 grid gap-3">
-              {onboardingMilestones.map((milestone, index) => (
-                <div key={milestone} className="flex items-center justify-between rounded-[22px] border border-white/10 bg-white/5 px-4 py-4">
-                  <p className="text-sm text-white/82">{milestone}</p>
-                  <span className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold ${index < 2 ? 'bg-accent text-panel' : 'border border-white/20 text-white/55'}`}>
-                    {index < 2 ? '✓' : index + 1}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+          <div className="mt-8 flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => setStep((current) => Math.max(1, current - 1))}
+              className={`rounded-full border border-ink/10 px-5 py-3 text-sm font-semibold text-ink ${step === 1 ? 'invisible' : ''}`}
+            >
+              Back
+            </button>
 
-        <section className="mt-12 rounded-[34px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)] md:p-8">
-          <p className="text-sm uppercase tracking-[0.25em] text-accent">Activation Logic</p>
-          <h2 className="font-display mt-2 text-4xl leading-tight md:text-5xl">Minimum data thresholds that unlock each feature.</h2>
-          <div className="mt-6 overflow-x-auto">
-            <table className="min-w-full text-left text-sm text-ink">
-              <thead>
-                <tr className="border-b border-ink/10 text-xs uppercase tracking-[0.18em] text-ink/55">
-                  <th className="pb-3 pr-5">Feature</th>
-                  <th className="pb-3">Threshold</th>
-                </tr>
-              </thead>
-              <tbody>
-                {onboardingThresholds.map((item) => (
-                  <tr key={item.category} className="border-b border-ink/8 align-top">
-                    <td className="py-4 pr-5 font-semibold">{item.category}</td>
-                    <td className="py-4 leading-7 text-ink/78">{item.threshold}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className="mt-12 grid gap-6 lg:grid-cols-[1fr_1fr]">
-          <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-            <p className="text-sm uppercase tracking-[0.25em] text-accent">Stage 3 Activated State</p>
-            <h2 className="mt-2 text-3xl font-semibold text-ink">What changes when onboarding completes.</h2>
-            <div className="mt-5 space-y-3">
-              {[
-                'The five-milestone tracker disappears completely.',
-                'The insight panel appears in its place.',
-                'Only one insight shows at first, based on whatever data exists.',
-                'If the signal is thin, the card should say it is an early signal rather than pretending certainty.',
-              ].map((item) => (
-                <div key={item} className="rounded-[22px] bg-paper px-4 py-4 text-sm leading-6 text-ink/80">
-                  {item}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="rounded-[30px] bg-[linear-gradient(135deg,#f7f2ea_0%,#ebe1d4_55%,#dcc9b0_100%)] p-6">
-            <p className="text-sm uppercase tracking-[0.25em] text-accent">Re-engagement Logic</p>
-            <h2 className="mt-2 text-3xl font-semibold text-ink">Quiet athletes get one specific next step.</h2>
-            <div className="mt-5 space-y-3">
-              {onboardingPrompts.map((item) => (
-                <div key={item.title} className="rounded-[24px] border border-ink/10 bg-white/75 p-4">
-                  <p className="text-sm font-semibold text-ink">{item.title}</p>
-                  <p className="mt-2 text-sm leading-6 text-ink/76">{item.body}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="mt-12 rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-          <p className="text-sm uppercase tracking-[0.25em] text-accent">Re-engagement Examples</p>
-          <div className="mt-5 grid gap-4 md:grid-cols-3">
-            {reengagementExamples.map((item) => (
-              <div key={item.athlete} className="rounded-[24px] bg-paper p-4">
-                <p className="text-sm font-semibold text-ink">{item.athlete}</p>
-                <p className="mt-3 text-sm leading-7 text-ink/78">{item.prompt}</p>
-              </div>
-            ))}
+            {step === 1 ? (
+              <button type="button" onClick={nextFromRace} disabled={saving} className="rounded-full bg-panel px-6 py-3 text-sm font-semibold text-paper">
+                Continue
+              </button>
+            ) : null}
+            {step === 2 ? (
+              <button type="button" onClick={nextFromSport} disabled={saving} className="rounded-full bg-panel px-6 py-3 text-sm font-semibold text-paper">
+                Continue
+              </button>
+            ) : null}
           </div>
         </section>
       </div>

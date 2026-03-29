@@ -1,5 +1,6 @@
 import { supabase } from '../../lib/supabaseClient';
 import cookie from 'cookie';
+import { deriveRaceType } from '../../lib/raceTypes';
 
 function parseOptionalInt(value) {
   if (value === '' || value === null || value === undefined) return null;
@@ -26,7 +27,7 @@ export default async function handler(req, res) {
     const query = typeof req.query.q === 'string' ? req.query.q.trim() : '';
     let request = supabase
       .from('races')
-      .select('id, name, event_date, distance_miles, elevation_gain_ft, location, surface, notes')
+      .select('id, name, event_date, race_type, distance_miles, elevation_gain_ft, location, surface, notes')
       .eq('athlete_id', athleteId)
       .order('event_date', { ascending: true, nullsFirst: false })
       .limit(query ? 8 : 12);
@@ -43,7 +44,12 @@ export default async function handler(req, res) {
       return;
     }
 
-    res.status(200).json({ races: data || [] });
+    res.status(200).json({
+      races: (data || []).map((race) => ({
+        ...race,
+        race_type: race.race_type || deriveRaceType(race.distance_miles, race.surface),
+      })),
+    });
     return;
   }
 
@@ -59,6 +65,7 @@ export default async function handler(req, res) {
       athlete_id: athleteId,
       name: body.name.trim(),
       event_date: body.event_date || null,
+      race_type: body.race_type?.trim() || deriveRaceType(body.distance_miles, body.surface) || null,
       distance_miles: parseOptionalFloat(body.distance_miles),
       elevation_gain_ft: parseOptionalInt(body.elevation_gain_ft),
       location: body.location?.trim() || null,
@@ -69,7 +76,7 @@ export default async function handler(req, res) {
     const { data, error } = await supabase
       .from('races')
       .insert(payload)
-      .select('id, name, event_date, distance_miles, elevation_gain_ft, location, surface, notes')
+      .select('id, name, event_date, race_type, distance_miles, elevation_gain_ft, location, surface, notes')
       .single();
 
     if (error) {

@@ -11,8 +11,17 @@ const controlledTopicOptions = [
   'Altitude',
   'Supplementation',
   'Fueling & Nutrition',
+  'Carbohydrate Loading',
   'HRV',
   'Recovery',
+  'Running Economy',
+  'Lactate Threshold',
+  'VO2max',
+  'Strength Training',
+  'Pacing',
+  'Hydration',
+  'Taper',
+  'Injury Prevention',
 ];
 
 const emptyForm = {
@@ -360,7 +369,7 @@ export default function ContentAdmin() {
               </div>
               <div className="grid gap-4 sm:grid-cols-3 md:col-span-2">
                 <div>
-                  <label className="mb-1 block text-sm font-semibold text-ink">Ultra Score</label>
+                  <label className="mb-1 block text-sm font-semibold text-ink">Running Score</label>
                   <input type="number" min="0" max="5" value={form.ultra_score} onChange={(event) => setFormValue('ultra_score', event.target.value)} className={fieldClassName()} />
                 </div>
                 <div>

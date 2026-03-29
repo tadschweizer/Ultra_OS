@@ -1,25 +1,28 @@
 import { useEffect, useMemo, useState } from 'react';
 import { classifyActivityType, sortActivitiesMostRecentFirst } from '../../lib/activityInsights';
-import { createProtocolPayload, interventionCatalog } from '../../lib/interventionCatalog';
+import {
+  createProtocolPayload,
+  defaultFavoriteInterventions,
+  favoriteInterventionStorageKey,
+  getAllInterventionDefinitions,
+  getInterventionDefinition,
+} from '../../lib/interventionCatalog';
 import NavMenu from '../../components/NavMenu';
 import DashboardTabs from '../../components/DashboardTabs';
+import {
+  ActivityContextCard,
+  cardClassName,
+  CategoryGrid,
+  countLast30Days,
+  FavoriteTypeButtons,
+  fieldClassName,
+  getPersistedFavorites,
+  getPersistedQuickLog,
+  quickLogStorageKey,
+  StravaActivityPicker,
+  trainingPhases,
+} from '../../components/InterventionFormShared';
 import InterventionProtocolFields from '../../components/InterventionProtocolFields';
-
-const trainingPhases = ['Base', 'Build', 'Peak', 'Taper', 'Recovery', 'Race week'];
-
-function fieldClassName() {
-  return 'w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-ink';
-}
-
-function formatMinutes(totalSeconds) {
-  if (!totalSeconds) return '';
-  return `${Math.round(totalSeconds / 60)} min`;
-}
-
-function formatFeet(value) {
-  if (value === null || value === undefined || Number.isNaN(value)) return 'N/A';
-  return `${Math.round(value).toLocaleString()} ft`;
-}
 
 function interventionToForm(intervention) {
   return {
@@ -40,30 +43,48 @@ function interventionToForm(intervention) {
   };
 }
 
+
 export default function InterventionDetail() {
   const [form, setForm] = useState(null);
   const [activities, setActivities] = useState([]);
+  const [interventions, setInterventions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingActivities, setLoadingActivities] = useState(true);
+  const [loadingActivityDetails, setLoadingActivityDetails] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [message, setMessage] = useState('');
+  const [activityDetails, setActivityDetails] = useState(null);
+  const [favoriteTypes, setFavoriteTypes] = useState(defaultFavoriteInterventions);
+  const [quickLog, setQuickLog] = useState(false);
+  const [activitySearch, setActivitySearch] = useState('');
+  const [stravaConnected, setStravaConnected] = useState(true);
   const navLinks = [
     { href: '/dashboard', label: 'UltraOS Home', description: 'Insights, trends, and recent training.' },
+    { href: '/guide', label: 'Guide', description: 'Learn how intervention history works.' },
     { href: '/connections', label: 'Connections', description: 'Manage linked sources.' },
     { href: '/log-intervention', label: 'Log Intervention', description: 'Create a new intervention entry.' },
     { href: '/history', label: 'Intervention History', description: 'Review intervention records.' },
     { href: '/settings', label: 'Settings', description: 'Edit athlete baselines and zones.' },
-    { href: '/content', label: 'Content', description: 'Track the content and community workstream.' },
+    { href: '/content', label: 'Research', description: 'Browse the research library.' },
     { href: '/', label: 'Landing Page', description: 'Return to the public entry page.' },
   ];
+
+  const interventionDefinitions = useMemo(() => getAllInterventionDefinitions(), []);
+  const selectedDefinition = useMemo(
+    () => getInterventionDefinition(form?.intervention_type),
+    [form?.intervention_type]
+  );
+  const recentCategoryCounts = useMemo(() => countLast30Days(interventions), [interventions]);
 
   useEffect(() => {
     async function loadData() {
       try {
         const interventionId = window.location.pathname.split('/').pop();
-        const [interventionRes, activitiesRes] = await Promise.all([
+        const [interventionRes, activitiesRes, interventionsRes] = await Promise.all([
           fetch(`/api/interventions?id=${interventionId}`),
           fetch('/api/activities'),
+          fetch('/api/interventions'),
         ]);
 
         if (interventionRes.ok) {
@@ -74,29 +95,93 @@ export default function InterventionDetail() {
         if (activitiesRes.ok) {
           const activityData = await activitiesRes.json();
           setActivities(sortActivitiesMostRecentFirst(activityData.activities || []));
+          setStravaConnected(true);
+        } else {
+          setActivities([]);
+          setStravaConnected(false);
+        }
+
+        if (interventionsRes.ok) {
+          const interventionList = await interventionsRes.json();
+          setInterventions(interventionList.interventions || []);
         }
       } catch (error) {
         console.error(error);
+        setStravaConnected(false);
       } finally {
+        setFavoriteTypes(getPersistedFavorites());
+        setQuickLog(getPersistedQuickLog());
         setLoading(false);
+        setLoadingActivities(false);
       }
     }
 
     loadData();
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(favoriteInterventionStorageKey, JSON.stringify(favoriteTypes));
+  }, [favoriteTypes]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(quickLogStorageKey, quickLog ? 'true' : 'false');
+  }, [quickLog]);
+
+  useEffect(() => {
+    async function fetchActivityDetails() {
+      if (!form?.activity_id) {
+        setActivityDetails(null);
+        return;
+      }
+
+      setLoadingActivityDetails(true);
+      try {
+        const res = await fetch(`/api/activity-details?id=${form.activity_id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setActivityDetails(data.activity);
+        } else {
+          setActivityDetails(null);
+        }
+      } catch (err) {
+        console.error(err);
+        setActivityDetails(null);
+      } finally {
+        setLoadingActivityDetails(false);
+      }
+    }
+
+    fetchActivityDetails();
+  }, [form?.activity_id]);
+
   const selectedActivity = useMemo(
     () => activities.find((activity) => activity.id.toString() === form?.activity_id),
-    [activities, form]
+    [activities, form?.activity_id]
   );
-  const activityType = useMemo(
-    () => (selectedActivity ? classifyActivityType(selectedActivity) : null),
-    [selectedActivity]
-  );
+
+  const filteredActivities = useMemo(() => {
+    const query = activitySearch.trim().toLowerCase();
+    if (!query) return activities.slice(0, 24);
+
+    return activities.filter((activity) => {
+      const activityType = classifyActivityType(activity).label.toLowerCase();
+      const searchable = [
+        activity.name,
+        activityType,
+        new Date(activity.start_date).toLocaleDateString(),
+      ]
+        .join(' ')
+        .toLowerCase();
+      return searchable.includes(query);
+    });
+  }, [activities, activitySearch]);
 
   function handleChange(event) {
     const { name, value } = event.target;
     setForm((current) => {
+      if (!current) return current;
       const next =
         name === 'intervention_type'
           ? { ...current, intervention_type: value, protocol_payload: createProtocolPayload(value) }
@@ -104,16 +189,30 @@ export default function InterventionDetail() {
       if (name === 'target_race') {
         next.race_id = '';
       }
-      if (name === 'activity_id') {
-        const nextActivity = activities.find((activity) => activity.id.toString() === value);
-        if (nextActivity) {
-          next.date = nextActivity.start_date.slice(0, 10);
-          if (!next.dose_duration) {
-            next.dose_duration = formatMinutes(nextActivity.moving_time);
-          }
-        }
-      }
       return next;
+    });
+  }
+
+  function selectInterventionType(type) {
+    setForm((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        intervention_type: type,
+        protocol_payload: createProtocolPayload(type),
+      };
+    });
+  }
+
+  function handleActivitySelect(activityId) {
+    const nextActivity = activities.find((activity) => activity.id.toString() === activityId);
+    setForm((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        activity_id: activityId,
+        date: nextActivity ? nextActivity.start_date.slice(0, 10) : current.date,
+      };
     });
   }
 
@@ -125,6 +224,16 @@ export default function InterventionDetail() {
         [fieldKey]: value,
       },
     }));
+  }
+
+  function toggleFavoriteType() {
+    if (!form?.intervention_type) return;
+    setFavoriteTypes((currentFavorites) => {
+      if (currentFavorites.includes(form.intervention_type)) {
+        return currentFavorites.filter((item) => item !== form.intervention_type);
+      }
+      return [form.intervention_type, ...currentFavorites];
+    });
   }
 
   async function handleSubmit(event) {
@@ -144,6 +253,7 @@ export default function InterventionDetail() {
         return;
       }
       setForm(interventionToForm(data.intervention));
+      setInterventions((current) => current.map((item) => (item.id === data.intervention.id ? data.intervention : item)));
       setMessage('Intervention updated.');
     } catch (error) {
       console.error(error);
@@ -216,120 +326,146 @@ export default function InterventionDetail() {
             <div>
               <p className="text-sm uppercase tracking-[0.35em] text-accent">Review + Edit</p>
               <h1 className="font-display mt-4 max-w-4xl text-5xl leading-tight md:text-7xl">
-                Update the intervention instead of creating duplicates.
+                Edit Intervention
               </h1>
-              <p className="mt-6 max-w-2xl text-lg leading-8 text-ink/80">
-                History is now a real record. You can open an intervention, correct it, and delete it here rather than cluttering the main history table.
-              </p>
             </div>
 
             <div className="rounded-[34px] bg-panel p-6 text-white shadow-[0_40px_100px_rgba(0,0,0,0.28)]">
-              <p className="text-sm uppercase tracking-[0.25em] text-accent">Linked Activity</p>
-              {selectedActivity ? (
-                <div className="mt-4 space-y-3">
-                  <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
-                    <p className="text-sm font-semibold text-white">{selectedActivity.name}</p>
-                    <p className="mt-1 text-sm text-white/70">{new Date(selectedActivity.start_date).toLocaleString()}</p>
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-[20px] border border-white/10 bg-white/5 p-4">
-                      <p className="text-xs uppercase tracking-[0.2em] text-accent">Activity Type</p>
-                      <p className="mt-2 text-lg font-semibold text-white">{activityType?.label || 'Unknown'}</p>
-                    </div>
-                    <div className="rounded-[20px] border border-white/10 bg-white/5 p-4">
-                      <p className="text-xs uppercase tracking-[0.2em] text-accent">Elevation</p>
-                      <p className="mt-2 text-lg font-semibold text-white">{formatFeet(selectedActivity.total_elevation_gain * 3.28084)}</p>
-                    </div>
-                  </div>
+              <p className="text-sm uppercase tracking-[0.25em] text-accent">Current Entry</p>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-accent">Quick Mode</p>
+                  <p className="mt-2 text-sm font-semibold text-white">
+                    {quickLog ? 'Core fields only' : 'Full protocol detail'}
+                  </p>
                 </div>
-              ) : (
-                <p className="mt-4 text-sm text-white/70">This intervention is not linked to an activity.</p>
-              )}
+                <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-accent">Date</p>
+                  <p className="mt-2 text-sm font-semibold text-white">{form.date || 'Not set'}</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-          <form onSubmit={handleSubmit} className="space-y-5 rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-            {message ? <p className="rounded-2xl border border-accent/30 bg-accent/10 px-4 py-3 text-sm text-ink">{message}</p> : null}
+          <form onSubmit={handleSubmit} className={cardClassName()}>
+            {message ? <p className="mb-5 rounded-2xl border border-accent/30 bg-accent/10 px-4 py-3 text-sm text-ink">{message}</p> : null}
 
-            <div className="grid gap-5 md:grid-cols-2">
-              <div className="md:col-span-2">
-                <label className="mb-1 block text-sm font-semibold text-ink">Linked Activity</label>
-                <select name="activity_id" value={form.activity_id} onChange={handleChange} className={fieldClassName()}>
-                  <option value="">No linked activity</option>
-                  {activities.map((activity) => {
-                    const type = classifyActivityType(activity);
-                    return (
-                      <option key={activity.id} value={activity.id}>
-                        {new Date(activity.start_date).toLocaleDateString()} - {type.label} - {activity.name}
-                      </option>
-                    );
-                  })}
-                </select>
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-ink/10 bg-paper px-4 py-4">
+              <div>
+                <p className="text-sm font-semibold text-ink">Quick Log</p>
+                <p className="mt-1 text-sm text-ink/65">Hide optional fields while you clean up the essentials.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setQuickLog((current) => !current)}
+                className={`inline-flex items-center gap-3 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  quickLog ? 'bg-panel text-paper' : 'border border-ink/10 bg-white text-ink'
+                }`}
+              >
+                <span className={`h-2.5 w-2.5 rounded-full ${quickLog ? 'bg-accent' : 'bg-ink/25'}`} />
+                {quickLog ? 'On' : 'Off'}
+              </button>
+            </div>
+
+            <div className="grid gap-5">
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-ink">Fast repeat</label>
+                <FavoriteTypeButtons favorites={favoriteTypes} selectedType={form.intervention_type} onSelect={selectInterventionType} />
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-semibold text-ink">Date</label>
-                <input type="date" name="date" value={form.date} onChange={handleChange} className={fieldClassName()} />
-              </div>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <label className="block text-sm font-semibold text-ink">Choose intervention</label>
+                  {form.intervention_type ? (
+                    <button
+                      type="button"
+                      onClick={toggleFavoriteType}
+                      className="rounded-full border border-ink/10 px-3 py-1.5 text-xs font-semibold text-ink"
+                    >
+                      {favoriteTypes.includes(form.intervention_type) ? 'Remove Favorite' : 'Add Favorite'}
+                    </button>
+                  ) : null}
+                </div>
 
-              <div>
-                <label className="mb-1 block text-sm font-semibold text-ink">Intervention Type</label>
-                <select name="intervention_type" value={form.intervention_type} onChange={handleChange} className={fieldClassName()}>
-                  <option value="">Select Type</option>
-                  {interventionCatalog.map((group) => (
-                    <optgroup key={group.phase} label={group.phase}>
-                      {group.types.map((type) => (
-                        <option key={type.label} value={type.label}>
-                          {type.label}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm font-semibold text-ink">Target Race</label>
-                <input type="text" name="target_race" value={form.target_race} onChange={handleChange} className={fieldClassName()} />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm font-semibold text-ink">Race Date</label>
-                <input type="date" name="target_race_date" value={form.target_race_date} onChange={handleChange} className={fieldClassName()} />
-              </div>
-
-              <div className="md:col-span-2">
-                <InterventionProtocolFields
-                  interventionType={form.intervention_type}
-                  protocolPayload={form.protocol_payload}
-                  onFieldChange={handleProtocolFieldChange}
+                <CategoryGrid
+                  definitions={interventionDefinitions}
+                  selectedType={form.intervention_type}
+                  counts={recentCategoryCounts}
+                  onSelect={selectInterventionType}
                 />
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-semibold text-ink">Training Phase</label>
-                <select name="training_phase" value={form.training_phase} onChange={handleChange} className={fieldClassName()}>
-                  <option value="">Select Phase</option>
-                  {trainingPhases.map((phase) => (
-                    <option key={phase} value={phase}>{phase}</option>
-                  ))}
-                </select>
+                <InterventionProtocolFields
+                  interventionType={form.intervention_type}
+                  protocolPayload={form.protocol_payload}
+                  onFieldChange={handleProtocolFieldChange}
+                  quickMode={quickLog}
+                />
+                {quickLog && selectedDefinition && selectedDefinition.fields.length > 2 ? (
+                  <p className="mt-3 text-sm text-ink/60">
+                    Quick Log is showing the core protocol fields first. Turn it off if you want the full category form.
+                  </p>
+                ) : null}
               </div>
 
-              <div className="md:col-span-2">
-                <label className="mb-1 block text-sm font-semibold text-ink">Additional Context</label>
-                <textarea name="details" value={form.details} onChange={handleChange} rows={3} className={fieldClassName()} />
+              <StravaActivityPicker
+                activities={filteredActivities}
+                activitySearch={activitySearch}
+                selectedActivityId={form.activity_id}
+                onSearchChange={setActivitySearch}
+                onSelect={handleActivitySelect}
+                loading={loadingActivities}
+                stravaConnected={stravaConnected}
+              />
+
+              <div className="grid gap-5 md:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-sm font-semibold text-ink">Date</label>
+                  <input type="date" name="date" value={form.date} onChange={handleChange} className={fieldClassName()} />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-semibold text-ink">Training Phase</label>
+                  <select name="training_phase" value={form.training_phase} onChange={handleChange} className={fieldClassName()}>
+                    <option value="">Select Phase</option>
+                    {trainingPhases.map((phase) => (
+                      <option key={phase} value={phase}>
+                        {phase}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-semibold text-ink">Target Race</label>
+                  <input type="text" name="target_race" value={form.target_race} onChange={handleChange} className={fieldClassName()} />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-semibold text-ink">Race Date</label>
+                  <input type="date" name="target_race_date" value={form.target_race_date} onChange={handleChange} className={fieldClassName()} />
+                </div>
               </div>
 
-              <div className="md:col-span-2">
-                <label className="mb-1 block text-sm font-semibold text-ink">Notes</label>
-                <textarea name="notes" value={form.notes} onChange={handleChange} rows={4} className={fieldClassName()} />
-              </div>
+              {!quickLog ? (
+                <>
+                  <div>
+                    <label className="mb-1 block text-sm font-semibold text-ink">Additional Context</label>
+                    <textarea name="details" value={form.details} onChange={handleChange} rows={3} className={fieldClassName()} />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-sm font-semibold text-ink">Notes</label>
+                    <textarea name="notes" value={form.notes} onChange={handleChange} rows={4} className={fieldClassName()} />
+                  </div>
+                </>
+              ) : null}
             </div>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="mt-6 flex flex-wrap gap-3">
               <button type="submit" disabled={saving} className="rounded-full bg-ink px-6 py-3 font-semibold text-paper">
                 {saving ? 'Saving...' : 'Save Changes'}
               </button>
@@ -345,14 +481,11 @@ export default function InterventionDetail() {
           </form>
 
           <aside className="space-y-5">
-            <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-              <p className="text-sm uppercase tracking-[0.25em] text-accent">Why This Page Exists</p>
-              <ul className="mt-4 space-y-3 text-sm text-ink/75">
-                <li>Edit the original record instead of creating duplicate logs.</li>
-                <li>Keep delete off the main history list so it is harder to do accidentally.</li>
-                <li>Keep linked activity context visible while you revise the intervention.</li>
-              </ul>
-            </div>
+            <ActivityContextCard
+              selectedActivity={selectedActivity}
+              activityDetails={activityDetails}
+              loadingActivityDetails={loadingActivityDetails}
+            />
           </aside>
         </div>
       </div>

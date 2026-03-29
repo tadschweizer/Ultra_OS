@@ -1,44 +1,40 @@
 import { useEffect, useState } from 'react';
 import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
+import EmptyStateCard from '../components/EmptyStateCard';
 
 const sources = [
   {
     name: 'Strava',
     status: 'Available now',
-    description: 'Recent activities, altitude context, and the first connected training source.',
     href: '/api/strava/login',
     action: 'Connect',
     enabled: true,
   },
   {
     name: 'Garmin',
-    status: 'Planned',
-    description: 'Device and physiology data, including a future path for resting HR automation.',
+    status: 'Coming soon',
     href: '#',
     action: 'Coming soon',
     enabled: false,
   },
   {
     name: 'COROS',
-    status: 'Planned',
-    description: 'Additional training-source coverage so UltraOS is not tied to a single ecosystem.',
+    status: 'Coming soon',
     href: '#',
     action: 'Coming soon',
     enabled: false,
   },
   {
     name: 'Zwift',
-    status: 'Planned',
-    description: 'Indoor sessions and workout intent from structured bike/run sessions.',
+    status: 'Coming soon',
     href: '#',
     action: 'Coming soon',
     enabled: false,
   },
   {
     name: 'TrainingPeaks',
-    status: 'Strategic next step',
-    description: 'Planned workout descriptions are the strongest path to intent parsing like threshold runs and hill strides.',
+    status: 'Coming soon',
     href: '#',
     action: 'Coming soon',
     enabled: false,
@@ -47,10 +43,14 @@ const sources = [
 
 export default function Connections() {
   const [athleteId, setAthleteId] = useState(null);
+  const [athlete, setAthlete] = useState(null);
+  const [notifyEmails, setNotifyEmails] = useState({});
+  const [notifySubmitted, setNotifySubmitted] = useState({});
   const navLinks = athleteId
     ? [
         { href: '/dashboard', label: 'UltraOS Home', description: 'Insights, trends, and recent training.' },
         { href: '/connections', label: 'Connections', description: 'Manage linked training sources.' },
+        { href: '/guide', label: 'Guide', description: 'Learn how connections fit into UltraOS.' },
         { href: '/log-intervention', label: 'Log Intervention', description: 'Add a new intervention entry.' },
         { href: '/history', label: 'Intervention History', description: 'Review what you have logged.' },
         { href: '/settings', label: 'Settings', description: 'Adjust athlete baselines and zones.' },
@@ -67,6 +67,29 @@ export default function Connections() {
       }
     }
   }, []);
+
+  useEffect(() => {
+    async function loadAthlete() {
+      const res = await fetch('/api/me');
+      if (!res.ok) return;
+      const data = await res.json();
+      setAthlete(data.athlete || null);
+    }
+
+    if (athleteId) {
+      loadAthlete();
+    }
+  }, [athleteId]);
+
+  const hasAnyConnections = Boolean(athlete?.strava_id);
+  const stravaLastSeen = athlete?.strava_last_sync || athlete?.updated_at || null;
+
+  function handleNotifySubmit(sourceName) {
+    const email = (notifyEmails[sourceName] || '').trim();
+    if (!email) return;
+    // Store locally — a real implementation would POST to an API
+    setNotifySubmitted((prev) => ({ ...prev, [sourceName]: true }));
+  }
 
   return (
     <main className="min-h-screen bg-paper px-4 py-6 text-ink">
@@ -91,41 +114,69 @@ export default function Connections() {
               <h1 className="font-display mt-4 max-w-4xl text-5xl leading-tight md:text-7xl">
                 Connect the sources behind your training.
               </h1>
-            </div>
-
-            <div className="rounded-[34px] bg-panel p-6 text-white shadow-[0_40px_100px_rgba(0,0,0,0.28)]">
-              <p className="text-sm uppercase tracking-[0.25em] text-accent">Current Model</p>
-              <div className="mt-5 space-y-4">
-                <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
-                  <p className="text-sm font-semibold text-white">One UltraOS login, multiple data sources.</p>
-                </div>
-                <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
-                  <p className="text-sm font-semibold text-white">Workout-intent parsing needs planned workout text.</p>
-                </div>
-              </div>
+              <p className="mt-6 max-w-2xl text-lg leading-8 text-ink/80">
+                Connect the training sources you use and come back here any time you want to manage them.
+              </p>
             </div>
           </div>
         </div>
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {sources.map((source) => (
-            <article key={source.name} className="rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-sm uppercase tracking-[0.22em] text-accent">{source.name}</p>
-                <span className="rounded-full bg-paper px-3 py-1 text-xs text-ink/70">{source.status}</span>
-              </div>
-              {source.enabled ? (
-                <a href={source.href} className="mt-6 inline-flex rounded-full bg-ink px-5 py-3 text-sm font-semibold text-paper">
-                  {athleteId ? 'Reconnect' : source.action}
-                </a>
-              ) : (
-                <span className="mt-6 inline-flex rounded-full border border-ink/10 px-5 py-3 text-sm font-semibold text-ink/45">
-                  {source.action}
-                </span>
-              )}
-            </article>
-          ))}
-        </section>
+        {!hasAnyConnections && athleteId ? (
+          <section className="mt-2">
+            <EmptyStateCard
+              icon="network"
+              title="No connections yet."
+              body="Connect Strava or Garmin to pull activity context into your intervention log."
+              ctaLabel="Add a Connection"
+              ctaHref="/api/strava/login"
+            />
+          </section>
+        ) : (
+          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {sources.map((source) => (
+              <article key={source.name} className="rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm uppercase tracking-[0.22em] text-accent">{source.name}</p>
+                  <span className="rounded-full bg-paper px-3 py-1 text-xs text-ink/70">
+                    {source.name === 'Strava' && hasAnyConnections ? 'Connected' : source.status}
+                  </span>
+                </div>
+                {source.name === 'Strava' && hasAnyConnections && stravaLastSeen ? (
+                  <p className="mt-2 text-xs text-ink/45">
+                    Last synced: {new Date(stravaLastSeen).toLocaleString()}
+                  </p>
+                ) : null}
+                {source.enabled ? (
+                  <a href={source.href} className="mt-6 inline-flex rounded-full bg-ink px-5 py-3 text-sm font-semibold text-paper">
+                    {source.name === 'Strava' && hasAnyConnections ? 'Reconnect' : source.action}
+                  </a>
+                ) : notifySubmitted[source.name] ? (
+                  <p className="mt-4 text-sm font-semibold text-accent">Got it — we&apos;ll notify you when {source.name} is ready.</p>
+                ) : (
+                  <div className="mt-4">
+                    <p className="mb-2 text-xs text-ink/50">Get notified when {source.name} is available:</p>
+                    <div className="flex gap-2">
+                      <input
+                        type="email"
+                        placeholder="your@email.com"
+                        value={notifyEmails[source.name] || ''}
+                        onChange={(e) => setNotifyEmails((prev) => ({ ...prev, [source.name]: e.target.value }))}
+                        className="min-w-0 flex-1 rounded-full border border-ink/10 bg-paper px-4 py-2 text-sm text-ink"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleNotifySubmit(source.name)}
+                        className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-paper"
+                      >
+                        Notify me
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </article>
+            ))}
+          </section>
+        )}
       </div>
     </main>
   );

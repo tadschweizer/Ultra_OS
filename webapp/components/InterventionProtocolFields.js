@@ -1,7 +1,7 @@
 import { getInterventionDefinition } from '../lib/interventionCatalog';
 
 function fieldClassName() {
-  return 'w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-ink';
+  return 'ui-input';
 }
 
 function MultiSelectField({ field, value = [], onChange }) {
@@ -85,9 +85,15 @@ function DefaultField({ field, value, onChange }) {
     );
   }
 
+  const isResponseScale = field.type === 'number' && field.min === 1 && field.max === 10;
+  const scaleHint = isResponseScale ? ' (1 = worst, 10 = best)' : '';
+
   return (
     <div>
-      <label className="mb-1 block text-sm font-semibold text-ink">{field.label}</label>
+      <label className="mb-1 block text-sm font-semibold text-ink">
+        {field.label}
+        {scaleHint ? <span className="ml-1 font-normal text-ink/50">{scaleHint}</span> : null}
+      </label>
       <input
         type={field.type === 'number' ? 'number' : 'text'}
         value={value ?? ''}
@@ -105,25 +111,33 @@ export default function InterventionProtocolFields({
   interventionType,
   protocolPayload,
   onFieldChange,
+  quickMode = false,
 }) {
   const definition = getInterventionDefinition(interventionType);
 
   if (!definition) {
     return (
-      <div className="rounded-[24px] bg-paper p-4 text-sm text-ink/65">
+      <div className="rounded-card bg-paper p-4 text-sm text-ink/65">
         Choose an intervention type to load the protocol-specific fields.
       </div>
     );
   }
 
+  const requiredFields = definition.fields.filter((field) => field.required);
+  const visibleFields = quickMode
+    ? requiredFields.length
+      ? requiredFields
+      : definition.fields.slice(0, Math.min(2, definition.fields.length))
+    : definition.fields;
+
   return (
-    <div className="rounded-[24px] bg-paper p-4">
+    <div className="rounded-card bg-paper p-4">
       <div className="mb-4">
         <p className="text-sm uppercase tracking-[0.22em] text-accent">{definition.phase}</p>
         <p className="mt-2 text-lg font-semibold text-ink">{definition.label}</p>
       </div>
       <div className="grid gap-4 md:grid-cols-2">
-        {definition.fields.map((field) => {
+        {visibleFields.map((field) => {
           const value = protocolPayload?.[field.key];
 
           if (field.type === 'multiselect') {
@@ -148,4 +162,3 @@ export default function InterventionProtocolFields({
     </div>
   );
 }
-
