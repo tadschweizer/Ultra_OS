@@ -17,7 +17,7 @@ export default async function handler(req, res) {
   // Fetch athlete
   const { data: athlete, error: athleteError } = await supabase
     .from('athletes')
-    .select('id, name')
+    .select('id, name, email, strava_id, onboarding_complete, primary_sports, years_racing_band, weekly_training_hours_band, home_elevation_ft, target_race_id, is_admin')
     .eq('id', athleteId)
     .single();
   if (athleteError) {
