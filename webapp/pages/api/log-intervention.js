@@ -1,5 +1,6 @@
 import { supabase } from '../../lib/supabaseClient';
 import cookie from 'cookie';
+import { inferLegacyScores, normalizeProtocolPayload } from '../../lib/interventionCatalog';
 
 /**
  * API route to insert a new intervention into Supabase.
@@ -20,17 +21,21 @@ export default async function handler(req, res) {
   }
   const body = req.body;
   try {
+    const protocolPayload = normalizeProtocolPayload(body.intervention_type, body.protocol_payload || {});
+    const legacyFields = inferLegacyScores(body.intervention_type, protocolPayload);
     const { error } = await supabase.from('interventions').insert({
       athlete_id: athleteId,
+      race_id: body.race_id || null,
       activity_id: body.activity_id || null,
       date: body.date || null,
       intervention_type: body.intervention_type || null,
-      details: body.details || null,
-      dose_duration: body.dose_duration || null,
-      timing: body.timing || null,
-      gi_response: body.gi_response ? parseInt(body.gi_response, 10) : null,
-      physical_response: body.physical_response ? parseInt(body.physical_response, 10) : null,
-      subjective_feel: body.subjective_feel ? parseInt(body.subjective_feel, 10) : null,
+      details: body.details || legacyFields.details,
+      dose_duration: body.dose_duration || legacyFields.dose_duration,
+      timing: body.timing || legacyFields.timing,
+      protocol_payload: protocolPayload,
+      gi_response: body.gi_response ? parseInt(body.gi_response, 10) : legacyFields.gi_response,
+      physical_response: body.physical_response ? parseInt(body.physical_response, 10) : legacyFields.physical_response,
+      subjective_feel: body.subjective_feel ? parseInt(body.subjective_feel, 10) : legacyFields.subjective_feel,
       training_phase: body.training_phase || null,
       target_race: body.target_race || null,
       target_race_date: body.target_race_date || null,

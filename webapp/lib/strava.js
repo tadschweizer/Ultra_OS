@@ -43,9 +43,44 @@ export async function refreshToken(refreshToken, clientId, clientSecret) {
  * @param {number} afterTimestamp - Unix timestamp (seconds) to filter activities after.
  */
 export async function getRecentActivities(accessToken, afterTimestamp) {
-  const response = await axios.get('https://www.strava.com/api/v3/athlete/activities', {
+  const perPage = 200;
+  const activities = [];
+  let page = 1;
+
+  while (page <= 10) {
+    const response = await axios.get('https://www.strava.com/api/v3/athlete/activities', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params: { after: afterTimestamp, per_page: perPage, page },
+    });
+
+    const batch = response.data || [];
+    activities.push(...batch);
+
+    if (batch.length < perPage) {
+      break;
+    }
+
+    page += 1;
+  }
+
+  return activities;
+}
+
+export async function getDetailedActivity(accessToken, activityId) {
+  const response = await axios.get(`https://www.strava.com/api/v3/activities/${activityId}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
-    params: { after: afterTimestamp, per_page: 50 },
+    params: { include_all_efforts: false },
+  });
+  return response.data;
+}
+
+export async function getActivityStreams(accessToken, activityId, keys) {
+  const response = await axios.get(`https://www.strava.com/api/v3/activities/${activityId}/streams`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    params: {
+      keys: keys.join(','),
+      key_by_type: true,
+    },
   });
   return response.data;
 }
