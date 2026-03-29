@@ -31,11 +31,15 @@ const surfaceOptions = ['Trail', 'Road', 'Mixed', 'Track', 'Gravel', 'Treadmill'
 const defaultRaceStorageKey = 'ultraos-default-race';
 const trainingPhaseStorageKey = 'ultraos-default-training-phase';
 
+function getTodayDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 function createEmptyForm(defaultRace = {}) {
   return {
     race_id: defaultRace.race_id || '',
     activity_id: '',
-    date: '',
+    date: getTodayDate(),
     intervention_type: '',
     protocol_payload: {},
     details: '',
@@ -636,6 +640,16 @@ export default function LogIntervention() {
                 </>
               )}
 
+              <StravaActivityPicker
+                activities={filteredActivities}
+                activitySearch={activitySearch}
+                selectedActivityId={form.activity_id}
+                onSearchChange={setActivitySearch}
+                onSelect={handleActivitySelect}
+                loading={loadingActivities}
+                stravaConnected={stravaConnected}
+              />
+
               <div>
                 <InterventionProtocolFields
                   interventionType={form.intervention_type}
@@ -649,16 +663,6 @@ export default function LogIntervention() {
                   </p>
                 ) : null}
               </div>
-
-              <StravaActivityPicker
-                activities={filteredActivities}
-                activitySearch={activitySearch}
-                selectedActivityId={form.activity_id}
-                onSearchChange={setActivitySearch}
-                onSelect={handleActivitySelect}
-                loading={loadingActivities}
-                stravaConnected={stravaConnected}
-              />
 
               <div className="grid gap-5 md:grid-cols-2">
                 <div>
