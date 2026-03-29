@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
 
@@ -210,6 +210,10 @@ export default function Settings() {
   const [form, setForm] = useState(emptySettings);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+  const [showDeleteZone, setShowDeleteZone] = useState(false);
   const [calcMaxHR, setCalcMaxHR] = useState('');
   const navLinks = [
     { href: '/dashboard', label: 'UltraOS Home', description: 'Insights, trends, and recent training.' },
@@ -294,6 +298,30 @@ export default function Settings() {
 
     setForm(toFormValues({ ...data.settings, supplements: data.supplements || [] }));
     setMessage('Settings saved.');
+  }
+
+  async function handleDeleteAccount() {
+    if (deleteConfirmText !== 'DELETE MY ACCOUNT') return;
+    setDeleteLoading(true);
+    setDeleteError('');
+    try {
+      const res = await fetch('/api/delete-account', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirm: 'DELETE MY ACCOUNT' }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setDeleteError(data.error || 'Delete failed. Please try again.');
+        return;
+      }
+      // Redirect to landing page on success
+      window.location.href = '/';
+    } catch (_) {
+      setDeleteError('Network error. Please try again.');
+    } finally {
+      setDeleteLoading(false);
+    }
   }
 
   if (loading) return <div className="p-4">Loading...</div>;
@@ -516,6 +544,56 @@ export default function Settings() {
               <a href="/guide" className="mt-4 inline-flex rounded-full border border-ink/10 px-4 py-2 text-sm font-semibold text-ink">
                 Open Guide
               </a>
+            </div>
+
+            {/* Danger zone */}
+            <div className="rounded-[30px] border border-red-200 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+              <p className="text-sm font-semibold uppercase tracking-[0.25em] text-red-600">Danger Zone</p>
+              <p className="mt-3 text-sm leading-6 text-ink/70">
+                Permanently delete your account and all training data. This cannot be undone.
+              </p>
+              {!showDeleteZone ? (
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteZone(true)}
+                  className="mt-4 rounded-full border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+                >
+                  Delete account…
+                </button>
+              ) : (
+                <div className="mt-4 space-y-3">
+                  <p className="text-xs leading-5 text-ink/60">
+                    Type <strong>DELETE MY ACCOUNT</strong> to confirm. All your interventions, settings, and data will be erased immediately.
+                  </p>
+                  <input
+                    type="text"
+                    value={deleteConfirmText}
+                    onChange={(e) => setDeleteConfirmText(e.target.value)}
+                    placeholder="DELETE MY ACCOUNT"
+                    className="w-full rounded-2xl border border-red-200 bg-paper px-4 py-3 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-red-300"
+                  />
+                  {deleteError ? (
+                    <p className="text-xs text-red-600">{deleteError}</p>
+                  ) : null}
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleDeleteAccount}
+                      disabled={deleteConfirmText !== 'DELETE MY ACCOUNT' || deleteLoading}
+                      className="rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-40"
+                    >
+                      {deleteLoading ? 'Deleting…' : 'Delete everything'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowDeleteZone(false); setDeleteConfirmText(''); setDeleteError(''); }}
+                      className="rounded-full border border-ink/10 px-4 py-2 text-sm font-semibold text-ink/60"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </aside>
         </div>

@@ -466,10 +466,16 @@ export default function Content() {
                     ))}
                   </div>
 
-                  <div className="mt-4 flex flex-wrap gap-4">
+                  <div className="mt-4 flex flex-wrap items-center gap-4">
                     <ScorePips label="Running" score={entry.ultra_score || 0} />
                     <ScorePips label="Gravel" score={entry.gravel_score || 0} />
                     <ScorePips label="Triathlon" score={entry.triathlon_score || 0} />
+                    <span
+                      className="text-xs text-ink/35"
+                      title="Relevance score 1–5: how strongly this study applies to each sport"
+                    >
+                      ⓘ relevance
+                    </span>
                   </div>
 
                   <SummaryBlock entry={entry} isExpanded={isExpanded} onToggle={toggleSummary} />
