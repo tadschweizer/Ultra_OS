@@ -9,6 +9,27 @@ export const defaultFavoriteInterventions = [
 
 export const interventionCatalog = [
   {
+    phase: 'Check-in',
+    types: [
+      {
+        label: 'Workout Check-in',
+        fields: [
+          {
+            key: 'session_type',
+            label: 'Session type',
+            type: 'select',
+            options: ['Easy Run', 'Long Run', 'Tempo / Threshold', 'Intervals', 'Strength', 'Bike', 'Hike', 'Race', 'Cross-train', 'Other'],
+          },
+          { key: 'duration_minutes', label: 'Duration (minutes)', type: 'number' },
+          { key: 'legs_feel', label: 'Legs feel (1=dead, 10=fresh)', type: 'number', min: 1, max: 10 },
+          { key: 'energy_feel', label: 'Energy level (1=wiped, 10=great)', type: 'number', min: 1, max: 10 },
+          { key: 'perceived_effort', label: 'Perceived effort / RPE (1-10)', type: 'number', min: 1, max: 10 },
+          { key: 'avg_hr', label: 'Avg HR (bpm, optional)', type: 'number' },
+        ],
+      },
+    ],
+  },
+  {
     phase: 'Before',
     types: [
       {
@@ -282,8 +303,45 @@ const allInterventionDefinitions = interventionCatalog.flatMap((group) =>
   group.types.map((type) => ({ ...type, phase: group.phase }))
 );
 
+const interventionIcons = {
+  'Workout Check-in': '📋',
+  'Heat Acclimation': '🔥',
+  'Altitude Acclimatization': '⛰️',
+  'Respiratory Training': '🫁',
+  'Gut Training': '🥤',
+  'Sodium Bicarbonate - Loading Protocol': '🧪',
+  'Caffeine Cycling / Washout': '☕',
+  'Carbohydrate Loading': '🍚',
+  'Cold Exposure - Adaptation Protocol': '🧊',
+  'BFR - Strength Maintenance': '🩸',
+  'Sleep Protocol': '🌙',
+  'Fueling - Mid-Effort': '⚡',
+  'Hydration and Electrolytes': '💧',
+  'Caffeine - Mid-Effort': '🚀',
+  'Sodium Bicarbonate - Acute Race Use': '🧫',
+  'Cooling Strategy': '❄️',
+  'Massage Gun': '🔧',
+  'Normatec / Pneumatic Compression': '🦵',
+  'Ice Bath / Cold Immersion': '🛁',
+  'Contrast Therapy': '♨️',
+  'Sauna - Recovery': '🧖',
+  'Compression Garments': '🧦',
+  'Elevation / Legs Up': '🛋️',
+  'Stretching / Mobility': '🤸',
+  'Foam Rolling': '🌀',
+  'Custom Intervention': '✍️',
+};
+
 export function getInterventionDefinition(interventionType) {
   return allInterventionDefinitions.find((type) => type.label === interventionType) || null;
+}
+
+export function getAllInterventionDefinitions() {
+  return allInterventionDefinitions;
+}
+
+export function getInterventionIcon(interventionType) {
+  return interventionIcons[interventionType] || '•';
 }
 
 export function createProtocolPayload(interventionType, existingPayload = {}) {
@@ -336,8 +394,8 @@ export function inferLegacyScores(interventionType, protocolPayload = {}) {
       : Number(protocolPayload.gi_response);
 
   const subjectiveCandidates = [
-    protocolPayload.response,
     protocolPayload.energy_feel,
+    protocolPayload.response,
     protocolPayload.sleep_quality,
     protocolPayload.energy_impact,
     protocolPayload.perceived_alertness_boost,
@@ -345,6 +403,7 @@ export function inferLegacyScores(interventionType, protocolPayload = {}) {
   ];
 
   const physicalCandidates = [
+    protocolPayload.legs_feel,
     protocolPayload.performance_feel,
     protocolPayload.perceived_benefit,
     protocolPayload.energy_consistency,
@@ -408,6 +467,12 @@ export function buildProtocolSummary(interventionType, protocolPayload = {}) {
   const parts = [];
 
   switch (interventionType) {
+    case 'Workout Check-in':
+      if (payload.session_type) parts.push(payload.session_type);
+      if (payload.duration_minutes) parts.push(`${payload.duration_minutes} min`);
+      if (payload.legs_feel) parts.push(`Legs ${payload.legs_feel}/10`);
+      if (payload.energy_feel) parts.push(`Energy ${payload.energy_feel}/10`);
+      break;
     case 'Heat Acclimation':
       if (payload.method) parts.push(payload.method);
       if (payload.temperature_f) parts.push(`${payload.temperature_f}F`);

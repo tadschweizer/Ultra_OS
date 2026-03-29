@@ -1,16 +1,31 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/router';
 import { classifyActivityType, sortActivitiesMostRecentFirst } from '../lib/activityInsights';
 import {
   createProtocolPayload,
   defaultFavoriteInterventions,
   favoriteInterventionStorageKey,
-  interventionCatalog,
+  getAllInterventionDefinitions,
+  getInterventionDefinition,
 } from '../lib/interventionCatalog';
 import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
 import InterventionProtocolFields from '../components/InterventionProtocolFields';
+import {
+  ActivityContextCard,
+  cardClassName,
+  CategoryGrid,
+  countLast30Days,
+  FavoriteTypeButtons,
+  fieldClassName,
+  getPersistedFavorites,
+  getPersistedQuickLog,
+  quickLogStorageKey,
+  trainingPhases,
+  StravaActivityPicker,
+} from '../components/InterventionFormShared';
+import { deriveRaceType, getRaceTypeLabel, raceTypeOptions } from '../lib/raceTypes';
 
-const trainingPhases = ['Base', 'Build', 'Peak', 'Taper', 'Recovery', 'Race Week'];
 const surfaceOptions = ['Trail', 'Road', 'Mixed', 'Track', 'Gravel', 'Treadmill'];
 const defaultRaceStorageKey = 'ultraos-default-race';
 const trainingPhaseStorageKey = 'ultraos-default-training-phase';
@@ -36,20 +51,16 @@ function createRaceDraft(defaultRace = {}) {
     event_date: defaultRace.target_race_date || '',
     distance_miles: defaultRace.distance_miles || '',
     elevation_gain_ft: defaultRace.elevation_gain_ft || '',
+    race_type: defaultRace.race_type || '',
     location: defaultRace.location || '',
     surface: defaultRace.surface || '',
     notes: defaultRace.notes || '',
   };
 }
 
-function formatMinutes(totalSeconds) {
-  if (!totalSeconds) return '';
-  return `${Math.round(totalSeconds / 60)} min`;
-}
-
 function formatFeet(value) {
   if (value === null || value === undefined) return 'N/A';
-  return `${value.toLocaleString()} ft`;
+  return `${Number(value).toLocaleString()} ft`;
 }
 
 function formatDistanceMiles(value) {
@@ -94,18 +105,6 @@ function getPersistedTrainingPhase() {
   return window.localStorage.getItem(trainingPhaseStorageKey) || '';
 }
 
-function getPersistedFavorites() {
-  if (typeof window === 'undefined') return defaultFavoriteInterventions;
-  try {
-    const stored = window.localStorage.getItem(favoriteInterventionStorageKey);
-    if (!stored) return defaultFavoriteInterventions;
-    const parsed = JSON.parse(stored);
-    return Array.isArray(parsed) && parsed.length ? parsed : defaultFavoriteInterventions;
-  } catch {
-    return defaultFavoriteInterventions;
-  }
-}
-
 function applyRaceToForm(currentForm, race) {
   return {
     ...currentForm,
@@ -122,43 +121,16 @@ function mapRaceToDraft(race) {
     event_date: race.event_date || '',
     distance_miles: race.distance_miles ?? '',
     elevation_gain_ft: race.elevation_gain_ft ?? '',
+    race_type: race.race_type || deriveRaceType(race.distance_miles, race.surface),
     location: race.location || '',
     surface: race.surface || '',
     notes: race.notes || '',
   };
 }
 
-function fieldClassName() {
-  return 'w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-ink';
-}
-
-function cardClassName() {
-  return 'rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]';
-}
-
-function FavoriteTypeButtons({ favorites, selectedType, onSelect }) {
-  if (!favorites.length) return null;
-
-  return (
-    <div className="flex flex-wrap gap-2">
-      {favorites.map((type) => (
-        <button
-          key={type}
-          type="button"
-          onClick={() => onSelect(type)}
-          className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
-            selectedType === type ? 'border-ink bg-ink text-paper' : 'border-ink/10 bg-white text-ink'
-          }`}
-        >
-          {type}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 export default function LogIntervention() {
   const [activities, setActivities] = useState([]);
+  const [interventions, setInterventions] = useState([]);
   const [form, setForm] = useState(createEmptyForm());
   const [message, setMessage] = useState('');
   const [loadingActivities, setLoadingActivities] = useState(true);
@@ -172,34 +144,64 @@ export default function LogIntervention() {
   const [raceStatus, setRaceStatus] = useState('');
   const [savingRace, setSavingRace] = useState(false);
   const [favoriteTypes, setFavoriteTypes] = useState(defaultFavoriteInterventions);
+  const [quickLog, setQuickLog] = useState(false);
+  const [activitySearch, setActivitySearch] = useState('');
+  const [stravaConnected, setStravaConnected] = useState(true);
+  const router = useRouter();
   const navLinks = [
     { href: '/dashboard', label: 'UltraOS Home', description: 'Insights, trends, and recent training.' },
+    { href: '/guide', label: 'Guide', description: 'Learn how to use the intervention log.' },
     { href: '/connections', label: 'Connections', description: 'Manage linked sources.' },
     { href: '/log-intervention', label: 'Log Intervention', description: 'Create a new intervention entry.' },
     { href: '/history', label: 'Intervention History', description: 'Review intervention records.' },
     { href: '/settings', label: 'Athlete Settings', description: 'Edit athlete baselines and zones.' },
-    { href: '/content', label: 'Content', description: 'Track the content and community workstream.' },
+    { href: '/content', label: 'Research', description: 'Browse the research library.' },
     { href: '/', label: 'Landing Page', description: 'Return to the public entry page.' },
   ];
+
+  const interventionDefinitions = useMemo(() => getAllInterventionDefinitions(), []);
+  const selectedDefinition = useMemo(
+    () => getInterventionDefinition(form.intervention_type),
+    [form.intervention_type]
+  );
+  const recentCategoryCounts = useMemo(() => countLast30Days(interventions), [interventions]);
 
   useEffect(() => {
     async function fetchActivities() {
       try {
         const res = await fetch('/api/activities');
-        if (res.ok) {
-          const { activities: fetchedActivities } = await res.json();
-          setActivities(sortActivitiesMostRecentFirst(fetchedActivities));
+        if (!res.ok) {
+          setStravaConnected(false);
+          setActivities([]);
+          return;
         }
+        const { activities: fetchedActivities } = await res.json();
+        setStravaConnected(true);
+        setActivities(sortActivitiesMostRecentFirst(fetchedActivities || []));
       } catch (err) {
         console.error(err);
+        setStravaConnected(false);
+        setActivities([]);
       } finally {
         setLoadingActivities(false);
+      }
+    }
+
+    async function fetchInterventions() {
+      try {
+        const res = await fetch('/api/interventions');
+        if (!res.ok) return;
+        const data = await res.json();
+        setInterventions(data.interventions || []);
+      } catch (err) {
+        console.error(err);
       }
     }
 
     const persistedRace = getPersistedRace();
     const persistedTrainingPhase = getPersistedTrainingPhase();
     setFavoriteTypes(getPersistedFavorites());
+    setQuickLog(getPersistedQuickLog());
 
     setForm((currentForm) => ({
       ...currentForm,
@@ -210,12 +212,18 @@ export default function LogIntervention() {
     setRaceDraft(mapRaceToDraft(persistedRace.race_profile || persistedRace));
 
     fetchActivities();
+    fetchInterventions();
   }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(favoriteInterventionStorageKey, JSON.stringify(favoriteTypes));
   }, [favoriteTypes]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(quickLogStorageKey, quickLog ? 'true' : 'false');
+  }, [quickLog]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -239,10 +247,14 @@ export default function LogIntervention() {
         race_id: form.race_id,
         target_race: form.target_race,
         target_race_date: form.target_race_date,
-        race_profile: raceProfile,
+        race_type: raceProfile?.race_type || raceDraft.race_type || deriveRaceType(raceDraft.distance_miles, raceDraft.surface),
+        race_profile: raceProfile || {
+          ...raceDraft,
+          race_type: raceDraft.race_type || deriveRaceType(raceDraft.distance_miles, raceDraft.surface),
+        },
       })
     );
-  }, [form.race_id, form.target_race, form.target_race_date, raceProfile]);
+  }, [form.race_id, form.target_race, form.target_race_date, raceDraft, raceProfile]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -254,6 +266,43 @@ export default function LogIntervention() {
 
     window.localStorage.setItem(trainingPhaseStorageKey, form.training_phase);
   }, [form.training_phase]);
+
+  // Pre-select intervention type from ?type= query param (e.g. linked from dashboard)
+  useEffect(() => {
+    if (!router.isReady) return;
+    const typeParam = router.query.type;
+    if (typeParam && typeof typeParam === 'string') {
+      const decoded = decodeURIComponent(typeParam);
+      // Only apply if the type actually exists in the catalog
+      const def = getInterventionDefinition(decoded);
+      if (def) {
+        selectInterventionType(decoded);
+        // Scroll the type selector into view smoothly
+        setTimeout(() => {
+          const el = document.getElementById('type-selector-section');
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router.isReady, router.query.type]);
+
+  const filteredActivities = useMemo(() => {
+    const query = activitySearch.trim().toLowerCase();
+    if (!query) return activities.slice(0, 24);
+
+    return activities.filter((activity) => {
+      const activityType = classifyActivityType(activity).label.toLowerCase();
+      const searchable = [
+        activity.name,
+        activityType,
+        new Date(activity.start_date).toLocaleDateString(),
+      ]
+        .join(' ')
+        .toLowerCase();
+      return searchable.includes(query);
+    });
+  }, [activities, activitySearch]);
 
   const selectedActivity = useMemo(
     () => activities.find((activity) => activity.id.toString() === form.activity_id),
@@ -291,7 +340,7 @@ export default function LogIntervention() {
     let cancelled = false;
 
     async function fetchRaces() {
-      const query = form.target_race.trim();
+      const query = String(form.target_race || '').trim();
       if (!query && !raceDraftOpen) {
         setRaceOptions([]);
         return;
@@ -333,16 +382,6 @@ export default function LogIntervention() {
   const handleChange = (event) => {
     const { name, value } = event.target;
 
-    if (name === 'activity_id') {
-      const nextActivity = activities.find((activity) => activity.id.toString() === value);
-      setForm((currentForm) => ({
-        ...currentForm,
-        activity_id: value,
-        date: nextActivity ? getActivityDate(nextActivity) : currentForm.date,
-      }));
-      return;
-    }
-
     if (name === 'target_race') {
       setForm((currentForm) => ({
         ...currentForm,
@@ -371,6 +410,15 @@ export default function LogIntervention() {
     setForm((currentForm) => ({ ...currentForm, [name]: value }));
   };
 
+  const handleActivitySelect = (activityId) => {
+    const nextActivity = activities.find((activity) => activity.id.toString() === activityId);
+    setForm((currentForm) => ({
+      ...currentForm,
+      activity_id: activityId,
+      date: nextActivity ? getActivityDate(nextActivity) : currentForm.date,
+    }));
+  };
+
   const handleProtocolFieldChange = (fieldKey, value) => {
     setForm((currentForm) => ({
       ...currentForm,
@@ -383,15 +431,28 @@ export default function LogIntervention() {
 
   const handleRaceDraftChange = (event) => {
     const { name, value } = event.target;
-    setRaceDraft((currentDraft) => ({ ...currentDraft, [name]: value }));
+    setRaceDraft((currentDraft) => {
+      const nextDraft = { ...currentDraft, [name]: value };
+      if ((name === 'distance_miles' || name === 'surface') && !currentDraft.race_type) {
+        nextDraft.race_type = deriveRaceType(
+          name === 'distance_miles' ? value : nextDraft.distance_miles,
+          name === 'surface' ? value : nextDraft.surface
+        );
+      }
+      return nextDraft;
+    });
   };
 
   const selectRace = (race) => {
-    setRaceProfile(race);
-    setRaceDraft(mapRaceToDraft(race));
+    const normalizedRace = {
+      ...race,
+      race_type: race.race_type || deriveRaceType(race.distance_miles, race.surface),
+    };
+    setRaceProfile(normalizedRace);
+    setRaceDraft(mapRaceToDraft(normalizedRace));
     setRaceDraftOpen(false);
-    setRaceStatus(`Selected ${race.name}.`);
-    setForm((currentForm) => applyRaceToForm(currentForm, race));
+    setRaceStatus(`Selected ${normalizedRace.name}.`);
+    setForm((currentForm) => applyRaceToForm(currentForm, normalizedRace));
   };
 
   const handleRaceSave = async (event) => {
@@ -412,7 +473,10 @@ export default function LogIntervention() {
         return;
       }
 
-      selectRace(data.race);
+      selectRace({
+        ...data.race,
+        race_type: raceDraft.race_type || deriveRaceType(raceDraft.distance_miles, raceDraft.surface),
+      });
     } catch (err) {
       console.error(err);
       setRaceStatus('Error: Failed to save race.');
@@ -434,6 +498,7 @@ export default function LogIntervention() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     setMessage('');
+    const latestType = form.intervention_type;
     const res = await fetch('/api/log-intervention', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -446,6 +511,7 @@ export default function LogIntervention() {
       setMessage('Intervention logged.');
       setForm(createEmptyForm({ ...persistedRace, training_phase: persistedPhase }));
       setRaceProfile(persistedRace.race_profile || raceProfile);
+      setInterventions((current) => [{ date: new Date().toISOString().slice(0, 10), intervention_type: latestType }, ...current]);
     } else {
       const { error } = await res.json();
       setMessage(`Error: ${error}`);
@@ -468,25 +534,30 @@ export default function LogIntervention() {
 
         <DashboardTabs activeHref="/log-intervention" />
 
-        <div className="mb-10 overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(135deg,#f7f2ea_0%,#ebe1d4_55%,#dcc9b0_100%)] p-6 md:p-10">
+        <div className="ui-hero mb-10">
           <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
-            <div>
+            <div className="min-w-0">
               <p className="text-sm uppercase tracking-[0.35em] text-accent">Intervention Capture</p>
-              <h1 className="font-display mt-4 max-w-4xl text-5xl leading-tight md:text-7xl">
-                Log the protocol with the race it was meant to improve.
+              <h1 className="font-display mt-4 max-w-4xl break-words text-5xl leading-tight md:text-7xl">
+                Log Intervention
               </h1>
+              <p className="mt-5 max-w-2xl text-base leading-7 text-ink/72">
+                Build clean intervention data fast. Pick the protocol, attach the workout if it exists, and save the session while it is still fresh.
+              </p>
             </div>
 
-            <div className="rounded-[34px] bg-panel p-6 text-white shadow-[0_40px_100px_rgba(0,0,0,0.28)]">
-              <p className="text-sm uppercase tracking-[0.25em] text-accent">Form Flow</p>
-              <div className="mt-5 space-y-4">
-                <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
-                  <p className="text-sm font-semibold text-white">Choose the protocol first.</p>
-                  <p className="mt-2 text-sm text-white/75">The form only shows fields that matter for that intervention.</p>
+            <div className="ui-card-dark min-w-0">
+              <p className="text-sm uppercase tracking-[0.25em] text-accent">Ready</p>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-card border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-accent">Quick Mode</p>
+                  <p className="mt-2 text-sm font-semibold text-white">
+                    {quickLog ? 'Core fields only' : 'Full protocol detail'}
+                  </p>
                 </div>
-                <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
-                  <p className="text-sm font-semibold text-white">Favorite the repeat protocols.</p>
-                  <p className="mt-2 text-sm text-white/75">Repeated items stay at the top so weekly logging is faster.</p>
+                <div className="rounded-card border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-accent">Recent Categories</p>
+                  <p className="mt-2 text-sm font-semibold text-white">{Object.keys(recentCategoryCounts).length} active in 30 days</p>
                 </div>
               </div>
             </div>
@@ -499,129 +570,153 @@ export default function LogIntervention() {
               <p className="mb-5 rounded-2xl border border-accent/30 bg-accent/10 px-4 py-3 text-sm text-ink">{message}</p>
             ) : null}
 
-            <div className="grid gap-5 md:grid-cols-2">
-              <div className="md:col-span-2">
-                <label className="mb-2 block text-sm font-semibold text-ink">Favorites</label>
-                <FavoriteTypeButtons favorites={favoriteTypes} selectedType={form.intervention_type} onSelect={selectInterventionType} />
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-ink/10 bg-paper px-4 py-4">
+              <div>
+                <p className="text-sm font-semibold text-ink">Quick Log</p>
+                <p className="mt-1 text-sm text-ink/65">Hide optional fields when you just need to save the essentials.</p>
               </div>
+              <button
+                type="button"
+                onClick={() => setQuickLog((current) => !current)}
+                className={`inline-flex items-center gap-3 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  quickLog ? 'bg-panel text-paper' : 'border border-ink/10 bg-white text-ink'
+                }`}
+              >
+                <span className={`h-2.5 w-2.5 rounded-full ${quickLog ? 'bg-accent' : 'bg-ink/25'}`} />
+                {quickLog ? 'On' : 'Off'}
+              </button>
+            </div>
 
-              <div className="md:col-span-2">
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <label className="block text-sm font-semibold text-ink">Intervention Type</label>
+            <div id="type-selector-section" className="grid gap-5">
+              {interventions.length > 0 ? (
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-ink">Fast repeat</label>
+                  <FavoriteTypeButtons favorites={favoriteTypes} selectedType={form.intervention_type} onSelect={selectInterventionType} />
+                </div>
+              ) : null}
+
+              <div>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <label className="block text-sm font-semibold text-ink">Choose intervention</label>
                   {form.intervention_type ? (
-                    <button type="button" onClick={toggleFavoriteType} className="rounded-full border border-ink/10 px-3 py-1.5 text-xs font-semibold text-ink">
+                    <button
+                      type="button"
+                      onClick={toggleFavoriteType}
+                      className="rounded-full border border-ink/10 px-3 py-1.5 text-xs font-semibold text-ink"
+                    >
                       {favoriteTypes.includes(form.intervention_type) ? 'Remove Favorite' : 'Add Favorite'}
                     </button>
                   ) : null}
                 </div>
-                <select name="intervention_type" value={form.intervention_type} onChange={handleChange} className={fieldClassName()}>
-                  <option value="">Select Type</option>
-                  {interventionCatalog.map((group) => (
-                    <optgroup key={group.phase} label={group.phase}>
-                      {group.types.map((type) => (
-                        <option key={type.label} value={type.label}>
-                          {type.label}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
+
+                <CategoryGrid
+                  definitions={interventionDefinitions}
+                  selectedType={form.intervention_type}
+                  counts={recentCategoryCounts}
+                  onSelect={selectInterventionType}
+                />
               </div>
 
-              <div className="md:col-span-2">
+              <div>
                 <InterventionProtocolFields
                   interventionType={form.intervention_type}
                   protocolPayload={form.protocol_payload}
                   onFieldChange={handleProtocolFieldChange}
+                  quickMode={quickLog}
                 />
+                {quickLog && selectedDefinition && selectedDefinition.fields.length > 2 ? (
+                  <p className="mt-3 text-sm text-ink/60">
+                    Quick Log is showing the core protocol fields first. Turn it off if you want the full category form.
+                  </p>
+                ) : null}
               </div>
 
-              <div className="md:col-span-2">
-                <label className="mb-1 block text-sm font-semibold text-ink">Link to Activity</label>
-                <select name="activity_id" value={form.activity_id} onChange={handleChange} className={fieldClassName()}>
-                  <option value="">{loadingActivities ? 'Loading activities...' : 'Select Activity'}</option>
-                  {activities.map((activity) => {
-                    const activityType = classifyActivityType(activity);
-                    return (
-                      <option key={activity.id} value={activity.id}>
-                        {new Date(activity.start_date).toLocaleDateString()} - {activityType.label} - {activity.name}
+              <StravaActivityPicker
+                activities={filteredActivities}
+                activitySearch={activitySearch}
+                selectedActivityId={form.activity_id}
+                onSearchChange={setActivitySearch}
+                onSelect={handleActivitySelect}
+                loading={loadingActivities}
+                stravaConnected={stravaConnected}
+              />
+
+              <div className="grid gap-5 md:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-sm font-semibold text-ink">Date</label>
+                  <input type="date" name="date" value={form.date} onChange={handleChange} className={fieldClassName()} />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-semibold text-ink">Training Phase</label>
+                  <select name="training_phase" value={form.training_phase} onChange={handleChange} className={fieldClassName()}>
+                    <option value="">Select Phase</option>
+                    {trainingPhases.map((phase) => (
+                      <option key={phase} value={phase}>
+                        {phase}
                       </option>
-                    );
-                  })}
-                </select>
-              </div>
+                    ))}
+                  </select>
+                </div>
 
-              <div>
-                <label className="mb-1 block text-sm font-semibold text-ink">Date</label>
-                <input type="date" name="date" value={form.date} onChange={handleChange} className={fieldClassName()} />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm font-semibold text-ink">Training Phase</label>
-                <select name="training_phase" value={form.training_phase} onChange={handleChange} className={fieldClassName()}>
-                  <option value="">Select Phase</option>
-                  {trainingPhases.map((phase) => (
-                    <option key={phase} value={phase}>
-                      {phase}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm font-semibold text-ink">Primary Target Race</label>
-                <input
-                  type="text"
-                  name="target_race"
-                  value={form.target_race}
-                  onChange={handleChange}
-                  placeholder="Leadville 100"
-                  className={fieldClassName()}
-                />
-                <div className="mt-3 space-y-2">
-                  {loadingRaces ? <p className="text-xs text-ink/60">Searching saved races...</p> : null}
-                  {!loadingRaces && raceOptions.length > 0 ? (
-                    <div className="rounded-[22px] border border-ink/10 bg-paper/70 p-2">
-                      {raceOptions.map((race) => (
-                        <button
-                          key={race.id}
-                          type="button"
-                          onClick={() => selectRace(race)}
-                          className={`flex w-full items-center justify-between rounded-[16px] px-3 py-3 text-left transition hover:bg-white ${
-                            form.race_id === race.id ? 'bg-white' : ''
-                          }`}
-                        >
-                          <span>
-                            <span className="block text-sm font-semibold text-ink">{race.name}</span>
-                            <span className="block text-xs text-ink/55">
-                              {race.event_date || 'Date TBD'}
-                              {race.location ? ` - ${race.location}` : ''}
+                <div>
+                  <label className="mb-1 block text-sm font-semibold text-ink">Primary Target Race</label>
+                  <input
+                    type="text"
+                    name="target_race"
+                    value={form.target_race}
+                    onChange={handleChange}
+                    placeholder="Leadville 100"
+                    className={fieldClassName()}
+                  />
+                  <div className="mt-3 space-y-2">
+                    {loadingRaces ? <p className="text-xs text-ink/60">Searching saved races...</p> : null}
+                    {!loadingRaces && raceOptions.length > 0 ? (
+                      <div className="rounded-[22px] border border-ink/10 bg-paper/70 p-2">
+                        {raceOptions.map((race) => (
+                          <button
+                            key={race.id}
+                            type="button"
+                            onClick={() => selectRace(race)}
+                            className={`flex w-full items-center justify-between rounded-[16px] px-3 py-3 text-left transition hover:bg-white ${
+                              form.race_id === race.id ? 'bg-white' : ''
+                            }`}
+                          >
+                            <span>
+                              <span className="block text-sm font-semibold text-ink">{race.name}</span>
+                              <span className="block text-xs text-ink/55">
+                                {race.event_date || 'Date TBD'}
+                                {race.location ? ` - ${race.location}` : ''}
+                                {deriveRaceType(race.distance_miles, race.surface)
+                                  ? ` - ${deriveRaceType(race.distance_miles, race.surface)}`
+                                  : ''}
+                              </span>
                             </span>
-                          </span>
-                          <span className="text-[11px] uppercase tracking-[0.2em] text-accent">
-                            {form.race_id === race.id ? 'Selected ✓' : 'Use'}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={() => setRaceDraftOpen((current) => !current)}
-                    className="text-xs font-semibold uppercase tracking-[0.2em] text-accent"
-                  >
-                    {raceDraftOpen ? 'Hide race profile editor' : 'Create race profile'}
-                  </button>
+                            <span className="text-[11px] uppercase tracking-[0.2em] text-accent">
+                              {form.race_id === race.id ? 'Selected ✓' : 'Use'}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => setRaceDraftOpen((current) => !current)}
+                      className="text-xs font-semibold uppercase tracking-[0.2em] text-accent"
+                    >
+                      {raceDraftOpen ? 'Hide race profile editor' : 'Create race profile'}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-semibold text-ink">Race Date</label>
+                  <input type="date" name="target_race_date" value={form.target_race_date} onChange={handleChange} className={fieldClassName()} />
                 </div>
               </div>
 
-              <div>
-                <label className="mb-1 block text-sm font-semibold text-ink">Race Date</label>
-                <input type="date" name="target_race_date" value={form.target_race_date} onChange={handleChange} className={fieldClassName()} />
-              </div>
-
               {raceDraftOpen ? (
-                <div className="md:col-span-2 rounded-[24px] bg-paper p-4">
+                <div className="rounded-[24px] bg-paper p-4">
                   <div className="mb-4">
                     <p className="text-sm font-semibold text-ink">Race Profile</p>
                   </div>
@@ -641,6 +736,17 @@ export default function LogIntervention() {
                     <div>
                       <label className="mb-1 block text-sm font-semibold text-ink">Elevation Gain (ft)</label>
                       <input type="number" name="elevation_gain_ft" value={raceDraft.elevation_gain_ft} onChange={handleRaceDraftChange} className={fieldClassName()} />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm font-semibold text-ink">Race Type</label>
+                      <select name="race_type" value={raceDraft.race_type} onChange={handleRaceDraftChange} className={fieldClassName()}>
+                        <option value="">Select Race Type</option>
+                        {raceTypeOptions.map((raceType) => (
+                          <option key={raceType} value={raceType}>
+                            {raceType}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                     <div>
                       <label className="mb-1 block text-sm font-semibold text-ink">Surface</label>
@@ -671,84 +777,26 @@ export default function LogIntervention() {
                 </div>
               ) : null}
 
-              <div className="md:col-span-2">
-                <label className="mb-1 block text-sm font-semibold text-ink">Additional Context</label>
-                <textarea name="details" value={form.details} onChange={handleChange} rows={3} className={fieldClassName()} />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="mb-1 block text-sm font-semibold text-ink">Notes</label>
-                <textarea name="notes" value={form.notes} onChange={handleChange} rows={4} className={fieldClassName()} />
-              </div>
+              {!quickLog ? (
+                <div>
+                  <label className="mb-1 block text-sm font-semibold text-ink">Notes</label>
+                  <p className="mb-2 text-xs text-ink/50">Anything else worth capturing — how you felt, context, observations.</p>
+                  <textarea name="notes" value={form.notes} onChange={handleChange} rows={4} className={fieldClassName()} />
+                </div>
+              ) : null}
             </div>
 
-            <button type="submit" className="mt-5 rounded-full bg-ink px-6 py-3 font-semibold text-paper">
+            <button type="submit" className="mt-6 rounded-full bg-ink px-6 py-3 font-semibold text-paper">
               Save Intervention
             </button>
           </form>
 
           <aside className="space-y-5">
-            <div className="rounded-[30px] bg-[linear-gradient(135deg,#1b2421_0%,#29302d_100%)] p-6 text-white">
-              <p className="text-sm uppercase tracking-[0.25em] text-accent">Linked Activity Context</p>
-              {selectedActivity ? (
-                <div className="mt-4 space-y-3 text-sm text-white/85">
-                  <div>
-                    <p className="font-semibold text-white">{selectedActivity.name}</p>
-                    <p className="text-white/65">{new Date(selectedActivity.start_date).toLocaleString()}</p>
-                  </div>
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                    <p className="text-xs uppercase tracking-[0.2em] text-accent">Activity Type</p>
-                    <p className="mt-1 text-lg font-semibold text-white">{classifyActivityType(selectedActivity).label}</p>
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                      <p className="text-xs uppercase tracking-[0.2em] text-accent">Duration</p>
-                      <p className="mt-1 text-lg font-semibold text-white">{formatMinutes(selectedActivity.moving_time) || 'N/A'}</p>
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                      <p className="text-xs uppercase tracking-[0.2em] text-accent">Distance</p>
-                      <p className="mt-1 text-lg font-semibold text-white">
-                        {selectedActivity.distance ? `${(selectedActivity.distance / 1609.34).toFixed(1)} mi` : 'N/A'}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/5 p-3 sm:col-span-2">
-                      <p className="text-xs uppercase tracking-[0.2em] text-accent">Elevation Gain</p>
-                      <p className="mt-1 text-lg font-semibold text-white">
-                        {selectedActivity.total_elevation_gain
-                          ? `${Math.round(selectedActivity.total_elevation_gain * 3.28084)} ft`
-                          : 'Not provided by this activity summary'}
-                      </p>
-                    </div>
-                  </div>
-                  {loadingActivityDetails ? (
-                    <p className="text-xs text-white/60">Loading deeper altitude details...</p>
-                  ) : activityDetails ? (
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                        <p className="text-xs uppercase tracking-[0.2em] text-accent">Start Altitude</p>
-                        <p className="mt-1 text-lg font-semibold text-white">{formatFeet(activityDetails.start_altitude_ft)}</p>
-                      </div>
-                      <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                        <p className="text-xs uppercase tracking-[0.2em] text-accent">End Altitude</p>
-                        <p className="mt-1 text-lg font-semibold text-white">{formatFeet(activityDetails.end_altitude_ft)}</p>
-                      </div>
-                      <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                        <p className="text-xs uppercase tracking-[0.2em] text-accent">Average Altitude</p>
-                        <p className="mt-1 text-lg font-semibold text-white">{formatFeet(activityDetails.average_altitude_ft)}</p>
-                      </div>
-                      <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                        <p className="text-xs uppercase tracking-[0.2em] text-accent">Peak Altitude</p>
-                        <p className="mt-1 text-lg font-semibold text-white">{formatFeet(activityDetails.peak_altitude_ft ?? activityDetails.elev_high_ft)}</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-white/60">Activity streams were not available for this workout.</p>
-                  )}
-                </div>
-              ) : (
-                <p className="mt-4 text-sm text-white/70">Select a recent activity to attach workout context.</p>
-              )}
-            </div>
+            <ActivityContextCard
+              selectedActivity={selectedActivity}
+              activityDetails={activityDetails}
+              loadingActivityDetails={loadingActivityDetails}
+            />
 
             <div className={cardClassName()}>
               <p className="text-sm uppercase tracking-[0.25em] text-accent">Race Context</p>
@@ -763,6 +811,10 @@ export default function LogIntervention() {
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="rounded-2xl bg-paper p-4">
+                      <p className="text-xs uppercase tracking-[0.2em] text-accent">Race Type</p>
+                      <p className="mt-1 text-lg font-semibold text-ink">{getRaceTypeLabel(raceProfile)}</p>
+                    </div>
+                    <div className="rounded-2xl bg-paper p-4">
                       <p className="text-xs uppercase tracking-[0.2em] text-accent">Distance</p>
                       <p className="mt-1 text-lg font-semibold text-ink">{formatDistanceMiles(raceProfile.distance_miles)}</p>
                     </div>
@@ -774,7 +826,7 @@ export default function LogIntervention() {
                 </div>
               ) : (
                 <div className="mt-4 rounded-2xl bg-paper p-4 text-sm text-ink/75">
-                  Save a race once and keep using it until race day without retyping it for every protocol.
+                  Add a race profile to tie this intervention to a real target.
                 </div>
               )}
             </div>

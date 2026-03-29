@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/router';
 import {
   buildInsightCards,
   buildInterventionContextCards,
@@ -15,10 +16,10 @@ import {
   metersToMiles,
   secondsToHours,
   sortActivitiesMostRecentFirst,
-  summarizeRecentTraining,
 } from '../lib/activityInsights';
 import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
+import EmptyStateCard from '../components/EmptyStateCard';
 
 const timeframeOptions = [
   { value: 7, label: '7D' },
@@ -68,6 +69,71 @@ function formatAverageLabel(metric, value, timeframe) {
   return timeframe === 90 ? `${unit}/day` : unit;
 }
 
+function isWithinLastDays(dateLike, days) {
+  const date = new Date(dateLike);
+  if (Number.isNaN(date.getTime())) return false;
+  const now = new Date();
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - (days - 1));
+  return date >= start && date <= now;
+}
+
+function buildTimeframeSummary(activities = [], interventions = [], timeframe = 30) {
+  const filteredActivities = activities.filter((activity) => isWithinLastDays(activity.start_date, timeframe));
+  const filteredInterventions = interventions.filter((item) => isWithinLastDays(item.date || item.inserted_at, timeframe));
+
+  return {
+    activityCount: filteredActivities.length,
+    mileage: filteredActivities.reduce((sum, activity) => sum + metersToMiles(activity.distance), 0),
+    elevation: filteredActivities.reduce((sum, activity) => sum + metersToFeet(activity.total_elevation_gain), 0),
+    hours: filteredActivities.reduce((sum, activity) => sum + secondsToHours(activity.moving_time), 0),
+    interventions: filteredInterventions.length,
+  };
+}
+
+function buildHeatmapWeeks(interventions = [], weekCount = 16) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const mondayOffset = (today.getDay() + 6) % 7;
+  const currentWeekStart = new Date(today);
+  currentWeekStart.setDate(today.getDate() - mondayOffset);
+  const entryMap = interventions.reduce((accumulator, item) => {
+    const key = (item.date || item.inserted_at || '').slice(0, 10);
+    if (!key) return accumulator;
+    accumulator[key] = accumulator[key] || [];
+    accumulator[key].push(item);
+    return accumulator;
+  }, {});
+
+  return Array.from({ length: weekCount }).map((_, weekIndex) => {
+    const weekStart = new Date(currentWeekStart);
+    weekStart.setDate(currentWeekStart.getDate() - (weekCount - weekIndex - 1) * 7);
+
+    return {
+      key: weekStart.toISOString().slice(0, 10),
+      days: Array.from({ length: 7 }).map((__, dayIndex) => {
+        const date = new Date(weekStart);
+        date.setDate(weekStart.getDate() + dayIndex);
+        const key = date.toISOString().slice(0, 10);
+        return {
+          key,
+          label: date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+          entries: entryMap[key] || [],
+        };
+      }),
+    };
+  });
+}
+
+function getHeatmapTone(count) {
+  if (count <= 0) return 'bg-paper border border-ink/6';
+  if (count === 1) return 'bg-accent/18';
+  if (count <= 3) return 'bg-accent/34';
+  if (count <= 5) return 'bg-accent/58';
+  return 'bg-accent';
+}
+
 function TrendChart({ points, metric, interventionOverlay = {} }) {
   const width = 760;
   const height = 280;
@@ -114,6 +180,13 @@ function TrendChart({ points, metric, interventionOverlay = {} }) {
     .join(' ');
 
   const area = `${paddingLeft},${paddingTop + chartHeight} ${polyline} ${paddingLeft + chartWidth},${paddingTop + chartHeight}`;
+  const chartSurface = 'var(--color-surface-light)';
+  const gridStroke = 'var(--color-border-subtle)';
+  const textColor = 'var(--color-text-muted)';
+  const lineColor = 'var(--color-text-primary)';
+  const accentColor = 'var(--color-accent-amber)';
+  const areaFill = 'color-mix(in srgb, var(--color-accent-amber) 18%, transparent)';
+  const paperColor = 'var(--color-surface-white)';
 
   return (
     <div>
@@ -155,7 +228,7 @@ function TrendChart({ points, metric, interventionOverlay = {} }) {
         </div>
       </div>
       <svg viewBox={`0 0 ${width} ${height}`} className="h-64 w-full">
-        <rect x="0" y="0" width={width} height={height} rx="28" fill="#f3eadf" />
+        <rect x="0" y="0" width={width} height={height} rx="28" fill={chartSurface} />
         {yTicks.map((tick) => (
           <g key={tick.y}>
             <line
@@ -163,16 +236,15 @@ function TrendChart({ points, metric, interventionOverlay = {} }) {
               y1={tick.y}
               x2={paddingLeft + chartWidth}
               y2={tick.y}
-              stroke="#18211f"
-              strokeOpacity="0.09"
+              stroke={gridStroke}
               strokeDasharray="4 6"
             />
             <text
               x={paddingLeft - 10}
               y={tick.y + 4}
               textAnchor="end"
-              fill="#18211f"
-              fillOpacity="0.55"
+              fill={textColor}
+              className="font-data"
               fontSize="11"
               letterSpacing="0.08em"
             >
@@ -180,14 +252,13 @@ function TrendChart({ points, metric, interventionOverlay = {} }) {
             </text>
           </g>
         ))}
-        <polygon points={area} fill="rgba(24,33,31,0.1)" />
+        <polygon points={area} fill={areaFill} />
         <line
           x1={activeX}
           y1={paddingTop}
           x2={activeX}
           y2={paddingTop + chartHeight}
-          stroke="#18211f"
-          strokeOpacity="0.16"
+          stroke={gridStroke}
           strokeDasharray="4 4"
         />
         {points.map((point, index) => {
@@ -196,7 +267,7 @@ function TrendChart({ points, metric, interventionOverlay = {} }) {
           const isActive = point.key === activePoint.key;
           return (
             <g key={point.key}>
-              <circle cx={x} cy={y} r={isActive ? '5.5' : '3.5'} fill={isActive ? '#ba7a36' : '#18211f'} />
+              <circle cx={x} cy={y} r={isActive ? '5.5' : '3.5'} fill={isActive ? accentColor : lineColor} />
               <rect
                 x={paddingLeft + index * intervalWidth - intervalWidth / 2}
                 y={paddingTop}
@@ -219,18 +290,18 @@ function TrendChart({ points, metric, interventionOverlay = {} }) {
                 y1={paddingTop}
                 x2={x}
                 y2={paddingTop + chartHeight}
-                stroke="#ba7a36"
+                stroke={accentColor}
                 strokeOpacity="0.2"
                 strokeDasharray="3 5"
               />
-              <circle cx={x} cy={paddingTop + 10} r="5" fill="#ba7a36" />
-              <text x={x} y={paddingTop + 14} textAnchor="middle" fill="#fff" fontSize="9" fontWeight="700">
+              <circle cx={x} cy={paddingTop + 10} r="5" fill={accentColor} />
+              <text x={x} y={paddingTop + 14} textAnchor="middle" fill={paperColor} className="font-data" fontSize="9" fontWeight="700">
                 {interventionCount}
               </text>
             </g>
           );
         })}
-        <polyline fill="none" stroke="#18211f" strokeWidth="3" points={polyline} strokeLinejoin="round" strokeLinecap="round" />
+        <polyline fill="none" stroke={lineColor} strokeWidth="3" points={polyline} strokeLinejoin="round" strokeLinecap="round" />
         {points.map((point, index) => {
           const x = paddingLeft + (index / Math.max(points.length - 1, 1)) * chartWidth;
           return (
@@ -239,8 +310,9 @@ function TrendChart({ points, metric, interventionOverlay = {} }) {
               x={x}
               y={height - 10}
               textAnchor={index === 0 ? 'start' : index === points.length - 1 ? 'end' : 'middle'}
-              fill="#18211f"
+              fill={textColor}
               fillOpacity={index % Math.ceil(points.length / 6 || 1) === 0 || index === points.length - 1 ? '0.6' : '0'}
+              className="font-data"
               fontSize="11"
               letterSpacing="0.08em"
             >
@@ -269,7 +341,42 @@ function TrendChart({ points, metric, interventionOverlay = {} }) {
   );
 }
 
+function HeatmapModal({ day, onClose }) {
+  if (!day) return null;
+
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-ink/30 px-4">
+      <div className="w-full max-w-xl rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_24px_60px_rgba(19,24,22,0.16)]">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm uppercase tracking-[0.22em] text-accent">Interventions</p>
+            <p className="mt-2 text-2xl font-semibold text-ink">{day.label}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full border border-ink/10 px-3 py-1 text-sm font-semibold text-ink"
+          >
+            Close
+          </button>
+        </div>
+        <div className="mt-5 space-y-3">
+          {day.entries.map((entry) => (
+            <div key={entry.id} className="rounded-[22px] bg-paper p-4">
+              <p className="text-sm font-semibold text-ink">{entry.intervention_type}</p>
+              <p className="mt-2 text-sm text-ink/70">{entry.target_race || entry.races?.name || 'No race linked'}</p>
+              {entry.details ? <p className="mt-2 text-sm leading-6 text-ink/76">{entry.details}</p> : null}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
+  const router = useRouter();
+  const isFirstLogin = router.query.welcome === '1';
   const [loading, setLoading] = useState(true);
   const [athlete, setAthlete] = useState(null);
   const [activities, setActivities] = useState([]);
@@ -278,6 +385,9 @@ export default function Dashboard() {
   const [settings, setSettings] = useState(null);
   const [timeframe, setTimeframe] = useState(30);
   const [metric, setMetric] = useState('mileage');
+  const [currentRace, setCurrentRace] = useState(null);
+  const [protocolSummary, setProtocolSummary] = useState(null);
+  const [heatmapDay, setHeatmapDay] = useState(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -306,6 +416,13 @@ export default function Dashboard() {
           const interventionData = await interventionsRes.json();
           setInterventions(interventionData.interventions || []);
         }
+
+        const protocolRes = await fetch('/api/current-protocol-assignment');
+        if (protocolRes.ok) {
+          const protocolData = await protocolRes.json();
+          setProtocolSummary(protocolData);
+          setCurrentRace(protocolData.currentRace || null);
+        }
       } catch (err) {
         console.error(err);
       } finally {
@@ -315,8 +432,10 @@ export default function Dashboard() {
 
     fetchData();
   }, []);
-
-  const trainingSummary = useMemo(() => summarizeRecentTraining(activities), [activities]);
+  const trainingSummary = useMemo(
+    () => buildTimeframeSummary(activities, interventions, timeframe),
+    [activities, interventions, timeframe]
+  );
   const trendSeries = useMemo(
     () => buildTrendSeries(activities, timeframe, metric),
     [activities, timeframe, metric]
@@ -362,11 +481,14 @@ export default function Dashboard() {
     () => buildRaceFocusCards(interventions),
     [interventions]
   );
+  const heatmapWeeks = useMemo(() => buildHeatmapWeeks(interventions, 16), [interventions]);
+  const showDashboardEmptyState = !currentRace && activities.length === 0 && interventions.length === 0;
+  const showWelcomeChecklist = interventions.length === 0;
   const navLinks = [
     { href: '/', label: 'Landing Page', description: 'Return to the UltraOS entry page.' },
-    { href: '/onboarding', label: 'Onboarding', description: 'See the first-run athlete activation flow.' },
-    { href: '/insights', label: 'Insights System', description: 'Read the athlete and coach AI logic.' },
-    { href: '/coaches', label: 'Coaches', description: 'Open the coach-facing triage view.' },
+    { href: '/guide', label: 'Guide', description: 'Learn how each part of UltraOS works.' },
+    { href: '/pricing', label: 'Pricing', description: 'View plans and feature access.' },
+    { href: '/explorer', label: 'Explorer', description: 'Open the self-selection explorer.' },
     { href: '/connections', label: 'Connections', description: 'Link Strava and future platforms.' },
     { href: '/history', label: 'Intervention History', description: 'Review logged protocol history.' },
     { href: '/settings', label: 'Athlete Settings', description: 'Edit athlete baselines and HR zones.' },
@@ -406,6 +528,66 @@ export default function Dashboard() {
 
         <DashboardTabs activeHref="/dashboard" />
 
+        {isFirstLogin ? (
+          <div className="mb-6 flex items-start gap-4 rounded-[22px] border border-accent/30 bg-accent/8 px-5 py-4">
+            <span className="mt-0.5 text-xl">👋</span>
+            <div>
+              <p className="text-sm font-semibold text-ink">Welcome to UltraOS, {athlete?.name?.split(' ')[0] || 'athlete'}.</p>
+              <p className="mt-1 text-sm leading-6 text-ink/65">
+                Strava is connected. Now work through the three steps below and you&apos;ll have your first insight within a few sessions.
+              </p>
+            </div>
+          </div>
+        ) : null}
+
+        <section className="mb-8 rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm uppercase tracking-[0.25em] text-accent">Race Countdown</p>
+            <a href="/log-intervention" className="rounded-full border border-ink/10 px-3 py-1 text-xs text-ink/70">
+              Update race
+            </a>
+          </div>
+          {currentRace ? (
+            <div className="mt-5 grid gap-4 md:grid-cols-4">
+              <div className="rounded-[24px] bg-paper p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-accent">Target Race</p>
+                <p className="mt-2 text-lg font-semibold text-ink">{currentRace.name}</p>
+              </div>
+              <div className="rounded-[24px] bg-paper p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-accent">Days Out</p>
+                <p className="mt-2 text-lg font-semibold text-ink">
+                  {protocolSummary?.daysUntilRace === null || protocolSummary?.daysUntilRace === undefined
+                    ? 'Date needed'
+                    : `${protocolSummary.daysUntilRace} days`}
+                </p>
+              </div>
+              <div className="rounded-[24px] bg-paper p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-accent">Current Phase</p>
+                <p className="mt-2 text-lg font-semibold text-ink">{protocolSummary?.phase || 'Base'}</p>
+              </div>
+              <div className="rounded-[24px] bg-paper p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-accent">Race Type</p>
+                <p className="mt-2 text-lg font-semibold text-ink">{currentRace.race_type || 'Not set'}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-5 rounded-[24px] bg-paper p-4 text-sm text-ink/75">
+              <p>Set your target race to activate your dashboard.</p>
+              <a href="/log-intervention" className="mt-4 inline-flex rounded-full bg-panel px-4 py-2 text-sm font-semibold text-paper">
+                Set Target Race
+              </a>
+            </div>
+          )}
+          {currentRace ? (
+            <div className="mt-4 rounded-[24px] border border-ink/10 bg-[linear-gradient(145deg,#f8f2e8_0%,#eadcc7_48%,#d5bf9f_100%)] p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-accent">Protocol Context</p>
+              <p className="mt-2 text-sm font-semibold text-ink">
+                {protocolSummary?.protocolStatus || 'No active protocols — log your first intervention'}
+              </p>
+            </div>
+          ) : null}
+        </section>
+
         <div className="mb-12 overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(135deg,#f7f2ea_0%,#ebe1d4_55%,#dcc9b0_100%)] p-6 md:p-10">
           <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
             <div>
@@ -413,21 +595,31 @@ export default function Dashboard() {
               <h1 className="font-display mt-4 max-w-4xl text-5xl leading-tight md:text-7xl">
                 Welcome back, {athlete.name}
               </h1>
+              {currentRace ? (
+                <div className="mt-5 flex flex-wrap gap-3 text-sm text-ink/75">
+                  <span className="rounded-full bg-white/60 px-4 py-2 font-semibold text-ink">{currentRace.name}</span>
+                  {currentRace.race_type ? (
+                    <span className="rounded-full bg-white/60 px-4 py-2 font-semibold text-ink">{currentRace.race_type}</span>
+                  ) : null}
+                  {currentRace.distance_miles ? (
+                    <span className="rounded-full bg-white/60 px-4 py-2 font-semibold text-ink">
+                      {Number(currentRace.distance_miles).toFixed(1)} mi
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
               <div className="mt-8 flex flex-wrap gap-4">
-                <a href="/connections" className="rounded-full bg-ink px-6 py-3 font-semibold text-paper">
-                  Add Connection / Source
-                </a>
-                <a href="/insights" className="rounded-full border border-ink/20 bg-white/50 px-6 py-3 font-semibold text-ink">
-                  Insight System
-                </a>
-                <a href="/onboarding" className="rounded-full border border-ink/20 bg-white/50 px-6 py-3 font-semibold text-ink">
-                  Onboarding Flow
+                <a href="/log-intervention?type=Workout+Check-in" className="rounded-full bg-ink px-6 py-3 font-semibold text-paper">
+                  📋 Log today's training
                 </a>
                 <a href="/log-intervention" className="rounded-full border border-ink/20 bg-white/50 px-6 py-3 font-semibold text-ink">
-                  Log an Intervention
+                  Log Intervention
+                </a>
+                <a href="/insights" className="rounded-full border border-ink/20 bg-white/50 px-6 py-3 font-semibold text-ink">
+                  Insights
                 </a>
                 <a href="/history" className="rounded-full border border-ink/20 bg-white/50 px-6 py-3 font-semibold text-ink">
-                  Intervention History
+                  History
                 </a>
               </div>
             </div>
@@ -452,13 +644,58 @@ export default function Dashboard() {
                 </div>
                 <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
                   <p className="text-xs uppercase tracking-[0.2em] text-accent">Interventions</p>
-                  <p className="mt-2 text-xl font-semibold">{interventionCount}</p>
+                  <p className="mt-2 text-xl font-semibold">{trainingSummary.interventions}</p>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
+        {showWelcomeChecklist ? (
+          <section className="mb-10 rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+            <p className="text-sm uppercase tracking-[0.25em] text-accent">Getting started</p>
+            <h2 className="font-display mt-3 text-2xl font-semibold text-ink">Three steps to your first insight</h2>
+            <div className="mt-6 grid gap-3 md:grid-cols-3">
+              <a
+                href="/log-intervention"
+                className="group flex flex-col rounded-[22px] border border-ink/10 bg-paper p-4 transition hover:border-ink/20 hover:shadow-sm"
+              >
+                <div className="flex items-center gap-3">
+                  <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${currentRace ? 'bg-accent text-panel' : 'bg-ink/10 text-ink/50'}`}>
+                    {currentRace ? '✓' : '1'}
+                  </span>
+                  <p className="text-sm font-semibold text-ink">Set your target race</p>
+                </div>
+                <p className="mt-2 pl-10 text-xs leading-5 text-ink/55">
+                  {currentRace ? `Racing ${currentRace.name}` : 'Tell UltraOS what you\'re training for. Every intervention links to this.'}
+                </p>
+              </a>
+              <a
+                href="/settings"
+                className="group flex flex-col rounded-[22px] border border-ink/10 bg-paper p-4 transition hover:border-ink/20 hover:shadow-sm"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ink/10 text-xs font-bold text-ink/50">2</span>
+                  <p className="text-sm font-semibold text-ink">Fill in your baselines</p>
+                </div>
+                <p className="mt-2 pl-10 text-xs leading-5 text-ink/55">HR zones, fueling anchors, sweat rate. Makes your insights personal instead of generic.</p>
+              </a>
+              <a
+                href="/log-intervention"
+                className="group flex flex-col rounded-[22px] border border-ink/10 bg-paper p-4 transition hover:border-ink/20 hover:shadow-sm"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ink/10 text-xs font-bold text-ink/50">3</span>
+                  <p className="text-sm font-semibold text-ink">Log your first intervention</p>
+                </div>
+                <p className="mt-2 pl-10 text-xs leading-5 text-ink/55">Heat session, gut training run, bicarb trial — whatever you did last. That&apos;s your first data point.</p>
+              </a>
+            </div>
+          </section>
+        ) : null}
+
+        {!showDashboardEmptyState ? (
+        <>
         <section className="grid gap-4 md:grid-cols-4">
           <article className="rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
             <p className="text-sm uppercase tracking-[0.22em] text-accent">Connections</p>
@@ -470,7 +707,7 @@ export default function Dashboard() {
           </article>
           <article className="rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
             <p className="text-sm uppercase tracking-[0.22em] text-accent">Interventions</p>
-            <p className="mt-4 text-3xl font-semibold text-ink">{interventionCount}</p>
+            <p className="mt-4 text-3xl font-semibold text-ink">{trainingSummary.interventions}</p>
           </article>
           <article className="rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
             <p className="text-sm uppercase tracking-[0.22em] text-accent">AI Readiness</p>
@@ -517,28 +754,21 @@ export default function Dashboard() {
           <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
             <div className="flex items-center justify-between">
               <p className="text-sm uppercase tracking-[0.25em] text-accent">AI Insights</p>
-              <span className="rounded-full bg-paper px-3 py-1 text-xs text-ink/70">Athlete-facing cards</span>
+              <span className="rounded-full bg-paper px-3 py-1 text-xs text-ink/70">Current</span>
             </div>
             <div className="mt-5 space-y-4">
               {insightCards.map((card) => (
                 <div key={card.title} className="rounded-[24px] bg-paper p-4">
-                  <p className="text-sm font-semibold text-ink">{card.title}</p>
-                  <p className="mt-2 text-sm leading-6 text-ink/75">{card.body}</p>
+                  <p className="text-base font-semibold text-ink">{card.title}</p>
+                  <p className="mt-2 text-sm leading-7 text-ink/75">{card.body}</p>
                 </div>
               ))}
-              <a
-                href="/insights"
-                className="inline-flex rounded-full border border-ink/10 px-4 py-2 text-sm font-semibold text-ink transition hover:bg-white"
-              >
-                See the full insight-system rules
-              </a>
             </div>
           </div>
 
           <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
             <div className="flex items-center justify-between">
               <p className="text-sm uppercase tracking-[0.25em] text-accent">Protocol Signals</p>
-              <span className="rounded-full bg-paper px-3 py-1 text-xs text-ink/70">Interventions + baseline stack</span>
             </div>
             <div className="mt-5 space-y-4">
               {protocolTrendCards.map((card) => (
@@ -553,7 +783,6 @@ export default function Dashboard() {
           <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
             <div className="flex items-center justify-between">
               <p className="text-sm uppercase tracking-[0.25em] text-accent">Training Comparisons</p>
-              <span className="rounded-full bg-paper px-3 py-1 text-xs text-ink/70">Weekly load + intervention context</span>
             </div>
             <div className="mt-5 space-y-4">
               {trainingComparisonCards.map((card) => (
@@ -569,7 +798,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between">
               <p className="text-sm uppercase tracking-[0.25em] text-accent">Baseline Trends</p>
               <a href="/connections" className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/80">
-                Expand Sources
+                Connections
               </a>
             </div>
             <div className="mt-5 space-y-3">
@@ -577,7 +806,6 @@ export default function Dashboard() {
                 `${settings?.supplements?.filter((item) => item.supplement_name || item.amount).length || 0} baseline supplements are tracked.`,
                 `${settings?.sweat_sodium_concentration_mg_l || '-'} mg/L sweat sodium concentration is available for electrolyte comparison.`,
                 `${interventionCount} intervention records are ready to compare against training load.`,
-                'Supplement trends will surface here once more workouts and intervention pairings accumulate.',
               ].map((item) => (
                 <div key={item} className="rounded-[22px] border border-white/10 bg-white/5 p-4 text-sm text-white/80">
                   {item}
@@ -627,7 +855,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between">
               <p className="text-sm uppercase tracking-[0.25em] text-accent">Inference Inputs</p>
               <a href="/settings" className="rounded-full border border-ink/10 px-3 py-1 text-xs text-ink/80">
-                Edit Settings
+                Settings
               </a>
             </div>
             {settings ? (
@@ -662,7 +890,7 @@ export default function Dashboard() {
             ) : (
               <div className="mt-5 rounded-[24px] border border-ink/10 bg-paper p-4">
                 <p className="text-sm text-ink/75">
-                  Save HR zones and baseline settings so training trends and future insight quality improve.
+                  Add your baseline settings to fill this section.
                 </p>
               </div>
             )}
@@ -671,7 +899,6 @@ export default function Dashboard() {
           <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
             <div className="flex items-center justify-between">
               <p className="text-sm uppercase tracking-[0.25em] text-accent">Modality Breakdown</p>
-              <span className="rounded-full bg-paper px-3 py-1 text-xs text-ink/70">Run / bike / other</span>
             </div>
             <div className="mt-5 space-y-4">
               {modalityCards.map((card) => (
@@ -686,7 +913,6 @@ export default function Dashboard() {
           <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
             <div className="flex items-center justify-between">
               <p className="text-sm uppercase tracking-[0.25em] text-accent">Intervention Context</p>
-              <span className="rounded-full bg-paper px-3 py-1 text-xs text-ink/70">Phase / workout / race</span>
             </div>
             <div className="mt-5 space-y-4">
               {interventionContextCards.map((card) => (
@@ -702,8 +928,44 @@ export default function Dashboard() {
         <section className="mt-12 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
           <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
             <div className="flex items-center justify-between">
+              <p className="text-sm uppercase tracking-[0.25em] text-accent">Intervention History</p>
+              <span className="rounded-full bg-paper px-3 py-1 text-xs text-ink/70">Last 16 weeks</span>
+            </div>
+            <div className="mt-5">
+              <div className="grid grid-cols-[repeat(16,minmax(0,1fr))] gap-2">
+                {heatmapWeeks.map((week) => (
+                  <div key={week.key} className="grid gap-2">
+                    {week.days.map((day) => (
+                      <button
+                        key={day.key}
+                        type="button"
+                        onClick={() => day.entries.length && setHeatmapDay(day)}
+                        className={`h-5 w-5 rounded-[6px] transition ${getHeatmapTone(day.entries.length)} ${day.entries.length ? 'cursor-pointer' : 'cursor-default'}`}
+                        aria-label={`${day.label}: ${day.entries.length} interventions`}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 flex items-center gap-2 text-xs text-ink/60">
+                <span>less</span>
+                {[
+                  'bg-paper border border-ink/6',
+                  'bg-accent/18',
+                  'bg-accent/34',
+                  'bg-accent/58',
+                  'bg-accent',
+                ].map((tone) => (
+                  <span key={tone} className={`h-3 w-3 rounded-[4px] ${tone}`} />
+                ))}
+                <span>more</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+            <div className="flex items-center justify-between">
               <p className="text-sm uppercase tracking-[0.25em] text-accent">Race Focus</p>
-              <span className="rounded-full bg-paper px-3 py-1 text-xs text-ink/70">Target race slices</span>
             </div>
             <div className="mt-5 space-y-4">
               {raceFocusCards.map((card) => (
@@ -750,6 +1012,9 @@ export default function Dashboard() {
             </div>
           </div>
         </section>
+        <HeatmapModal day={heatmapDay} onClose={() => setHeatmapDay(null)} />
+        </>
+        ) : null}
       </div>
     </main>
   );

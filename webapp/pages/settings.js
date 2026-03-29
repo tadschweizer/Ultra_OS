@@ -125,27 +125,83 @@ function cascadeZones(currentForm, fieldName, value) {
 }
 
 function fieldClassName() {
-  return 'w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-ink';
+  return 'w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-ink focus:outline-none focus:ring-2 focus:ring-accent/30';
 }
 
-function ZoneRow({ label, minName, maxName, form, onChange }) {
+// ─── HR Zone Calculator ───────────────────────────────────────────────────────
+function calcZonesFromMaxHR(maxHR) {
+  const max = parseInt(maxHR, 10);
+  if (!max || max < 100 || max > 230) return null;
+  // 5-zone percent model (Friel / classic)
+  return {
+    hr_zone_1_min: 0,
+    hr_zone_1_max: Math.round(max * 0.60),
+    hr_zone_2_min: Math.round(max * 0.60) + 1,
+    hr_zone_2_max: Math.round(max * 0.70),
+    hr_zone_3_min: Math.round(max * 0.70) + 1,
+    hr_zone_3_max: Math.round(max * 0.80),
+    hr_zone_4_min: Math.round(max * 0.80) + 1,
+    hr_zone_4_max: Math.round(max * 0.90),
+    hr_zone_5_min: Math.round(max * 0.90) + 1,
+    hr_zone_5_max: max,
+  };
+}
+
+// ─── Tooltip label ────────────────────────────────────────────────────────────
+function FieldLabel({ children, tip }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-[80px_1fr_1fr] sm:items-center">
-      <p className="text-sm font-semibold text-ink">{label}</p>
-      <input type="number" name={minName} value={form[minName]} onChange={onChange} placeholder="Min" className={fieldClassName()} />
-      <input type="number" name={maxName} value={form[maxName]} onChange={onChange} placeholder="Max" className={fieldClassName()} />
+    <label className="mb-1 block">
+      <span className="text-sm font-semibold text-ink">{children}</span>
+      {tip ? <span className="ml-1.5 text-xs font-normal text-ink/40">{tip}</span> : null}
+    </label>
+  );
+}
+
+function ZoneRow({ label, minName, maxName, form, onChange, zoneDesc }) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-[100px_1fr_1fr_1fr] sm:items-center">
+      <div>
+        <p className="text-sm font-semibold text-ink">{label}</p>
+        {zoneDesc ? <p className="text-[10px] text-ink/40">{zoneDesc}</p> : null}
+      </div>
+      <input type="number" name={minName} value={form[minName]} onChange={onChange} placeholder="Min bpm" className={fieldClassName()} />
+      <input type="number" name={maxName} value={form[maxName]} onChange={onChange} placeholder="Max bpm" className={fieldClassName()} />
+      <div className="hidden sm:flex items-center">
+        {form[minName] && form[maxName] ? (
+          <span className="rounded-full border border-ink/10 bg-white px-3 py-1.5 text-xs font-mono text-ink/60">
+            {form[minName]}–{form[maxName]} bpm
+          </span>
+        ) : null}
+      </div>
     </div>
   );
 }
 
-function Section({ title, body, children }) {
+function Section({ title, body = null, children, defaultOpen = true }) {
+  const [open, setOpen] = useState(defaultOpen);
   return (
-    <section className="space-y-4 rounded-[28px] bg-paper p-5">
-      <div>
-        <p className="text-lg font-semibold text-ink">{title}</p>
-        <p className="text-sm text-ink/65">{body}</p>
-      </div>
-      {children}
+    <section className="rounded-[28px] bg-paper">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between px-5 pt-5 pb-4 text-left"
+      >
+        <div>
+          <p className="text-base font-semibold text-ink">{title}</p>
+          {body && !open ? <p className="mt-0.5 text-xs text-ink/45">{body}</p> : null}
+        </div>
+        <span className={`shrink-0 text-ink/30 transition-transform ${open ? 'rotate-180' : ''}`}>
+          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </span>
+      </button>
+      {open ? (
+        <div className="space-y-4 px-5 pb-5">
+          {body ? <p className="text-sm text-ink/55">{body}</p> : null}
+          {children}
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -154,8 +210,10 @@ export default function Settings() {
   const [form, setForm] = useState(emptySettings);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
+  const [calcMaxHR, setCalcMaxHR] = useState('');
   const navLinks = [
     { href: '/dashboard', label: 'UltraOS Home', description: 'Insights, trends, and recent training.' },
+    { href: '/guide', label: 'Guide', description: 'Learn how settings are used.' },
     { href: '/connections', label: 'Connections', description: 'Manage linked sources.' },
     { href: '/log-intervention', label: 'Log Intervention', description: 'Create a new intervention entry.' },
     { href: '/history', label: 'Intervention History', description: 'Review intervention records.' },
@@ -261,25 +319,16 @@ export default function Settings() {
             <div>
               <p className="text-sm uppercase tracking-[0.35em] text-accent">Athlete Profile</p>
               <h1 className="font-display mt-4 max-w-4xl text-5xl leading-tight md:text-7xl">Athlete Settings</h1>
-              <p className="mt-6 max-w-2xl text-lg leading-8 text-ink/80">
-                UltraOS needs stable anchors for altitude, fueling, hydration, sleep, and heart rate. This page is where those inputs live.
-              </p>
             </div>
 
             <div className="rounded-[34px] bg-panel p-6 text-white shadow-[0_40px_100px_rgba(0,0,0,0.28)]">
-              <p className="text-sm uppercase tracking-[0.25em] text-accent">Why These Matter</p>
+              <p className="text-sm uppercase tracking-[0.25em] text-accent">Settings</p>
               <div className="mt-5 space-y-4">
                 <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
-                  <p className="text-sm font-semibold text-white">Altitude and sleep location</p>
-                  <p className="mt-2 text-sm text-white/75">These make altitude tent work and high-elevation training sessions interpretable.</p>
+                  <p className="text-sm font-semibold text-white">Save the baselines you want UltraOS to use.</p>
                 </div>
                 <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
-                  <p className="text-sm font-semibold text-white">Fueling and hydration baselines</p>
-                  <p className="mt-2 text-sm text-white/75">Carbs, sodium, and sweat rate create meaningful comparisons across intervention blocks.</p>
-                </div>
-                <div className="rounded-[24px] border border-accent/30 bg-accent/10 p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-accent">Next Integration Path</p>
-                  <p className="mt-2 text-sm text-white/80">Resting HR can stay manual now and later be updated by Garmin or another wearable source.</p>
+                  <p className="text-sm font-semibold text-white">You can update these any time.</p>
                 </div>
               </div>
             </div>
@@ -288,77 +337,66 @@ export default function Settings() {
 
         <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
           <form onSubmit={handleSubmit} className="space-y-6 rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-            {message ? <p className="rounded-2xl border border-accent/30 bg-accent/10 px-4 py-3 text-sm text-ink">{message}</p> : null}
-
-            <Section title="Altitude Baselines" body="These anchor altitude tent, camp, and high-elevation workout interpretation.">
+            <Section title="Altitude Baselines" body="Used to contextualize altitude acclimation interventions and flag unusual training elevations.">
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="mb-1 block text-sm font-semibold text-ink">Baseline Sleep Altitude (ft)</label>
-                  <input type="number" name="baseline_sleep_altitude_ft" value={form.baseline_sleep_altitude_ft} onChange={handleChange} className={fieldClassName()} />
+                  <FieldLabel tip="Where you live / sleep">Baseline Sleep Altitude (ft)</FieldLabel>
+                  <input type="number" name="baseline_sleep_altitude_ft" value={form.baseline_sleep_altitude_ft} onChange={handleChange} placeholder="e.g. 5280 for Denver" className={fieldClassName()} />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-semibold text-ink">Typical Training Altitude (ft)</label>
-                  <input type="number" name="baseline_training_altitude_ft" value={form.baseline_training_altitude_ft} onChange={handleChange} className={fieldClassName()} />
+                  <FieldLabel tip="Where you typically run">Typical Training Altitude (ft)</FieldLabel>
+                  <input type="number" name="baseline_training_altitude_ft" value={form.baseline_training_altitude_ft} onChange={handleChange} placeholder="e.g. 6000" className={fieldClassName()} />
                 </div>
               </div>
             </Section>
 
-            <Section title="Physiology Anchors" body="These are stable enough to improve interpretation before wearable integrations are live.">
+            <Section title="Physiology Anchors" body="Used to calculate bicarb doses, caffeine doses, hydration targets, and HR zone ranges.">
               <div className="grid gap-4 md:grid-cols-3">
                 <div>
-                  <label className="mb-1 block text-sm font-semibold text-ink">Resting HR</label>
-                  <input type="number" name="resting_hr" value={form.resting_hr} onChange={handleChange} className={fieldClassName()} />
+                  <FieldLabel tip="beats per min, morning">Resting HR</FieldLabel>
+                  <input type="number" name="resting_hr" value={form.resting_hr} onChange={handleChange} placeholder="e.g. 48" className={fieldClassName()} />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-semibold text-ink">Max HR</label>
-                  <input type="number" name="max_hr" value={form.max_hr} onChange={handleChange} className={fieldClassName()} />
+                  <FieldLabel tip="used for zone calculator">Max HR</FieldLabel>
+                  <input type="number" name="max_hr" value={form.max_hr} onChange={handleChange} placeholder="e.g. 185" className={fieldClassName()} />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-semibold text-ink">Body Weight (lb)</label>
-                  <input type="number" name="body_weight_lb" value={form.body_weight_lb} onChange={handleChange} className={fieldClassName()} />
+                  <FieldLabel tip="used for dose calculations">Body Weight (lb)</FieldLabel>
+                  <input type="number" name="body_weight_lb" value={form.body_weight_lb} onChange={handleChange} placeholder="e.g. 155" className={fieldClassName()} />
                 </div>
               </div>
             </Section>
 
-            <Section title="Fueling + Hydration Baselines" body="These are practical reference points for gut training, sodium, and race-day intervention review.">
+            <Section title="Fueling + Hydration Baselines" body="Your current long-run carb and hydration norms. Used to calculate gaps vs race-day targets in the Race Blueprint.">
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="mb-1 block text-sm font-semibold text-ink">Normal Long-Run Carbs (g/hr)</label>
-                  <input type="number" name="normal_long_run_carb_g_per_hr" value={form.normal_long_run_carb_g_per_hr} onChange={handleChange} className={fieldClassName()} />
+                  <FieldLabel tip="your current gut training baseline">Long-Run Carb Intake (g/hr)</FieldLabel>
+                  <input type="number" name="normal_long_run_carb_g_per_hr" value={form.normal_long_run_carb_g_per_hr} onChange={handleChange} placeholder="e.g. 60" className={fieldClassName()} />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-semibold text-ink">Sodium Target (mg/hr)</label>
-                  <input type="number" name="sodium_target_mg_per_hr" value={form.sodium_target_mg_per_hr} onChange={handleChange} className={fieldClassName()} />
+                  <FieldLabel tip="target on long runs in heat">Sweat Rate (L/hr)</FieldLabel>
+                  <input type="number" step="0.1" name="sweat_rate_l_per_hr" value={form.sweat_rate_l_per_hr} onChange={handleChange} placeholder="e.g. 1.2" className={fieldClassName()} />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-semibold text-ink">Sweat Rate (L/hr)</label>
-                  <input type="number" step="0.1" name="sweat_rate_l_per_hr" value={form.sweat_rate_l_per_hr} onChange={handleChange} className={fieldClassName()} />
+                  <FieldLabel tip="from sweat test or estimate">Sodium Target (mg/hr)</FieldLabel>
+                  <input type="number" name="sodium_target_mg_per_hr" value={form.sodium_target_mg_per_hr} onChange={handleChange} placeholder="e.g. 300" className={fieldClassName()} />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-semibold text-ink">Typical Sleep (hours)</label>
-                  <input type="number" step="0.1" name="typical_sleep_hours" value={form.typical_sleep_hours} onChange={handleChange} className={fieldClassName()} />
+                  <FieldLabel tip="used for sleep vs performance correlation">Typical Sleep (hours/night)</FieldLabel>
+                  <input type="number" step="0.1" name="typical_sleep_hours" value={form.typical_sleep_hours} onChange={handleChange} placeholder="e.g. 7.5" className={fieldClassName()} />
+                </div>
+                <div>
+                  <FieldLabel tip="from sweat sodium test">Sweat Sodium Concentration (mg/L)</FieldLabel>
+                  <input type="number" name="sweat_sodium_concentration_mg_l" value={form.sweat_sodium_concentration_mg_l} onChange={handleChange} placeholder="e.g. 900" className={fieldClassName()} />
+                </div>
+                <div>
+                  <FieldLabel tip="ml/hr race-day fluid goal">Fluid Target (ml/hr)</FieldLabel>
+                  <input type="number" name="fluid_target_ml_per_hr" value={form.fluid_target_ml_per_hr} onChange={handleChange} placeholder="e.g. 700" className={fieldClassName()} />
                 </div>
               </div>
             </Section>
 
-            <Section title="Electrolyte Baselines" body="Units follow common field practice: sweat sodium concentration in mg/L and intake targets in mg/hr or ml/hr.">
-              <div className="grid gap-4 md:grid-cols-3">
-                <div>
-                  <label className="mb-1 block text-sm font-semibold text-ink">Sweat Sodium Concentration (mg/L)</label>
-                  <input type="number" name="sweat_sodium_concentration_mg_l" value={form.sweat_sodium_concentration_mg_l} onChange={handleChange} className={fieldClassName()} />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-semibold text-ink">Sodium Target (mg/hr)</label>
-                  <input type="number" name="sodium_target_mg_per_hr" value={form.sodium_target_mg_per_hr} onChange={handleChange} className={fieldClassName()} />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-semibold text-ink">Fluid Target (ml/hr)</label>
-                  <input type="number" name="fluid_target_ml_per_hr" value={form.fluid_target_ml_per_hr} onChange={handleChange} className={fieldClassName()} />
-                </div>
-              </div>
-            </Section>
-
-            <Section title="Baseline Supplements" body="Track your regular stack with dose, units, and daily frequency so later analysis can separate baseline behavior from interventions.">
+            <Section title="Baseline Supplements">
               <div className="space-y-3">
                 {form.supplements.map((item, index) => (
                   <div key={`supplement-${index}`} className="grid gap-3 md:grid-cols-[1.2fr_0.8fr_0.8fr_0.9fr_auto] md:items-center">
@@ -408,39 +446,76 @@ export default function Settings() {
               </div>
             </Section>
 
-            <Section title="Heart Rate Zones" body="Zone boundaries now cascade both directions. Raising Zone 2 min will set Zone 1 max to one beat lower, and raising Zone 2 max will set Zone 3 min to one beat higher.">
-              <div className="space-y-3">
-                <ZoneRow label="Zone 1" minName="hr_zone_1_min" maxName="hr_zone_1_max" form={form} onChange={handleChange} />
-                <ZoneRow label="Zone 2" minName="hr_zone_2_min" maxName="hr_zone_2_max" form={form} onChange={handleChange} />
-                <ZoneRow label="Zone 3" minName="hr_zone_3_min" maxName="hr_zone_3_max" form={form} onChange={handleChange} />
-                <ZoneRow label="Zone 4" minName="hr_zone_4_min" maxName="hr_zone_4_max" form={form} onChange={handleChange} />
-                <ZoneRow label="Zone 5" minName="hr_zone_5_min" maxName="hr_zone_5_max" form={form} onChange={handleChange} />
+            <Section title="Heart Rate Zones" body="Zone 2 ceiling is used by the Race Blueprint and AI analysis to flag aerobic drift. Set these manually or use the calculator.">
+              {/* Zone calculator */}
+              <div className="rounded-[18px] border border-accent/25 bg-accent/6 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">Zone Calculator</p>
+                <p className="mt-1 text-xs text-ink/55">Enter your max HR and click Calculate to auto-fill all zones using the standard 5-zone % model.</p>
+                <div className="mt-3 flex items-center gap-3">
+                  <input
+                    type="number"
+                    value={calcMaxHR || form.max_hr}
+                    onChange={(e) => setCalcMaxHR(e.target.value)}
+                    placeholder="Max HR (bpm)"
+                    className="w-36 rounded-2xl border border-ink/10 bg-white px-4 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-accent/30"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const zones = calcZonesFromMaxHR(calcMaxHR || form.max_hr);
+                      if (!zones) return;
+                      setForm((prev) => ({
+                        ...prev,
+                        ...Object.fromEntries(Object.entries(zones).map(([k, v]) => [k, String(v)])),
+                      }));
+                    }}
+                    className="rounded-full bg-ink px-4 py-2.5 text-xs font-semibold text-paper"
+                  >
+                    Calculate zones →
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="hidden grid-cols-[100px_1fr_1fr_1fr] gap-3 sm:grid">
+                  <span />
+                  <span className="text-xs font-semibold text-ink/40">Min bpm</span>
+                  <span className="text-xs font-semibold text-ink/40">Max bpm</span>
+                  <span />
+                </div>
+                <ZoneRow label="Zone 1" zoneDesc="< 60% · Recovery" minName="hr_zone_1_min" maxName="hr_zone_1_max" form={form} onChange={handleChange} />
+                <ZoneRow label="Zone 2" zoneDesc="60-70% · Aerobic base" minName="hr_zone_2_min" maxName="hr_zone_2_max" form={form} onChange={handleChange} />
+                <ZoneRow label="Zone 3" zoneDesc="70-80% · Tempo" minName="hr_zone_3_min" maxName="hr_zone_3_max" form={form} onChange={handleChange} />
+                <ZoneRow label="Zone 4" zoneDesc="80-90% · Threshold" minName="hr_zone_4_min" maxName="hr_zone_4_max" form={form} onChange={handleChange} />
+                <ZoneRow label="Zone 5" zoneDesc="90-100% · VO2 max" minName="hr_zone_5_min" maxName="hr_zone_5_max" form={form} onChange={handleChange} />
               </div>
             </Section>
 
-            <Section title="Notes" body="Stable context that matters later: heat tolerance, GI triggers, regular sleep location shifts, and similar anchors.">
+            <Section title="Notes">
               <textarea name="notes" value={form.notes} onChange={handleChange} rows={5} className={fieldClassName()} />
             </Section>
 
-            <button type="submit" className="rounded-full bg-ink px-6 py-3 font-semibold text-paper">Save Settings</button>
+            <div className="flex items-center gap-4">
+              <button type="submit" className="rounded-full bg-ink px-8 py-3 text-sm font-semibold text-paper shadow-[0_4px_14px_rgba(19,24,22,0.18)] transition hover:opacity-90">
+                Save Settings
+              </button>
+              {message === 'Settings saved.' ? (
+                <span className="text-sm font-semibold text-emerald-600">✓ Saved</span>
+              ) : message ? (
+                <span className="text-sm text-red-600">{message}</span>
+              ) : null}
+            </div>
           </form>
 
           <aside className="space-y-5">
-            <div className="rounded-[30px] bg-[linear-gradient(135deg,#1b2421_0%,#29302d_100%)] p-6 text-white">
-              <p className="text-sm uppercase tracking-[0.25em] text-accent">Helpful Baselines</p>
-              <ul className="mt-4 space-y-3 text-sm text-white/80">
-                <li>Sleep altitude and training altitude make altitude tent work interpretable.</li>
-                <li>Body weight matters for protocols dosed per kilogram and hydration analysis.</li>
-                <li>Carb, sweat, and sodium baselines make fueling interventions comparable across sessions.</li>
-                <li>Typical sleep hours make sleep interventions more meaningful than a free-text note alone.</li>
-              </ul>
-            </div>
-
             <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-              <p className="text-sm uppercase tracking-[0.25em] text-accent">How This Feeds Insights</p>
+              <p className="text-sm uppercase tracking-[0.25em] text-accent">Need help?</p>
               <p className="mt-4 text-sm leading-6 text-ink/75">
-                UltraOS is trying to compare intervention blocks against training response. Without stable baselines, later AI claims would be weak.
+                Open the guide for a quick explanation of what these settings affect.
               </p>
+              <a href="/guide" className="mt-4 inline-flex rounded-full border border-ink/10 px-4 py-2 text-sm font-semibold text-ink">
+                Open Guide
+              </a>
             </div>
           </aside>
         </div>
