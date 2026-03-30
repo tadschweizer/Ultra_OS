@@ -85,14 +85,10 @@ function DefaultField({ field, value, onChange }) {
     );
   }
 
-  const isResponseScale = field.type === 'number' && field.min === 1 && field.max === 10;
-  const scaleHint = isResponseScale ? ' (1 = worst, 10 = best)' : '';
-
   return (
     <div>
       <label className="mb-1 block text-sm font-semibold text-ink">
         {field.label}
-        {scaleHint ? <span className="ml-1 font-normal text-ink/50">{scaleHint}</span> : null}
       </label>
       <input
         type={field.type === 'number' ? 'number' : 'text'}

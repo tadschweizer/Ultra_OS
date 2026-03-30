@@ -78,6 +78,22 @@ function getActivityDate(activity) {
   return activity.start_date.slice(0, 10);
 }
 
+function inferSessionType(activity) {
+  const { family } = classifyActivityType(activity);
+  const name = (activity.name || '').toLowerCase();
+
+  if (family === 'bike') return 'Bike';
+  if (family === 'hike') return 'Hike';
+  if (family === 'run') {
+    if (/race/.test(name)) return 'Race';
+    if (/long/.test(name)) return 'Long Run';
+    if (/tempo|threshold/.test(name)) return 'Tempo / Threshold';
+    if (/interval/.test(name)) return 'Intervals';
+    return 'Easy Run';
+  }
+  return 'Other';
+}
+
 function getPersistedRace() {
   if (typeof window === 'undefined') return {};
   const storedRace = window.localStorage.getItem(defaultRaceStorageKey);
@@ -417,11 +433,28 @@ export default function LogIntervention() {
 
   const handleActivitySelect = (activityId) => {
     const nextActivity = activities.find((activity) => activity.id.toString() === activityId);
-    setForm((currentForm) => ({
-      ...currentForm,
-      activity_id: activityId,
-      date: nextActivity ? getActivityDate(nextActivity) : currentForm.date,
-    }));
+    setForm((currentForm) => {
+      const nextForm = {
+        ...currentForm,
+        activity_id: activityId,
+        date: nextActivity ? getActivityDate(nextActivity) : currentForm.date,
+      };
+
+      if (nextActivity && currentForm.intervention_type === 'Workout Check-in') {
+        const sessionType = inferSessionType(nextActivity);
+        const durationMinutes = nextActivity.moving_time ? Math.round(nextActivity.moving_time / 60) : undefined;
+        const avgHr = nextActivity.average_heartrate ? Math.round(nextActivity.average_heartrate) : undefined;
+
+        nextForm.protocol_payload = {
+          ...currentForm.protocol_payload,
+          session_type: sessionType,
+          ...(durationMinutes !== undefined ? { duration_minutes: durationMinutes } : {}),
+          ...(avgHr !== undefined ? { avg_hr: avgHr } : {}),
+        };
+      }
+
+      return nextForm;
+    });
   };
 
   const handleProtocolFieldChange = (fieldKey, value) => {
