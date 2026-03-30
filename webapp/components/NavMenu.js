@@ -123,18 +123,16 @@ export default function NavMenu({ primaryLink = null }) {
       {/* Backdrop — tap to dismiss */}
       {open ? (
         <div
-          className="fixed inset-0 z-40 bg-ink/30 backdrop-blur-[2px]"
+          className="fixed inset-0 z-[45] bg-ink/30 backdrop-blur-[2px]"
           onClick={() => setOpen(false)}
           aria-hidden="true"
         />
       ) : null}
 
-      {/* Slide-up bottom sheet */}
+      {/* Slide-up bottom sheet — only rendered when open to avoid iOS fixed-in-sticky positioning bugs */}
+      {open ? (
       <div
-        aria-hidden={!open}
-        className={`fixed inset-x-0 bottom-0 z-50 transition-transform duration-300 ease-out lg:hidden ${
-          open ? 'translate-y-0' : 'translate-y-full'
-        }`}
+        className="fixed inset-x-0 bottom-0 z-50 lg:hidden animate-slide-up"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <div className="rounded-t-[32px] bg-white shadow-[0_-8px_40px_rgba(19,24,22,0.18)]">
@@ -236,6 +234,7 @@ export default function NavMenu({ primaryLink = null }) {
           </div>
         </div>
       </div>
+      ) : null}
     </div>
   );
 }
