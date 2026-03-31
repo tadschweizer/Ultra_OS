@@ -377,11 +377,6 @@ export function buildInsightCards(activities = [], interventionCount = 0, settin
           ? `Recent training includes ${trailRunCount} trail runs and ${bikeRideCount} bike-oriented sessions, so intervention review can start separating modality instead of treating everything like generic mileage.`
           : 'Activity modality is now being inferred from Strava sport type plus terrain signals. The next step is making this durable across every connected platform.',
     },
-    {
-      title: 'Future Parsing Path',
-      body:
-        'Next layer: ingest planned workout text from connected platforms and merge it with HR, duration, and terrain so UltraOS can distinguish threshold work from easy mileage and hill strides from generic climbs.',
-    },
   ];
 }
 

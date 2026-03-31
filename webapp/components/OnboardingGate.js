@@ -21,6 +21,11 @@ export default function OnboardingGate({ children }) {
       try {
         const res = await fetch('/api/me');
         if (!res.ok) {
+          // 401 = not authenticated — redirect to login instead of silently continuing
+          if (res.status === 401) {
+            router.replace(`/login?next=${encodeURIComponent(path)}`);
+            return;
+          }
           setStatus('ready');
           return;
         }

@@ -36,24 +36,49 @@ export default async function handler(req, res) {
     const tokenData = await exchangeToken(code, clientId, clientSecret, redirectUri);
     const { access_token, refresh_token, expires_at, athlete } = tokenData;
     const athleteName = [athlete.firstname, athlete.lastname].filter(Boolean).join(' ').trim();
-    const { data: savedAthlete, error: athleteError } = await supabase
-      .from('athletes')
-      .upsert(
-        {
-          name: athleteName || null,
-          email: athlete.email || null,
+    // If user is already authenticated (email/Google login), link Strava to that account.
+    // Otherwise, create/update via Strava upsert (original behaviour for direct Strava auth).
+    const existingAthleteId = cookies.athlete_id;
+    let savedAthlete;
+
+    if (existingAthleteId) {
+      // Linking Strava to an existing email/Google account
+      const adminClient = getAdminClient();
+      const client = adminClient || supabase;
+      const { data: linked, error: linkError } = await client
+        .from('athletes')
+        .update({
           strava_id: athlete.id.toString(),
           access_token,
           refresh_token,
           token_expires_at: new Date(expires_at * 1000).toISOString(),
-        },
-        { onConflict: 'strava_id' }
-      )
-      .select('id, onboarding_complete, name')
-      .single();
-    if (athleteError) {
-      throw athleteError;
+        })
+        .eq('id', existingAthleteId)
+        .select('id, onboarding_complete, name')
+        .single();
+      if (linkError) throw linkError;
+      savedAthlete = linked;
+    } else {
+      // No existing session — create or update athlete via Strava upsert
+      const { data: upserted, error: athleteError } = await supabase
+        .from('athletes')
+        .upsert(
+          {
+            name: athleteName || null,
+            email: athlete.email || null,
+            strava_id: athlete.id.toString(),
+            access_token,
+            refresh_token,
+            token_expires_at: new Date(expires_at * 1000).toISOString(),
+          },
+          { onConflict: 'strava_id' }
+        )
+        .select('id, onboarding_complete, name')
+        .single();
+      if (athleteError) throw athleteError;
+      savedAthlete = upserted;
     }
+
     const athleteId = savedAthlete.id;
 
     // If there's a pending invite token cookie, mark it used now

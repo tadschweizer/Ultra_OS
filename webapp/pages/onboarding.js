@@ -350,12 +350,12 @@ export default function OnboardingPage() {
       </section>,
       <section key="strava" className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr]">
         <div>
-          <p className="text-sm uppercase tracking-[0.35em] text-accent">Training context</p>
+          <p className="text-sm uppercase tracking-[0.35em] text-accent">Training context (optional)</p>
           <h1 className="font-display mt-4 text-5xl leading-tight md:text-7xl">
-            Connect Strava to add training context to every protocol you log
+            Connect Strava to link interventions to specific workouts
           </h1>
           <p className="mt-6 max-w-2xl text-base leading-8 text-ink/76">
-            UltraOS uses your Strava activity data to link interventions to specific workouts — so you can see whether your heat block happened on a hard week or an easy week.
+            UltraOS uses your Strava activity data to show whether your heat block happened on a hard week or an easy week. You can skip this now and connect from the Connections page any time.
           </p>
         </div>
 
