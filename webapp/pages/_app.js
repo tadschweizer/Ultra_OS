@@ -47,6 +47,7 @@ export default function MyApp({ Component, pageProps }) {
     <div className={mono.variable}>
       <Head>
         <title>{title}</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#EAE4DA" />
         <meta name="description" content="Performance intelligence for athletes who go long." />
         <meta property="og:title" content={title} />
