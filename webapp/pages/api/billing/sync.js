@@ -1,8 +1,9 @@
-import { getAthleteByCookie, getSupabaseAdminClient } from '../../../lib/authServer';
+import { getAthleteByCookie, getSupabaseAdminClient, setAthleteCookie } from '../../../lib/authServer';
 import { getTierFromPriceId } from '../../../lib/billingPlans';
 import { getStripeClient } from '../../../lib/stripeServer';
 import { supabase } from '../../../lib/supabaseClient';
 import cookie from 'cookie';
+import crypto from 'crypto';
 
 function isActiveSubscriptionStatus(status) {
   return status === 'active' || status === 'trialing' || status === 'past_due';
@@ -74,13 +75,66 @@ async function findLatestRelevantSubscription(stripe, customerId) {
 }
 
 function clearPendingCheckoutCookie(res) {
-  res.setHeader('Set-Cookie', cookie.serialize('pending_checkout_session_id', '', {
-    httpOnly: false,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 0,
-  }));
+  const cookiesToSet = [
+    cookie.serialize('pending_checkout_session_id', '', {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 0,
+    }),
+    cookie.serialize('pending_billing_state', '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 0,
+    }),
+  ];
+
+  const current = res.getHeader('Set-Cookie');
+  if (!current) {
+    res.setHeader('Set-Cookie', cookiesToSet);
+    return;
+  }
+
+  const existing = Array.isArray(current) ? current : [current];
+  res.setHeader('Set-Cookie', [...existing, ...cookiesToSet]);
+}
+
+function verifyPendingBillingState(value) {
+  if (!value) return null;
+
+  const secret = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!secret) {
+    throw new Error('Missing required environment variable: SUPABASE_SERVICE_ROLE_KEY');
+  }
+
+  const [encodedPayload, providedSignature] = value.split('.');
+  if (!encodedPayload || !providedSignature) {
+    return null;
+  }
+
+  const expectedSignature = crypto
+    .createHmac('sha256', secret)
+    .update(encodedPayload)
+    .digest('base64url');
+
+  const providedBuffer = Buffer.from(providedSignature);
+  const expectedBuffer = Buffer.from(expectedSignature);
+  if (providedBuffer.length !== expectedBuffer.length) {
+    return null;
+  }
+
+  if (!crypto.timingSafeEqual(providedBuffer, expectedBuffer)) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8'));
+  } catch {
+    return null;
+  }
 }
 
 export default async function handler(req, res) {
@@ -90,21 +144,23 @@ export default async function handler(req, res) {
   }
 
   try {
+    const cookies = cookie.parse(req.headers.cookie || '');
+    const recoveryState = verifyPendingBillingState(cookies.pending_billing_state);
     const athlete = await getAthleteByCookie(req, supabase);
-    if (!athlete) {
+    const athleteId = athlete?.id || recoveryState?.athleteId || null;
+    if (!athleteId) {
       res.status(401).json({ error: 'Not authenticated.' });
       return;
     }
 
     const stripe = getStripeClient();
-    const cookies = cookie.parse(req.headers.cookie || '');
-    const sessionId = req.body?.sessionId || cookies.pending_checkout_session_id || null;
+    const sessionId = req.body?.sessionId || recoveryState?.sessionId || cookies.pending_checkout_session_id || null;
     let customerId = null;
     let subscription = null;
 
     if (sessionId) {
       const session = await stripe.checkout.sessions.retrieve(sessionId);
-      if (session.metadata?.athlete_id && session.metadata.athlete_id !== athlete.id) {
+      if (session.metadata?.athlete_id && session.metadata.athlete_id !== athleteId) {
         res.status(403).json({ error: 'Checkout session does not belong to this account.' });
         return;
       }
@@ -122,7 +178,16 @@ export default async function handler(req, res) {
     }
 
     if (!customerId) {
-      customerId = await findCustomerIdForAthlete(stripe, athlete);
+      const athleteRecord = athlete || await getSupabaseAdminClient()
+        .from('athletes')
+        .select('*')
+        .eq('id', athleteId)
+        .single()
+        .then(({ data, error }) => {
+          if (error) throw error;
+          return data;
+        });
+      customerId = await findCustomerIdForAthlete(stripe, athleteRecord);
     }
 
     if (!subscription) {
@@ -133,20 +198,21 @@ export default async function handler(req, res) {
       res.status(200).json({
         synced: false,
         athlete: {
-          id: athlete.id,
-          subscription_tier: athlete.subscription_tier,
-          stripe_subscription_status: athlete.stripe_subscription_status || null,
+          id: athleteId,
+          subscription_tier: athlete?.subscription_tier || 'free',
+          stripe_subscription_status: athlete?.stripe_subscription_status || null,
         },
       });
       return;
     }
 
     const updatedAthlete = await writeSubscriptionToAthlete({
-      athleteId: athlete.id,
+      athleteId,
       customerId,
       subscription,
     });
 
+    setAthleteCookie(res, athleteId);
     clearPendingCheckoutCookie(res);
 
     res.status(200).json({

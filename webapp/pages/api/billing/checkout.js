@@ -3,6 +3,7 @@ import { getBillingPlan, getBillingPriceId } from '../../../lib/billingPlans';
 import { getStripeClient } from '../../../lib/stripeServer';
 import { supabase } from '../../../lib/supabaseClient';
 import cookie from 'cookie';
+import crypto from 'crypto';
 
 function getRequestOrigin(req) {
   const forwardedProto = req.headers['x-forwarded-proto'];
@@ -32,6 +33,21 @@ function appendSetCookie(res, nextCookie) {
 
   const cookies = Array.isArray(current) ? current : [current];
   res.setHeader('Set-Cookie', [...cookies, nextCookie]);
+}
+
+function signPendingBillingState(payload) {
+  const secret = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!secret) {
+    throw new Error('Missing required environment variable: SUPABASE_SERVICE_ROLE_KEY');
+  }
+
+  const encodedPayload = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const signature = crypto
+    .createHmac('sha256', secret)
+    .update(encodedPayload)
+    .digest('base64url');
+
+  return `${encodedPayload}.${signature}`;
 }
 
 export default async function handler(req, res) {
@@ -91,6 +107,20 @@ export default async function handler(req, res) {
         path: '/',
         maxAge: 60 * 60,
       })
+    );
+    appendSetCookie(
+      res,
+      cookie.serialize(
+        'pending_billing_state',
+        signPendingBillingState({ athleteId: athlete.id, sessionId: session.id }),
+        {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          path: '/',
+          maxAge: 60 * 60,
+        }
+      )
     );
 
     res.redirect(303, session.url);
