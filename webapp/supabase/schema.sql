@@ -4,16 +4,26 @@ create table if not exists public.athletes (
   id uuid primary key default gen_random_uuid(),
   name text,
   email text,
+  supabase_user_id uuid unique,
   strava_id text unique,
   access_token text,
   refresh_token text,
   token_expires_at timestamptz,
+  subscription_tier text not null default 'free' check (subscription_tier in ('free', 'research', 'individual', 'coach')),
+  subscription_activated_at timestamptz,
+  stripe_customer_id text unique,
+  stripe_subscription_id text unique,
+  stripe_price_id text,
+  stripe_subscription_status text,
   onboarding_complete boolean not null default false,
   primary_sports text[] not null default '{}'::text[],
   years_racing_band text,
   weekly_training_hours_band text,
   home_elevation_ft integer
 );
+
+create index if not exists idx_athletes_supabase_user_id
+  on public.athletes (supabase_user_id);
 
 create table if not exists public.interventions (
   id uuid primary key default gen_random_uuid(),

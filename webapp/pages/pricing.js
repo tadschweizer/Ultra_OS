@@ -22,7 +22,7 @@ const tiers = [
       'Bookmark studies for race week',
       'Sport-relevance scores (ultra / gravel / triathlon)',
     ],
-    stripeUrl: 'https://buy.stripe.com/test_bJe00k2Jh4WYbaL1hgbAs00',
+    checkoutPlan: 'research_monthly',
     cta: 'Start Research Feed',
     bestValue: false,
     highlight: false,
@@ -43,7 +43,7 @@ const tiers = [
       'Post-race outcome debrief',
       'Strava activity sync',
     ],
-    stripeUrl: 'https://buy.stripe.com/test_00wfZifw33SU0w79NMbAs01',
+    checkoutPlan: 'individual_monthly',
     cta: 'Start Individual Monthly',
     bestValue: false,
     highlight: false,
@@ -60,7 +60,7 @@ const tiers = [
       'Lowest per-month price',
       'Priority feature access',
     ],
-    stripeUrl: 'https://buy.stripe.com/test_9B6fZigA79de3Ije42bAs02',
+    checkoutPlan: 'individual_annual',
     cta: 'Start Individual Annual',
     bestValue: true,
     highlight: true,
@@ -79,7 +79,7 @@ const tiers = [
       'Coach notes per athlete',
       'Athlete progress monitoring',
     ],
-    stripeUrl: 'https://buy.stripe.com/test_3cIaEY1Fd9degv50dcbAs03',
+    checkoutPlan: 'coach_monthly',
     cta: 'Start Coach Monthly',
     bestValue: false,
     highlight: false,
@@ -96,7 +96,7 @@ const tiers = [
       'Lowest per-month coach price',
       'Priority feature access',
     ],
-    stripeUrl: 'https://buy.stripe.com/test_bJecN6fw3gFGfr19NMbAs04',
+    checkoutPlan: 'coach_annual',
     cta: 'Start Coach Annual',
     bestValue: true,
     highlight: false,
@@ -106,7 +106,7 @@ const tiers = [
 const faq = [
   {
     q: 'Is UltraOS free right now?',
-    a: 'Yes — UltraOS is in free beta. All features are available to explore at no cost while we build together. Paid plans activate when we exit beta.',
+    a: 'UltraOS has a real free tier. You can create an account, use the research library, and explore the app before upgrading to unlock unlimited logging, full insights, and coach features.',
   },
   {
     q: 'Can I cancel anytime?',
@@ -159,7 +159,7 @@ export default function PricingPage() {
             <NavMenu
               label="Pricing navigation"
               links={athleteId ? [{ href: '/dashboard', label: 'Dashboard' }, ...navLinks.slice(1)] : navLinks}
-              primaryLink={{ href: athleteId ? '/dashboard' : '/api/strava/login', label: athleteId ? 'Open App' : 'Login' }}
+              primaryLink={{ href: athleteId ? '/dashboard' : '/login', label: athleteId ? 'Open App' : 'Login' }}
             />
           </div>
         </div>
@@ -174,13 +174,13 @@ export default function PricingPage() {
             Simple pricing.<br />No surprises.
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-base leading-8 text-ink/65">
-            Start free during beta. Pick the plan that matches how you use UltraOS.
+            Start on the free tier, then upgrade when you want deeper logging, premium insights, or coach workflows.
           </p>
           {/* Beta banner */}
           <div className="mt-7 inline-flex items-center gap-3 rounded-full border border-accent/30 bg-accent/10 px-6 py-3">
             <span className="h-2 w-2 rounded-full bg-accent" />
             <p className="text-sm font-semibold text-ink">
-              Free beta — all features available now, no payment required
+              Free tier available now — upgrade only when you need more depth
             </p>
           </div>
         </section>
@@ -226,9 +226,7 @@ export default function PricingPage() {
               </ul>
 
               <a
-                href={tier.stripeUrl}
-                target="_blank"
-                rel="noopener noreferrer"
+                href={`/api/billing/checkout?plan=${encodeURIComponent(tier.checkoutPlan)}`}
                 className={`mt-7 block rounded-full px-5 py-3 text-center text-sm font-semibold transition ${
                   tier.highlight
                     ? 'bg-ink text-paper shadow-[0_4px_16px_rgba(19,24,22,0.2)] hover:opacity-85'
@@ -309,13 +307,13 @@ export default function PricingPage() {
               Free during beta. No card needed.
             </h2>
             <p className="mx-auto mt-4 max-w-lg text-sm leading-7 text-white/55">
-              Connect Strava, log your first intervention, and let UltraOS start finding your patterns — all at no cost while we build the product together.
+              Create a free account, connect your training sources, and upgrade when you are ready for full insight unlocks and premium workflows.
             </p>
             <a
-              href={athleteId ? '/dashboard' : '/api/strava/login'}
+              href={athleteId ? '/dashboard' : '/signup'}
               className="mt-8 inline-flex items-center gap-2 rounded-full bg-accent px-8 py-4 text-sm font-semibold text-white shadow-[0_4px_20px_rgba(245,158,11,0.4)] transition hover:opacity-90"
             >
-              {athleteId ? 'Go to Dashboard →' : 'Connect with Strava →'}
+              {athleteId ? 'Go to Dashboard →' : 'Create Free Account →'}
             </a>
           </div>
         </section>

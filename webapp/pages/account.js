@@ -1,14 +1,23 @@
 import { useEffect, useState } from 'react';
 import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
-import { planOptions, usePlan } from '../lib/planUtils';
+import { createClient } from '@supabase/supabase-js';
+import { usePlan } from '../lib/planUtils';
+
+function getSupabaseClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
+}
 
 export default function AccountPage() {
-  const { planId, setPlanId, planLabel } = usePlan();
+  const { planLabel, planId } = usePlan();
   const [coachCode, setCoachCode] = useState('');
   const [coachRole, setCoachRole] = useState('primary');
   const [coachConnections, setCoachConnections] = useState([]);
   const [coachMessage, setCoachMessage] = useState('');
+  const [loggingOut, setLoggingOut] = useState(false);
   const navLinks = [
     { href: '/dashboard', label: 'UltraOS Home' },
     { href: '/guide', label: 'Guide' },
@@ -57,6 +66,19 @@ export default function AccountPage() {
     setCoachConnections((current) => current.filter((item) => item.id !== id));
   }
 
+  async function handleLogout() {
+    setLoggingOut(true);
+    try {
+      const supabase = getSupabaseClient();
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.warn('[account] Supabase sign-out warning:', error);
+    }
+
+    await fetch('/api/auth/logout', { method: 'POST' });
+    window.location.href = '/';
+  }
+
   return (
     <main className="min-h-screen bg-paper px-4 py-6 text-ink">
       <div className="mx-auto max-w-6xl">
@@ -84,17 +106,18 @@ export default function AccountPage() {
           <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
             <p className="text-sm uppercase tracking-[0.25em] text-accent">Plan</p>
             <p className="mt-4 text-2xl font-semibold text-ink">{planLabel}</p>
-            <label className="mt-5 block text-sm font-semibold text-ink">Preview plan tier</label>
-            <select value={planId} onChange={(event) => setPlanId(event.target.value)} className="mt-2 w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-ink">
-              {planOptions.map((plan) => (
-                <option key={plan.id} value={plan.id}>
-                  {plan.label} · {plan.price}
-                </option>
-              ))}
-            </select>
+            <p className="mt-4 text-sm leading-7 text-ink/76">
+              Your current subscription tier is stored on your athlete profile and powers app access everywhere else in UltraOS.
+            </p>
+            <p className="mt-2 text-xs uppercase tracking-[0.18em] text-ink/45">Tier code: {planId}</p>
             <a href="/pricing" className="mt-5 inline-flex rounded-full bg-ink px-5 py-3 text-sm font-semibold text-paper">
               View Pricing
             </a>
+            {planId !== 'free' ? (
+              <a href="/api/billing/portal" className="mt-3 inline-flex rounded-full border border-ink/10 px-5 py-3 text-sm font-semibold text-ink">
+                Manage Billing
+              </a>
+            ) : null}
           </div>
 
           <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
@@ -105,6 +128,14 @@ export default function AccountPage() {
             <a href="/guide" className="mt-5 inline-flex rounded-full border border-ink/10 px-5 py-3 text-sm font-semibold text-ink">
               Open Guide
             </a>
+            <button
+              type="button"
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="mt-3 inline-flex rounded-full border border-ink/10 px-5 py-3 text-sm font-semibold text-ink disabled:opacity-50"
+            >
+              {loggingOut ? 'Logging out...' : 'Log Out'}
+            </button>
           </div>
         </section>
 

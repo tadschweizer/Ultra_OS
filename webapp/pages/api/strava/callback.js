@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { exchangeToken } from '../../../lib/strava';
 import { supabase } from '../../../lib/supabaseClient';
 import cookie from 'cookie';
+import { normalizeSubscriptionTier } from '../../../lib/subscriptionTiers';
 
 function getAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -36,24 +37,76 @@ export default async function handler(req, res) {
     const tokenData = await exchangeToken(code, clientId, clientSecret, redirectUri);
     const { access_token, refresh_token, expires_at, athlete } = tokenData;
     const athleteName = [athlete.firstname, athlete.lastname].filter(Boolean).join(' ').trim();
-    const { data: savedAthlete, error: athleteError } = await supabase
-      .from('athletes')
-      .upsert(
-        {
-          name: athleteName || null,
-          email: athlete.email || null,
+    const existingAthleteId = cookies.athlete_id;
+    let savedAthlete;
+
+    if (existingAthleteId) {
+      const adminClient = getAdminClient();
+      const client = adminClient || supabase;
+      const { data: linkedAthlete, error: linkError } = await client
+        .from('athletes')
+        .update({
           strava_id: athlete.id.toString(),
           access_token,
           refresh_token,
           token_expires_at: new Date(expires_at * 1000).toISOString(),
-        },
-        { onConflict: 'strava_id' }
-      )
-      .select('id, onboarding_complete, name')
-      .single();
-    if (athleteError) {
-      throw athleteError;
+          email: athlete.email || null,
+        })
+        .eq('id', existingAthleteId)
+        .select('id, onboarding_complete, name, subscription_tier')
+        .single();
+      if (linkError) throw linkError;
+      savedAthlete = linkedAthlete;
+    } else {
+      const adminClient = getAdminClient();
+      if (adminClient && athlete.email) {
+        const { data: matchedAthlete } = await adminClient
+          .from('athletes')
+          .select('id, subscription_tier')
+          .eq('email', athlete.email)
+          .maybeSingle();
+
+        if (matchedAthlete) {
+          const { data: linkedAthlete, error: linkError } = await adminClient
+            .from('athletes')
+            .update({
+              strava_id: athlete.id.toString(),
+              access_token,
+              refresh_token,
+              token_expires_at: new Date(expires_at * 1000).toISOString(),
+              email: athlete.email || null,
+              subscription_tier: normalizeSubscriptionTier(matchedAthlete.subscription_tier),
+            })
+            .eq('id', matchedAthlete.id)
+            .select('id, onboarding_complete, name, subscription_tier')
+            .single();
+          if (linkError) throw linkError;
+          savedAthlete = linkedAthlete;
+        }
+      }
+
+      if (!savedAthlete) {
+        const { data: upsertedAthlete, error: athleteError } = await supabase
+          .from('athletes')
+          .upsert(
+            {
+              name: athleteName || null,
+              email: athlete.email || null,
+              strava_id: athlete.id.toString(),
+              access_token,
+              refresh_token,
+              token_expires_at: new Date(expires_at * 1000).toISOString(),
+              subscription_tier: 'free',
+            },
+            { onConflict: 'strava_id' }
+          )
+          .select('id, onboarding_complete, name, subscription_tier')
+          .single();
+        if (athleteError) throw athleteError;
+        savedAthlete = upsertedAthlete;
+      }
     }
+
     const athleteId = savedAthlete.id;
 
     // If there's a pending invite token cookie, mark it used now

@@ -1,11 +1,9 @@
 import { supabase } from '../../lib/supabaseClient';
 import cookie from 'cookie';
+import { buildUsageSnapshot, getSubscriptionTierLabel, normalizeSubscriptionTier } from '../../lib/subscriptionTiers';
 
 /**
- * API route to return basic athlete info and intervention count.
- *
- * Uses the athlete_id cookie to query Supabase. Returns the
- * athlete's name and the number of logged interventions.
+ * Returns the authenticated athlete profile plus subscription tier and usage.
  */
 export default async function handler(req, res) {
   const cookies = cookie.parse(req.headers.cookie || '');
@@ -17,7 +15,7 @@ export default async function handler(req, res) {
   // Fetch athlete
   const { data: athlete, error: athleteError } = await supabase
     .from('athletes')
-    .select('id, name, email, strava_id, onboarding_complete, primary_sports, years_racing_band, weekly_training_hours_band, home_elevation_ft, target_race_id, is_admin')
+    .select('id, name, email, strava_id, onboarding_complete, primary_sports, years_racing_band, weekly_training_hours_band, home_elevation_ft, target_race_id, is_admin, subscription_tier, supabase_user_id, stripe_subscription_status')
     .eq('id', athleteId)
     .single();
   if (athleteError) {
@@ -34,5 +32,39 @@ export default async function handler(req, res) {
     res.status(500).json({ error: interventionsError.message });
     return;
   }
-  res.status(200).json({ athlete, interventionCount: count });
+
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  const { count: weeklyCheckIns, error: weeklyError } = await supabase
+    .from('interventions')
+    .select('id', { count: 'exact', head: true })
+    .eq('athlete_id', athleteId)
+    .eq('intervention_type', 'Workout Check-in')
+    .gte('inserted_at', sevenDaysAgo.toISOString());
+
+  if (weeklyError) {
+    console.error(weeklyError);
+    res.status(500).json({ error: weeklyError.message });
+    return;
+  }
+
+  const normalizedTier = normalizeSubscriptionTier(athlete.subscription_tier);
+  const normalizedAthlete = {
+    ...athlete,
+    subscription_tier: normalizedTier,
+    subscription_label: getSubscriptionTierLabel(normalizedTier),
+    auth_provider: athlete.supabase_user_id ? 'supabase' : athlete.strava_id ? 'strava' : null,
+  };
+
+  res.status(200).json({
+    athlete: normalizedAthlete,
+    interventionCount: count ?? 0,
+    weeklyCheckIns: weeklyCheckIns ?? 0,
+    usage: buildUsageSnapshot({
+      athlete: normalizedAthlete,
+      interventionCount: count ?? 0,
+      weeklyCheckIns: weeklyCheckIns ?? 0,
+    }),
+  });
 }

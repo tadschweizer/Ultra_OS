@@ -1,54 +1,59 @@
 import { useEffect, useState } from 'react';
+import {
+  canAccessExplorer,
+  getSubscriptionTierLabel,
+  hasCoachFeatures,
+  normalizeSubscriptionTier,
+} from './subscriptionTiers';
 
 export const planOptions = [
-  { id: 'research_feed', label: 'Research Feed Only', price: '$7/mo' },
-  { id: 'individual_monthly', label: 'Individual Monthly', price: '$29/mo' },
-  { id: 'individual_annual', label: 'Individual Annual', price: '$240/yr' },
-  { id: 'coach_monthly', label: 'Coach Monthly', price: '$69/mo' },
-  { id: 'coach_annual', label: 'Coach Annual', price: '$580/yr' },
+  { id: 'free', label: 'Free', price: '$0' },
+  { id: 'research', label: 'Research Feed', price: '$7/mo' },
+  { id: 'individual', label: 'Individual', price: '$29/mo' },
+  { id: 'coach', label: 'Coach', price: '$69/mo' },
 ];
 
-export const planStorageKey = 'ultraos-plan-tier';
-
-export function getStoredPlan() {
-  if (typeof window === 'undefined') return 'individual_monthly';
-  return window.localStorage.getItem(planStorageKey) || 'individual_monthly';
-}
-
-export function setStoredPlan(planId) {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(planStorageKey, planId);
-}
-
 export function getPlanLabel(planId) {
-  return planOptions.find((plan) => plan.id === planId)?.label || 'Individual Monthly';
-}
-
-export function isExplorerUnlocked(planId) {
-  return planId === 'individual_annual' || planId === 'coach_monthly' || planId === 'coach_annual';
-}
-
-export function hasCoachFeatures(planId) {
-  return planId === 'coach_monthly' || planId === 'coach_annual';
+  return getSubscriptionTierLabel(planId);
 }
 
 export function usePlan() {
-  const [planId, setPlanId] = useState('individual_monthly');
+  const [planId, setPlanId] = useState('free');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setPlanId(getStoredPlan());
+    let cancelled = false;
+
+    async function loadPlan() {
+      try {
+        const response = await fetch('/api/me');
+        if (!response.ok) return;
+        const data = await response.json();
+        if (!cancelled) {
+          setPlanId(normalizeSubscriptionTier(data.athlete?.subscription_tier));
+        }
+      } catch (error) {
+        console.warn('[usePlan] Failed to load plan:', error);
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadPlan();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  function updatePlan(nextPlanId) {
-    setPlanId(nextPlanId);
-    setStoredPlan(nextPlanId);
-  }
-
+  const athlete = { subscription_tier: planId };
   return {
     planId,
-    setPlanId: updatePlan,
+    setPlanId,
+    loading,
     planLabel: getPlanLabel(planId),
-    explorerUnlocked: isExplorerUnlocked(planId),
-    coachFeatures: hasCoachFeatures(planId),
+    explorerUnlocked: canAccessExplorer(athlete).allowed,
+    coachFeatures: hasCoachFeatures(athlete).allowed,
   };
 }

@@ -90,8 +90,8 @@ export default function Home() {
     }
   }, []);
 
-  const loginHref = athleteId ? '/dashboard' : '/api/strava/login';
-  const loginLabel = athleteId ? 'Open UltraOS' : 'Connect with Strava';
+  const loginHref = athleteId ? '/dashboard' : '/login';
+  const loginLabel = athleteId ? 'Open UltraOS' : 'Log In';
 
   return (
     <main className="min-h-screen bg-paper text-ink">
@@ -139,7 +139,7 @@ export default function Home() {
                   How It Works
                 </a>
               </div>
-              <p className="mt-6 text-xs text-ink/40">Free to start · No credit card required · Strava login</p>
+              <p className="mt-6 text-xs text-ink/40">Free to start · No credit card required · Email, Google, or Strava</p>
             </div>
 
             {/* Hero widget — simulated training response card */}
@@ -405,7 +405,7 @@ export default function Home() {
             <a href="/guide" className="hover:text-ink/60">How It Works</a>
             <a href="/pricing" className="hover:text-ink/60">Pricing</a>
             <a href="/content" className="hover:text-ink/60">Research</a>
-            <a href="/api/strava/login" className="hover:text-ink/60">Login</a>
+            <a href="/login" className="hover:text-ink/60">Login</a>
           </div>
           <p>© {new Date().getFullYear()} UltraOS</p>
         </footer>
