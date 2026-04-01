@@ -2,6 +2,7 @@ import { getAthleteByCookie } from '../../../lib/authServer';
 import { getBillingPlan, getBillingPriceId } from '../../../lib/billingPlans';
 import { getStripeClient } from '../../../lib/stripeServer';
 import { supabase } from '../../../lib/supabaseClient';
+import cookie from 'cookie';
 
 function getRequestOrigin(req) {
   const forwardedProto = req.headers['x-forwarded-proto'];
@@ -20,6 +21,17 @@ function getRequestOrigin(req) {
   }
 
   return process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+}
+
+function appendSetCookie(res, nextCookie) {
+  const current = res.getHeader('Set-Cookie');
+  if (!current) {
+    res.setHeader('Set-Cookie', nextCookie);
+    return;
+  }
+
+  const cookies = Array.isArray(current) ? current : [current];
+  res.setHeader('Set-Cookie', [...cookies, nextCookie]);
 }
 
 export default async function handler(req, res) {
@@ -69,6 +81,17 @@ export default async function handler(req, res) {
         },
       },
     });
+
+    appendSetCookie(
+      res,
+      cookie.serialize('pending_checkout_session_id', session.id, {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60,
+      })
+    );
 
     res.redirect(303, session.url);
   } catch (error) {

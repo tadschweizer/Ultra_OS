@@ -2,6 +2,7 @@ import { getAthleteByCookie, getSupabaseAdminClient } from '../../../lib/authSer
 import { getTierFromPriceId } from '../../../lib/billingPlans';
 import { getStripeClient } from '../../../lib/stripeServer';
 import { supabase } from '../../../lib/supabaseClient';
+import cookie from 'cookie';
 
 function isActiveSubscriptionStatus(status) {
   return status === 'active' || status === 'trialing' || status === 'past_due';
@@ -72,6 +73,16 @@ async function findLatestRelevantSubscription(stripe, customerId) {
     || null;
 }
 
+function clearPendingCheckoutCookie(res) {
+  res.setHeader('Set-Cookie', cookie.serialize('pending_checkout_session_id', '', {
+    httpOnly: false,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 0,
+  }));
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
@@ -86,7 +97,8 @@ export default async function handler(req, res) {
     }
 
     const stripe = getStripeClient();
-    const sessionId = req.body?.sessionId || null;
+    const cookies = cookie.parse(req.headers.cookie || '');
+    const sessionId = req.body?.sessionId || cookies.pending_checkout_session_id || null;
     let customerId = null;
     let subscription = null;
 
@@ -134,6 +146,8 @@ export default async function handler(req, res) {
       customerId,
       subscription,
     });
+
+    clearPendingCheckoutCookie(res);
 
     res.status(200).json({
       synced: true,

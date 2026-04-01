@@ -45,9 +45,12 @@ export default function AccountPage() {
     const params = new URLSearchParams(window.location.search);
     const checkoutStatus = params.get('checkout');
     const sessionId = params.get('session_id');
+    const pendingCheckoutSession = document.cookie.match(/pending_checkout_session_id=([^;]+)/)?.[1];
 
     if (checkoutStatus === 'success' && sessionId) {
       syncBilling(sessionId);
+    } else if (pendingCheckoutSession) {
+      syncBilling();
     } else if (checkoutStatus === 'success') {
       setBillingMessage('Payment succeeded. Click "Refresh Billing Status" to pull the plan from Stripe.');
     }
