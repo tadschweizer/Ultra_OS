@@ -77,7 +77,7 @@ export default function LoginPage() {
       <div className="sticky top-0 z-50 px-4 pt-4">
         <div className="mx-auto max-w-6xl">
           <div className="flex items-center justify-between rounded-full border border-ink/10 bg-white/80 px-4 py-3 shadow-sm backdrop-blur">
-            <a href="/" className="text-xs font-semibold uppercase tracking-[0.35em] text-accent">UltraOS</a>
+            <a href="/" className="text-xs font-semibold uppercase tracking-[0.35em] text-accent">Threshold</a>
             <NavMenu
               label="Login navigation"
               links={[
@@ -94,7 +94,7 @@ export default function LoginPage() {
       <div className="mx-auto max-w-md px-4 py-16">
         <div className="rounded-[32px] border border-ink/10 bg-white px-8 py-10 shadow-[0_8px_32px_rgba(19,24,22,0.07)]">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-accent">Welcome Back</p>
-          <h1 className="mt-3 text-3xl font-semibold text-ink">Log in to UltraOS</h1>
+          <h1 className="mt-3 text-3xl font-semibold text-ink">Log in to Threshold</h1>
           <p className="mt-2 text-sm text-ink/55">
             Don&apos;t have an account? <a href="/signup" className="font-semibold text-accent hover:underline">Sign up free</a>
           </p>

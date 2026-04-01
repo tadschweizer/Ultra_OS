@@ -216,7 +216,7 @@ export default function Settings() {
   const [showDeleteZone, setShowDeleteZone] = useState(false);
   const [calcMaxHR, setCalcMaxHR] = useState('');
   const navLinks = [
-    { href: '/dashboard', label: 'UltraOS Home', description: 'Insights, trends, and recent training.' },
+    { href: '/dashboard', label: 'Home', description: 'Insights, trends, and recent training.' },
     { href: '/guide', label: 'Guide', description: 'Learn how settings are used.' },
     { href: '/connections', label: 'Connections', description: 'Manage linked sources.' },
     { href: '/log-intervention', label: 'Log Intervention', description: 'Create a new intervention entry.' },
@@ -353,7 +353,7 @@ export default function Settings() {
               <p className="text-sm uppercase tracking-[0.25em] text-accent">Settings</p>
               <div className="mt-5 space-y-4">
                 <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
-                  <p className="text-sm font-semibold text-white">Save the baselines you want UltraOS to use.</p>
+                  <p className="text-sm font-semibold text-white">Save the baselines you want Threshold to use.</p>
                 </div>
                 <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
                   <p className="text-sm font-semibold text-white">You can update these any time.</p>

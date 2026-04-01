@@ -79,7 +79,7 @@ export default function SignupPage() {
       <div className="sticky top-0 z-50 px-4 pt-4">
         <div className="mx-auto max-w-6xl">
           <div className="flex items-center justify-between rounded-full border border-ink/10 bg-white/80 px-4 py-3 shadow-sm backdrop-blur">
-            <a href="/" className="text-xs font-semibold uppercase tracking-[0.35em] text-accent">UltraOS</a>
+            <a href="/" className="text-xs font-semibold uppercase tracking-[0.35em] text-accent">Threshold</a>
             <NavMenu
               label="Signup navigation"
               links={[

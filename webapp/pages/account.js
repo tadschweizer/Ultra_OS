@@ -21,7 +21,7 @@ export default function AccountPage() {
   const [billingMessage, setBillingMessage] = useState('');
   const [billingSyncing, setBillingSyncing] = useState(false);
   const navLinks = [
-    { href: '/dashboard', label: 'UltraOS Home' },
+    { href: '/dashboard', label: 'Home' },
     { href: '/guide', label: 'Guide' },
     { href: '/pricing', label: 'Pricing' },
     { href: '/connections', label: 'Connections' },
@@ -158,7 +158,7 @@ export default function AccountPage() {
             <p className="text-sm uppercase tracking-[0.25em] text-accent">Plan</p>
             <p className="mt-4 text-2xl font-semibold text-ink">{planLabel}</p>
             <p className="mt-4 text-sm leading-7 text-ink/76">
-              Your current subscription tier is stored on your athlete profile and powers app access everywhere else in UltraOS.
+              Your current subscription tier is stored on your athlete profile and powers app access everywhere else in Threshold.
             </p>
             <p className="mt-2 text-xs uppercase tracking-[0.18em] text-ink/45">Tier code: {planId}</p>
             <a href="/pricing" className="mt-5 inline-flex rounded-full bg-ink px-5 py-3 text-sm font-semibold text-paper">

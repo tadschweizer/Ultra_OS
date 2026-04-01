@@ -17,7 +17,7 @@ export default function DesktopSidebar() {
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-[210px] flex-col border-r border-border-subtle bg-paper lg:flex">
       <div className="flex h-full flex-col overflow-y-auto px-4 py-5">
         <a href="/dashboard" className="rounded-[22px] px-3 py-3 text-2xl font-semibold text-ink">
-          <span className="font-display">UltraOS</span>
+          <span className="font-display">Threshold</span>
         </a>
 
         <div className="mt-4 flex-1 space-y-6">

@@ -485,8 +485,8 @@ export default function Dashboard() {
   const showDashboardEmptyState = !currentRace && activities.length === 0 && interventions.length === 0;
   const showWelcomeChecklist = interventions.length === 0;
   const navLinks = [
-    { href: '/', label: 'Landing Page', description: 'Return to the UltraOS entry page.' },
-    { href: '/guide', label: 'Guide', description: 'Learn how each part of UltraOS works.' },
+    { href: '/', label: 'Landing Page', description: 'Return to the Threshold entry page.' },
+    { href: '/guide', label: 'Guide', description: 'Learn how each part of Threshold works.' },
     { href: '/pricing', label: 'Pricing', description: 'View plans and feature access.' },
     { href: '/explorer', label: 'Explorer', description: 'Open the self-selection explorer.' },
     { href: '/connections', label: 'Connections', description: 'Link Strava and future platforms.' },
@@ -517,10 +517,10 @@ export default function Dashboard() {
       <div className="mx-auto max-w-6xl">
         <div className="mb-6 flex items-center justify-between rounded-full border border-ink/10 bg-white/70 px-4 py-3 backdrop-blur">
           <div>
-            <p className="text-xs uppercase tracking-[0.35em] text-accent">UltraOS Home</p>
+            <p className="text-xs uppercase tracking-[0.35em] text-accent">Threshold</p>
           </div>
           <NavMenu
-            label="UltraOS home navigation"
+            label="Threshold home navigation"
             links={navLinks}
             primaryLink={{ href: '/log-intervention', label: 'Log Intervention' }}
           />
@@ -532,7 +532,7 @@ export default function Dashboard() {
           <div className="mb-6 flex items-start gap-4 rounded-[22px] border border-accent/30 bg-accent/8 px-5 py-4">
             <span className="mt-0.5 text-xl">👋</span>
             <div>
-              <p className="text-sm font-semibold text-ink">Welcome to UltraOS, {athlete?.name?.split(' ')[0] || 'athlete'}.</p>
+              <p className="text-sm font-semibold text-ink">Welcome to Threshold, {athlete?.name?.split(' ')[0] || 'athlete'}.</p>
               <p className="mt-1 text-sm leading-6 text-ink/65">
                 Strava is connected. Now work through the three steps below and you&apos;ll have your first insight within a few sessions.
               </p>
@@ -667,7 +667,7 @@ export default function Dashboard() {
                   <p className="text-sm font-semibold text-ink">Set your target race</p>
                 </div>
                 <p className="mt-2 pl-10 text-xs leading-5 text-ink/55">
-                  {currentRace ? `Racing ${currentRace.name}` : 'Tell UltraOS what you\'re training for. Every intervention links to this.'}
+                  {currentRace ? `Racing ${currentRace.name}` : 'Tell Threshold what you\'re training for. Every intervention links to this.'}
                 </p>
               </a>
               <a

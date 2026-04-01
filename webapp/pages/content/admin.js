@@ -79,7 +79,7 @@ export default function ContentAdmin() {
   const [drafting, setDrafting] = useState(false);
 
   const navLinks = [
-    { href: '/dashboard', label: 'UltraOS Home' },
+    { href: '/dashboard', label: 'Home' },
     { href: '/connections', label: 'Connections' },
     { href: '/log-intervention', label: 'Log Intervention' },
     { href: '/history', label: 'Intervention History' },

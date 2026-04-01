@@ -83,7 +83,7 @@ export default function RaceOutcomePage() {
   const [error, setError] = useState('');
 
   const navLinks = [
-    { href: '/dashboard', label: 'UltraOS Home' },
+    { href: '/dashboard', label: 'Home' },
     { href: '/race-plan', label: 'Race Blueprint' },
     { href: '/history', label: 'Intervention History' },
     { href: '/insights', label: 'Insights' },
@@ -184,7 +184,7 @@ export default function RaceOutcomePage() {
             <p className="text-4xl">🏅</p>
             <h1 className="font-display mt-6 text-3xl font-semibold">Race logged.</h1>
             <p className="mt-3 text-sm leading-7 text-ink/60">
-              Your outcome is saved. As you log more races and interventions, UltraOS will surface patterns in what worked and what cost you time.
+              Your outcome is saved. As you log more races and interventions, Threshold will surface patterns in what worked and what cost you time.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
               <a

@@ -52,7 +52,7 @@ export default function AuthCallbackPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-paper px-4 text-ink">
       <div className="w-full max-w-sm rounded-[28px] border border-ink/10 bg-white px-8 py-8 text-center shadow-[0_8px_24px_rgba(19,24,22,0.06)]">
-        <p className="mb-4 text-xs font-semibold uppercase tracking-[0.3em] text-accent">UltraOS</p>
+        <p className="mb-4 text-xs font-semibold uppercase tracking-[0.3em] text-accent">Threshold</p>
         <div className="mx-auto mb-5 h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
         <p className="text-sm text-ink/60">{status}</p>
       </div>
