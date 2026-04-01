@@ -18,6 +18,8 @@ export default function AccountPage() {
   const [coachConnections, setCoachConnections] = useState([]);
   const [coachMessage, setCoachMessage] = useState('');
   const [loggingOut, setLoggingOut] = useState(false);
+  const [billingMessage, setBillingMessage] = useState('');
+  const [billingSyncing, setBillingSyncing] = useState(false);
   const navLinks = [
     { href: '/dashboard', label: 'UltraOS Home' },
     { href: '/guide', label: 'Guide' },
@@ -37,6 +39,18 @@ export default function AccountPage() {
     }
 
     loadConnections();
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const checkoutStatus = params.get('checkout');
+    const sessionId = params.get('session_id');
+
+    if (checkoutStatus === 'success' && sessionId) {
+      syncBilling(sessionId);
+    } else if (checkoutStatus === 'success') {
+      setBillingMessage('Payment succeeded. Click "Refresh Billing Status" to pull the plan from Stripe.');
+    }
   }, []);
 
   async function connectCoach(event) {
@@ -79,6 +93,40 @@ export default function AccountPage() {
     window.location.href = '/';
   }
 
+  async function syncBilling(sessionId = null) {
+    setBillingSyncing(true);
+    setBillingMessage(sessionId
+      ? 'Confirming your purchase with Stripe and updating your account...'
+      : 'Refreshing your billing status from Stripe...');
+
+    try {
+      const res = await fetch('/api/billing/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setBillingMessage(data.error || 'Billing sync failed.');
+        return;
+      }
+
+      if (data.synced) {
+        setBillingMessage('Your subscription is now synced. Reloading account details...');
+        window.location.href = '/account?billing=updated';
+        return;
+      }
+
+      setBillingMessage('Stripe did not return an active subscription for this account yet.');
+    } catch (error) {
+      console.error('[account] billing sync failed:', error);
+      setBillingMessage('Could not reach Stripe to refresh billing status.');
+    } finally {
+      setBillingSyncing(false);
+    }
+  }
+
   return (
     <main className="min-h-screen bg-paper px-4 py-6 text-ink">
       <div className="mx-auto max-w-6xl">
@@ -118,6 +166,17 @@ export default function AccountPage() {
                 Manage Billing
               </a>
             ) : null}
+            <button
+              type="button"
+              onClick={() => syncBilling()}
+              disabled={billingSyncing}
+              className="mt-3 inline-flex rounded-full border border-ink/10 px-5 py-3 text-sm font-semibold text-ink disabled:opacity-50"
+            >
+              {billingSyncing ? 'Refreshing Billing...' : 'Refresh Billing Status'}
+            </button>
+            {billingMessage ? (
+              <p className="mt-3 text-sm leading-6 text-ink/70">{billingMessage}</p>
+            ) : null}
           </div>
 
           <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
@@ -145,6 +204,7 @@ export default function AccountPage() {
             <p className="mt-4 text-sm leading-7 text-ink/76">
               Enter a coach code to connect a primary or secondary coach to your account.
             </p>
+            <p className="mt-2 text-xs uppercase tracking-[0.18em] text-ink/45">Coach role</p>
             <form onSubmit={connectCoach} className="mt-5 space-y-4">
               <input
                 type="text"

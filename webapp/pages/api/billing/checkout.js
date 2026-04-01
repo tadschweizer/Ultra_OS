@@ -49,12 +49,13 @@ export default async function handler(req, res) {
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
-      success_url: `${siteUrl}/account?checkout=success`,
+      success_url: `${siteUrl}/account?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${siteUrl}/pricing?checkout=cancelled`,
       line_items: [{ price: priceId, quantity: 1 }],
       customer: athlete.stripe_customer_id || undefined,
       customer_email: athlete.stripe_customer_id ? undefined : athlete.email || undefined,
       allow_promotion_codes: true,
+      client_reference_id: athlete.id,
       metadata: {
         athlete_id: athlete.id,
         subscription_tier: plan.tier,
