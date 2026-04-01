@@ -90,8 +90,8 @@ export default function Home() {
     }
   }, []);
 
-  const loginHref = athleteId ? '/dashboard' : '/signup';
-  const loginLabel = athleteId ? 'Open UltraOS' : 'Get Started Free';
+  const loginHref = athleteId ? '/dashboard' : '/api/strava/login';
+  const loginLabel = athleteId ? 'Open UltraOS' : 'Connect with Strava';
 
   return (
     <main className="min-h-screen bg-paper text-ink">
@@ -104,7 +104,7 @@ export default function Home() {
             <NavMenu
               label="Homepage navigation"
               links={athleteId ? athleteLinks : publicLinks}
-              primaryLink={{ href: athleteId ? '/dashboard' : '/login', label: athleteId ? 'Open App' : 'Log In' }}
+              primaryLink={{ href: loginHref, label: athleteId ? 'Open App' : 'Login' }}
             />
           </div>
         </div>
@@ -139,7 +139,7 @@ export default function Home() {
                   How It Works
                 </a>
               </div>
-              <p className="mt-6 text-xs text-ink/40">Free to start · No credit card required · Email, Google, or Strava</p>
+              <p className="mt-6 text-xs text-ink/40">Free to start · No credit card required · Strava login</p>
             </div>
 
             {/* Hero widget — simulated training response card */}
@@ -394,7 +394,7 @@ export default function Home() {
                 See how it works
               </a>
             </div>
-            <p className="mt-6 text-xs text-ink/40">No credit card required · Email, Google, or Strava · 60 seconds to set up</p>
+            <p className="mt-6 text-xs text-ink/40">No credit card · Connects in 60 seconds with Strava OAuth</p>
           </div>
         </section>
 
@@ -405,7 +405,7 @@ export default function Home() {
             <a href="/guide" className="hover:text-ink/60">How It Works</a>
             <a href="/pricing" className="hover:text-ink/60">Pricing</a>
             <a href="/content" className="hover:text-ink/60">Research</a>
-            <a href="/login" className="hover:text-ink/60">Login</a>
+            <a href="/api/strava/login" className="hover:text-ink/60">Login</a>
           </div>
           <p>© {new Date().getFullYear()} UltraOS</p>
         </footer>

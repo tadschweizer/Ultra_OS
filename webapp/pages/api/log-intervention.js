@@ -1,14 +1,9 @@
 import { supabase } from '../../lib/supabaseClient';
 import cookie from 'cookie';
 import { inferLegacyScores, normalizeProtocolPayload } from '../../lib/interventionCatalog';
-import { canLogIntervention, canLogCheckIn, FREE_INTERVENTION_LIMIT, FREE_WEEKLY_CHECKIN_LIMIT } from '../../lib/tierGates';
 
 /**
  * API route to insert a new intervention into Supabase.
- *
- * Enforces free-tier limits:
- *   - Max 15 total interventions (all types) for free accounts
- *   - Max 3 Workout Check-ins per rolling 7-day window for free accounts
  *
  * Expects a JSON body with fields defined in the form. Requires
  * athlete_id from the cookie.
@@ -24,52 +19,6 @@ export default async function handler(req, res) {
     res.status(401).json({ error: 'Not authenticated' });
     return;
   }
-
-  // ── Tier gate check ────────────────────────────────────────────────────────
-  const { data: athlete } = await supabase
-    .from('athletes')
-    .select('id, subscription_tier')
-    .eq('id', athleteId)
-    .single();
-
-  const tier = athlete?.subscription_tier || 'free';
-
-  if (tier === 'free') {
-    const body_type = req.body?.intervention_type;
-    const isCheckIn = body_type === 'Workout Check-in';
-
-    if (isCheckIn) {
-      // Count check-ins in the last 7 days
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      const { count: weeklyCheckIns } = await supabase
-        .from('interventions')
-        .select('id', { count: 'exact', head: true })
-        .eq('athlete_id', athleteId)
-        .eq('intervention_type', 'Workout Check-in')
-        .gte('inserted_at', sevenDaysAgo.toISOString());
-
-      const gate = canLogCheckIn(athlete, weeklyCheckIns ?? 0);
-      if (!gate.allowed) {
-        res.status(402).json({ error: gate.reason, upgradeRequired: true, limitType: 'weekly_checkin' });
-        return;
-      }
-    } else {
-      // Count all interventions (all time)
-      const { count: totalCount } = await supabase
-        .from('interventions')
-        .select('id', { count: 'exact', head: true })
-        .eq('athlete_id', athleteId);
-
-      const gate = canLogIntervention(athlete, totalCount ?? 0);
-      if (!gate.allowed) {
-        res.status(402).json({ error: gate.reason, upgradeRequired: true, limitType: 'total_interventions' });
-        return;
-      }
-    }
-  }
-  // ── End tier gate ──────────────────────────────────────────────────────────
-
   const body = req.body;
   try {
     const protocolPayload = normalizeProtocolPayload(body.intervention_type, body.protocol_payload || {});

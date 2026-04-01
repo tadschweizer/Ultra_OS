@@ -81,8 +81,7 @@ export default function Connections() {
     }
   }, [athleteId]);
 
-  const hasStravaConnected = Boolean(athlete?.strava_id);
-  const hasAnyConnections = hasStravaConnected;
+  const hasAnyConnections = Boolean(athlete?.strava_id);
   const stravaLastSeen = athlete?.strava_last_sync || athlete?.updated_at || null;
 
   function handleNotifySubmit(sourceName) {
