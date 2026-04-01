@@ -42,6 +42,20 @@ async function upsertSubscriptionFromObject(subscription, fallbackAthleteId = nu
     .eq('id', athleteId);
 }
 
+async function syncCheckoutSessionSubscription(session) {
+  const athleteId = session.metadata?.athlete_id || null;
+  if (!athleteId || !session.subscription) {
+    return;
+  }
+
+  const stripe = getStripeClient();
+  const subscription = await stripe.subscriptions.retrieve(session.subscription, {
+    expand: ['items.data.price'],
+  });
+
+  await upsertSubscriptionFromObject(subscription, athleteId);
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
@@ -69,6 +83,7 @@ export default async function handler(req, res) {
             .update({ stripe_customer_id: session.customer })
             .eq('id', athleteId);
         }
+        await syncCheckoutSessionSubscription(session);
         break;
       }
       case 'customer.subscription.created':

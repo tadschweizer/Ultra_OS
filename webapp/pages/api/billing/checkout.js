@@ -3,6 +3,25 @@ import { getBillingPlan, getBillingPriceId } from '../../../lib/billingPlans';
 import { getStripeClient } from '../../../lib/stripeServer';
 import { supabase } from '../../../lib/supabaseClient';
 
+function getRequestOrigin(req) {
+  const forwardedProto = req.headers['x-forwarded-proto'];
+  const forwardedHost = req.headers['x-forwarded-host'];
+
+  if (forwardedProto && forwardedHost) {
+    return `${forwardedProto}://${forwardedHost}`;
+  }
+
+  const host = req.headers.host;
+  if (host) {
+    const protocol = host.includes('localhost') || host.startsWith('127.0.0.1')
+      ? 'http'
+      : 'https';
+    return `${protocol}://${host}`;
+  }
+
+  return process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+}
+
 export default async function handler(req, res) {
   const { plan: planId } = req.query;
   const plan = getBillingPlan(planId);
@@ -26,7 +45,7 @@ export default async function handler(req, res) {
 
   try {
     const stripe = getStripeClient();
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    const siteUrl = getRequestOrigin(req);
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
