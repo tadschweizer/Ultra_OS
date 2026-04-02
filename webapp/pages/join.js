@@ -147,7 +147,7 @@ export default function JoinPage() {
       <div className="w-full max-w-md">
         {/* Logo / wordmark */}
         <div className="mb-8 text-center">
-          <p className="font-display text-2xl font-semibold tracking-tight text-ink">UltraOS</p>
+          <p className="font-display text-2xl font-semibold tracking-tight text-ink">Threshold</p>
           <p className="mt-1 text-xs uppercase tracking-[0.3em] text-ink/40">Performance Intelligence</p>
         </div>
 
@@ -159,10 +159,10 @@ export default function JoinPage() {
           </div>
 
           <h1 className="text-center font-display text-3xl font-semibold leading-tight text-ink">
-            You&apos;re invited to UltraOS
+            You&apos;re invited to Threshold
           </h1>
           <p className="mt-3 text-center text-sm leading-6 text-ink/60">
-            Connect your Strava account to create your athlete profile. UltraOS will track your training interventions and surface what actually works for you — as an individual.
+            Connect your Strava account to create your athlete profile. Threshold will track your training interventions and surface what actually works for you — as an individual.
           </p>
 
           <div className="mt-8 space-y-3">
@@ -216,7 +216,7 @@ export default function JoinPage() {
           </button>
 
           <p className="mt-4 text-center text-xs leading-5 text-ink/35">
-            By connecting, you agree to UltraOS accessing your Strava activity data. No password required — you sign in through Strava.
+            By connecting, you agree to Threshold accessing your Strava activity data. No password required — you sign in through Strava.
           </p>
         </div>
 

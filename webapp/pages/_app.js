@@ -21,7 +21,7 @@ const mono = IBM_Plex_Mono({
 export default function MyApp({ Component, pageProps }) {
   const router = useRouter();
   const pageTitleMap = {
-    '/': 'UltraOS',
+    '/': 'Threshold',
     '/dashboard': 'Dashboard',
     '/log-intervention': 'Log Intervention',
     '/history': 'Intervention History',
@@ -36,12 +36,12 @@ export default function MyApp({ Component, pageProps }) {
     '/settings': 'Athlete Settings',
     '/notifications': 'Notifications',
     '/onboarding': 'Onboarding',
-    '/join': 'Join UltraOS',
+    '/join': 'Join Threshold',
     '/invite': 'Invite Athletes',
     '/admin': 'Admin',
   };
-  const pageName = pageTitleMap[router.pathname] || 'UltraOS';
-  const title = pageName === 'UltraOS' ? 'UltraOS' : `${pageName} — UltraOS`;
+  const pageName = pageTitleMap[router.pathname] || 'Threshold';
+  const title = pageName === 'Threshold' ? 'Threshold' : `${pageName} — Threshold`;
 
   return (
     <div className={mono.variable}>
@@ -56,7 +56,7 @@ export default function MyApp({ Component, pageProps }) {
         <meta property="og:type" content="website" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="UltraOS" />
+        <meta name="apple-mobile-web-app-title" content="Threshold" />
         <meta name="mobile-web-app-capable" content="yes" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />

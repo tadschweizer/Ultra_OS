@@ -1,16 +1,27 @@
 import { useEffect, useState } from 'react';
 import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
-import { planOptions, usePlan } from '../lib/planUtils';
+import { createClient } from '@supabase/supabase-js';
+import { usePlan } from '../lib/planUtils';
+
+function getSupabaseClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
+}
 
 export default function AccountPage() {
-  const { planId, setPlanId, planLabel } = usePlan();
+  const { planLabel, planId } = usePlan();
   const [coachCode, setCoachCode] = useState('');
   const [coachRole, setCoachRole] = useState('primary');
   const [coachConnections, setCoachConnections] = useState([]);
   const [coachMessage, setCoachMessage] = useState('');
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [billingMessage, setBillingMessage] = useState('');
+  const [billingSyncing, setBillingSyncing] = useState(false);
   const navLinks = [
-    { href: '/dashboard', label: 'UltraOS Home' },
+    { href: '/dashboard', label: 'Home' },
     { href: '/guide', label: 'Guide' },
     { href: '/pricing', label: 'Pricing' },
     { href: '/connections', label: 'Connections' },
@@ -28,6 +39,21 @@ export default function AccountPage() {
     }
 
     loadConnections();
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const checkoutStatus = params.get('checkout');
+    const sessionId = params.get('session_id');
+    const pendingCheckoutSession = document.cookie.match(/pending_checkout_session_id=([^;]+)/)?.[1];
+
+    if (checkoutStatus === 'success' && sessionId) {
+      syncBilling(sessionId);
+    } else if (pendingCheckoutSession) {
+      syncBilling();
+    } else if (checkoutStatus === 'success') {
+      setBillingMessage('Payment succeeded. Click "Refresh Billing Status" to pull the plan from Stripe.');
+    }
   }, []);
 
   async function connectCoach(event) {
@@ -57,6 +83,53 @@ export default function AccountPage() {
     setCoachConnections((current) => current.filter((item) => item.id !== id));
   }
 
+  async function handleLogout() {
+    setLoggingOut(true);
+    try {
+      const supabase = getSupabaseClient();
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.warn('[account] Supabase sign-out warning:', error);
+    }
+
+    await fetch('/api/auth/logout', { method: 'POST' });
+    window.location.href = '/';
+  }
+
+  async function syncBilling(sessionId = null) {
+    setBillingSyncing(true);
+    setBillingMessage(sessionId
+      ? 'Confirming your purchase with Stripe and updating your account...'
+      : 'Refreshing your billing status from Stripe...');
+
+    try {
+      const res = await fetch('/api/billing/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setBillingMessage(data.error || 'Billing sync failed.');
+        return;
+      }
+
+      if (data.synced) {
+        setBillingMessage('Your subscription is now synced. Reloading account details...');
+        window.location.href = '/account?billing=updated';
+        return;
+      }
+
+      setBillingMessage('Stripe did not return an active subscription for this account yet.');
+    } catch (error) {
+      console.error('[account] billing sync failed:', error);
+      setBillingMessage('Could not reach Stripe to refresh billing status.');
+    } finally {
+      setBillingSyncing(false);
+    }
+  }
+
   return (
     <main className="min-h-screen bg-paper px-4 py-6 text-ink">
       <div className="mx-auto max-w-6xl">
@@ -84,17 +157,29 @@ export default function AccountPage() {
           <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
             <p className="text-sm uppercase tracking-[0.25em] text-accent">Plan</p>
             <p className="mt-4 text-2xl font-semibold text-ink">{planLabel}</p>
-            <label className="mt-5 block text-sm font-semibold text-ink">Preview plan tier</label>
-            <select value={planId} onChange={(event) => setPlanId(event.target.value)} className="mt-2 w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-ink">
-              {planOptions.map((plan) => (
-                <option key={plan.id} value={plan.id}>
-                  {plan.label} · {plan.price}
-                </option>
-              ))}
-            </select>
+            <p className="mt-4 text-sm leading-7 text-ink/76">
+              Your current subscription tier is stored on your athlete profile and powers app access everywhere else in Threshold.
+            </p>
+            <p className="mt-2 text-xs uppercase tracking-[0.18em] text-ink/45">Tier code: {planId}</p>
             <a href="/pricing" className="mt-5 inline-flex rounded-full bg-ink px-5 py-3 text-sm font-semibold text-paper">
               View Pricing
             </a>
+            {planId !== 'free' ? (
+              <a href="/api/billing/portal" className="mt-3 inline-flex rounded-full border border-ink/10 px-5 py-3 text-sm font-semibold text-ink">
+                Manage Billing
+              </a>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => syncBilling()}
+              disabled={billingSyncing}
+              className="mt-3 inline-flex rounded-full border border-ink/10 px-5 py-3 text-sm font-semibold text-ink disabled:opacity-50"
+            >
+              {billingSyncing ? 'Refreshing Billing...' : 'Refresh Billing Status'}
+            </button>
+            {billingMessage ? (
+              <p className="mt-3 text-sm leading-6 text-ink/70">{billingMessage}</p>
+            ) : null}
           </div>
 
           <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
@@ -105,6 +190,14 @@ export default function AccountPage() {
             <a href="/guide" className="mt-5 inline-flex rounded-full border border-ink/10 px-5 py-3 text-sm font-semibold text-ink">
               Open Guide
             </a>
+            <button
+              type="button"
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="mt-3 inline-flex rounded-full border border-ink/10 px-5 py-3 text-sm font-semibold text-ink disabled:opacity-50"
+            >
+              {loggingOut ? 'Logging out...' : 'Log Out'}
+            </button>
           </div>
         </section>
 
@@ -114,6 +207,7 @@ export default function AccountPage() {
             <p className="mt-4 text-sm leading-7 text-ink/76">
               Enter a coach code to connect a primary or secondary coach to your account.
             </p>
+            <p className="mt-2 text-xs uppercase tracking-[0.18em] text-ink/45">Coach role</p>
             <form onSubmit={connectCoach} className="mt-5 space-y-4">
               <input
                 type="text"

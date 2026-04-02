@@ -154,7 +154,7 @@ export default function LogIntervention() {
   const [stravaConnected, setStravaConnected] = useState(true);
   const router = useRouter();
   const navLinks = [
-    { href: '/dashboard', label: 'UltraOS Home', description: 'Insights, trends, and recent training.' },
+    { href: '/dashboard', label: 'Home', description: 'Insights, trends, and recent training.' },
     { href: '/guide', label: 'Guide', description: 'Learn how to use the intervention log.' },
     { href: '/connections', label: 'Connections', description: 'Manage linked sources.' },
     { href: '/log-intervention', label: 'Log Intervention', description: 'Create a new intervention entry.' },
@@ -528,7 +528,7 @@ export default function LogIntervention() {
       <div className="mx-auto max-w-6xl">
         <div className="mb-6 flex items-center justify-between rounded-full border border-ink/10 bg-white/70 px-4 py-3 backdrop-blur">
           <div>
-            <p className="text-xs uppercase tracking-[0.35em] text-accent">UltraOS Intervention Log</p>
+            <p className="text-xs uppercase tracking-[0.35em] text-accent">Threshold Intervention Log</p>
           </div>
           <NavMenu
             label="Intervention navigation"

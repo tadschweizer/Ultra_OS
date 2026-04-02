@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import DashboardTabs from '../components/DashboardTabs';
 import NavMenu from '../components/NavMenu';
+import BlurredInsightPreview from '../components/BlurredInsightPreview';
 import { sortActivitiesMostRecentFirst } from '../lib/activityInsights';
 import { deriveRaceType } from '../lib/raceTypes';
+import { canAccessFullInsights } from '../lib/subscriptionTiers';
 import { buildTrainingResponseCorrelations, buildCheckInTimeSeries, buildCheckInSummary } from '../lib/trainingInsights';
 
 const MIN_GROUP_SIZE = 3; // mirrors trainingInsights.js threshold for UI messaging
@@ -214,6 +216,7 @@ export default function InsightsPage() {
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentRace, setCurrentRace] = useState(null);
+  const [insightsAllowed, setInsightsAllowed] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -223,6 +226,7 @@ export default function InsightsPage() {
           const me = await meRes.json();
           setAthlete(me.athlete);
           setInterventionCount(me.interventionCount || 0);
+          setInsightsAllowed(canAccessFullInsights(me.athlete).allowed);
         }
 
         const settingsRes = await fetch('/api/settings');
@@ -288,7 +292,7 @@ export default function InsightsPage() {
   );
 
   const navLinks = [
-    { href: '/dashboard', label: 'UltraOS Home' },
+    { href: '/dashboard', label: 'Home' },
     { href: '/guide', label: 'Guide' },
     { href: '/pricing', label: 'Pricing' },
     { href: '/explorer', label: 'Explorer' },
@@ -332,13 +336,19 @@ export default function InsightsPage() {
         </section>
 
         <section className="mt-12 grid gap-4 lg:grid-cols-2">
+          {!loading && !insightsAllowed ? (
+            <div className="lg:col-span-2">
+              <BlurredInsightPreview body="The free tier lets you collect the data. Upgrade to Individual to unlock the full correlation engine and insight cards." />
+            </div>
+          ) : null}
+
           {loading ? (
             <div className="rounded-[28px] border border-ink/10 bg-white p-6 text-sm text-ink/70 lg:col-span-2">
               Loading insights…
             </div>
           ) : null}
 
-          {!loading && cards.length > 0
+          {!loading && insightsAllowed && cards.length > 0
             ? cards.map((card) => (
                 <article key={card.id} className="flex flex-col rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
                   <div className="flex flex-wrap items-center gap-2">
@@ -363,7 +373,7 @@ export default function InsightsPage() {
             : null}
 
           {/* Empty state / progress toward first insight */}
-          {!loading && cards.length === 0 ? (
+          {!loading && insightsAllowed && cards.length === 0 ? (
             <div className="rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)] lg:col-span-2">
               <p className="text-sm uppercase tracking-[0.22em] text-accent">Building your dataset</p>
               <p className="mt-4 text-lg font-semibold text-ink">
@@ -415,7 +425,7 @@ export default function InsightsPage() {
               <p className="text-xs uppercase tracking-[0.28em] text-accent">Training Response</p>
               <h2 className="font-display mt-1 text-3xl font-semibold text-ink">What moves your training quality?</h2>
               <p className="mt-2 text-sm leading-6 text-ink/55 max-w-2xl">
-                Every time you log a Workout Check-in, UltraOS compares it against interventions from the prior 48 hours. Patterns emerge automatically — no manual tagging.
+                Every time you log a Workout Check-in, Threshold compares it against interventions from the prior 48 hours. Patterns emerge automatically — no manual tagging.
               </p>
             </div>
             <a
@@ -427,7 +437,7 @@ export default function InsightsPage() {
           </div>
 
           {/* Check-in summary strip */}
-          {!loading && checkInSummary ? (
+          {!loading && insightsAllowed && checkInSummary ? (
             <div className="mb-5 grid gap-3 sm:grid-cols-4">
               {[
                 { label: 'Check-ins logged', value: checkInSummary.count },
@@ -455,7 +465,7 @@ export default function InsightsPage() {
           ) : null}
 
           {/* Sparkline time series */}
-          {!loading && checkInTimeSeries.length >= 3 ? (
+          {!loading && insightsAllowed && checkInTimeSeries.length >= 3 ? (
             <div className="mb-5 rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_8px_24px_rgba(19,24,22,0.05)]">
               <p className="mb-4 text-xs uppercase tracking-[0.22em] text-accent">Legs feel over time</p>
               <div className="flex items-end gap-1 h-16">
@@ -487,7 +497,7 @@ export default function InsightsPage() {
           ) : null}
 
           {/* Correlation cards */}
-          {!loading && trainingCorrelationData.correlations?.length > 0 ? (
+          {!loading && insightsAllowed && trainingCorrelationData.correlations?.length > 0 ? (
             <>
               <div className="grid gap-4 lg:grid-cols-2">
                 {trainingCorrelationData.correlations.map((corr) => {
@@ -600,7 +610,7 @@ export default function InsightsPage() {
           ) : null}
 
           {/* Progress toward first correlation */}
-          {!loading && (!trainingCorrelationData.correlations || trainingCorrelationData.correlations.length === 0) ? (
+          {!loading && insightsAllowed && (!trainingCorrelationData.correlations || trainingCorrelationData.correlations.length === 0) ? (
             <div className="rounded-[28px] border border-dashed border-ink/15 bg-white/50 p-8">
               <p className="text-sm font-semibold text-ink">
                 {trainingCorrelationData.checkInCount === 0

@@ -15,7 +15,7 @@ export const dataCategories = [
     title: 'Training load variables',
     subtitle: 'Context, not the headline',
     body:
-      'Weekly mileage, vertical gain, doubles, cross-training, and long run length arrive through Garmin and Strava sync plus manual logging. UltraOS uses them to frame insight confidence and timing without trying to replace Garmin, Strava, or TrainingPeaks.',
+      'Weekly mileage, vertical gain, doubles, cross-training, and long run length arrive through Garmin and Strava sync plus manual logging. Threshold uses them to frame insight confidence and timing without trying to replace Garmin, Strava, or TrainingPeaks.',
   },
 ];
 
@@ -30,7 +30,7 @@ export const tierDefinitions = [
     tier: 'Tier 2',
     title: 'Race-linked retrospectives',
     body:
-      'Whenever an athlete logs a race outcome, UltraOS looks back over the eight-week prep window, compares it to prior similar race cycles, and surfaces only two or three differences that matter.',
+      'Whenever an athlete logs a race outcome, Threshold looks back over the eight-week prep window, compares it to prior similar race cycles, and surfaces only two or three differences that matter.',
   },
   {
     tier: 'Tier 3',
@@ -229,7 +229,7 @@ export const onboardingStages = [
     stage: 'Stage 1',
     title: 'Account setup',
     body:
-      'The athlete answers exactly four questions: primary sport, next target race, current training phase, and whether they already have a coach on UltraOS. Nothing else belongs in the first-run flow.',
+      'The athlete answers exactly four questions: primary sport, next target race, current training phase, and whether they already have a coach on Threshold. Nothing else belongs in the first-run flow.',
     details: [
       'Primary sport: ultrarunning, gravel cycling, triathlon, or multi-sport',
       'Target race: name, date, and distance',
@@ -302,7 +302,7 @@ export const onboardingPrompts = [
   {
     title: 'First empty-state prompt',
     body:
-      'Your race is X days away. Start with last night’s sleep so UltraOS has the fastest possible first data point.',
+      ‘Your race is X days away. Start with last night\u2019s sleep so Threshold has the fastest possible first data point.’,
   },
   {
     title: 'Quiet athlete re-engagement',

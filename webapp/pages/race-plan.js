@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import NavMenu from '../components/NavMenu';
+import UpgradePrompt from '../components/UpgradePrompt';
+import { canAccessRaceBlueprint } from '../lib/subscriptionTiers';
 
 // ─── Fueling targets by race type ────────────────────────────────────────────
 const RACE_FUELING = {
@@ -195,7 +197,7 @@ function StatRow({ label, value, sub }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function RacePlanPage() {
   const navLinks = [
-    { href: '/dashboard', label: 'UltraOS Home' },
+    { href: '/dashboard', label: 'Home' },
     { href: '/guide', label: 'Guide' },
     { href: '/pricing', label: 'Pricing' },
     { href: '/log-intervention', label: 'Log Intervention' },
@@ -222,6 +224,7 @@ export default function RacePlanPage() {
 
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [generated, setGenerated] = useState(false);
+  const [blueprintAllowed, setBlueprintAllowed] = useState(true);
 
   // Load race from localStorage + settings from API
   useEffect(() => {
@@ -256,6 +259,14 @@ export default function RacePlanPage() {
         setSettingsLoaded(true);
       })
       .catch(() => setSettingsLoaded(true));
+
+    fetch('/api/me')
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (!data?.athlete) return;
+        setBlueprintAllowed(canAccessRaceBlueprint(data.athlete).allowed);
+      })
+      .catch(() => {});
   }, []);
 
   function handleChange(e) {
@@ -355,9 +366,18 @@ export default function RacePlanPage() {
 
         {/* ── Main grid ──────────────────────────────────────── */}
         <div className="mt-8 grid gap-6 lg:grid-cols-[420px_1fr]">
+          {!blueprintAllowed ? (
+            <div className="lg:col-span-2">
+              <UpgradePrompt
+                featureName="Race Blueprint"
+                unlockTier="Individual or Coach"
+                body="Race Blueprint uses your training and race data to generate personalized fueling, hydration, and race-week timing. Upgrade to Individual to unlock it."
+              />
+            </div>
+          ) : null}
 
           {/* ── LEFT: Input form ─────────────────────────────── */}
-          <div className="space-y-5">
+          <div className={`space-y-5 ${!blueprintAllowed ? 'pointer-events-none opacity-35 blur-[2px]' : ''}`}>
 
             {/* Race info */}
             <div className="rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_8px_24px_rgba(19,24,22,0.05)]">
@@ -554,7 +574,7 @@ export default function RacePlanPage() {
           </div>
 
           {/* ── RIGHT: Blueprint output ───────────────────────── */}
-          <div className="space-y-5">
+          <div className={`space-y-5 ${!blueprintAllowed ? 'pointer-events-none opacity-35 blur-[2px]' : ''}`}>
 
             {!generated ? (
               <div className="flex h-full min-h-[300px] items-center justify-center rounded-[28px] border border-dashed border-ink/15 bg-white/40 p-10 text-center">

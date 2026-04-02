@@ -1,6 +1,7 @@
 import { supabase } from '../../lib/supabaseClient';
 import cookie from 'cookie';
 import { inferLegacyScores, normalizeProtocolPayload } from '../../lib/interventionCatalog';
+import { canLogCheckIn, canLogIntervention, normalizeSubscriptionTier } from '../../lib/subscriptionTiers';
 
 /**
  * API route to insert a new intervention into Supabase.
@@ -21,6 +22,56 @@ export default async function handler(req, res) {
   }
   const body = req.body;
   try {
+    const { data: athlete, error: athleteError } = await supabase
+      .from('athletes')
+      .select('id, subscription_tier')
+      .eq('id', athleteId)
+      .single();
+
+    if (athleteError) {
+      console.error(athleteError);
+      res.status(500).json({ error: athleteError.message });
+      return;
+    }
+
+    athlete.subscription_tier = normalizeSubscriptionTier(athlete.subscription_tier);
+
+    const { count: interventionCount, error: interventionCountError } = await supabase
+      .from('interventions')
+      .select('id', { count: 'exact', head: true })
+      .eq('athlete_id', athleteId);
+
+    if (interventionCountError) {
+      console.error(interventionCountError);
+      res.status(500).json({ error: interventionCountError.message });
+      return;
+    }
+
+    let gate = canLogIntervention(athlete, interventionCount ?? 0);
+    if (body.intervention_type === 'Workout Check-in') {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const { count: weeklyCheckIns, error: weeklyError } = await supabase
+        .from('interventions')
+        .select('id', { count: 'exact', head: true })
+        .eq('athlete_id', athleteId)
+        .eq('intervention_type', 'Workout Check-in')
+        .gte('inserted_at', sevenDaysAgo.toISOString());
+
+      if (weeklyError) {
+        console.error(weeklyError);
+        res.status(500).json({ error: weeklyError.message });
+        return;
+      }
+
+      gate = canLogCheckIn(athlete, weeklyCheckIns ?? 0);
+    }
+
+    if (!gate.allowed) {
+      res.status(403).json({ error: gate.reason || 'Upgrade required.' });
+      return;
+    }
+
     const protocolPayload = normalizeProtocolPayload(body.intervention_type, body.protocol_payload || {});
     const legacyFields = inferLegacyScores(body.intervention_type, protocolPayload);
     const { error } = await supabase.from('interventions').insert({
@@ -46,7 +97,7 @@ export default async function handler(req, res) {
       res.status(500).json({ error: error.message });
       return;
     }
-    res.status(200).json({ success: true });
+    res.status(200).json({ success: true, subscriptionTier: athlete.subscription_tier });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
