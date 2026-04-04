@@ -2,6 +2,8 @@ import { supabase } from '../../lib/supabaseClient';
 import { getActivityStreams, getDetailedActivity, refreshToken } from '../../lib/strava';
 import cookie from 'cookie';
 
+export const runtime = 'edge';
+
 function summarizeAltitude(streamData = []) {
   if (!Array.isArray(streamData) || streamData.length === 0) {
     return {

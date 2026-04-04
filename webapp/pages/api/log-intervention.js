@@ -3,6 +3,8 @@ import cookie from 'cookie';
 import { inferLegacyScores, normalizeProtocolPayload } from '../../lib/interventionCatalog';
 import { canLogCheckIn, canLogIntervention, normalizeSubscriptionTier } from '../../lib/subscriptionTiers';
 
+export const runtime = 'edge';
+
 /**
  * API route to insert a new intervention into Supabase.
  *

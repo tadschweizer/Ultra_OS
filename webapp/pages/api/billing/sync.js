@@ -5,6 +5,8 @@ import { supabase } from '../../../lib/supabaseClient';
 import cookie from 'cookie';
 import crypto from 'crypto';
 
+export const runtime = 'edge';
+
 function isActiveSubscriptionStatus(status) {
   return status === 'active' || status === 'trialing' || status === 'past_due';
 }

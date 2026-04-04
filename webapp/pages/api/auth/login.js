@@ -1,4 +1,6 @@
 import {
+
+export const runtime = 'edge';
   findOrCreateAthleteForAuthUser,
   getSupabaseAdminClient,
   getSupabaseAnonServerClient,

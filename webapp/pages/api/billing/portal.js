@@ -2,6 +2,8 @@ import { getAthleteByCookie } from '../../../lib/authServer';
 import { getStripeClient } from '../../../lib/stripeServer';
 import { supabase } from '../../../lib/supabaseClient';
 
+export const runtime = 'edge';
+
 export default async function handler(req, res) {
   const athlete = await getAthleteByCookie(req, supabase);
   if (!athlete) {

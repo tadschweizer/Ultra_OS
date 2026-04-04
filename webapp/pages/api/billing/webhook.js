@@ -2,6 +2,8 @@ import { getTierFromPriceId } from '../../../lib/billingPlans';
 import { getStripeClient } from '../../../lib/stripeServer';
 import { getSupabaseAdminClient } from '../../../lib/authServer';
 
+export const runtime = 'edge';
+
 export const config = {
   api: {
     bodyParser: false,

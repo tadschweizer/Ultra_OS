@@ -1,6 +1,8 @@
 import cookie from 'cookie';
 import { supabase } from '../../lib/supabaseClient';
 import {
+
+export const runtime = 'edge';
   computePlannedSessions,
   countAssignmentCompletions,
   generateCoachCode,
