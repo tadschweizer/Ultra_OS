@@ -372,8 +372,7 @@ export default function OnboardingPage() {
             <a href="/api/strava/login" className="inline-flex w-full items-center justify-center rounded-full bg-panel px-6 py-3 text-sm font-semibold text-paper">
               Connect Strava
             </a>
-            <p className="text-center text-xs text-ink/45">Strava is live today. Garmin and COROS are coming soon.</p>
-            <button
+<button
               type="button"
               onClick={() => completeOnboarding()}
               className="w-full rounded-full border border-ink/10 bg-paper px-6 py-3 text-sm font-semibold text-ink transition hover:bg-white"

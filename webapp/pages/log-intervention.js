@@ -154,7 +154,7 @@ export default function LogIntervention() {
   const [stravaConnected, setStravaConnected] = useState(true);
   const router = useRouter();
   const navLinks = [
-    { href: '/dashboard', label: 'Home', description: 'Insights, trends, and recent training.' },
+    { href: '/dashboard', label: 'Threshold Home', description: 'Insights, trends, and recent training.' },
     { href: '/guide', label: 'Guide', description: 'Learn how to use the intervention log.' },
     { href: '/connections', label: 'Connections', description: 'Manage linked sources.' },
     { href: '/log-intervention', label: 'Log Intervention', description: 'Create a new intervention entry.' },

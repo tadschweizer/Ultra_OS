@@ -2,6 +2,8 @@ import { supabase } from '../../lib/supabaseClient';
 import cookie from 'cookie';
 import { inferLegacyScores, normalizeProtocolPayload } from '../../lib/interventionCatalog';
 
+export const runtime = 'edge';
+
 function getAthleteId(req) {
   const cookies = cookie.parse(req.headers.cookie || '');
   return cookies.athlete_id;

@@ -6,6 +6,8 @@ import {
   generateCoachCode,
 } from '../../lib/coachProtocols';
 
+export const runtime = 'edge';
+
 function getAthleteId(req) {
   const cookies = cookie.parse(req.headers.cookie || '');
   return cookies.athlete_id;

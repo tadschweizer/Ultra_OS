@@ -83,7 +83,7 @@ export default function RaceOutcomePage() {
   const [error, setError] = useState('');
 
   const navLinks = [
-    { href: '/dashboard', label: 'Home' },
+    { href: '/dashboard', label: 'Threshold Home' },
     { href: '/race-plan', label: 'Race Blueprint' },
     { href: '/history', label: 'Intervention History' },
     { href: '/insights', label: 'Insights' },

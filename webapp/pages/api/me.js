@@ -2,6 +2,8 @@ import { supabase } from '../../lib/supabaseClient';
 import cookie from 'cookie';
 import { buildUsageSnapshot, getSubscriptionTierLabel, normalizeSubscriptionTier } from '../../lib/subscriptionTiers';
 
+export const runtime = 'edge';
+
 /**
  * Returns the authenticated athlete profile plus subscription tier and usage.
  */

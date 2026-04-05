@@ -212,7 +212,7 @@ export default function History() {
   const [drawerDayEntries, setDrawerDayEntries] = useState([]);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const navLinks = [
-    { href: '/dashboard', label: 'Home', description: 'Insights, trends, and recent training.' },
+    { href: '/dashboard', label: 'Threshold Home', description: 'Insights, trends, and recent training.' },
     { href: '/guide', label: 'Guide', description: 'Learn how history fits into Threshold.' },
     { href: '/connections', label: 'Connections', description: 'Manage linked sources.' },
     { href: '/history', label: 'Intervention History', description: 'Review intervention records.' },

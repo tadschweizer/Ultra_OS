@@ -4,7 +4,7 @@ import FeatureComingSoon from '../components/FeatureComingSoon';
 
 export default function NotificationsPage() {
   const navLinks = [
-    { href: '/dashboard', label: 'Home' },
+    { href: '/dashboard', label: 'Threshold Home' },
     { href: '/guide', label: 'Guide' },
     { href: '/pricing', label: 'Pricing' },
     { href: '/settings', label: 'Settings' },

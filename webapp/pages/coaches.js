@@ -38,7 +38,7 @@ export default function CoachesPage() {
 
   const navLinks = [
     { href: '/', label: 'Landing Page' },
-    { href: '/dashboard', label: 'Home' },
+    { href: '/dashboard', label: 'Threshold Home' },
     { href: '/guide', label: 'Guide' },
     { href: '/pricing', label: 'Pricing' },
     { href: '/explorer', label: 'Explorer' },

@@ -30,7 +30,7 @@ const sections = [
   {
     title: 'Insight Engine',
     body:
-      'When enough useful data exists, Threshold turns your intervention history, baseline trends, and race context into short insight cards. If there is not enough evidence yet, the platform tells you what to log next instead of pretending certainty.',
+      'When enough useful data exists, Threshold turns your intervention history, baseline trends, and race context into short insight cards. If there is not enough evidence yet, the product should tell you what to log next instead of pretending certainty.',
     value:
       'The point of the insight engine is to help you make a decision, not to flood you with commentary.',
     cta: { label: 'View your insights', href: '/insights' },
@@ -66,7 +66,7 @@ export default function GuidePage() {
   const { coachFeatures } = usePlan();
   const navLinks = [
     { href: '/', label: 'Landing Page' },
-    { href: '/dashboard', label: 'Home' },
+    { href: '/dashboard', label: 'Threshold Home' },
     { href: '/guide', label: 'Guide' },
     { href: '/pricing', label: 'Pricing' },
     { href: '/connections', label: 'Connections' },

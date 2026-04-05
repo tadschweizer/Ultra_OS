@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
@@ -17,7 +19,7 @@ export default async function handler(req, res) {
   }
 
   const firstName = name?.split(' ')[0] || 'there';
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://ultraos.app';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://mythreshold.co';
 
   try {
     const response = await fetch('https://api.resend.com/emails', {
@@ -27,7 +29,7 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Threshold <hello@ultraos.app>',
+        from: 'Threshold <hello@mythreshold.co>',
         to: email,
         subject: 'Welcome to Threshold',
         html: `

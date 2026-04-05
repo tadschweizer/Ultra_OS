@@ -106,7 +106,7 @@ const tiers = [
 const faq = [
   {
     q: 'Is Threshold free right now?',
-    a: 'Threshold has a real free tier. You can create an account, use the research library, and explore the platform before upgrading to unlock unlimited logging, full insights, and coach features.',
+    a: 'Threshold has a real free tier. You can create an account, use the research library, and explore the app before upgrading to unlock unlimited logging, full insights, and coach features.',
   },
   {
     q: 'Can I cancel anytime?',
@@ -122,11 +122,11 @@ const faq = [
   },
   {
     q: 'Do you integrate with Garmin and Strava?',
-    a: 'Strava is live today. Garmin is on the roadmap. Threshold supports both Strava-synced sessions and manual logging.',
+    a: 'Strava is live today. Threshold supports both Strava-synced sessions and manual logging.',
   },
   {
     q: 'What is a Workout Check-in?',
-    a: 'After each training session you log how your legs felt, energy level, and RPE. Threshold automatically compares each check-in against every intervention logged in the prior 48 hours and surfaces correlations — like "your legs score 2.1 points higher the day after a sauna session."',
+    a: 'After each training session you log how your legs felt, energy level, and RPE. Threshold then automatically compares each check-in against every intervention logged in the prior 48 hours and surfaces correlations — like "your legs score 2.1 points higher the day after a sauna session."',
   },
 ];
 

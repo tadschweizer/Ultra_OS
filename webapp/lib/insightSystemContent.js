@@ -302,7 +302,7 @@ export const onboardingPrompts = [
   {
     title: 'First empty-state prompt',
     body:
-      ‘Your race is X days away. Start with last night\u2019s sleep so Threshold has the fastest possible first data point.’,
+      'Your race is X days away. Start with last night’s sleep so Threshold has the fastest possible first data point.',
   },
   {
     title: 'Quiet athlete re-engagement',

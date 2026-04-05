@@ -1,11 +1,14 @@
 {
-  "name": "ultraos",
+  "name": "threshold",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "pages:build": "npx @cloudflare/next-on-pages",
+    "pages:deploy": "npm run pages:build && wrangler pages deploy",
+    "pages:preview": "npm run pages:build && wrangler pages dev"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
@@ -21,5 +24,9 @@
     "stripe": "^18.2.1",
     "tailwindcss": "^3.4.0",
     "workbox-webpack-plugin": "^7.4.0"
+  },
+  "devDependencies": {
+    "@cloudflare/next-on-pages": "^1.13.16",
+    "wrangler": "^4.80.0"
   }
 }

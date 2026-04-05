@@ -48,7 +48,7 @@ export default function Connections() {
   const [notifySubmitted, setNotifySubmitted] = useState({});
   const navLinks = athleteId
     ? [
-        { href: '/dashboard', label: 'Home', description: 'Insights, trends, and recent training.' },
+        { href: '/dashboard', label: 'Threshold Home', description: 'Insights, trends, and recent training.' },
         { href: '/connections', label: 'Connections', description: 'Manage linked training sources.' },
         { href: '/guide', label: 'Guide', description: 'Learn how connections fit into Threshold.' },
         { href: '/log-intervention', label: 'Log Intervention', description: 'Add a new intervention entry.' },
@@ -101,7 +101,7 @@ export default function Connections() {
           <NavMenu
             label="Connections navigation"
             links={navLinks}
-            primaryLink={athleteId ? { href: '/dashboard', label: 'Home' } : { href: '/', label: 'Landing Page', variant: 'secondary' }}
+            primaryLink={athleteId ? { href: '/dashboard', label: 'Threshold Home' } : { href: '/', label: 'Landing Page', variant: 'secondary' }}
           />
         </div>
 

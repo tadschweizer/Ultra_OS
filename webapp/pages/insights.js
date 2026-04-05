@@ -292,7 +292,7 @@ export default function InsightsPage() {
   );
 
   const navLinks = [
-    { href: '/dashboard', label: 'Home' },
+    { href: '/dashboard', label: 'Threshold Home' },
     { href: '/guide', label: 'Guide' },
     { href: '/pricing', label: 'Pricing' },
     { href: '/explorer', label: 'Explorer' },

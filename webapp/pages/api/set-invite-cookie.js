@@ -1,6 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import cookie from 'cookie';
 
+export const runtime = 'edge';
+
 /**
  * POST /api/set-invite-cookie
  *

@@ -2,6 +2,8 @@ import { supabase } from '../../lib/supabaseClient';
 import { refreshToken, getRecentActivities } from '../../lib/strava';
 import cookie from 'cookie';
 
+export const runtime = 'edge';
+
 /**
  * API route to fetch recent Strava activities for the authenticated athlete.
  *

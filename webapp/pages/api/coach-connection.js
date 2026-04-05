@@ -1,6 +1,8 @@
 import cookie from 'cookie';
 import { supabase } from '../../lib/supabaseClient';
 
+export const runtime = 'edge';
+
 function getAthleteId(req) {
   const cookies = cookie.parse(req.headers.cookie || '');
   return cookies.athlete_id;

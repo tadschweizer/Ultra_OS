@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 /**
  * API route to initiate the Strava OAuth flow.
  *

@@ -216,7 +216,7 @@ export default function Settings() {
   const [showDeleteZone, setShowDeleteZone] = useState(false);
   const [calcMaxHR, setCalcMaxHR] = useState('');
   const navLinks = [
-    { href: '/dashboard', label: 'Home', description: 'Insights, trends, and recent training.' },
+    { href: '/dashboard', label: 'Threshold Home', description: 'Insights, trends, and recent training.' },
     { href: '/guide', label: 'Guide', description: 'Learn how settings are used.' },
     { href: '/connections', label: 'Connections', description: 'Manage linked sources.' },
     { href: '/log-intervention', label: 'Log Intervention', description: 'Create a new intervention entry.' },

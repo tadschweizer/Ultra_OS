@@ -1,6 +1,8 @@
 import cookie from 'cookie';
 import { searchPubMed, summarizePubMed } from '../../../lib/pubmed';
 
+export const runtime = 'edge';
+
 export default async function handler(req, res) {
   const cookies = cookie.parse(req.headers.cookie || '');
   if (!cookies.athlete_id) {

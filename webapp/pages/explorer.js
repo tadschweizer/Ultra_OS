@@ -20,7 +20,7 @@ export default function ExplorerPage() {
   const [loading, setLoading] = useState(true);
   const [interventionCount, setInterventionCount] = useState(0);
   const navLinks = [
-    { href: '/dashboard', label: 'Home' },
+    { href: '/dashboard', label: 'Threshold Home' },
     { href: '/guide', label: 'Guide' },
     { href: '/pricing', label: 'Pricing' },
     { href: '/insights', label: 'Insights' },

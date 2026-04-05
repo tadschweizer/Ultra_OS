@@ -197,7 +197,7 @@ function StatRow({ label, value, sub }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function RacePlanPage() {
   const navLinks = [
-    { href: '/dashboard', label: 'Home' },
+    { href: '/dashboard', label: 'Threshold Home' },
     { href: '/guide', label: 'Guide' },
     { href: '/pricing', label: 'Pricing' },
     { href: '/log-intervention', label: 'Log Intervention' },

@@ -1,6 +1,8 @@
 import cookie from 'cookie';
 import { buildResearchDraft } from '../../../lib/researchDrafts';
 
+export const runtime = 'edge';
+
 export default function handler(req, res) {
   const cookies = cookie.parse(req.headers.cookie || '');
   const athleteId = cookies.athlete_id;

@@ -5,6 +5,8 @@ import { supabase } from '../../../lib/supabaseClient';
 import cookie from 'cookie';
 import crypto from 'crypto';
 
+export const runtime = 'edge';
+
 function getRequestOrigin(req) {
   const forwardedProto = req.headers['x-forwarded-proto'];
   const forwardedHost = req.headers['x-forwarded-host'];

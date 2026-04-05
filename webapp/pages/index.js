@@ -91,7 +91,7 @@ export default function Home() {
   }, []);
 
   const loginHref = athleteId ? '/dashboard' : '/login';
-  const loginLabel = athleteId ? 'Open App' : 'Log In';
+  const loginLabel = athleteId ? 'Open Threshold' : 'Log In';
 
   return (
     <main className="min-h-screen bg-paper text-ink">
