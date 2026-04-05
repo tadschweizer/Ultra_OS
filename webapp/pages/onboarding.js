@@ -279,7 +279,7 @@ export default function OnboardingPage() {
       <section key="sport" className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr]">
         <div>
           <p className="text-sm uppercase tracking-[0.35em] text-accent">Your background</p>
-          <h1 className="font-display mt-4 text-5xl leading-tight md:text-7xl">Tell UltraOS how you train.</h1>
+          <h1 className="font-display mt-4 text-5xl leading-tight md:text-7xl">Tell Threshold how you train.</h1>
           <p className="mt-6 max-w-2xl text-base leading-8 text-ink/76">
             This gives the dashboard and future insights the context they need from day one.
           </p>
@@ -355,7 +355,7 @@ export default function OnboardingPage() {
             Connect Strava to add training context to every protocol you log
           </h1>
           <p className="mt-6 max-w-2xl text-base leading-8 text-ink/76">
-            UltraOS uses your Strava activity data to link interventions to specific workouts — so you can see whether your heat block happened on a hard week or an easy week.
+            Threshold uses your Strava activity data to link interventions to specific workouts — so you can see whether your heat block happened on a hard week or an easy week.
           </p>
         </div>
 
@@ -372,8 +372,7 @@ export default function OnboardingPage() {
             <a href="/api/strava/login" className="inline-flex w-full items-center justify-center rounded-full bg-panel px-6 py-3 text-sm font-semibold text-paper">
               Connect Strava
             </a>
-            <p className="text-center text-xs text-ink/45">Strava is live today. Garmin and COROS are coming soon.</p>
-            <button
+<button
               type="button"
               onClick={() => completeOnboarding()}
               className="w-full rounded-full border border-ink/10 bg-paper px-6 py-3 text-sm font-semibold text-ink transition hover:bg-white"
@@ -449,7 +448,7 @@ export default function OnboardingPage() {
       <div className="mx-auto max-w-6xl">
         <section className="overflow-hidden rounded-[42px] border border-ink/10 bg-[linear-gradient(135deg,#f7f2ea_0%,#ebe1d4_55%,#dcc9b0_100%)] p-6 md:p-10">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <p className="text-xs uppercase tracking-[0.35em] text-accent">UltraOS onboarding</p>
+            <p className="text-xs uppercase tracking-[0.35em] text-accent">Threshold onboarding</p>
             <StepIndicator step={step} />
           </div>
 

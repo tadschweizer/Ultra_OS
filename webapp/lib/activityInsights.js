@@ -380,7 +380,7 @@ export function buildInsightCards(activities = [], interventionCount = 0, settin
     {
       title: 'Future Parsing Path',
       body:
-        'Next layer: ingest planned workout text from connected platforms and merge it with HR, duration, and terrain so UltraOS can distinguish threshold work from easy mileage and hill strides from generic climbs.',
+        'Next layer: ingest planned workout text from connected platforms and merge it with HR, duration, and terrain so Threshold can distinguish threshold work from easy mileage and hill strides from generic climbs.',
     },
   ];
 }
@@ -393,7 +393,7 @@ export function buildProtocolTrendCards(interventions = [], supplements = []) {
     return [
       {
         title: 'Protocol Signal',
-        body: 'No intervention history is available yet. Once entries accumulate, UltraOS can compare type, timing, and subjective response instead of only counting logs.',
+        body: 'No intervention history is available yet. Once entries accumulate, Threshold can compare type, timing, and subjective response instead of only counting logs.',
       },
       {
         title: 'Baseline Stack',

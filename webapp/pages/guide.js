@@ -6,7 +6,7 @@ const sections = [
   {
     title: 'Intervention Log',
     body:
-      'Use the intervention log to record the protocol you chose, the session or race it was tied to, and any notes that matter later. The goal is simple: capture what you tried so UltraOS can compare it against how you responded.',
+      'Use the intervention log to record the protocol you chose, the session or race it was tied to, and any notes that matter later. The goal is simple: capture what you tried so Threshold can compare it against how you responded.',
     value:
       'This is the core dataset behind intervention insights. The more consistently you log protocols, the faster the platform can separate useful patterns from one-off experiments.',
     cta: { label: 'Log your first intervention', href: '/log-intervention' },
@@ -16,7 +16,7 @@ const sections = [
     body:
       'Your baseline settings hold the stable information that makes later comparisons more meaningful: altitude, heart-rate zones, fueling anchors, hydration targets, and supplements you use regularly.',
     value:
-      'These inputs help UltraOS interpret logs in context instead of treating every intervention as if it happened in a vacuum.',
+      'These inputs help Threshold interpret logs in context instead of treating every intervention as if it happened in a vacuum.',
     cta: { label: 'Set up your baseline', href: '/settings' },
   },
   {
@@ -30,7 +30,7 @@ const sections = [
   {
     title: 'Insight Engine',
     body:
-      'When enough useful data exists, UltraOS turns your intervention history, baseline trends, and race context into short insight cards. If there is not enough evidence yet, the product should tell you what to log next instead of pretending certainty.',
+      'When enough useful data exists, Threshold turns your intervention history, baseline trends, and race context into short insight cards. If there is not enough evidence yet, the product should tell you what to log next instead of pretending certainty.',
     value:
       'The point of the insight engine is to help you make a decision, not to flood you with commentary.',
     cta: { label: 'View your insights', href: '/insights' },
@@ -66,7 +66,7 @@ export default function GuidePage() {
   const { coachFeatures } = usePlan();
   const navLinks = [
     { href: '/', label: 'Landing Page' },
-    { href: '/dashboard', label: 'UltraOS Home' },
+    { href: '/dashboard', label: 'Threshold Home' },
     { href: '/guide', label: 'Guide' },
     { href: '/pricing', label: 'Pricing' },
     { href: '/connections', label: 'Connections' },
@@ -78,7 +78,7 @@ export default function GuidePage() {
       <div className="mx-auto max-w-6xl">
         <div className="mb-6 flex items-center justify-between rounded-full border border-ink/10 bg-white/70 px-4 py-3 backdrop-blur">
           <div>
-            <p className="text-xs uppercase tracking-[0.35em] text-accent">UltraOS Guide</p>
+            <p className="text-xs uppercase tracking-[0.35em] text-accent">Threshold Guide</p>
           </div>
           <NavMenu label="Guide navigation" links={navLinks} primaryLink={{ href: '/pricing', label: 'Pricing', variant: 'secondary' }} />
         </div>
@@ -94,10 +94,10 @@ export default function GuidePage() {
         />
 
         <section className="overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(145deg,#f7f2ea_0%,#eadcc7_48%,#d5bf9f_100%)] p-6 md:p-10">
-          <p className="text-sm uppercase tracking-[0.35em] text-accent">How To Use UltraOS</p>
+          <p className="text-sm uppercase tracking-[0.35em] text-accent">How To Use Threshold</p>
           <h1 className="font-display mt-4 text-5xl leading-tight md:text-7xl">Guide</h1>
           <p className="mt-6 max-w-3xl text-base leading-8 text-ink/80 md:text-lg">
-            UltraOS works best when you understand what each piece is for. This guide covers every feature. Come back whenever you need a refresher.
+            Threshold works best when you understand what each piece is for. This guide covers every feature. Come back whenever you need a refresher.
           </p>
         </section>
 

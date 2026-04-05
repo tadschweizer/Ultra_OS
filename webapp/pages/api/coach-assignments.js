@@ -1,12 +1,12 @@
 import cookie from 'cookie';
 import { supabase } from '../../lib/supabaseClient';
 import {
-
-export const runtime = 'edge';
   computePlannedSessions,
   countAssignmentCompletions,
   generateCoachCode,
 } from '../../lib/coachProtocols';
+
+export const runtime = 'edge';
 
 function getAthleteId(req) {
   const cookies = cookie.parse(req.headers.cookie || '');

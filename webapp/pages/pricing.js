@@ -33,7 +33,7 @@ const tiers = [
     price: '$29',
     period: 'month',
     annualNote: null,
-    description: 'Full UltraOS — log, correlate, and plan. Flexible month-to-month.',
+    description: 'Full Threshold — log, correlate, and plan. Flexible month-to-month.',
     includes: [
       'Everything in Research Feed',
       'Intervention logging (heat, gut, sleep, bicarb…)',
@@ -54,7 +54,7 @@ const tiers = [
     price: '$20',
     period: 'month',
     annualNote: '$240 billed annually — save $108/yr',
-    description: 'Full UltraOS at the lowest per-month cost.',
+    description: 'Full Threshold at the lowest per-month cost.',
     includes: [
       'Everything in Individual Monthly',
       'Lowest per-month price',
@@ -105,8 +105,8 @@ const tiers = [
 
 const faq = [
   {
-    q: 'Is UltraOS free right now?',
-    a: 'UltraOS has a real free tier. You can create an account, use the research library, and explore the app before upgrading to unlock unlimited logging, full insights, and coach features.',
+    q: 'Is Threshold free right now?',
+    a: 'Threshold has a real free tier. You can create an account, use the research library, and explore the app before upgrading to unlock unlimited logging, full insights, and coach features.',
   },
   {
     q: 'Can I cancel anytime?',
@@ -114,19 +114,19 @@ const faq = [
   },
   {
     q: 'What is the Research Feed?',
-    a: 'The Research Feed is UltraOS\'s curated library of peer-reviewed sports science — 72 studies across 19 topics written in plain English with practical takeaways. It\'s the lightest plan if you just want the evidence layer.',
+    a: 'The Research Feed is Threshold\'s curated library of peer-reviewed sports science — 72 studies across 19 topics written in plain English with practical takeaways. It\'s the lightest plan if you just want the evidence layer.',
   },
   {
     q: 'Is this a replacement for TrainingPeaks?',
-    a: 'No — UltraOS is an intervention intelligence layer, not a full training-planning platform. Many athletes use both. UltraOS tracks the protocols (heat blocks, gut training, bicarb, sleep) that training platforms don\'t capture.',
+    a: 'No — Threshold is an intervention intelligence layer, not a full training-planning platform. Many athletes use both. Threshold tracks the protocols (heat blocks, gut training, bicarb, sleep) that training platforms don\'t capture.',
   },
   {
     q: 'Do you integrate with Garmin and Strava?',
-    a: 'Strava is live today. Garmin is on the roadmap. UltraOS supports both Strava-synced sessions and manual logging.',
+    a: 'Strava is live today. Threshold supports both Strava-synced sessions and manual logging.',
   },
   {
     q: 'What is a Workout Check-in?',
-    a: 'After each training session you log how your legs felt, energy level, and RPE. UltraOS then automatically compares each check-in against every intervention logged in the prior 48 hours and surfaces correlations — like "your legs score 2.1 points higher the day after a sauna session."',
+    a: 'After each training session you log how your legs felt, energy level, and RPE. Threshold then automatically compares each check-in against every intervention logged in the prior 48 hours and surfaces correlations — like "your legs score 2.1 points higher the day after a sauna session."',
   },
 ];
 
@@ -155,7 +155,7 @@ export default function PricingPage() {
       <div className="sticky top-0 z-50 px-4 pt-4">
         <div className="mx-auto max-w-6xl">
           <div className="flex items-center justify-between rounded-full border border-ink/10 bg-white/80 px-4 py-3 shadow-sm backdrop-blur">
-            <a href="/" className="text-xs font-semibold uppercase tracking-[0.35em] text-accent">UltraOS</a>
+            <a href="/" className="text-xs font-semibold uppercase tracking-[0.35em] text-accent">Threshold</a>
             <NavMenu
               label="Pricing navigation"
               links={athleteId ? [{ href: '/dashboard', label: 'Dashboard' }, ...navLinks.slice(1)] : navLinks}
@@ -320,13 +320,13 @@ export default function PricingPage() {
 
         {/* Footer */}
         <footer className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-ink/8 pt-8 text-xs text-ink/35">
-          <a href="/" className="font-semibold uppercase tracking-[0.3em] text-accent">UltraOS</a>
+          <a href="/" className="font-semibold uppercase tracking-[0.3em] text-accent">Threshold</a>
           <div className="flex gap-6">
             <a href="/" className="hover:text-ink/60">Home</a>
             <a href="/guide" className="hover:text-ink/60">How It Works</a>
             <a href="/content" className="hover:text-ink/60">Research</a>
           </div>
-          <p>© {new Date().getFullYear()} UltraOS</p>
+          <p>© {new Date().getFullYear()} Threshold</p>
         </footer>
 
       </div>

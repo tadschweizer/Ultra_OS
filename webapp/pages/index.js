@@ -19,7 +19,7 @@ const features = [
     emoji: '📋',
     label: 'Workout Check-ins',
     headline: 'See what actually moves training quality',
-    body: 'Log how your legs feel, energy level, and RPE after every session. UltraOS compares each check-in against every intervention from the prior 48 hours — foam rolling, sleep, heat, ice baths — and surfaces the patterns automatically.',
+    body: 'Log how your legs feel, energy level, and RPE after every session. Threshold compares each check-in against every intervention from the prior 48 hours — foam rolling, sleep, heat, ice baths — and surfaces the patterns automatically.',
     stat: '+1.8 pts',
     statLabel: 'avg legs feel after sauna days vs without',
     highlight: true,
@@ -28,7 +28,7 @@ const features = [
     emoji: '🗺️',
     label: 'Race Architecture Builder',
     headline: 'Your race blueprint, auto-built from your data',
-    body: 'Enter your target race and finish time. UltraOS generates a real-time fueling and hydration blueprint, pre-race intervention timeline, and heat/bicarb/caffeine dosing — all calculated from your own logged baseline.',
+    body: 'Enter your target race and finish time. Threshold generates a real-time fueling and hydration blueprint, pre-race intervention timeline, and heat/bicarb/caffeine dosing — all calculated from your own logged baseline.',
     stat: '14 days',
     statLabel: 'of pre-race prep, automatically sequenced',
     highlight: false,
@@ -91,7 +91,7 @@ export default function Home() {
   }, []);
 
   const loginHref = athleteId ? '/dashboard' : '/login';
-  const loginLabel = athleteId ? 'Open UltraOS' : 'Log In';
+  const loginLabel = athleteId ? 'Open Threshold' : 'Log In';
 
   return (
     <main className="min-h-screen bg-paper text-ink">
@@ -100,7 +100,7 @@ export default function Home() {
       <div className="sticky top-0 z-50 px-4 pt-4">
         <div className="mx-auto max-w-6xl">
           <div className="flex items-center justify-between rounded-full border border-ink/10 bg-white/80 px-4 py-3 shadow-sm backdrop-blur">
-            <a href="/" className="text-xs font-semibold uppercase tracking-[0.35em] text-accent">UltraOS</a>
+            <a href="/" className="text-xs font-semibold uppercase tracking-[0.35em] text-accent">Threshold</a>
             <NavMenu
               label="Homepage navigation"
               links={athleteId ? athleteLinks : publicLinks}
@@ -123,7 +123,7 @@ export default function Home() {
                 The protocols behind your race-day outcomes.
               </h1>
               <p className="mt-6 max-w-xl text-base leading-[1.8] text-ink/70 md:text-lg">
-                UltraOS tracks the interventions — heat blocks, gut training, sleep, bicarb, cold immersion — and shows you which ones actually moved your training quality and race performance.
+                Threshold tracks the interventions — heat blocks, gut training, sleep, bicarb, cold immersion — and shows you which ones actually moved your training quality and race performance.
               </p>
               <div className="mt-9 flex flex-wrap gap-3">
                 <a
@@ -220,10 +220,10 @@ export default function Home() {
             </div>
           </div>
           <div className="rounded-[32px] border border-accent/20 bg-[linear-gradient(135deg,#fffbf0_0%,#fdf3d7_100%)] p-8 shadow-[0_8px_24px_rgba(19,24,22,0.06)]">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-accent">With UltraOS</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-accent">With Threshold</p>
             <h3 className="mt-4 text-2xl font-semibold leading-snug text-ink">Your N=1 correlation engine. Personal data that coaches you.</h3>
             <p className="mt-4 text-sm leading-7 text-ink/60">
-              Log your interventions and check-in after every training session. UltraOS compares the two — automatically finding patterns like "your legs score 2.1 points higher on training days that follow a sauna session."
+              Log your interventions and check-in after every training session. Threshold compares the two — automatically finding patterns like "your legs score 2.1 points higher on training days that follow a sauna session."
             </p>
             <div className="mt-6 space-y-2">
               {['Sauna → +2.1 pts legs feel', 'Foam rolling → +1.4 pts energy', 'Cold immersion → +1.1 pts legs feel'].map((q) => (
@@ -238,7 +238,7 @@ export default function Home() {
 
         {/* ── Feature sections ──────────────────────────────────────── */}
         <section className="mt-16 space-y-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink/40">What UltraOS does</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink/40">What Threshold does</p>
           {features.map((f) => (
             <div
               key={f.label}
@@ -293,7 +293,7 @@ export default function Home() {
                 {
                   step: '03',
                   title: 'Patterns surface automatically',
-                  body: 'UltraOS compares every check-in against the interventions logged in the prior 48 hours. No manual analysis. The correlation engine does the work.',
+                  body: 'Threshold compares every check-in against the interventions logged in the prior 48 hours. No manual analysis. The correlation engine does the work.',
                 },
               ].map((item) => (
                 <div key={item.step} className="rounded-[24px] border border-white/10 bg-white/5 p-6">
@@ -343,7 +343,7 @@ export default function Home() {
         {/* ── Comparison ───────────────────────────────────────────── */}
         <section className="mt-10">
           <div className="rounded-[32px] border border-ink/10 bg-white p-8 shadow-[0_8px_24px_rgba(19,24,22,0.05)] md:p-10">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink/40">UltraOS vs. TrainingPeaks</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink/40">Threshold vs. TrainingPeaks</p>
             <h2 className="font-display mt-4 text-2xl font-semibold text-ink md:text-3xl">
               Built for athletes who want to know <em>why</em> — not just <em>how far</em>.
             </h2>
@@ -352,7 +352,7 @@ export default function Home() {
                 <thead>
                   <tr className="border-b border-ink/8">
                     <th className="py-3 pr-6 text-left text-xs font-semibold uppercase tracking-[0.18em] text-ink/40">Feature</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-[0.18em] text-accent">UltraOS</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-[0.18em] text-accent">Threshold</th>
                     <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-[0.18em] text-ink/40">TrainingPeaks</th>
                   </tr>
                 </thead>
@@ -378,7 +378,7 @@ export default function Home() {
               Your next PR is already in your data.
             </h2>
             <p className="mx-auto mt-5 max-w-xl text-base leading-8 text-ink/65">
-              Connect Strava, log your first heat session or foam rolling block, check in after your next workout, and let UltraOS find the pattern. Free to start.
+              Connect Strava, log your first heat session or foam rolling block, check in after your next workout, and let Threshold find the pattern. Free to start.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-4">
               <a
@@ -400,14 +400,14 @@ export default function Home() {
 
         {/* ── Footer ───────────────────────────────────────────────── */}
         <footer className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-ink/8 pt-8 text-xs text-ink/35">
-          <p className="font-semibold uppercase tracking-[0.3em] text-accent">UltraOS</p>
+          <p className="font-semibold uppercase tracking-[0.3em] text-accent">Threshold</p>
           <div className="flex gap-6">
             <a href="/guide" className="hover:text-ink/60">How It Works</a>
             <a href="/pricing" className="hover:text-ink/60">Pricing</a>
             <a href="/content" className="hover:text-ink/60">Research</a>
             <a href="/login" className="hover:text-ink/60">Login</a>
           </div>
-          <p>© {new Date().getFullYear()} UltraOS</p>
+          <p>© {new Date().getFullYear()} Threshold</p>
         </footer>
 
       </div>

@@ -1,11 +1,11 @@
 import {
-
-export const runtime = 'edge';
   findOrCreateAthleteForAuthUser,
   getSupabaseAdminClient,
   getSupabaseAnonServerClient,
   setAthleteCookie,
 } from '../../../lib/authServer';
+
+export const runtime = 'edge';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {

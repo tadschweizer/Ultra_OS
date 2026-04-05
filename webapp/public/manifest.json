@@ -1,6 +1,6 @@
 {
-  "name": "UltraOS",
-  "short_name": "UltraOS",
+  "name": "Threshold",
+  "short_name": "Threshold",
   "description": "Performance intelligence for athletes who go long.",
   "start_url": "/dashboard",
   "display": "standalone",

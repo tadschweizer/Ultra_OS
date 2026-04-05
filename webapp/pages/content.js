@@ -102,7 +102,7 @@ export default function Content() {
   const [viewMode, setViewMode] = useState('all'); // 'all' | 'saved'
 
   const navLinks = [
-    { href: '/dashboard', label: 'UltraOS Home' },
+    { href: '/dashboard', label: 'Threshold Home' },
     { href: '/guide', label: 'Guide' },
     { href: '/pricing', label: 'Pricing' },
     { href: '/connections', label: 'Connections' },
@@ -243,7 +243,7 @@ export default function Content() {
           <NavMenu
             label="Content navigation"
             links={navLinks}
-            primaryLink={{ href: '/dashboard', label: 'UltraOS Home' }}
+            primaryLink={{ href: '/dashboard', label: 'Threshold Home' }}
           />
         </div>
 

@@ -48,16 +48,16 @@ export default function Connections() {
   const [notifySubmitted, setNotifySubmitted] = useState({});
   const navLinks = athleteId
     ? [
-        { href: '/dashboard', label: 'UltraOS Home', description: 'Insights, trends, and recent training.' },
+        { href: '/dashboard', label: 'Threshold Home', description: 'Insights, trends, and recent training.' },
         { href: '/connections', label: 'Connections', description: 'Manage linked training sources.' },
-        { href: '/guide', label: 'Guide', description: 'Learn how connections fit into UltraOS.' },
+        { href: '/guide', label: 'Guide', description: 'Learn how connections fit into Threshold.' },
         { href: '/log-intervention', label: 'Log Intervention', description: 'Add a new intervention entry.' },
         { href: '/history', label: 'Intervention History', description: 'Review what you have logged.' },
         { href: '/settings', label: 'Settings', description: 'Adjust athlete baselines and zones.' },
         { href: '/content', label: 'Content', description: 'Track the content and community workstream.' },
         { href: '/', label: 'Landing Page', description: 'Return to the marketing/login surface.' },
       ]
-    : [{ href: '/', label: 'Landing Page', description: 'Return to the UltraOS entry page.' }];
+    : [{ href: '/', label: 'Landing Page', description: 'Return to the Threshold entry page.' }];
 
   useEffect(() => {
     if (typeof document !== 'undefined') {
@@ -96,12 +96,12 @@ export default function Connections() {
       <div className="mx-auto max-w-6xl">
         <div className="mb-6 flex items-center justify-between rounded-full border border-ink/10 bg-white/70 px-4 py-3 backdrop-blur">
           <div>
-            <p className="text-xs uppercase tracking-[0.35em] text-accent">UltraOS Connections</p>
+            <p className="text-xs uppercase tracking-[0.35em] text-accent">Threshold Connections</p>
           </div>
           <NavMenu
             label="Connections navigation"
             links={navLinks}
-            primaryLink={athleteId ? { href: '/dashboard', label: 'UltraOS Home' } : { href: '/', label: 'Landing Page', variant: 'secondary' }}
+            primaryLink={athleteId ? { href: '/dashboard', label: 'Threshold Home' } : { href: '/', label: 'Landing Page', variant: 'secondary' }}
           />
         </div>
 

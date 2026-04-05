@@ -38,7 +38,7 @@ export default function CoachesPage() {
 
   const navLinks = [
     { href: '/', label: 'Landing Page' },
-    { href: '/dashboard', label: 'UltraOS Home' },
+    { href: '/dashboard', label: 'Threshold Home' },
     { href: '/guide', label: 'Guide' },
     { href: '/pricing', label: 'Pricing' },
     { href: '/explorer', label: 'Explorer' },
@@ -123,7 +123,7 @@ export default function CoachesPage() {
       <div className="mx-auto max-w-6xl">
         <div className="mb-6 flex items-center justify-between rounded-full border border-ink/10 bg-white/70 px-4 py-3 backdrop-blur">
           <div>
-            <p className="text-xs uppercase tracking-[0.35em] text-accent">UltraOS Coach Dashboard</p>
+            <p className="text-xs uppercase tracking-[0.35em] text-accent">Threshold Coach Dashboard</p>
           </div>
           <NavMenu
             label="Coach page navigation"

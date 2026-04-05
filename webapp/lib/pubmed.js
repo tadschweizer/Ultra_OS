@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 const PUBMED_BASE_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils';
-const PUBMED_TOOL = 'UltraOS';
-const PUBMED_EMAIL = process.env.NCBI_CONTACT_EMAIL || 'support@ultraos.app';
+const PUBMED_TOOL = 'Threshold';
+const PUBMED_EMAIL = process.env.NCBI_CONTACT_EMAIL || 'support@mythreshold.co';
 
 function buildPubMedParams(extra = {}) {
   return {

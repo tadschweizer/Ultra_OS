@@ -292,7 +292,7 @@ export default function InsightsPage() {
   );
 
   const navLinks = [
-    { href: '/dashboard', label: 'UltraOS Home' },
+    { href: '/dashboard', label: 'Threshold Home' },
     { href: '/guide', label: 'Guide' },
     { href: '/pricing', label: 'Pricing' },
     { href: '/explorer', label: 'Explorer' },
@@ -425,7 +425,7 @@ export default function InsightsPage() {
               <p className="text-xs uppercase tracking-[0.28em] text-accent">Training Response</p>
               <h2 className="font-display mt-1 text-3xl font-semibold text-ink">What moves your training quality?</h2>
               <p className="mt-2 text-sm leading-6 text-ink/55 max-w-2xl">
-                Every time you log a Workout Check-in, UltraOS compares it against interventions from the prior 48 hours. Patterns emerge automatically — no manual tagging.
+                Every time you log a Workout Check-in, Threshold compares it against interventions from the prior 48 hours. Patterns emerge automatically — no manual tagging.
               </p>
             </div>
             <a

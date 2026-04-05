@@ -1,14 +1,14 @@
 import cookie from 'cookie';
 import { supabase } from '../../lib/supabaseClient';
 import {
-
-export const runtime = 'edge';
   buildAssignmentStatusLabel,
   computePhaseFromDays,
   countAssignmentCompletions,
   getDaysUntil,
   normalizeRace,
 } from '../../lib/coachProtocols';
+
+export const runtime = 'edge';
 
 function getAthleteId(req) {
   const cookies = cookie.parse(req.headers.cookie || '');
