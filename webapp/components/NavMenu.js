@@ -133,7 +133,7 @@ export default function NavMenu({ primaryLink = null }) {
       <div
         aria-hidden={!open}
         className={`fixed inset-x-0 bottom-0 z-50 transition-transform duration-300 ease-out lg:hidden ${
-          open ? 'translate-y-0' : 'translate-y-full'
+          open ? 'translate-y-0' : 'translate-y-full pointer-events-none'
         }`}
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
@@ -148,9 +148,9 @@ export default function NavMenu({ primaryLink = null }) {
             <span className="font-display text-xl font-semibold text-ink">More</span>
             <button
               type="button"
-              onClick={() => setOpen(false)}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-ink/6"
-              aria-label="Close"
+              onClick={(e) => { e.stopPropagation(); setOpen(false); }}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-ink/8 transition active:bg-ink/15"
+              aria-label="Close menu"
             >
               <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4 stroke-ink" strokeWidth="2" strokeLinecap="round">
                 <line x1="5" y1="5" x2="15" y2="15" />

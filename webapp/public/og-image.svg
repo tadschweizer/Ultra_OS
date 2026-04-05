@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
   <rect width="1200" height="630" fill="#EAE4DA"/>
   <rect x="84" y="84" width="1032" height="462" rx="28" fill="#F5F0E8" stroke="#DDD6CA"/>
-  <text x="120" y="255" font-family="Georgia, serif" font-size="90" fill="#B8752A">UltraOS</text>
+  <text x="120" y="255" font-family="Georgia, serif" font-size="90" fill="#B8752A">Threshold</text>
   <text x="120" y="340" font-family="Arial, sans-serif" font-size="34" fill="#4A3A2A">Performance intelligence for athletes who go long.</text>
   <path d="M810 420 910 292l58 76 49-61 99 113H810Z" fill="#B8752A"/>
 </svg>
