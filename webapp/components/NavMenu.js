@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 
@@ -53,7 +54,11 @@ const sheetSections = [
 export default function NavMenu({ primaryLink = null }) {
   const [open, setOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
+
+  // Portal target — wait for client mount so document.body exists
+  useEffect(() => { setMounted(true); }, []);
 
   // Fetch admin status once on mount
   useEffect(() => {
@@ -120,23 +125,27 @@ export default function NavMenu({ primaryLink = null }) {
         </button>
       </div>
 
-      {/* Backdrop — tap to dismiss */}
-      {open ? (
-        <div
-          className="fixed inset-0 z-40 bg-ink/30 backdrop-blur-[2px]"
-          onClick={() => setOpen(false)}
-          aria-hidden="true"
-        />
-      ) : null}
+      {/* Backdrop + sheet — portalled to document.body so backdrop-filter
+          ancestors on page nav bars don't hijack the fixed containing block */}
+      {mounted ? createPortal(
+        <>
+          {/* Backdrop — tap to dismiss */}
+          {open ? (
+            <div
+              className="fixed inset-0 z-40 bg-ink/30 backdrop-blur-[2px] lg:hidden"
+              onClick={() => setOpen(false)}
+              aria-hidden="true"
+            />
+          ) : null}
 
-      {/* Slide-up bottom sheet */}
-      <div
-        aria-hidden={!open}
-        className={`fixed inset-x-0 bottom-0 z-50 transition-transform duration-300 ease-out lg:hidden ${
-          open ? 'translate-y-0' : 'translate-y-full pointer-events-none'
-        }`}
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-      >
+          {/* Slide-up bottom sheet */}
+          <div
+            aria-hidden={!open}
+            className={`fixed inset-x-0 bottom-0 z-50 transition-transform duration-300 ease-out lg:hidden ${
+              open ? 'translate-y-0' : 'translate-y-full pointer-events-none'
+            }`}
+            style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+          >
         <div className="rounded-t-[32px] bg-white shadow-[0_-8px_40px_rgba(19,24,22,0.18)]">
           {/* Drag handle */}
           <div className="flex justify-center pb-1 pt-3">
@@ -235,7 +244,10 @@ export default function NavMenu({ primaryLink = null }) {
             </a>
           </div>
         </div>
-      </div>
+          </div>
+        </>,
+        document.body
+      ) : null}
     </div>
   );
 }
