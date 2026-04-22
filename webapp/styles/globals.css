@@ -3,27 +3,34 @@
 @tailwind utilities;
 
 :root {
+  /* ── Surfaces ── */
   --color-page-background: #eae4da;
   --color-surface-light: #f5f0e8;
   --color-surface-white: #ffffff;
   --color-surface-dark: #1c1a17;
   --color-surface-dark-raised: #252320;
+  /* ── Borders ── */
   --color-border-subtle: #ddd6ca;
   --color-border-default: #c8b8a8;
+  /* ── Ink / text ── */
   --color-text-primary: #1c1a17;
   --color-text-secondary: #4a3a2a;
   --color-text-muted: #7a6a5a;
   --color-text-faint: #b8a898;
   --color-text-on-dark: #f0eae0;
   --color-text-muted-on-dark: #b6a899;
-  --color-accent-amber: #b8752a;
+  /* ── Accent amber — canonical blueprint value ── */
+  --color-accent-amber: #c4882a;
+  --color-accent-amber-deep: #b8752a;
   --color-accent-amber-light: #d4893a;
-  --color-accent-amber-dim: rgba(184, 117, 42, 0.14);
-  --color-hero-start: #f5f0e8;
-  --color-hero-mid: #eadcc7;
-  --color-hero-end: #d5bf9f;
+  --color-accent-amber-dim: rgba(196, 136, 42, 0.14);
+  /* ── Hero gradients ── */
+  --color-hero-start: #f7f2ea;
+  --color-hero-mid: #ebe1d4;
+  --color-hero-end: #dcc9b0;
   --color-hero-dark-mid: #302b25;
   --color-hero-dark-end: #7d684d;
+  /* ── Category swatches ── */
   --color-category-heat: #d8bf98;
   --color-category-gut: #d8a56a;
   --color-category-respiratory: #c99068;
@@ -32,6 +39,15 @@
   --color-category-altitude: #a88f6f;
   --color-category-nutrition: #d9ba85;
   --color-category-sleep: #c9b29a;
+  /* ── Semantic status ── */
+  --color-positive: #10b981;
+  --color-positive-bg: rgba(16, 185, 129, 0.15);
+  --color-danger: #dc2626;
+  /* ── Shadows ── */
+  --shadow-warm: 0 18px 40px rgba(28, 26, 23, 0.06);
+  --shadow-warm-lg: 0 24px 60px rgba(28, 26, 23, 0.12);
+  --shadow-panel: 0 40px 100px rgba(28, 26, 23, 0.20);
+  --shadow-button: 0 4px 20px rgba(19, 24, 22, 0.25);
 }
 
 html {
@@ -58,7 +74,6 @@ body::-webkit-scrollbar-thumb,
 
 body {
   @apply bg-paper text-ink font-sans;
-  font-family: "Aptos", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   color: var(--color-text-primary);
   background-color: var(--color-page-background);
   -webkit-font-smoothing: antialiased;
@@ -70,7 +85,8 @@ a {
 }
 
 .font-display {
-  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  font-family: var(--font-display), "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  letter-spacing: -0.01em;
 }
 
 .font-data,
@@ -224,6 +240,80 @@ button:active,
     );
     background-size: 200% 100%;
     animation: shimmer 1.4s linear infinite;
+  }
+
+  /* ── Design-system card variants ── */
+  .ui-card-highlight {
+    background: linear-gradient(135deg, #fffbf0 0%, #fdf3d7 100%);
+    border: 1px solid rgba(196, 136, 42, 0.24);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 8px 24px rgba(245, 158, 11, 0.12);
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  /* ── Stat tile ── */
+  .ui-stat-tile {
+    @apply rounded-[18px] border bg-white p-[18px] shadow-warm;
+    border-color: var(--color-border-subtle);
+  }
+
+  .ui-stat-tile .ui-stat-tile-label {
+    @apply font-mono text-[10px] uppercase;
+    letter-spacing: 0.24em;
+    color: var(--color-accent-amber);
+  }
+
+  .ui-stat-tile .ui-stat-tile-value {
+    @apply font-mono tabular-nums font-semibold text-[32px] leading-none;
+    color: var(--color-text-primary);
+    margin-top: 10px;
+  }
+
+  .ui-stat-tile .ui-stat-tile-value.amber {
+    color: var(--color-accent-amber);
+  }
+
+  .ui-stat-tile .ui-stat-tile-sub {
+    font-size: 12px;
+    color: var(--color-text-muted);
+    margin-top: 6px;
+  }
+
+  /* ── Stat chip (positive delta pill) ── */
+  .ui-stat-chip {
+    @apply inline-flex items-center rounded-pill font-mono text-[11px] font-semibold;
+    padding: 4px 10px;
+    background: rgba(16, 185, 129, 0.18);
+    color: #047857;
+  }
+
+  /* ── Badge variants ── */
+  .ui-badge-amber {
+    @apply ui-badge;
+    background: var(--color-accent-amber-dim);
+    color: var(--color-accent-amber);
+  }
+
+  .ui-badge-positive {
+    @apply ui-badge;
+    background: var(--color-positive-bg);
+    color: #047857;
+  }
+
+  .ui-badge-ink {
+    @apply ui-badge;
+    background: var(--color-surface-dark);
+    color: var(--color-text-on-dark);
+  }
+
+  /* ── Protocol chip ── */
+  .ui-protocol-chip {
+    @apply inline-flex items-center gap-2 rounded-pill border bg-white px-[14px] py-2 text-sm font-medium shadow-sm;
+    border-color: rgba(28, 26, 23, 0.10);
+    color: var(--color-text-primary);
+    box-shadow: 0 1px 2px rgba(28, 26, 23, 0.04);
   }
 }
 

@@ -540,87 +540,113 @@ export default function Dashboard() {
           </div>
         ) : null}
 
-        <section className="mb-8 rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm uppercase tracking-[0.25em] text-accent">Race Countdown</p>
-            <a href="/log-intervention" className="rounded-full border border-ink/10 px-3 py-1 text-xs text-ink/70">
-              Update race
-            </a>
-          </div>
-          {currentRace ? (
-            <div className="mt-5 grid gap-4 md:grid-cols-4">
-              <div className="rounded-[24px] bg-paper p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-accent">Target Race</p>
-                <p className="mt-2 text-lg font-semibold text-ink">{currentRace.name}</p>
+        {/* Race readiness + countdown — design system layout */}
+        {currentRace ? (
+          <section className="mb-8 grid gap-5 lg:grid-cols-[1.4fr_1fr]">
+            {/* Race readiness dark panel */}
+            <div
+              className="rounded-card p-7 text-white shadow-panel"
+              style={{ background: 'linear-gradient(135deg, var(--color-surface-dark) 0%, var(--color-surface-dark-raised) 100%)' }}
+            >
+              <p className="ui-eyebrow" style={{ color: 'var(--color-accent-amber-light)' }}>
+                Race-readiness · {currentRace.name}
+              </p>
+              <div className="mt-4 flex items-end gap-5">
+                <span
+                  className="font-mono tabular-nums font-semibold leading-none"
+                  style={{ fontSize: 72, color: 'var(--color-accent-amber-light)' }}
+                >
+                  {interventions.length > 0 ? Math.min(40 + interventions.length * 3, 98) : '—'}
+                </span>
+                <div style={{ paddingBottom: 8 }}>
+                  <p className="text-sm font-medium text-white/90">
+                    {interventions.length > 0 ? 'Keep building your protocol log' : 'Log interventions to build your score'}
+                  </p>
+                  <p className="mt-1 text-xs" style={{ color: 'var(--color-text-muted-on-dark)' }}>
+                    {interventions.length} interventions logged
+                  </p>
+                </div>
               </div>
-              <div className="rounded-[24px] bg-paper p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-accent">Days Out</p>
-                <p className="mt-2 text-lg font-semibold text-ink">
-                  {protocolSummary?.daysUntilRace === null || protocolSummary?.daysUntilRace === undefined
-                    ? 'Date needed'
-                    : `${protocolSummary.daysUntilRace} days`}
-                </p>
-              </div>
-              <div className="rounded-[24px] bg-paper p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-accent">Current Phase</p>
-                <p className="mt-2 text-lg font-semibold text-ink">{protocolSummary?.phase || 'Base'}</p>
-              </div>
-              <div className="rounded-[24px] bg-paper p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-accent">Race Type</p>
-                <p className="mt-2 text-lg font-semibold text-ink">{currentRace.race_type || 'Not set'}</p>
+              {/* Sub-scores */}
+              <div className="mt-6 grid grid-cols-4 gap-3">
+                {[
+                  { label: 'Phase', value: protocolSummary?.phase || 'Base', em: '📋' },
+                  { label: 'Type', value: currentRace.race_type || '—', em: '🏔️' },
+                  { label: 'Distance', value: currentRace.distance_miles ? `${Number(currentRace.distance_miles).toFixed(0)}mi` : '—', em: '📏' },
+                  { label: 'Logs', value: interventions.length, em: '📊' },
+                ].map(({ label, value, em }) => (
+                  <div key={label}>
+                    <p className="text-[10px] font-mono uppercase tracking-[0.15em]" style={{ color: 'rgba(240,234,224,0.55)' }}>{em} {label}</p>
+                    <p className="mt-1.5 font-mono text-lg font-semibold leading-none">{value}</p>
+                  </div>
+                ))}
               </div>
             </div>
-          ) : (
-            <div className="mt-5 rounded-[24px] bg-paper p-4 text-sm text-ink/75">
+
+            {/* Countdown card */}
+            <div className="ui-card p-7">
+              <p className="ui-eyebrow">Race countdown</p>
+              <p className="font-display mt-2 text-2xl font-semibold leading-snug text-ink">{currentRace.name}</p>
+              {currentRace.race_date ? (
+                <p className="mt-1 text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                  {new Date(currentRace.race_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                  {currentRace.race_type ? ` · ${currentRace.race_type}` : ''}
+                </p>
+              ) : null}
+              <div className="mt-5 flex items-baseline gap-3">
+                <span
+                  className="font-mono tabular-nums font-semibold leading-none"
+                  style={{ fontSize: 64, color: 'var(--color-accent-amber)' }}
+                >
+                  {protocolSummary?.daysUntilRace ?? '—'}
+                </span>
+                <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>days</span>
+              </div>
+              <div className="mt-5 flex gap-2">
+                <a href="/race-plan" className="ui-button-secondary py-2 text-sm">View blueprint</a>
+                <a href="/log-intervention" className="ui-button-ghost py-2 text-sm">Log intervention</a>
+              </div>
+            </div>
+          </section>
+        ) : (
+          <section className="mb-8 rounded-[30px] border border-ink/10 bg-white p-6 shadow-warm">
+            <p className="ui-eyebrow">Race Countdown</p>
+            <div className="mt-4 rounded-[24px] bg-paper p-4 text-sm text-ink/75">
               <p>Set your target race to activate your dashboard.</p>
               <a href="/log-intervention" className="mt-4 inline-flex rounded-full bg-panel px-4 py-2 text-sm font-semibold text-paper">
                 Set Target Race
               </a>
             </div>
-          )}
-          {currentRace ? (
-            <div className="mt-4 rounded-[24px] border border-ink/10 bg-[linear-gradient(145deg,#f8f2e8_0%,#eadcc7_48%,#d5bf9f_100%)] p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-accent">Protocol Context</p>
-              <p className="mt-2 text-sm font-semibold text-ink">
-                {protocolSummary?.protocolStatus || 'No active protocols — log your first intervention'}
-              </p>
-            </div>
-          ) : null}
-        </section>
+          </section>
+        )}
 
-        <div className="mb-12 overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(135deg,#f7f2ea_0%,#ebe1d4_55%,#dcc9b0_100%)] p-6 md:p-10">
+        <div className="mb-10 overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(135deg,#f7f2ea_0%,#ebe1d4_55%,#dcc9b0_100%)] p-6 md:p-10">
           <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
             <div>
-              <p className="text-sm uppercase tracking-[0.35em] text-accent">Training Intelligence Home</p>
-              <h1 className="font-display mt-4 max-w-4xl text-5xl leading-tight md:text-7xl">
-                Welcome back, {athlete.name}
+              <p className="ui-eyebrow">
+                {protocolSummary?.phase ? `Phase: ${protocolSummary.phase}` : 'Training Intelligence'}
+                {currentRace && protocolSummary?.daysUntilRace != null ? ` · ${protocolSummary.daysUntilRace} days to ${currentRace.name}` : ''}
+              </p>
+              <h1 className="font-display mt-4 max-w-4xl text-5xl font-semibold leading-tight md:text-7xl" style={{ letterSpacing: '-0.015em' }}>
+                Welcome back, {athlete.name?.split(' ')[0] || athlete.name}.
               </h1>
               {currentRace ? (
-                <div className="mt-5 flex flex-wrap gap-3 text-sm text-ink/75">
-                  <span className="rounded-full bg-white/60 px-4 py-2 font-semibold text-ink">{currentRace.name}</span>
-                  {currentRace.race_type ? (
-                    <span className="rounded-full bg-white/60 px-4 py-2 font-semibold text-ink">{currentRace.race_type}</span>
-                  ) : null}
-                  {currentRace.distance_miles ? (
-                    <span className="rounded-full bg-white/60 px-4 py-2 font-semibold text-ink">
-                      {Number(currentRace.distance_miles).toFixed(1)} mi
-                    </span>
-                  ) : null}
-                </div>
-              ) : null}
-              <div className="mt-8 flex flex-wrap gap-4">
-                <a href="/log-intervention?type=Workout+Check-in" className="rounded-full bg-ink px-6 py-3 font-semibold text-paper">
-                  📋 Log today's training
+                <p className="mt-3 text-base leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
+                  {interventions.length > 0
+                    ? `${interventions.length} interventions logged — keep building your protocol foundation.`
+                    : 'Log your first intervention to start building your readiness score.'}
+                </p>
+              ) : (
+                <p className="mt-3 text-base leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
+                  Set a target race to activate your race blueprint and readiness dashboard.
+                </p>
+              )}
+              <div className="mt-8 flex flex-wrap gap-3">
+                <a href="/log-intervention" className="ui-button-primary inline-flex items-center gap-2 px-6 py-3">
+                  + Log intervention
                 </a>
-                <a href="/log-intervention" className="rounded-full border border-ink/20 bg-white/50 px-6 py-3 font-semibold text-ink">
-                  Log Intervention
-                </a>
-                <a href="/insights" className="rounded-full border border-ink/20 bg-white/50 px-6 py-3 font-semibold text-ink">
-                  Insights
-                </a>
-                <a href="/history" className="rounded-full border border-ink/20 bg-white/50 px-6 py-3 font-semibold text-ink">
-                  History
-                </a>
+                <a href="/insights" className="ui-button-secondary px-5 py-3 text-sm">Insights</a>
+                <a href="/history" className="ui-button-ghost px-5 py-3 text-sm">History</a>
               </div>
             </div>
 

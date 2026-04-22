@@ -1,5 +1,5 @@
 import '../styles/globals.css';
-import { IBM_Plex_Mono } from 'next/font/google';
+import { IBM_Plex_Mono, Lora, Inter } from 'next/font/google';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import AppShell from '../components/AppShell';
@@ -9,6 +9,19 @@ const mono = IBM_Plex_Mono({
   subsets: ['latin'],
   weight: ['400', '500', '600'],
   variable: '--font-mono',
+});
+
+const display = Lora({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  style: ['normal', 'italic'],
+  variable: '--font-display',
+});
+
+const sans = Inter({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-sans',
 });
 
 /**
@@ -44,7 +57,7 @@ export default function MyApp({ Component, pageProps }) {
   const title = pageName === 'Threshold' ? 'Threshold' : `${pageName} — Threshold`;
 
   return (
-    <div className={mono.variable}>
+    <div className={`${mono.variable} ${display.variable} ${sans.variable}`}>
       <Head>
         <title>{title}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
