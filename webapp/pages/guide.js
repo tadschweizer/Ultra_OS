@@ -57,7 +57,7 @@ const sections = [
       'If you are on a coach plan, the coach dashboard is built around triage, full-roster monitoring, and protocol assignment. It is designed to show which athletes need attention now, not to duplicate the athlete dashboard.',
     value:
       'Coaches get a faster path to the handful of decisions that matter most in a given week.',
-    cta: { label: 'Go to Coach Dashboard', href: '/coaches' },
+    cta: { label: 'Go to Coach Command Center', href: '/coach-command-center' },
     coachOnly: true,
   },
 ];

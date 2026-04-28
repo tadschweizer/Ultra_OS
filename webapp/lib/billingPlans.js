@@ -41,7 +41,40 @@ export function getBillingPriceId(planId) {
   return process.env[plan.envKey] || null;
 }
 
+export function getBillingPlanFromPriceId(priceId) {
+  if (!priceId) return null;
+  return Object.values(BILLING_PLANS).find((plan) => process.env[plan.envKey] === priceId) || null;
+}
+
 export function getTierFromPriceId(priceId) {
-  const match = Object.values(BILLING_PLANS).find((plan) => process.env[plan.envKey] === priceId);
+  const match = getBillingPlanFromPriceId(priceId);
   return match?.tier || 'free';
+}
+
+export function getPlanIdFromPriceId(priceId) {
+  return getBillingPlanFromPriceId(priceId)?.id || null;
+}
+
+export function getTierRank(tier) {
+  switch (tier) {
+    case 'coach':
+      return 3;
+    case 'individual':
+      return 2;
+    case 'research':
+      return 1;
+    default:
+      return 0;
+  }
+}
+
+export function getTierFromSubscription(subscription) {
+  const metadataTier = subscription?.metadata?.subscription_tier || subscription?.metadata?.tier || null;
+  if (metadataTier && getTierRank(metadataTier) > 0) {
+    return metadataTier;
+  }
+
+  const primaryItem = subscription?.items?.data?.[0];
+  const priceId = primaryItem?.price?.id || null;
+  return getTierFromPriceId(priceId);
 }

@@ -5,10 +5,12 @@ import {
   createProtocolPayload,
   defaultFavoriteInterventions,
   favoriteInterventionStorageKey,
+  legacyFavoriteInterventionStorageKey,
   getAllInterventionDefinitions,
   getInterventionDefinition,
   getInterventionIcon,
 } from '../lib/interventionCatalog';
+import { getStoredValue, removeStoredValue } from '../lib/browserStorage';
 import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
 import InterventionProtocolFields from '../components/InterventionProtocolFields';
@@ -21,6 +23,7 @@ import {
   fieldClassName,
   getPersistedFavorites,
   getPersistedQuickLog,
+  legacyQuickLogStorageKey,
   quickLogStorageKey,
   trainingPhases,
   StravaActivityPicker,
@@ -28,8 +31,10 @@ import {
 import { deriveRaceType, getRaceTypeLabel, raceTypeOptions } from '../lib/raceTypes';
 
 const surfaceOptions = ['Trail', 'Road', 'Mixed', 'Track', 'Gravel', 'Treadmill'];
-const defaultRaceStorageKey = 'ultraos-default-race';
-const trainingPhaseStorageKey = 'ultraos-default-training-phase';
+const defaultRaceStorageKey = 'threshold-default-race';
+const legacyDefaultRaceStorageKey = 'ultraos-default-race';
+const trainingPhaseStorageKey = 'threshold-default-training-phase';
+const legacyTrainingPhaseStorageKey = 'ultraos-default-training-phase';
 
 function getTodayDate() {
   return new Date().toISOString().slice(0, 10);
@@ -39,6 +44,7 @@ function createEmptyForm(defaultRace = {}) {
   return {
     race_id: defaultRace.race_id || '',
     activity_id: '',
+    activity_provider: '',
     date: getTodayDate(),
     intervention_type: '',
     protocol_payload: {},
@@ -80,13 +86,13 @@ function getActivityDate(activity) {
 
 function getPersistedRace() {
   if (typeof window === 'undefined') return {};
-  const storedRace = window.localStorage.getItem(defaultRaceStorageKey);
+  const storedRace = getStoredValue(defaultRaceStorageKey, legacyDefaultRaceStorageKey);
   if (!storedRace) return {};
 
   try {
     const parsedRace = JSON.parse(storedRace);
     if (!parsedRace.target_race || !parsedRace.target_race_date) {
-      window.localStorage.removeItem(defaultRaceStorageKey);
+      removeStoredValue(defaultRaceStorageKey, legacyDefaultRaceStorageKey);
       return {};
     }
 
@@ -94,20 +100,20 @@ function getPersistedRace() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     if (Number.isNaN(raceDate.getTime()) || raceDate < today) {
-      window.localStorage.removeItem(defaultRaceStorageKey);
+      removeStoredValue(defaultRaceStorageKey, legacyDefaultRaceStorageKey);
       return {};
     }
 
     return parsedRace;
   } catch {
-    window.localStorage.removeItem(defaultRaceStorageKey);
+    removeStoredValue(defaultRaceStorageKey, legacyDefaultRaceStorageKey);
     return {};
   }
 }
 
 function getPersistedTrainingPhase() {
   if (typeof window === 'undefined') return '';
-  return window.localStorage.getItem(trainingPhaseStorageKey) || '';
+  return getStoredValue(trainingPhaseStorageKey, legacyTrainingPhaseStorageKey) || '';
 }
 
 function applyRaceToForm(currentForm, race) {
@@ -223,18 +229,20 @@ export default function LogIntervention() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(favoriteInterventionStorageKey, JSON.stringify(favoriteTypes));
+    window.localStorage.removeItem(legacyFavoriteInterventionStorageKey);
   }, [favoriteTypes]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(quickLogStorageKey, quickLog ? 'true' : 'false');
+    window.localStorage.removeItem(legacyQuickLogStorageKey);
   }, [quickLog]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     if (!form.target_race || !form.target_race_date) {
-      window.localStorage.removeItem(defaultRaceStorageKey);
+      removeStoredValue(defaultRaceStorageKey, legacyDefaultRaceStorageKey);
       return;
     }
 
@@ -242,7 +250,7 @@ export default function LogIntervention() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     if (Number.isNaN(raceDate.getTime()) || raceDate < today) {
-      window.localStorage.removeItem(defaultRaceStorageKey);
+      removeStoredValue(defaultRaceStorageKey, legacyDefaultRaceStorageKey);
       return;
     }
 
@@ -265,11 +273,12 @@ export default function LogIntervention() {
     if (typeof window === 'undefined') return;
 
     if (!form.training_phase) {
-      window.localStorage.removeItem(trainingPhaseStorageKey);
+      removeStoredValue(trainingPhaseStorageKey, legacyTrainingPhaseStorageKey);
       return;
     }
 
     window.localStorage.setItem(trainingPhaseStorageKey, form.training_phase);
+    window.localStorage.removeItem(legacyTrainingPhaseStorageKey);
   }, [form.training_phase]);
 
   // Pre-select intervention type from ?type= query param (e.g. linked from dashboard)
@@ -291,6 +300,36 @@ export default function LogIntervention() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.isReady, router.query.type]);
+
+  useEffect(() => {
+    if (!router.isReady) return;
+    const activityParam = router.query.activity;
+    if (!activityParam || typeof activityParam !== 'string' || loadingActivities) return;
+
+    const matchingActivity = activities.find(
+      (activity) => String(activity.id) === String(activityParam)
+    );
+
+    setForm((currentForm) => {
+      if (String(currentForm.activity_id || '') === String(activityParam)) {
+        if (currentForm.activity_provider || !router.query.provider) {
+          return currentForm;
+        }
+
+        return {
+          ...currentForm,
+          activity_provider: String(router.query.provider),
+        };
+      }
+
+      return {
+        ...currentForm,
+        activity_id: String(activityParam),
+        activity_provider: String(router.query.provider || matchingActivity?.provider || 'strava'),
+        date: getActivityDate(matchingActivity) || currentForm.date,
+      };
+    });
+  }, [activities, loadingActivities, router.isReady, router.query.activity, router.query.provider]);
 
   const filteredActivities = useMemo(() => {
     const query = activitySearch.trim().toLowerCase();
@@ -420,6 +459,7 @@ export default function LogIntervention() {
     setForm((currentForm) => ({
       ...currentForm,
       activity_id: activityId,
+      activity_provider: nextActivity?.provider || currentForm.activity_provider || 'strava',
       date: nextActivity ? getActivityDate(nextActivity) : currentForm.date,
     }));
   };

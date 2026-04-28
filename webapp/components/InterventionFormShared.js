@@ -2,11 +2,14 @@ import { classifyActivityType } from '../lib/activityInsights';
 import {
   defaultFavoriteInterventions,
   favoriteInterventionStorageKey,
+  legacyFavoriteInterventionStorageKey,
   getInterventionIcon,
 } from '../lib/interventionCatalog';
+import { getStoredValue } from '../lib/browserStorage';
 
 export const trainingPhases = ['Base', 'Build', 'Peak', 'Taper', 'Recovery', 'Race Week'];
-export const quickLogStorageKey = 'ultraos-quick-log';
+export const quickLogStorageKey = 'threshold-quick-log';
+export const legacyQuickLogStorageKey = 'ultraos-quick-log';
 
 export function fieldClassName() {
   return 'ui-input';
@@ -33,7 +36,7 @@ export function formatFeet(value) {
 export function getPersistedFavorites() {
   if (typeof window === 'undefined') return defaultFavoriteInterventions;
   try {
-    const stored = window.localStorage.getItem(favoriteInterventionStorageKey);
+    const stored = getStoredValue(favoriteInterventionStorageKey, legacyFavoriteInterventionStorageKey);
     if (!stored) return defaultFavoriteInterventions;
     const parsed = JSON.parse(stored);
     return Array.isArray(parsed) && parsed.length ? parsed : defaultFavoriteInterventions;
@@ -44,7 +47,7 @@ export function getPersistedFavorites() {
 
 export function getPersistedQuickLog() {
   if (typeof window === 'undefined') return false;
-  return window.localStorage.getItem(quickLogStorageKey) === 'true';
+  return getStoredValue(quickLogStorageKey, legacyQuickLogStorageKey) === 'true';
 }
 
 export function FavoriteTypeButtons({ favorites, selectedType, onSelect }) {

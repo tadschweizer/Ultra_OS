@@ -1,25 +1,43 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { protectedRoutes } from '../lib/siteNavigation';
+import { isProtectedRoutePath } from '../lib/siteNavigation';
 
 export default function OnboardingGate({ children }) {
   const router = useRouter();
   const [status, setStatus] = useState('loading');
 
   useEffect(() => {
+    if (!router.isReady) {
+      return;
+    }
+
     let cancelled = false;
 
     async function checkGate() {
       const path = router.pathname;
-      const isProtected = protectedRoutes.includes(path) || path.startsWith('/interventions/');
+      const isProtected = isProtectedRoutePath(path);
+      const needsGate = isProtected || path === '/onboarding';
+      const isPreviewOnboarding = path === '/onboarding' && typeof router.query.preview === 'string';
 
-      if (!isProtected && path !== '/onboarding') {
+      if (!needsGate) {
+        setStatus('ready');
+        return;
+      }
+
+      if (isPreviewOnboarding) {
         setStatus('ready');
         return;
       }
 
       try {
         const res = await fetch('/api/me');
+        if (!res.ok && res.status === 401) {
+          if (!cancelled) {
+            router.replace(`/login?next=${encodeURIComponent(router.asPath)}`);
+          }
+          return;
+        }
+
         if (!res.ok) {
           setStatus('ready');
           return;
@@ -52,7 +70,7 @@ export default function OnboardingGate({ children }) {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [router.asPath, router.isReady, router.pathname]);
 
   if (status !== 'ready') {
     return (

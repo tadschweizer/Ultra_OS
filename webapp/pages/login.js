@@ -15,10 +15,26 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [isLinkMode, setIsLinkMode] = useState(false);
+  const [nextUrl, setNextUrl] = useState('');
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const isLinkRequest = params.get('link') === '1';
+    const next = params.get('next') || '';
+    const authError = params.get('error');
+    const authReason = params.get('reason');
+    setIsLinkMode(isLinkRequest);
+    setNextUrl(next);
+    if (authError) {
+      setError(
+        authReason
+          ? `Google sign-in failed: ${authReason}`
+          : 'Google sign-in failed. Please try again.'
+      );
+    }
     const match = document.cookie.match(/athlete_id=([^;]+)/);
-    if (match) {
+    if (match && !isLinkRequest && !next) {
       window.location.href = '/dashboard';
       return;
     }
@@ -34,13 +50,23 @@ export default function LoginPage() {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, linkAccount: isLinkMode }),
       });
       const data = await response.json();
 
       if (!response.ok) {
         setError(data.error || 'Login failed. Please try again.');
         setLoading(false);
+        return;
+      }
+
+      if (isLinkMode) {
+        window.location.href = '/account?linked=1';
+        return;
+      }
+
+      if (nextUrl && data.onboardingComplete) {
+        window.location.href = nextUrl;
         return;
       }
 
@@ -57,10 +83,17 @@ export default function LoginPage() {
 
     const supabase = getSupabaseClient();
     const siteUrl = window.location.origin;
+    const callbackUrl = new URL(`${siteUrl}/auth/callback`);
+    if (nextUrl) {
+      callbackUrl.searchParams.set('next', nextUrl);
+    }
+    if (isLinkMode) {
+      callbackUrl.searchParams.set('link', '1');
+    }
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${siteUrl}/auth/callback`,
+        redirectTo: callbackUrl.toString(),
       },
     });
 
@@ -93,10 +126,12 @@ export default function LoginPage() {
 
       <div className="mx-auto max-w-md px-4 py-16">
         <div className="rounded-[32px] border border-ink/10 bg-white px-8 py-10 shadow-[0_8px_32px_rgba(19,24,22,0.07)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-accent">Welcome Back</p>
-          <h1 className="mt-3 text-3xl font-semibold text-ink">Log in to Threshold</h1>
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-accent">{isLinkMode ? 'Connect Login' : 'Welcome Back'}</p>
+          <h1 className="mt-3 text-3xl font-semibold text-ink">{isLinkMode ? 'Link Google or email login' : 'Log in to Threshold'}</h1>
           <p className="mt-2 text-sm text-ink/55">
-            Don&apos;t have an account? <a href="/signup" className="font-semibold text-accent hover:underline">Sign up free</a>
+            {isLinkMode
+              ? 'You are already signed in. Complete one of the options below to attach another login method to this same Threshold account.'
+              : <>Don&apos;t have an account? <a href="/signup" className="font-semibold text-accent hover:underline">Sign up free</a></>}
           </p>
 
           {error ? (

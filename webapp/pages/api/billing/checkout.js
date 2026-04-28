@@ -1,11 +1,9 @@
-import { getAthleteByCookie } from '../../../lib/authServer';
+import { getAthleteByCookie, getSupabaseAdminClient } from '../../../lib/authServer';
 import { getBillingPlan, getBillingPriceId } from '../../../lib/billingPlans';
 import { getStripeClient } from '../../../lib/stripeServer';
-import { supabase } from '../../../lib/supabaseClient';
 import cookie from 'cookie';
 import crypto from 'crypto';
 
-export const runtime = 'edge';
 
 function getRequestOrigin(req) {
   const forwardedProto = req.headers['x-forwarded-proto'];
@@ -24,6 +22,14 @@ function getRequestOrigin(req) {
   }
 
   return process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+}
+
+function sanitizeRelativePath(value, fallbackPath) {
+  const input = typeof value === 'string' ? value.trim() : '';
+  if (!input.startsWith('/')) {
+    return fallbackPath;
+  }
+  return input;
 }
 
 function appendSetCookie(res, nextCookie) {
@@ -61,7 +67,7 @@ export default async function handler(req, res) {
     return;
   }
 
-  const athlete = await getAthleteByCookie(req, supabase);
+  const athlete = await getAthleteByCookie(req, getSupabaseAdminClient());
   if (!athlete) {
     res.redirect(`/signup?plan=${encodeURIComponent(planId)}`);
     return;
@@ -76,11 +82,21 @@ export default async function handler(req, res) {
   try {
     const stripe = getStripeClient();
     const siteUrl = getRequestOrigin(req);
+    const successPath = sanitizeRelativePath(
+      typeof req.query.success === 'string' ? req.query.success : '',
+      '/account?checkout=success'
+    );
+    const cancelPath = sanitizeRelativePath(
+      typeof req.query.cancel === 'string' ? req.query.cancel : '',
+      '/pricing?checkout=cancelled'
+    );
+    const successUrl = new URL(successPath, siteUrl);
+    successUrl.searchParams.set('session_id', '{CHECKOUT_SESSION_ID}');
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
-      success_url: `${siteUrl}/account?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${siteUrl}/pricing?checkout=cancelled`,
+      success_url: successUrl.toString(),
+      cancel_url: new URL(cancelPath, siteUrl).toString(),
       line_items: [{ price: priceId, quantity: 1 }],
       customer: athlete.stripe_customer_id || undefined,
       customer_email: athlete.stripe_customer_id ? undefined : athlete.email || undefined,

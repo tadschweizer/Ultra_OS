@@ -13,6 +13,9 @@ function getSupabaseClient() {
 
 export default function AccountPage() {
   const { planLabel, planId } = usePlan();
+  const [athlete, setAthlete] = useState(null);
+  const [authMethods, setAuthMethods] = useState([]);
+  const [connectionStatuses, setConnectionStatuses] = useState([]);
   const [coachCode, setCoachCode] = useState('');
   const [coachRole, setCoachRole] = useState('primary');
   const [coachConnections, setCoachConnections] = useState([]);
@@ -20,6 +23,7 @@ export default function AccountPage() {
   const [loggingOut, setLoggingOut] = useState(false);
   const [billingMessage, setBillingMessage] = useState('');
   const [billingSyncing, setBillingSyncing] = useState(false);
+  const [linkMessage, setLinkMessage] = useState('');
   const navLinks = [
     { href: '/dashboard', label: 'Threshold Home' },
     { href: '/guide', label: 'Guide' },
@@ -29,6 +33,26 @@ export default function AccountPage() {
     { href: '/account', label: 'Account' },
     { href: '/', label: 'Landing Page' },
   ];
+
+  useEffect(() => {
+    async function loadAccountState() {
+      const res = await fetch('/api/me');
+      if (!res.ok) return;
+      const data = await res.json();
+      setAthlete(data.athlete || null);
+      setAuthMethods(data.authMethods || []);
+      setConnectionStatuses(data.connectionStatuses || []);
+    }
+
+    loadAccountState();
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('linked') === '1') {
+      setLinkMessage('Login method linked. You can now sign in with either Strava or your new Google/email login.');
+    }
+  }, []);
 
   useEffect(() => {
     async function loadConnections() {
@@ -130,6 +154,39 @@ export default function AccountPage() {
     }
   }
 
+  const loginMethodCards = [
+    {
+      id: 'strava',
+      label: 'Strava',
+      description: 'Use your Strava account as a sign-in and data connection.',
+      connected: Boolean(athlete?.strava_id),
+      actionLabel: athlete?.strava_id ? 'Reconnect Strava' : 'Connect Strava',
+      href: '/api/strava/login?link=1',
+    },
+    {
+      id: 'google',
+      label: 'Google',
+      description: 'Sign in with your Google account through Supabase Auth.',
+      connected: authMethods.includes('google'),
+      actionLabel: authMethods.includes('google') ? 'Linked' : 'Link Google Login',
+      href: '/login?link=1',
+    },
+    {
+      id: 'email',
+      label: 'Email + Password',
+      description: 'Use an email address and password for direct login.',
+      connected: authMethods.includes('email'),
+      actionLabel: authMethods.includes('email') ? 'Linked' : 'Add Email + Password',
+      href: '/signup?link=1',
+    },
+  ];
+
+  function getStatusLabel(status) {
+    if (status === 'connected') return 'Connected';
+    if (status === 'available') return 'Available now';
+    return 'Coming soon';
+  }
+
   return (
     <main className="min-h-screen bg-paper px-4 py-6 text-ink">
       <div className="mx-auto max-w-6xl">
@@ -151,6 +208,16 @@ export default function AccountPage() {
         <section className="overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(135deg,#f7f2ea_0%,#ebe1d4_55%,#dcc9b0_100%)] p-6 md:p-10">
           <p className="text-sm uppercase tracking-[0.35em] text-accent">Account</p>
           <h1 className="font-display mt-4 text-5xl leading-tight md:text-7xl">Manage your account</h1>
+          {athlete?.is_admin ? (
+            <div className="mt-6">
+              <a
+                href="/admin"
+                className="inline-flex rounded-full bg-ink px-5 py-3 text-sm font-semibold text-paper shadow-[0_8px_24px_rgba(19,24,22,0.14)]"
+              >
+                Open Admin Console
+              </a>
+            </div>
+          ) : null}
         </section>
 
         <section className="mt-10 grid gap-6 lg:grid-cols-[1fr_1fr]">
@@ -181,23 +248,80 @@ export default function AccountPage() {
               <p className="mt-3 text-sm leading-6 text-ink/70">{billingMessage}</p>
             ) : null}
           </div>
+        </section>
 
+        <section className="mt-6 grid gap-6 lg:grid-cols-[1fr_1fr]">
           <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-            <p className="text-sm uppercase tracking-[0.25em] text-accent">Help</p>
+            <p className="text-sm uppercase tracking-[0.25em] text-accent">Connected Sign-In Methods</p>
             <p className="mt-4 text-sm leading-7 text-ink/76">
-              Open the guide whenever you want a refresher on logging, race setup, insights, the explorer, or the coach dashboard.
+              These are the ways this Threshold account can currently be accessed. Linking more than one method helps prevent duplicate accounts.
             </p>
-            <a href="/guide" className="mt-5 inline-flex rounded-full border border-ink/10 px-5 py-3 text-sm font-semibold text-ink">
-              Open Guide
-            </a>
+            {linkMessage ? (
+              <p className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                {linkMessage}
+              </p>
+            ) : null}
+            <div className="mt-5 space-y-3">
+              {loginMethodCards.map((method) => (
+                <div key={method.id} className="rounded-[22px] bg-paper p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-ink">{method.label}</p>
+                      <p className="mt-1 text-sm text-ink/60">{method.description}</p>
+                    </div>
+                    <span className={`rounded-full px-3 py-1 text-xs ${method.connected ? 'bg-emerald-100 text-emerald-700' : 'bg-white text-ink/60'}`}>
+                      {method.connected ? 'Connected' : 'Not connected'}
+                    </span>
+                  </div>
+                  {!method.connected ? (
+                    <a href={method.href} className="mt-4 inline-flex rounded-full border border-ink/10 px-4 py-2 text-sm font-semibold text-ink">
+                      {method.actionLabel}
+                    </a>
+                  ) : null}
+                </div>
+              ))}
+            </div>
             <button
               type="button"
               onClick={handleLogout}
               disabled={loggingOut}
-              className="mt-3 inline-flex rounded-full border border-ink/10 px-5 py-3 text-sm font-semibold text-ink disabled:opacity-50"
+              className="mt-5 inline-flex rounded-full border border-ink/10 px-5 py-3 text-sm font-semibold text-ink disabled:opacity-50"
             >
               {loggingOut ? 'Logging out...' : 'Log Out'}
             </button>
+          </div>
+
+          <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+            <p className="text-sm uppercase tracking-[0.25em] text-accent">Connected Accounts</p>
+            <p className="mt-4 text-sm leading-7 text-ink/76">
+              These are the training platforms Threshold knows about for your account right now. Only Strava is wired up today.
+            </p>
+            <div className="mt-5 space-y-3">
+              {connectionStatuses.map((connection) => (
+                <div key={connection.id} className="rounded-[22px] bg-paper p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-ink">{connection.label}</p>
+                      <p className="mt-1 text-sm text-ink/60">
+                        {connection.status === 'connected'
+                          ? 'This account is linked and can provide activity context.'
+                          : connection.status === 'available'
+                            ? 'Ready to connect when you want to add it.'
+                            : 'Planned for a future release, but not wired in yet.'}
+                      </p>
+                    </div>
+                    <span className={`rounded-full px-3 py-1 text-xs ${connection.status === 'connected' ? 'bg-emerald-100 text-emerald-700' : connection.status === 'available' ? 'bg-amber-100 text-amber-700' : 'bg-white text-ink/60'}`}>
+                      {getStatusLabel(connection.status)}
+                    </span>
+                  </div>
+                  {connection.status !== 'coming_soon' ? (
+                    <a href={connection.href} className="mt-4 inline-flex rounded-full border border-ink/10 px-4 py-2 text-sm font-semibold text-ink">
+                      {connection.actionLabel}
+                    </a>
+                  ) : null}
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 

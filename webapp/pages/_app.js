@@ -3,6 +3,7 @@ import { IBM_Plex_Mono } from 'next/font/google';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import AppShell from '../components/AppShell';
+import CoachSubscriptionGate from '../components/CoachSubscriptionGate';
 import OnboardingGate from '../components/OnboardingGate';
 
 const mono = IBM_Plex_Mono({
@@ -28,7 +29,8 @@ export default function MyApp({ Component, pageProps }) {
     '/insights': 'Insights',
     '/explorer': 'Explorer',
     '/connections': 'Connections',
-    '/coaches': 'Coaches',
+    '/messages': 'Messages',
+    '/coach-command-center': 'Coach Command Center',
     '/content': 'Research',
     '/guide': 'Guide',
     '/pricing': 'Pricing',
@@ -36,7 +38,15 @@ export default function MyApp({ Component, pageProps }) {
     '/settings': 'Athlete Settings',
     '/notifications': 'Notifications',
     '/onboarding': 'Onboarding',
+    '/coach/setup': 'Coach Setup',
+    '/coach/dashboard': 'Coach Dashboard',
+    '/coach/athletes': 'Coach Athletes',
+    '/coach/athletes/[athleteId]': 'Athlete Detail',
+    '/coach/protocols': 'Coach Protocols',
+    '/coach/templates': 'Coach Templates',
+    '/coach/settings': 'Coach Settings',
     '/join': 'Join Threshold',
+    '/invite/[token]': 'Coach Invitation',
     '/invite': 'Invite Athletes',
     '/admin': 'Admin',
   };
@@ -65,7 +75,9 @@ export default function MyApp({ Component, pageProps }) {
       <OnboardingGate>
         <AppShell>
           <div className="ui-page">
-            <Component {...pageProps} />
+            <CoachSubscriptionGate>
+              <Component {...pageProps} />
+            </CoachSubscriptionGate>
           </div>
         </AppShell>
       </OnboardingGate>

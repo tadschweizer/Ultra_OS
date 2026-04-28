@@ -68,16 +68,19 @@ const tiers = [
   {
     id: 'coach_monthly',
     name: 'Coach',
-    price: '$69',
+    price: '$59.99',
     period: 'month',
     annualNote: null,
-    description: 'Everything in Individual plus a full roster management layer for coaches.',
+    description: 'Everything in Individual, plus a clean coaching workspace for up to 25 athletes.',
     includes: [
-      'Everything in Individual Monthly',
-      'Coach dashboard + roster triage view',
-      'Protocol assignments for athletes',
-      'Coach notes per athlete',
-      'Athlete progress monitoring',
+      'Everything in Individual, plus:',
+      'Multi-athlete dashboard',
+      'Protocol assignment',
+      'Cohort comparison',
+      'Compliance tracking',
+      'Private coach notes',
+      'Up to 25 athletes',
+      'No per-athlete fees',
     ],
     checkoutPlan: 'coach_monthly',
     cta: 'Start Coach Monthly',
@@ -87,14 +90,19 @@ const tiers = [
   {
     id: 'coach_annual',
     name: 'Coach Annual',
-    price: '$48',
+    price: '$42.50',
     period: 'month',
-    annualNote: '$580 billed annually — save $248/yr',
-    description: 'Full coach toolkit at the strongest annual value.',
+    annualNote: '$509.99 billed annually — save $209.89/yr',
+    description: 'The same flat coach plan, billed annually for the best effective monthly rate.',
     includes: [
-      'Everything in Coach Monthly',
-      'Lowest per-month coach price',
-      'Priority feature access',
+      'Everything in Individual, plus:',
+      'Multi-athlete dashboard',
+      'Protocol assignment',
+      'Cohort comparison',
+      'Compliance tracking',
+      'Private coach notes',
+      'Up to 25 athletes',
+      'No per-athlete fees',
     ],
     checkoutPlan: 'coach_annual',
     cta: 'Start Coach Annual',
@@ -239,6 +247,17 @@ export default function PricingPage() {
           ))}
         </section>
 
+        <section className="mt-8">
+          <div className="rounded-[28px] border border-amber-200 bg-[linear-gradient(135deg,#fff7e7_0%,#f8ead0_100%)] p-8 shadow-[0_8px_24px_rgba(184,117,42,0.10)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-accent">Coach comparison</p>
+            <h2 className="font-display mt-4 text-3xl text-ink md:text-4xl">One flat price beats per-athlete billing.</h2>
+            <p className="mt-4 max-w-3xl text-sm leading-7 text-ink/68">
+              TrainingPeaks charges $22-55/month PLUS $9/athlete/month. Threshold keeps coach pricing radically simpler:
+              one flat price for up to 25 athletes, with no activation fees and no per-athlete surprises.
+            </p>
+          </div>
+        </section>
+
         {/* ── Feature comparison ───────────────────────────────────── */}
         <section className="mt-10">
           <div className="rounded-[28px] border border-ink/10 bg-white p-8 shadow-[0_8px_24px_rgba(19,24,22,0.05)]">
@@ -264,6 +283,11 @@ export default function PricingPage() {
                     { label: 'Strava activity sync', research: false, individual: true, coach: true },
                     { label: 'Coach roster dashboard', research: false, individual: false, coach: true },
                     { label: 'Protocol assignments', research: false, individual: false, coach: true },
+                    { label: 'Cohort comparison', research: false, individual: false, coach: true },
+                    { label: 'Compliance tracking', research: false, individual: false, coach: true },
+                    { label: 'Private coach notes', research: false, individual: false, coach: true },
+                    { label: 'Up to 25 athletes', research: false, individual: false, coach: true },
+                    { label: 'No per-athlete fees', research: false, individual: false, coach: true },
                   ].map((row, i) => (
                     <tr key={row.label} className={i % 2 === 0 ? 'bg-paper/40' : ''}>
                       <td className="py-3 pr-6 text-ink/70">{row.label}</td>

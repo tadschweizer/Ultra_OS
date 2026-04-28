@@ -2,7 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import NavMenu from '../components/NavMenu';
 import UpgradePrompt from '../components/UpgradePrompt';
 import { canAccessRaceBlueprint } from '../lib/subscriptionTiers';
+import { getStoredValue } from '../lib/browserStorage';
 
+const defaultRaceStorageKey = 'threshold-default-race';
+const legacyDefaultRaceStorageKey = 'ultraos-default-race';
 // ─── Fueling targets by race type ────────────────────────────────────────────
 const RACE_FUELING = {
   '1 Mile / 1500m': { target: 0, range: '0', note: 'No fueling needed at this distance.' },
@@ -230,7 +233,7 @@ export default function RacePlanPage() {
   useEffect(() => {
     // Pre-fill from saved race context (format: { target_race, target_race_date, race_type, race_profile })
     try {
-      const saved = localStorage.getItem('ultraos-default-race');
+      const saved = getStoredValue(defaultRaceStorageKey, legacyDefaultRaceStorageKey);
       if (saved) {
         const race = JSON.parse(saved);
         const profile = race.race_profile || {};

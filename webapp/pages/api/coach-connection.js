@@ -1,22 +1,15 @@
-import cookie from 'cookie';
-import { supabase } from '../../lib/supabaseClient';
-
-export const runtime = 'edge';
-
-function getAthleteId(req) {
-  const cookies = cookie.parse(req.headers.cookie || '');
-  return cookies.athlete_id;
-}
+import { getAthleteIdFromRequest, getSupabaseAdminClient } from '../../lib/authServer';
 
 export default async function handler(req, res) {
-  const athleteId = getAthleteId(req);
+  const athleteId = getAthleteIdFromRequest(req);
   if (!athleteId) {
     res.status(401).json({ error: 'Not authenticated' });
     return;
   }
+  const admin = getSupabaseAdminClient();
 
   if (req.method === 'GET') {
-    const { data: links, error } = await supabase
+    const { data: links, error } = await admin
       .from('coach_athlete_links')
       .select('id, athlete_id, coach_id, role, status, created_at')
       .eq('athlete_id', athleteId)
@@ -30,7 +23,7 @@ export default async function handler(req, res) {
 
     const coachIds = (links || []).map((item) => item.coach_id);
     const { data: profiles } = coachIds.length
-      ? await supabase
+      ? await admin
           .from('coach_profiles')
           .select('id, display_name, coach_code, created_at')
           .in('id', coachIds)
@@ -55,7 +48,7 @@ export default async function handler(req, res) {
       return;
     }
 
-    const { data: coachProfile, error: coachError } = await supabase
+    const { data: coachProfile, error: coachError } = await admin
       .from('coach_profiles')
       .select('id, display_name, coach_code')
       .eq('coach_code', coachCode)
@@ -66,7 +59,7 @@ export default async function handler(req, res) {
       return;
     }
 
-    const { data: existingRole } = await supabase
+    const { data: existingRole } = await admin
       .from('coach_athlete_links')
       .select('id')
       .eq('athlete_id', athleteId)
@@ -79,7 +72,7 @@ export default async function handler(req, res) {
       return;
     }
 
-    const { data: link, error } = await supabase
+    const { data: link, error } = await admin
       .from('coach_athlete_links')
       .insert({
         athlete_id: athleteId,
@@ -106,7 +99,7 @@ export default async function handler(req, res) {
       return;
     }
 
-    const { error } = await supabase
+    const { error } = await admin
       .from('coach_athlete_links')
       .update({ status: 'inactive' })
       .eq('id', id)

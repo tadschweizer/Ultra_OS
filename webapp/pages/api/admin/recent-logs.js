@@ -1,7 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
-import cookie from 'cookie';
+import { requireAdminRequest } from '../../../lib/authServer';
 
-export const runtime = 'edge';
 
 /**
  * GET /api/admin/recent-logs
@@ -19,19 +18,10 @@ function getAdminClient() {
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
-  const cookies = cookie.parse(req.headers.cookie || '');
-  const athleteId = cookies.athlete_id;
-  if (!athleteId) return res.status(401).json({ error: 'Not authenticated' });
+  const adminContext = await requireAdminRequest(req, res);
+  if (!adminContext) return;
 
   const supabase = getAdminClient();
-
-  const { data: me } = await supabase
-    .from('athletes')
-    .select('is_admin')
-    .eq('id', athleteId)
-    .single();
-
-  if (!me?.is_admin) return res.status(403).json({ error: 'Admin only' });
 
   const limit = Math.min(parseInt(req.query.limit || '25', 10), 100);
 

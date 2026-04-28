@@ -20,6 +20,10 @@ import {
 import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
 import EmptyStateCard from '../components/EmptyStateCard';
+import ProtocolComplianceRing from '../components/ProtocolComplianceRing';
+import { getAdminRequestContext } from '../lib/authServer';
+import { getProtocolStripeClass } from '../lib/protocolAssignmentEngine';
+import { getDashboardPreview } from '../lib/previews/dashboard';
 
 const timeframeOptions = [
   { value: 7, label: '7D' },
@@ -67,6 +71,16 @@ function formatMetricValue(metric, value) {
 function formatAverageLabel(metric, value, timeframe) {
   const unit = formatMetricValue(metric, value);
   return timeframe === 90 ? `${unit}/day` : unit;
+}
+
+function formatPromptDate(value) {
+  if (!value) return '';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return '';
+  return parsed.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+  });
 }
 
 function isWithinLastDays(dateLike, days) {
@@ -374,54 +388,298 @@ function HeatmapModal({ day, onClose }) {
   );
 }
 
-export default function Dashboard() {
+function ProtocolMessages({ messages = [] }) {
+  if (!messages.length) return null;
+
+  return (
+    <div className="mt-4 rounded-[20px] border border-amber-200 bg-amber-50 p-4">
+      <p className="text-xs uppercase tracking-[0.16em] text-amber-800">Coach comments</p>
+      <div className="mt-3 space-y-3">
+        {messages.map((message) => (
+          <div key={message.id} className="rounded-[16px] bg-white/85 px-3 py-3">
+            <p className="text-[11px] uppercase tracking-[0.14em] text-ink/45">
+              {message.sender_role === 'coach' ? 'Coach' : 'Athlete'} · {formatActivityDate(message.created_at)}
+            </p>
+            <p className="mt-2 text-sm leading-6 text-ink">{message.content}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FollowUpPromptCard({ prompt, busy, onDismiss }) {
+  const activityName = prompt.metadata?.activity_name || 'Workout';
+  const providerLabel = prompt.provider ? `${prompt.provider[0].toUpperCase()}${prompt.provider.slice(1)}` : 'Provider';
+
+  return (
+    <article className="rounded-[26px] border border-amber-200 bg-amber-50/70 p-5 shadow-[0_14px_30px_rgba(146,102,36,0.08)]">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs uppercase tracking-[0.2em] text-accent">{providerLabel} follow-up</p>
+          <h3 className="mt-2 text-lg font-semibold text-ink">{prompt.title}</h3>
+        </div>
+        <span className="rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-ink/60">
+          {formatPromptDate(prompt.occurred_at)}
+        </span>
+      </div>
+      <p className="mt-3 text-sm leading-6 text-ink/72">{prompt.body}</p>
+      <div className="mt-4 rounded-[20px] bg-white/75 px-4 py-3 text-xs uppercase tracking-[0.16em] text-ink/52">
+        Activity: {activityName}
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <a href={prompt.href || '/log-intervention'} className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-paper">
+          Open prompt
+        </a>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => onDismiss(prompt.id)}
+          className="rounded-full border border-ink/10 px-4 py-2 text-sm font-semibold text-ink/70"
+        >
+          {busy ? 'Saving...' : 'Dismiss'}
+        </button>
+      </div>
+    </article>
+  );
+}
+
+function daysBetweenNow(dateLike) {
+  if (!dateLike) return null;
+  const target = new Date(dateLike);
+  if (Number.isNaN(target.getTime())) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  target.setHours(0, 0, 0, 0);
+  return Math.ceil((target.getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
+}
+
+function buildTodayActions({
+  activities = [],
+  followUpPrompts = [],
+  currentRace = null,
+  protocolSummary = null,
+  settings = null,
+}) {
+  const actions = [];
+  const latestActivity = activities[0];
+
+  if (followUpPrompts.length) {
+    const prompt = followUpPrompts[0];
+    actions.push({
+      tone: 'urgent',
+      label: 'Waiting on you',
+      title: prompt.title || 'Finish the latest workout follow-up',
+      body: prompt.body || 'A recent imported workout has a short follow-up ready.',
+      href: prompt.href || '/log-intervention',
+      cta: 'Open prompt',
+    });
+  } else if (latestActivity) {
+    actions.push({
+      tone: 'active',
+      label: 'Auto-detected',
+      title: `${latestActivity.name || 'Latest workout'} is in the system`,
+      body: 'Threshold imported the session. Add a quick check-in if the workout still feels fresh.',
+      href: `/log-intervention?type=Workout+Check-in&activity=${encodeURIComponent(latestActivity.id || '')}&provider=${encodeURIComponent(latestActivity.provider || 'strava')}`,
+      cta: 'Add check-in',
+    });
+  } else {
+    actions.push({
+      tone: 'setup',
+      label: 'Connect data',
+      title: 'Connect Strava to reduce manual work',
+      body: 'Once activities import automatically, Threshold can queue the right follow-ups instead of making you start from a blank form.',
+      href: '/connections',
+      cta: 'Open connections',
+    });
+  }
+
+  const daysUntilRace = daysBetweenNow(currentRace?.event_date || currentRace?.target_race_date);
+  if (currentRace && daysUntilRace !== null && daysUntilRace >= 0) {
+    if (daysUntilRace <= 21 && daysUntilRace >= 10) {
+      actions.push({
+        tone: 'race',
+        label: `${daysUntilRace} days out`,
+        title: 'Race-specific protocols should be locked in',
+        body: 'This is the window to finalize heat, fueling, caffeine, bicarb testing, and taper decisions before race week gets noisy.',
+        href: '/race-plan',
+        cta: 'Open race plan',
+      });
+    } else if (daysUntilRace <= 9) {
+      actions.push({
+        tone: 'race',
+        label: `${daysUntilRace} days out`,
+        title: 'Race week: stop experimenting',
+        body: 'Use only protocols you have already tested. Threshold should be tracking execution now, not adding new variables.',
+        href: '/race-plan',
+        cta: 'Review plan',
+      });
+    }
+  } else {
+    actions.push({
+      tone: 'setup',
+      label: 'Race missing',
+      title: 'Set a target race to unlock prep automation',
+      body: 'Race date drives the heat block, gut-training ramp, taper, carb-load, and debrief timing.',
+      href: '/log-intervention',
+      cta: 'Set race',
+    });
+  }
+
+  const activeAssignments = protocolSummary?.activeAssignments || [];
+  const missedProtocol = activeAssignments.find((assignment) => {
+    const expected = Number(assignment.expected_entries || 0);
+    const actual = Number(assignment.actual_entries || 0);
+    return expected > 0 && actual < expected;
+  });
+
+  if (missedProtocol) {
+    actions.push({
+      tone: 'urgent',
+      label: 'Protocol gap',
+      title: `${missedProtocol.protocol_name || missedProtocol.protocol_type} is behind this week`,
+      body: `Logged ${missedProtocol.actual_entries || 0} of ${missedProtocol.expected_entries || 0} expected entries. Adjust the dose or log the completed sessions.`,
+      href: `/log-intervention?type=${encodeURIComponent(missedProtocol.protocol_type || '')}&protocol=${encodeURIComponent(missedProtocol.id || '')}`,
+      cta: 'Log protocol',
+    });
+  }
+
+  if (!settings?.hr_zone_3_min || !settings?.sodium_target_mg_per_hr) {
+    actions.push({
+      tone: 'setup',
+      label: 'Personalization',
+      title: 'Finish baseline settings',
+      body: 'HR zones, sodium targets, and baseline supplements make insights specific to you instead of generic research advice.',
+      href: '/settings',
+      cta: 'Update settings',
+    });
+  }
+
+  return actions.slice(0, 4);
+}
+
+function TodayActionCard({ action }) {
+  const toneClass = {
+    urgent: 'border-amber-300 bg-amber-50',
+    active: 'border-emerald-200 bg-emerald-50',
+    race: 'border-ink/10 bg-white',
+    setup: 'border-ink/10 bg-paper',
+  }[action.tone] || 'border-ink/10 bg-white';
+
+  return (
+    <article className={`rounded-[20px] border p-4 ${toneClass}`}>
+      <p className="text-xs uppercase tracking-[0.18em] text-accent">{action.label}</p>
+      <h3 className="mt-2 text-base font-semibold leading-snug text-ink">{action.title}</h3>
+      <p className="mt-2 text-sm leading-6 text-ink/68">{action.body}</p>
+      <a href={action.href} className="mt-4 inline-flex rounded-full bg-ink px-4 py-2 text-xs font-semibold text-paper">
+        {action.cta}
+      </a>
+    </article>
+  );
+}
+
+export default function Dashboard({ previewMode = null, previewData = null }) {
   const router = useRouter();
+  const isPreview = Boolean(previewMode && previewData);
   const isFirstLogin = router.query.welcome === '1';
-  const [loading, setLoading] = useState(true);
-  const [athlete, setAthlete] = useState(null);
-  const [activities, setActivities] = useState([]);
-  const [interventions, setInterventions] = useState([]);
-  const [interventionCount, setInterventionCount] = useState(0);
-  const [settings, setSettings] = useState(null);
+  const coachWelcomeName = typeof router.query.coach_welcome === 'string'
+    ? router.query.coach_welcome
+    : '';
+  const [loading, setLoading] = useState(!isPreview);
+  const [athlete, setAthlete] = useState(previewData?.athlete || null);
+  const [activities, setActivities] = useState(previewData?.activities || []);
+  const [interventions, setInterventions] = useState(previewData?.interventions || []);
+  const [interventionCount, setInterventionCount] = useState(previewData?.interventionCount || 0);
+  const [settings, setSettings] = useState(previewData?.settings || null);
   const [timeframe, setTimeframe] = useState(30);
   const [metric, setMetric] = useState('mileage');
-  const [currentRace, setCurrentRace] = useState(null);
-  const [protocolSummary, setProtocolSummary] = useState(null);
+  const [currentRace, setCurrentRace] = useState(previewData?.currentRace || null);
+  const [protocolSummary, setProtocolSummary] = useState(previewData?.protocolSummary || null);
+  const [unreadMessageCount, setUnreadMessageCount] = useState(previewData?.unreadMessageCount || 0);
   const [heatmapDay, setHeatmapDay] = useState(null);
+  const [activitiesSyncing, setActivitiesSyncing] = useState(false);
+  const [followUpPrompts, setFollowUpPrompts] = useState([]);
+  const [followUpBusyId, setFollowUpBusyId] = useState('');
 
   useEffect(() => {
+    if (isPreview) {
+      setLoading(false);
+      setAthlete(previewData.athlete || null);
+      setActivities(sortActivitiesMostRecentFirst(previewData.activities || []));
+      setInterventions(previewData.interventions || []);
+      setInterventionCount(previewData.interventionCount || 0);
+      setSettings(previewData.settings || null);
+      setCurrentRace(previewData.currentRace || null);
+      setProtocolSummary(previewData.protocolSummary || null);
+      setUnreadMessageCount(Number(previewData.unreadMessageCount || 0));
+      setActivitiesSyncing(false);
+      return;
+    }
+
     async function fetchData() {
       try {
-        const meRes = await fetch('/api/me');
-        if (!meRes.ok) return;
+        const [meRes, settingsRes, actRes, interventionsRes, protocolRes, promptsRes] = await Promise.all([
+          fetch('/api/me'),
+          fetch('/api/settings'),
+          fetch('/api/activities'),
+          fetch('/api/interventions'),
+          fetch('/api/current-protocol-assignment'),
+          fetch('/api/follow-up-prompts'),
+        ]);
 
-        const me = await meRes.json();
-        setAthlete(me.athlete);
-        setInterventionCount(me.interventionCount);
+        if (meRes.status === 401) {
+          router.replace(`/login?next=${encodeURIComponent(router.asPath)}`);
+          return;
+        }
 
-        const settingsRes = await fetch('/api/settings');
+        if (meRes.ok) {
+          const me = await meRes.json();
+          setAthlete(me.athlete);
+          setInterventionCount(me.interventionCount);
+          setUnreadMessageCount(Number(me.unreadMessageCount || 0));
+        }
+
         if (settingsRes.ok) {
           const settingsData = await settingsRes.json();
           setSettings({ ...settingsData.settings, supplements: settingsData.supplements || [] });
         }
 
-        const actRes = await fetch('/api/activities');
         if (actRes.ok) {
           const actData = await actRes.json();
-          setActivities(sortActivitiesMostRecentFirst(actData.activities));
+          setActivities(sortActivitiesMostRecentFirst(actData.activities || []));
+
+          if (actData.hasStravaConnection && actData.needsSync) {
+            setActivitiesSyncing(true);
+            void fetch('/api/strava/sync', { method: 'POST' })
+              .then((response) => (response.ok ? fetch('/api/activities') : null))
+              .then(async (response) => {
+                if (!response?.ok) return;
+                const refreshed = await response.json();
+                setActivities(sortActivitiesMostRecentFirst(refreshed.activities || []));
+              })
+              .catch((error) => {
+                console.error('[dashboard] background Strava sync failed:', error);
+              })
+              .finally(() => {
+                setActivitiesSyncing(false);
+              });
+          }
         }
 
-        const interventionsRes = await fetch('/api/interventions');
         if (interventionsRes.ok) {
           const interventionData = await interventionsRes.json();
           setInterventions(interventionData.interventions || []);
         }
 
-        const protocolRes = await fetch('/api/current-protocol-assignment');
         if (protocolRes.ok) {
           const protocolData = await protocolRes.json();
           setProtocolSummary(protocolData);
           setCurrentRace(protocolData.currentRace || null);
+        }
+
+        if (promptsRes.ok) {
+          const promptData = await promptsRes.json();
+          setFollowUpPrompts(promptData.prompts || []);
         }
       } catch (err) {
         console.error(err);
@@ -431,7 +689,30 @@ export default function Dashboard() {
     }
 
     fetchData();
-  }, []);
+  }, [isPreview, previewData, router]);
+
+  async function handleDismissFollowUpPrompt(promptId) {
+    setFollowUpBusyId(promptId);
+    try {
+      const response = await fetch('/api/follow-up-prompts', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: promptId,
+          status: 'dismissed',
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Could not dismiss prompt.');
+      }
+      setFollowUpPrompts((current) => current.filter((item) => item.id !== promptId));
+    } catch (error) {
+      console.error('[dashboard] dismiss follow-up prompt failed:', error);
+    } finally {
+      setFollowUpBusyId('');
+    }
+  }
   const trainingSummary = useMemo(
     () => buildTimeframeSummary(activities, interventions, timeframe),
     [activities, interventions, timeframe]
@@ -482,6 +763,17 @@ export default function Dashboard() {
     [interventions]
   );
   const heatmapWeeks = useMemo(() => buildHeatmapWeeks(interventions, 16), [interventions]);
+  const todayActions = useMemo(
+    () =>
+      buildTodayActions({
+        activities,
+        followUpPrompts,
+        currentRace,
+        protocolSummary,
+        settings,
+      }),
+    [activities, followUpPrompts, currentRace, protocolSummary, settings]
+  );
   const showDashboardEmptyState = !currentRace && activities.length === 0 && interventions.length === 0;
   const showWelcomeChecklist = interventions.length === 0;
   const navLinks = [
@@ -503,11 +795,8 @@ export default function Dashboard() {
 
   if (!athlete) {
     return (
-      <div className="p-4">
-        <p>You are not logged in.</p>
-        <a href="/" className="text-accent underline">
-          Go to Home
-        </a>
+      <div className="rounded-[28px] border border-ink/10 bg-white px-6 py-5 text-sm text-ink/70 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+        Redirecting to login...
       </div>
     );
   }
@@ -528,6 +817,20 @@ export default function Dashboard() {
 
         <DashboardTabs activeHref="/dashboard" />
 
+        {isPreview ? (
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-[22px] border border-amber-300 bg-amber-50 px-5 py-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-800">Preview Mode</p>
+              <p className="mt-1 text-sm text-ink/70">
+                Viewing the athlete dashboard with seeded fake data. No real athlete records are being changed.
+              </p>
+            </div>
+            <a href="/admin" className="rounded-full border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-ink">
+              Back to Admin
+            </a>
+          </div>
+        ) : null}
+
         {isFirstLogin ? (
           <div className="mb-6 flex items-start gap-4 rounded-[22px] border border-accent/30 bg-accent/8 px-5 py-4">
             <span className="mt-0.5 text-xl">👋</span>
@@ -540,12 +843,37 @@ export default function Dashboard() {
           </div>
         ) : null}
 
+        <section className="mb-8 rounded-[24px] border border-ink/10 bg-white p-5 shadow-warm md:p-6">
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-sm uppercase tracking-[0.25em] text-accent">Today&apos;s Actions</p>
+              <h2 className="mt-2 text-2xl font-semibold text-ink">Threshold noticed these next steps</h2>
+            </div>
+            <span className="rounded-full bg-paper px-3 py-1 text-xs font-semibold text-ink/60">
+              Auto-built from activity, race, and protocol data
+            </span>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {todayActions.map((action) => (
+              <TodayActionCard key={`${action.label}-${action.title}`} action={action} />
+            ))}
+          </div>
+        </section>
+
         <section className="mb-8 rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm uppercase tracking-[0.25em] text-accent">Race Countdown</p>
-            <a href="/log-intervention" className="rounded-full border border-ink/10 px-3 py-1 text-xs text-ink/70">
-              Update race
-            </a>
+            <div className="flex items-center gap-2">
+              <a href="/messages" className="relative rounded-full border border-ink/10 px-3 py-1 text-xs text-ink/70">
+                Messages
+                {unreadMessageCount > 0 ? (
+                  <span className="absolute -right-1.5 -top-1.5 h-3 w-3 rounded-full bg-amber-500" />
+                ) : null}
+              </a>
+              <a href="/log-intervention" className="rounded-full border border-ink/10 px-3 py-1 text-xs text-ink/70">
+                Update race
+              </a>
+            </div>
           </div>
           {currentRace ? (
             <div className="mt-5 grid gap-4 md:grid-cols-4">
@@ -588,15 +916,123 @@ export default function Dashboard() {
           ) : null}
         </section>
 
+        {protocolSummary?.activeAssignments?.length ? (
+          <section className="mb-8">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm uppercase tracking-[0.25em] text-accent">My Protocols</p>
+                <p className="mt-1 text-sm text-ink/60">
+                  Active coach-assigned protocols with this week&apos;s instructions and a quick logging shortcut.
+                </p>
+              </div>
+              <a href="/log-intervention" className="ui-button-secondary py-2">
+                Log Entry
+              </a>
+            </div>
+
+            <div className="grid gap-5 lg:grid-cols-2">
+              {protocolSummary.activeAssignments.map((protocol) => (
+                <article
+                  key={protocol.id}
+                  id={`protocol-${protocol.id}`}
+                  className={`ui-card overflow-hidden ${String(router.query.protocol || '') === protocol.id ? 'ring-2 ring-amber-300' : ''}`}
+                >
+                  <div className="flex gap-4">
+                    <div className={`w-2 shrink-0 rounded-full ${getProtocolStripeClass(protocol.protocol_type)}`} />
+                    <div className="flex-1">
+                      <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0">
+                          <p className="text-xs uppercase tracking-[0.18em] text-accent">{protocol.coach_name}</p>
+                          <h2 className="mt-2 text-xl font-semibold text-ink">{protocol.protocol_name}</h2>
+                          <p className="mt-1 text-sm text-ink/60">{protocol.protocol_type}</p>
+                        </div>
+                        <ProtocolComplianceRing value={protocol.compliance} />
+                      </div>
+
+                      <div className="mt-5 rounded-[20px] bg-paper p-4">
+                        <p className="text-xs uppercase tracking-[0.16em] text-accent">Current Week Instructions</p>
+                        <p className="mt-2 text-sm font-semibold text-ink">
+                          {protocol.current_week_summary || 'No current-week instructions yet.'}
+                        </p>
+                        <p className="mt-2 text-xs uppercase tracking-[0.16em] text-ink/42">
+                          Week {protocol.current_week} · {protocol.actual_entries}/{protocol.expected_entries || 0} entries
+                        </p>
+                      </div>
+
+                      <details className="mt-4 rounded-[20px] bg-surface-light p-4">
+                        <summary className="cursor-pointer text-sm font-semibold text-ink">
+                          View full multi-week plan
+                        </summary>
+                        <div className="mt-4 space-y-3">
+                          {(protocol.instructions?.weekly_blocks || []).map((block) => (
+                            <div key={`${protocol.id}-week-${block.week_number}`} className="rounded-[16px] bg-white px-4 py-3">
+                              <p className="text-sm font-semibold text-ink">Week {block.week_number}</p>
+                              <p className="mt-1 text-sm text-ink/65">{block.instruction_text || 'No instruction text yet.'}</p>
+                              <p className="mt-2 text-xs uppercase tracking-[0.16em] text-ink/42">
+                                {block.frequency_per_week ? `${block.frequency_per_week}x/week` : 'Frequency not set'}
+                                {block.target_metric ? ` · ${block.target_metric}` : ''}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+
+                      <ProtocolMessages messages={protocol.context_messages || []} />
+
+                      <div className="mt-4 flex flex-wrap gap-3">
+                        <a
+                          href={`/log-intervention?type=${encodeURIComponent(protocol.protocol_type)}`}
+                          className="ui-button-primary py-2"
+                        >
+                          Log Entry
+                        </a>
+                        <span className="rounded-full bg-paper px-3 py-2 text-xs font-semibold text-ink/68">
+                          {protocol.start_date} to {protocol.end_date}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {followUpPrompts.length ? (
+          <section className="mb-8">
+            <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p className="text-sm uppercase tracking-[0.25em] text-accent">After Your Latest Activity</p>
+                <p className="mt-1 text-sm text-ink/60">
+                  Threshold noticed new activity events and queued the next logging step for you.
+                </p>
+              </div>
+              <a href="/notifications" className="ui-button-secondary py-2">
+                Open notifications
+              </a>
+            </div>
+            <div className="grid gap-4 lg:grid-cols-2">
+              {followUpPrompts.map((prompt) => (
+                <FollowUpPromptCard
+                  key={prompt.id}
+                  prompt={prompt}
+                  busy={followUpBusyId === prompt.id}
+                  onDismiss={handleDismissFollowUpPrompt}
+                />
+              ))}
+            </div>
+          </section>
+        ) : null}
+
         <div className="mb-12 overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(135deg,#f7f2ea_0%,#ebe1d4_55%,#dcc9b0_100%)] p-6 md:p-10">
-          <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
-            <div>
+          <div className="grid gap-8 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)] xl:items-center">
+            <div className="min-w-0">
               <p className="text-sm uppercase tracking-[0.35em] text-accent">Training Intelligence Home</p>
-              <h1 className="font-display mt-4 max-w-4xl text-5xl leading-tight md:text-7xl">
+              <h1 className="font-display mt-4 max-w-3xl text-4xl leading-tight md:text-6xl xl:text-7xl">
                 Welcome back, {athlete.name}
               </h1>
               {currentRace ? (
-                <div className="mt-5 flex flex-wrap gap-3 text-sm text-ink/75">
+                <div className="mt-5 flex max-w-3xl flex-wrap gap-3 text-sm text-ink/75">
                   <span className="rounded-full bg-white/60 px-4 py-2 font-semibold text-ink">{currentRace.name}</span>
                   {currentRace.race_type ? (
                     <span className="rounded-full bg-white/60 px-4 py-2 font-semibold text-ink">{currentRace.race_type}</span>
@@ -608,8 +1044,8 @@ export default function Dashboard() {
                   ) : null}
                 </div>
               ) : null}
-              <div className="mt-8 flex flex-wrap gap-4">
-                <a href="/log-intervention?type=Workout+Check-in" className="rounded-full bg-ink px-6 py-3 font-semibold text-paper">
+              <div className="mt-8 flex max-w-3xl flex-wrap gap-4">
+                <a href={isPreview ? '/log-intervention' : '/log-intervention?type=Workout+Check-in'} className="rounded-full bg-ink px-6 py-3 font-semibold text-paper">
                   📋 Log today's training
                 </a>
                 <a href="/log-intervention" className="rounded-full border border-ink/20 bg-white/50 px-6 py-3 font-semibold text-ink">
@@ -624,7 +1060,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="rounded-[34px] bg-panel p-6 text-white shadow-[0_40px_100px_rgba(0,0,0,0.28)]">
+            <div className="rounded-[34px] bg-panel p-6 text-white shadow-[0_40px_100px_rgba(0,0,0,0.28)] xl:justify-self-end xl:w-full xl:max-w-[420px]">
               <div className="flex items-center justify-between">
                 <p className="text-sm uppercase tracking-[0.25em] text-accent">Current Trend Window</p>
                 <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/80">Last {timeframe} Days</span>
@@ -653,6 +1089,14 @@ export default function Dashboard() {
 
         {showWelcomeChecklist ? (
           <section className="mb-10 rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+            {coachWelcomeName ? (
+              <div className="mb-5 rounded-[20px] border border-accent/20 bg-accent/8 px-4 py-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent">Coach Connected</p>
+                <p className="mt-2 text-sm leading-6 text-ink/70">
+                  You are now connected to {coachWelcomeName}. They can start assigning protocols and reviewing your progress from their coaching workspace.
+                </p>
+              </div>
+            ) : null}
             <p className="text-sm uppercase tracking-[0.25em] text-accent">Getting started</p>
             <h2 className="font-display mt-3 text-2xl font-semibold text-ink">Three steps to your first insight</h2>
             <div className="mt-6 grid gap-3 md:grid-cols-3">
@@ -819,7 +1263,9 @@ export default function Dashboard() {
           <div className="rounded-[30px] bg-[linear-gradient(135deg,#1b2421_0%,#29302d_100%)] p-6 text-white">
             <div className="flex items-center justify-between">
               <p className="text-sm uppercase tracking-[0.25em] text-accent">Recent Training</p>
-              <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/80">Most Recent First</span>
+              <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/80">
+                {activitiesSyncing ? 'Syncing latest from Strava...' : 'Most Recent First'}
+              </span>
             </div>
             <div className="mt-5 space-y-3">
               {classifiedActivities.map((activity) => (
@@ -1018,4 +1464,49 @@ export default function Dashboard() {
       </div>
     </main>
   );
+}
+
+export async function getServerSideProps(context) {
+  const previewMode = typeof context.query.preview === 'string' ? context.query.preview : null;
+
+  if (!previewMode) {
+    return { props: {} };
+  }
+
+  try {
+    const adminContext = await getAdminRequestContext(context.req);
+    if (!adminContext.authorized) {
+      return {
+        redirect: {
+          destination: '/dashboard',
+          permanent: false,
+        },
+      };
+    }
+
+    const previewData = getDashboardPreview(previewMode);
+    if (!previewData) {
+      return {
+        redirect: {
+          destination: '/admin',
+          permanent: false,
+        },
+      };
+    }
+
+    return {
+      props: {
+        previewMode,
+        previewData,
+      },
+    };
+  } catch (error) {
+    console.error('[dashboard preview] failed:', error);
+    return {
+      redirect: {
+        destination: '/admin',
+        permanent: false,
+      },
+    };
+  }
 }

@@ -1,4 +1,10 @@
 import { useEffect, useState } from 'react';
+import { getStoredValue } from '../lib/browserStorage';
+
+const defaultRaceStorageKey = 'threshold-default-race';
+const legacyDefaultRaceStorageKey = 'ultraos-default-race';
+const recentRaceOutcomeStorageKey = 'threshold-recent-race-outcome';
+const legacyRecentRaceOutcomeStorageKey = 'ultraos-recent-race-outcome';
 
 function getDaysUntil(dateStr) {
   if (!dateStr) return null;
@@ -39,7 +45,7 @@ export default function RaceCountdownBanner() {
   useEffect(() => {
     function readRace() {
       try {
-        const stored = window.localStorage.getItem('ultraos-default-race');
+        const stored = getStoredValue(defaultRaceStorageKey, legacyDefaultRaceStorageKey);
         if (!stored) { setRace(null); return; }
         const parsed = JSON.parse(stored);
         if (!parsed?.target_race || !parsed?.target_race_date) { setRace(null); return; }
@@ -47,7 +53,7 @@ export default function RaceCountdownBanner() {
 
         // Race passed — check if outcome has been logged
         if (days !== null && days < 0) {
-          const alreadyCaptured = window.localStorage.getItem('ultraos-recent-race-outcome');
+          const alreadyCaptured = getStoredValue(recentRaceOutcomeStorageKey, legacyRecentRaceOutcomeStorageKey);
           if (!alreadyCaptured) {
             setRace({ name: parsed.target_race, date: parsed.target_race_date, days });
             setShowOutcomePrompt(true);

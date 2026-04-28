@@ -1,16 +1,10 @@
-import cookie from 'cookie';
 import { buildResearchDraft } from '../../../lib/researchDrafts';
+import { requireAdminRequest } from '../../../lib/authServer';
 
-export const runtime = 'edge';
 
-export default function handler(req, res) {
-  const cookies = cookie.parse(req.headers.cookie || '');
-  const athleteId = cookies.athlete_id;
-
-  if (!athleteId) {
-    res.status(401).json({ error: 'Not authenticated' });
-    return;
-  }
+export default async function handler(req, res) {
+  const adminContext = await requireAdminRequest(req, res);
+  if (!adminContext) return;
 
   if (req.method !== 'POST') {
     res.status(405).end();

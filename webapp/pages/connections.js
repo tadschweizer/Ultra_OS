@@ -3,47 +3,69 @@ import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
 import EmptyStateCard from '../components/EmptyStateCard';
 
-const sources = [
+const defaultSources = [
   {
     name: 'Strava',
-    status: 'Available now',
+    status: 'available',
     href: '/api/strava/login',
     action: 'Connect',
     enabled: true,
   },
   {
     name: 'Garmin',
-    status: 'Coming soon',
+    status: 'coming_soon',
     href: '#',
     action: 'Coming soon',
     enabled: false,
   },
   {
     name: 'COROS',
-    status: 'Coming soon',
+    status: 'api_in_progress',
     href: '#',
-    action: 'Coming soon',
+    action: 'API access in progress',
     enabled: false,
+    logoSrc: '/brand/coros-logo.png',
   },
   {
     name: 'Zwift',
-    status: 'Coming soon',
+    status: 'coming_soon',
     href: '#',
     action: 'Coming soon',
     enabled: false,
   },
   {
     name: 'TrainingPeaks',
-    status: 'Coming soon',
+    status: 'coming_soon',
     href: '#',
     action: 'Coming soon',
     enabled: false,
   },
 ];
 
+function getSourceStatusLabel(source = {}) {
+  switch (source.status) {
+    case 'connected':
+      return 'Connected';
+    case 'paused':
+      return 'Paused';
+    case 'error':
+      return 'Needs attention';
+    case 'revoked':
+      return 'Reconnect needed';
+    case 'available':
+      return 'Available now';
+    case 'api_in_progress':
+      return 'API access in progress';
+    case 'coming_soon':
+    default:
+      return 'Coming soon';
+  }
+}
+
 export default function Connections() {
   const [athleteId, setAthleteId] = useState(null);
   const [athlete, setAthlete] = useState(null);
+  const [sources, setSources] = useState(defaultSources);
   const [notifyEmails, setNotifyEmails] = useState({});
   const [notifySubmitted, setNotifySubmitted] = useState({});
   const navLinks = athleteId
@@ -74,6 +96,26 @@ export default function Connections() {
       if (!res.ok) return;
       const data = await res.json();
       setAthlete(data.athlete || null);
+      if (Array.isArray(data.connectionStatuses) && data.connectionStatuses.length) {
+        setSources((current) =>
+          current.map((source) => {
+            const apiSource = data.connectionStatuses.find(
+              (item) => item.id?.toLowerCase() === source.name.toLowerCase()
+            );
+            return apiSource
+              ? {
+                  ...source,
+                  status: apiSource.status,
+                  href: apiSource.href || source.href,
+                  action: apiSource.actionLabel || source.action,
+                  enabled: apiSource.id === 'strava',
+                  lastSyncAt: apiSource.lastSyncAt || null,
+                  lastError: apiSource.lastError || null,
+                }
+              : source;
+          })
+        );
+      }
     }
 
     if (athleteId) {
@@ -126,57 +168,70 @@ export default function Connections() {
             <EmptyStateCard
               icon="network"
               title="No connections yet."
-              body="Connect Strava or Garmin to pull activity context into your intervention log."
+              body="Connect Strava to pull activity context into your intervention log. Garmin and COROS API access is in progress."
               ctaLabel="Add a Connection"
               ctaHref="/api/strava/login"
             />
           </section>
-        ) : (
-          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {sources.map((source) => (
-              <article key={source.name} className="rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm uppercase tracking-[0.22em] text-accent">{source.name}</p>
-                  <span className="rounded-full bg-paper px-3 py-1 text-xs text-ink/70">
-                    {source.name === 'Strava' && hasAnyConnections ? 'Connected' : source.status}
-                  </span>
-                </div>
-                {source.name === 'Strava' && hasAnyConnections && stravaLastSeen ? (
-                  <p className="mt-2 text-xs text-ink/45">
-                    Last synced: {new Date(stravaLastSeen).toLocaleString()}
-                  </p>
-                ) : null}
-                {source.enabled ? (
-                  <a href={source.href} className="mt-6 inline-flex rounded-full bg-ink px-5 py-3 text-sm font-semibold text-paper">
-                    {source.name === 'Strava' && hasAnyConnections ? 'Reconnect' : source.action}
-                  </a>
-                ) : notifySubmitted[source.name] ? (
-                  <p className="mt-4 text-sm font-semibold text-accent">Got it — we&apos;ll notify you when {source.name} is ready.</p>
+        ) : null}
+
+        <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {sources.map((source) => (
+            <article key={source.name} className="rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+              <div className="flex items-center justify-between gap-3">
+                {source.logoSrc ? (
+                  <img
+                    src={source.logoSrc}
+                    alt={`${source.name} logo`}
+                    className="h-7 max-w-[150px] object-contain object-left"
+                  />
                 ) : (
-                  <div className="mt-4">
-                    <p className="mb-2 text-xs text-ink/50">Get notified when {source.name} is available:</p>
-                    <div className="flex gap-2">
-                      <input
-                        type="email"
-                        placeholder="your@email.com"
-                        value={notifyEmails[source.name] || ''}
-                        onChange={(e) => setNotifyEmails((prev) => ({ ...prev, [source.name]: e.target.value }))}
-                        className="min-w-0 flex-1 rounded-full border border-ink/10 bg-paper px-4 py-2 text-sm text-ink"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleNotifySubmit(source.name)}
-                        className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-paper"
-                      >
-                        Notify me
-                      </button>
-                    </div>
-                  </div>
+                  <p className="text-sm uppercase tracking-[0.22em] text-accent">{source.name}</p>
                 )}
-              </article>
-            ))}
-          </section>
-        )}
+                <span className="rounded-full bg-paper px-3 py-1 text-xs text-ink/70">{getSourceStatusLabel(source)}</span>
+              </div>
+              {source.lastError ? (
+                <p className="mt-2 text-xs text-red-600">{source.lastError}</p>
+              ) : null}
+              {source.name === 'Strava' && hasAnyConnections && (source.lastSyncAt || stravaLastSeen) ? (
+                <p className="mt-2 text-xs text-ink/45">
+                  Last synced: {new Date(source.lastSyncAt || stravaLastSeen).toLocaleString()}
+                </p>
+              ) : null}
+              {source.enabled ? (
+                <a href={source.href} className="mt-6 inline-flex rounded-full bg-ink px-5 py-3 text-sm font-semibold text-paper">
+                  {source.name === 'Strava' && hasAnyConnections ? 'Reconnect' : source.action}
+                </a>
+              ) : notifySubmitted[source.name] ? (
+                <p className="mt-4 text-sm font-semibold text-accent">Got it — we&apos;ll notify you when {source.name} is ready.</p>
+              ) : (
+                <div className="mt-4">
+                  <p className="mb-2 text-xs text-ink/50">
+                    {source.status === 'api_in_progress'
+                      ? `${source.name} API access is in progress. Get notified when it is ready:`
+                      : `Get notified when ${source.name} is available:`}
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="email"
+                      placeholder="your@email.com"
+                      value={notifyEmails[source.name] || ''}
+                      onChange={(e) => setNotifyEmails((prev) => ({ ...prev, [source.name]: e.target.value }))}
+                      className="min-w-0 flex-1 rounded-full border border-ink/10 bg-paper px-4 py-2 text-sm text-ink"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleNotifySubmit(source.name)}
+                      className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-paper"
+                    >
+                      Notify me
+                    </button>
+                  </div>
+                </div>
+              )}
+            </article>
+          ))}
+        </section>
       </div>
     </main>
   );

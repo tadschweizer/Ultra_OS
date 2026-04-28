@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
+import { getAdminRequestContext } from '../lib/authServer';
+import { getOnboardingPreview } from '../lib/previews/onboarding';
 
 const sportOptions = [
   'Ultrarunner',
@@ -39,25 +41,31 @@ function StepIndicator({ step }) {
   );
 }
 
-export default function OnboardingPage() {
+export default function OnboardingPage({ previewMode = null, previewData = null }) {
   const router = useRouter();
-  const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(true);
+  const isPreview = Boolean(previewMode && previewData);
+  const [step, setStep] = useState(previewData?.step || 1);
+  const [loading, setLoading] = useState(!isPreview);
   const [saving, setSaving] = useState(false);
-  const [catalogQuery, setCatalogQuery] = useState('');
-  const [catalogResults, setCatalogResults] = useState([]);
+  const [catalogQuery, setCatalogQuery] = useState(previewData?.catalogQuery || '');
+  const [catalogResults, setCatalogResults] = useState(previewData?.catalogResults || []);
   const [manualRace, setManualRace] = useState(false);
-  const [stravaName, setStravaName] = useState('');
+  const [stravaName, setStravaName] = useState(previewData?.stravaName || '');
   const [form, setForm] = useState({
-    target_race_id: '',
-    target_race: null,
-    primary_sports: [],
-    years_racing_band: '',
-    weekly_training_hours_band: '',
-    home_elevation_ft: '',
+    target_race_id: previewData?.form?.target_race_id || '',
+    target_race: previewData?.form?.target_race || null,
+    primary_sports: previewData?.form?.primary_sports || [],
+    years_racing_band: previewData?.form?.years_racing_band || '',
+    weekly_training_hours_band: previewData?.form?.weekly_training_hours_band || '',
+    home_elevation_ft: previewData?.form?.home_elevation_ft || '',
   });
 
   useEffect(() => {
+    if (isPreview) {
+      setLoading(false);
+      return;
+    }
+
     async function loadOnboarding() {
       try {
         const res = await fetch('/api/onboarding');
@@ -91,9 +99,29 @@ export default function OnboardingPage() {
     }
 
     loadOnboarding();
-  }, [router.query.name]);
+  }, [isPreview, router.query.name]);
 
   useEffect(() => {
+    if (isPreview) {
+      const query = catalogQuery.trim().toLowerCase();
+      const races = previewData?.raceCatalog || [];
+      if (!query || manualRace) {
+        setCatalogResults([]);
+        return;
+      }
+
+      setCatalogResults(
+        races.filter((race) => {
+          const haystack = [race.name, race.city, race.state, race.country, race.sport_type]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase();
+          return haystack.includes(query);
+        })
+      );
+      return;
+    }
+
     if (!manualRace && catalogQuery.trim().length < 2) {
       setCatalogResults([]);
       return;
@@ -114,9 +142,10 @@ export default function OnboardingPage() {
       cancelled = true;
       clearTimeout(id);
     };
-  }, [catalogQuery, manualRace]);
+  }, [catalogQuery, isPreview, manualRace, previewData]);
 
   useEffect(() => {
+    if (isPreview) return;
     if (!navigator.geolocation || form.home_elevation_ft) return;
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -129,7 +158,7 @@ export default function OnboardingPage() {
       },
       () => {}
     );
-  }, [form.home_elevation_ft]);
+  }, [form.home_elevation_ft, isPreview]);
 
   const slides = useMemo(
     () => [
@@ -369,7 +398,7 @@ export default function OnboardingPage() {
           ) : null}
 
           <div className="mt-5 space-y-3">
-            <a href="/api/strava/login" className="inline-flex w-full items-center justify-center rounded-full bg-panel px-6 py-3 text-sm font-semibold text-paper">
+            <a href={isPreview ? '/onboarding?preview=onboarding-demo&strava=connected&name=Maya%20Chen' : '/api/strava/login'} className="inline-flex w-full items-center justify-center rounded-full bg-panel px-6 py-3 text-sm font-semibold text-paper">
               Connect Strava
             </a>
 <button
@@ -388,6 +417,13 @@ export default function OnboardingPage() {
   );
 
   async function saveProgress(onboardingComplete = false) {
+    if (isPreview) {
+      setSaving(true);
+      await new Promise((resolve) => setTimeout(resolve, 120));
+      setSaving(false);
+      return true;
+    }
+
     setSaving(true);
     const payload = {
       onboarding_complete: onboardingComplete,
@@ -426,7 +462,7 @@ export default function OnboardingPage() {
   async function completeOnboarding() {
     const ok = await saveProgress(true);
     if (ok) {
-      router.push('/dashboard?welcome=1');
+      router.push(isPreview ? '/dashboard?preview=athlete-demo' : '/dashboard?welcome=1');
     }
   }
 
@@ -437,7 +473,7 @@ export default function OnboardingPage() {
       }, 1200);
       return () => clearTimeout(timeoutId);
     }
-  }, [router.query.strava, loading]);
+  }, [isPreview, router.query.strava, loading]);
 
   if (loading) {
     return <div className="flex min-h-screen items-center justify-center bg-paper text-ink">Loading...</div>;
@@ -448,7 +484,14 @@ export default function OnboardingPage() {
       <div className="mx-auto max-w-6xl">
         <section className="overflow-hidden rounded-[42px] border border-ink/10 bg-[linear-gradient(135deg,#f7f2ea_0%,#ebe1d4_55%,#dcc9b0_100%)] p-6 md:p-10">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <p className="text-xs uppercase tracking-[0.35em] text-accent">Threshold onboarding</p>
+            <div>
+              <p className="text-xs uppercase tracking-[0.35em] text-accent">Threshold onboarding</p>
+              {isPreview ? (
+                <p className="mt-2 inline-flex rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-800">
+                  Preview Mode
+                </p>
+              ) : null}
+            </div>
             <StepIndicator step={step} />
           </div>
 
@@ -489,4 +532,49 @@ export default function OnboardingPage() {
       </div>
     </main>
   );
+}
+
+export async function getServerSideProps(context) {
+  const previewMode = typeof context.query.preview === 'string' ? context.query.preview : null;
+
+  if (!previewMode) {
+    return { props: {} };
+  }
+
+  try {
+    const adminContext = await getAdminRequestContext(context.req);
+    if (!adminContext.authorized) {
+      return {
+        redirect: {
+          destination: '/onboarding',
+          permanent: false,
+        },
+      };
+    }
+
+    const previewData = getOnboardingPreview(previewMode);
+    if (!previewData) {
+      return {
+        redirect: {
+          destination: '/admin',
+          permanent: false,
+        },
+      };
+    }
+
+    return {
+      props: {
+        previewMode,
+        previewData,
+      },
+    };
+  } catch (error) {
+    console.error('[onboarding preview] failed:', error);
+    return {
+      redirect: {
+        destination: '/admin',
+        permanent: false,
+      },
+    };
+  }
 }

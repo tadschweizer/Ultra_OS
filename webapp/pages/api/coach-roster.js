@@ -1,5 +1,4 @@
-import cookie from 'cookie';
-import { supabase } from '../../lib/supabaseClient';
+import { getAthleteIdFromRequest, getSupabaseAdminClient } from '../../lib/authServer';
 import {
   computePhaseFromDays,
   countAssignmentCompletions,
@@ -8,14 +7,8 @@ import {
   normalizeRace,
 } from '../../lib/coachProtocols';
 
-export const runtime = 'edge';
-
-function getAthleteId(req) {
-  const cookies = cookie.parse(req.headers.cookie || '');
-  return cookies.athlete_id;
-}
-
 async function ensureCoachProfile(athleteId) {
+  const supabase = getSupabaseAdminClient();
   const { data: athlete } = await supabase
     .from('athletes')
     .select('id, name')
@@ -45,7 +38,8 @@ async function ensureCoachProfile(athleteId) {
 }
 
 export default async function handler(req, res) {
-  const athleteId = getAthleteId(req);
+  const athleteId = getAthleteIdFromRequest(req);
+  const supabase = getSupabaseAdminClient();
   if (!athleteId) {
     res.status(401).json({ error: 'Not authenticated' });
     return;

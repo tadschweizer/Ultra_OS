@@ -1,11 +1,13 @@
 import {
   findOrCreateAthleteForAuthUser,
+  getAthleteIdFromRequest,
   getSupabaseAdminClient,
   getSupabaseAnonServerClient,
   setAthleteCookie,
+  syncAdminAccessCookie,
 } from '../../../lib/authServer';
+import { syncAthleteSubscriptionFromStripe } from '../../../lib/billingSync';
 
-export const runtime = 'edge';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -13,7 +15,7 @@ export default async function handler(req, res) {
     return;
   }
 
-  const { email, password } = req.body || {};
+  const { email, password, linkAccount = false } = req.body || {};
   if (!email || !password) {
     res.status(400).json({ error: 'Email and password are required.' });
     return;
@@ -33,15 +35,18 @@ export default async function handler(req, res) {
       supabaseUserId: authData.user.id,
       email: authData.user.email || email,
       name: authData.user.user_metadata?.full_name || authData.user.user_metadata?.name || null,
+      existingAthleteId: linkAccount ? getAthleteIdFromRequest(req) : null,
     });
+    const hydratedAthlete = await syncAthleteSubscriptionFromStripe({ athlete });
 
-    setAthleteCookie(res, athlete.id);
+    setAthleteCookie(res, hydratedAthlete.id);
+    syncAdminAccessCookie(res, hydratedAthlete);
 
     res.status(200).json({
-      athleteId: athlete.id,
-      name: athlete.name,
-      onboardingComplete: Boolean(athlete.onboarding_complete),
-      subscriptionTier: athlete.subscription_tier,
+      athleteId: hydratedAthlete.id,
+      name: hydratedAthlete.name,
+      onboardingComplete: Boolean(hydratedAthlete.onboarding_complete),
+      subscriptionTier: hydratedAthlete.subscription_tier,
     });
   } catch (error) {
     console.error('[login] athlete lookup error:', error);

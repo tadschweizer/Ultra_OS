@@ -6,7 +6,10 @@ import { sortActivitiesMostRecentFirst } from '../lib/activityInsights';
 import { deriveRaceType } from '../lib/raceTypes';
 import { canAccessFullInsights } from '../lib/subscriptionTiers';
 import { buildTrainingResponseCorrelations, buildCheckInTimeSeries, buildCheckInSummary } from '../lib/trainingInsights';
+import { getStoredValue } from '../lib/browserStorage';
 
+const defaultRaceStorageKey = 'threshold-default-race';
+const legacyDefaultRaceStorageKey = 'ultraos-default-race';
 const MIN_GROUP_SIZE = 3; // mirrors trainingInsights.js threshold for UI messaging
 
 // ─── Intervention-driven insight builders ─────────────────────────────────────
@@ -257,7 +260,7 @@ export default function InsightsPage() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
-      const stored = window.localStorage.getItem('ultraos-default-race');
+      const stored = getStoredValue(defaultRaceStorageKey, legacyDefaultRaceStorageKey);
       if (!stored) return;
       const parsed = JSON.parse(stored);
       if (!parsed?.target_race) return;

@@ -10,10 +10,7 @@ create table if not exists public.races (
   notes text,
   inserted_at timestamptz default now()
 );
-
 alter table public.races disable row level security;
-
 grant select, insert, update, delete on table public.races to anon, authenticated;
-
 alter table public.interventions
 add column if not exists race_id uuid references public.races (id) on delete set null;

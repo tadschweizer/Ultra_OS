@@ -1,6 +1,5 @@
-import { supabase } from '../../lib/supabaseClient';
+import { getSupabaseAdminClient } from '../../lib/authServer';
 
-export const runtime = 'edge';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -8,7 +7,7 @@ export default async function handler(req, res) {
     return;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await getSupabaseAdminClient()
     .from('research_library_entries')
     .select(
       'id, pubmed_id, title, authors, journal, publication_year, publication_date, pubmed_url, topic_tags, plain_english_summary, practical_takeaway, commentary, ultra_score, gravel_score, triathlon_score, published'

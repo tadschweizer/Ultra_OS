@@ -5,6 +5,7 @@ const publicLinks = [
   { href: '/guide', label: 'How It Works' },
   { href: '/content', label: 'Research' },
   { href: '/pricing', label: 'Pricing' },
+  { href: '/support', label: 'Support' },
 ];
 
 const athleteLinks = [
@@ -60,15 +61,15 @@ const protocols = [
 ];
 
 const comparisons = [
-  { feature: 'Workout log + Strava sync', ultraos: true, tp: true },
-  { feature: 'Protocol intervention logging', ultraos: true, tp: false },
-  { feature: 'Training response correlations', ultraos: true, tp: false },
-  { feature: 'N=1 pattern detection (foam roll → legs feel)', ultraos: true, tp: false },
-  { feature: 'Race blueprint auto-builder', ultraos: true, tp: false },
-  { feature: 'Gut / heat / bicarb dose tracking', ultraos: true, tp: false },
-  { feature: 'Peer-reviewed research library', ultraos: true, tp: false },
-  { feature: 'Post-race outcome debrief', ultraos: true, tp: true },
-  { feature: 'Coach protocol assignments', ultraos: true, tp: true },
+  { feature: 'Workout log + Strava sync', threshold: true, tp: true },
+  { feature: 'Protocol intervention logging', threshold: true, tp: false },
+  { feature: 'Training response correlations', threshold: true, tp: false },
+  { feature: 'N=1 pattern detection (foam roll → legs feel)', threshold: true, tp: false },
+  { feature: 'Race blueprint auto-builder', threshold: true, tp: false },
+  { feature: 'Gut / heat / bicarb dose tracking', threshold: true, tp: false },
+  { feature: 'Peer-reviewed research library', threshold: true, tp: false },
+  { feature: 'Post-race outcome debrief', threshold: true, tp: true },
+  { feature: 'Coach protocol assignments', threshold: true, tp: true },
 ];
 
 function CheckIcon({ filled }) {
@@ -360,7 +361,7 @@ export default function Home() {
                   {comparisons.map((row, i) => (
                     <tr key={row.feature} className={i % 2 === 0 ? 'bg-paper/50' : ''}>
                       <td className="py-3 pr-6 text-sm text-ink/70">{row.feature}</td>
-                      <td className="px-4 py-3 text-center"><CheckIcon filled={row.ultraos} /></td>
+                      <td className="px-4 py-3 text-center"><CheckIcon filled={row.threshold} /></td>
                       <td className="px-4 py-3 text-center"><CheckIcon filled={row.tp} /></td>
                     </tr>
                   ))}
@@ -405,6 +406,7 @@ export default function Home() {
             <a href="/guide" className="hover:text-ink/60">How It Works</a>
             <a href="/pricing" className="hover:text-ink/60">Pricing</a>
             <a href="/content" className="hover:text-ink/60">Research</a>
+            <a href="/support" className="hover:text-ink/60">Support</a>
             <a href="/login" className="hover:text-ink/60">Login</a>
           </div>
           <p>© {new Date().getFullYear()} Threshold</p>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/router';
 import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
 import { buildProtocolSummary } from '../lib/interventionCatalog';
@@ -88,6 +89,26 @@ function buildCalendarDays(monthDate) {
   });
 }
 
+function InterventionComments({ messages = [] }) {
+  if (!messages.length) return null;
+
+  return (
+    <div className="mt-4 rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-3">
+      <p className="text-xs uppercase tracking-[0.18em] text-amber-800">Coach comments</p>
+      <div className="mt-3 space-y-3">
+        {messages.map((message) => (
+          <div key={message.id} className="rounded-[14px] bg-white/80 px-3 py-3">
+            <p className="text-[11px] uppercase tracking-[0.14em] text-ink/45">
+              {message.sender_role === 'coach' ? 'Coach' : 'Athlete'} · {new Date(message.created_at).toLocaleString()}
+            </p>
+            <p className="mt-2 text-sm leading-6 text-ink">{message.content}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function DetailDrawer({ entry, dayEntries, categories, onClose, onDelete }) {
   if (!entry && !dayEntries?.length) return null;
 
@@ -170,6 +191,8 @@ function DetailDrawer({ entry, dayEntries, categories, onClose, onDelete }) {
                   <dd>{item.notes || 'No notes'}</dd>
                 </div>
               </dl>
+
+              <InterventionComments messages={item.context_messages || []} />
             </section>
           ))}
         </div>
@@ -198,6 +221,7 @@ function EmptyState() {
 }
 
 export default function History() {
+  const router = useRouter();
   const [interventions, setInterventions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState('table');
@@ -239,6 +263,15 @@ export default function History() {
 
     fetchInterventions();
   }, []);
+
+  useEffect(() => {
+    if (!router.isReady || !router.query.entry || !interventions.length) return;
+    const target = interventions.find((item) => item.id === router.query.entry);
+    if (target) {
+      setDrawerEntry(target);
+      setDrawerDayEntries([]);
+    }
+  }, [interventions, router.isReady, router.query.entry]);
 
   const categories = useMemo(
     () => Array.from(new Set(interventions.map((item) => item.intervention_type).filter(Boolean))),
@@ -672,7 +705,12 @@ export default function History() {
                           <td className="px-4 py-4 text-sm font-semibold text-ink">{getOutcomeScore(item) || '-'}</td>
                           <td className="px-4 py-4 text-sm text-ink/72">
                             <button type="button" onClick={() => { setDrawerEntry(item); setDrawerDayEntries([]); }} className="text-left">
-                              {buildProtocolSummary(item.intervention_type, item.protocol_payload)}
+                              <span className="block">{buildProtocolSummary(item.intervention_type, item.protocol_payload)}</span>
+                              {item.context_messages?.length ? (
+                                <span className="mt-2 block text-xs uppercase tracking-[0.16em] text-amber-700">
+                                  {item.context_messages.length} coach comment{item.context_messages.length === 1 ? '' : 's'}
+                                </span>
+                              ) : null}
                             </button>
                           </td>
                         </tr>

@@ -16,10 +16,13 @@ export default function SignupPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [isLinkMode, setIsLinkMode] = useState(false);
 
   useEffect(() => {
+    const isLinkRequest = new URLSearchParams(window.location.search).get('link') === '1';
+    setIsLinkMode(isLinkRequest);
     const match = document.cookie.match(/athlete_id=([^;]+)/);
-    if (match) {
+    if (match && !isLinkRequest) {
       window.location.href = '/dashboard';
       return;
     }
@@ -39,7 +42,7 @@ export default function SignupPage() {
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, linkAccount: isLinkMode }),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -47,6 +50,11 @@ export default function SignupPage() {
         setLoading(false);
         return;
       }
+      if (isLinkMode) {
+        window.location.href = '/account?linked=1';
+        return;
+      }
+
       window.location.href = data.onboardingComplete ? '/dashboard' : '/onboarding';
     } catch {
       setError('Something went wrong. Please try again.');
@@ -59,10 +67,14 @@ export default function SignupPage() {
     setLoading(true);
     const supabase = getSupabaseClient();
     const siteUrl = window.location.origin;
+    const callbackUrl = new URL(`${siteUrl}/auth/callback`);
+    if (isLinkMode) {
+      callbackUrl.searchParams.set('link', '1');
+    }
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${siteUrl}/auth/callback`,
+        redirectTo: callbackUrl.toString(),
       },
     });
 
@@ -95,10 +107,12 @@ export default function SignupPage() {
 
       <div className="mx-auto max-w-md px-4 py-16">
         <div className="rounded-[32px] border border-ink/10 bg-white px-8 py-10 shadow-[0_8px_32px_rgba(19,24,22,0.07)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-accent">Free to start</p>
-          <h1 className="mt-3 text-3xl font-semibold text-ink">Create your account</h1>
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-accent">{isLinkMode ? 'Connect Login' : 'Free to start'}</p>
+          <h1 className="mt-3 text-3xl font-semibold text-ink">{isLinkMode ? 'Create a linked email login' : 'Create your account'}</h1>
           <p className="mt-2 text-sm text-ink/55">
-            Already have an account? <a href="/login" className="font-semibold text-accent hover:underline">Log in</a>
+            {isLinkMode
+              ? 'Use this if you first joined with Strava and now want an email/password login attached to the same account.'
+              : <>Already have an account? <a href="/login" className="font-semibold text-accent hover:underline">Log in</a></>}
           </p>
 
           <div className="mt-6 rounded-[14px] border border-accent/20 bg-accent/8 px-4 py-3">

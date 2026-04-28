@@ -1,4 +1,5 @@
-export const favoriteInterventionStorageKey = 'ultraos-favorite-intervention-types';
+export const favoriteInterventionStorageKey = 'threshold-favorite-intervention-types';
+export const legacyFavoriteInterventionStorageKey = 'ultraos-favorite-intervention-types';
 
 export const defaultFavoriteInterventions = [
   'Sauna - Recovery',

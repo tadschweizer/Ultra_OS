@@ -1,14 +1,25 @@
-import { getTierFromPriceId } from '../../../lib/billingPlans';
+import { getPlanIdFromPriceId, getTierFromPriceId } from '../../../lib/billingPlans';
 import { getStripeClient } from '../../../lib/stripeServer';
 import { getSupabaseAdminClient } from '../../../lib/authServer';
-
-export const runtime = 'edge';
+import { syncCoachProfileFromSubscription } from '../../../lib/coachBilling';
 
 export const config = {
   api: {
     bodyParser: false,
   },
 };
+
+function isPaidAthleteSubscription(subscription) {
+  if (!subscription) {
+    return false;
+  }
+
+  if (subscription.cancel_at_period_end) {
+    return true;
+  }
+
+  return ['active', 'trialing', 'past_due'].includes(subscription.status);
+}
 
 async function readRawBody(req) {
   const chunks = [];
@@ -18,22 +29,21 @@ async function readRawBody(req) {
   return Buffer.concat(chunks);
 }
 
-async function upsertSubscriptionFromObject(subscription, fallbackAthleteId = null) {
+async function upsertAthleteSubscriptionFromObject(subscription, fallbackAthleteId = null) {
   const admin = getSupabaseAdminClient();
-  const athleteId = subscription.metadata?.athlete_id || fallbackAthleteId;
-  if (!athleteId) return;
+  const athleteId = subscription?.metadata?.athlete_id || fallbackAthleteId;
+  if (!athleteId) return null;
 
-  const primaryItem = subscription.items?.data?.[0];
+  const primaryItem = subscription?.items?.data?.[0];
   const priceId = primaryItem?.price?.id || null;
-  const subscriptionTier = subscription.metadata?.subscription_tier || getTierFromPriceId(priceId);
+  const athleteTier = subscription?.metadata?.subscription_tier || getTierFromPriceId(priceId);
+  const paid = isPaidAthleteSubscription(subscription);
 
-  await admin
+  const { data, error } = await admin
     .from('athletes')
     .update({
-      subscription_tier: subscription.status === 'active' || subscription.status === 'trialing'
-        ? subscriptionTier
-        : 'free',
-      subscription_activated_at: subscription.status === 'active' || subscription.status === 'trialing'
+      subscription_tier: paid ? athleteTier : 'free',
+      subscription_activated_at: paid
         ? new Date(subscription.created * 1000).toISOString()
         : null,
       stripe_customer_id: subscription.customer || null,
@@ -41,7 +51,32 @@ async function upsertSubscriptionFromObject(subscription, fallbackAthleteId = nu
       stripe_price_id: priceId,
       stripe_subscription_status: subscription.status || null,
     })
-    .eq('id', athleteId);
+    .eq('id', athleteId)
+    .select('id, subscription_tier, stripe_customer_id, stripe_subscription_id, stripe_price_id, stripe_subscription_status')
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data || null;
+}
+
+async function syncCoachIfNeeded(subscription, customerId, eventType = null) {
+  const primaryItem = subscription?.items?.data?.[0];
+  const priceId = primaryItem?.price?.id || null;
+  const billingPlanId = subscription?.metadata?.billing_plan || getPlanIdFromPriceId(priceId);
+
+  if (!billingPlanId?.startsWith('coach_')) {
+    return null;
+  }
+
+  return syncCoachProfileFromSubscription({
+    athleteId: subscription?.metadata?.athlete_id || null,
+    customerId,
+    subscription,
+    eventType,
+  });
 }
 
 async function syncCheckoutSessionSubscription(session) {
@@ -55,7 +90,29 @@ async function syncCheckoutSessionSubscription(session) {
     expand: ['items.data.price'],
   });
 
-  await upsertSubscriptionFromObject(subscription, athleteId);
+  await upsertAthleteSubscriptionFromObject(subscription, athleteId);
+  await syncCoachIfNeeded(subscription, typeof session.customer === 'string' ? session.customer : session.customer?.id || null);
+}
+
+async function handleInvoicePaymentFailed(invoice) {
+  if (!invoice?.subscription) {
+    return;
+  }
+
+  const stripe = getStripeClient();
+  const subscriptionId = typeof invoice.subscription === 'string'
+    ? invoice.subscription
+    : invoice.subscription.id;
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+    expand: ['items.data.price'],
+  });
+
+  await upsertAthleteSubscriptionFromObject(subscription);
+  await syncCoachIfNeeded(
+    subscription,
+    typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id || null,
+    'payment_failed'
+  );
 }
 
 export default async function handler(req, res) {
@@ -89,9 +146,27 @@ export default async function handler(req, res) {
         break;
       }
       case 'customer.subscription.created':
-      case 'customer.subscription.updated':
+      case 'customer.subscription.updated': {
+        const subscription = event.data.object;
+        await upsertAthleteSubscriptionFromObject(subscription);
+        await syncCoachIfNeeded(
+          subscription,
+          typeof subscription.customer === 'string' ? subscription.customer : subscription.customer?.id || null
+        );
+        break;
+      }
       case 'customer.subscription.deleted': {
-        await upsertSubscriptionFromObject(event.data.object);
+        const subscription = event.data.object;
+        await upsertAthleteSubscriptionFromObject(subscription);
+        await syncCoachIfNeeded(
+          subscription,
+          typeof subscription.customer === 'string' ? subscription.customer : subscription.customer?.id || null,
+          'deleted'
+        );
+        break;
+      }
+      case 'invoice.payment_failed': {
+        await handleInvoicePaymentFailed(event.data.object);
         break;
       }
       default:

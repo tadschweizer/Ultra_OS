@@ -1,6 +1,11 @@
-import { findOrCreateAthleteForAuthUser, getSupabaseAdminClient, setAthleteCookie } from '../../../lib/authServer';
+import {
+  findOrCreateAthleteForAuthUser,
+  getAthleteIdFromRequest,
+  getSupabaseAdminClient,
+  setAthleteCookie,
+  syncAdminAccessCookie,
+} from '../../../lib/authServer';
 
-export const runtime = 'edge';
 
 async function sendWelcomeEmail({ athleteId, name, email }) {
   try {
@@ -20,7 +25,7 @@ export default async function handler(req, res) {
     return;
   }
 
-  const { email, password, name } = req.body || {};
+  const { email, password, name, linkAccount = false } = req.body || {};
   if (!email || !password) {
     res.status(400).json({ error: 'Email and password are required.' });
     return;
@@ -54,9 +59,11 @@ export default async function handler(req, res) {
       supabaseUserId: authData.user.id,
       email,
       name: name?.trim() || null,
+      existingAthleteId: linkAccount ? getAthleteIdFromRequest(req) : null,
     });
 
     setAthleteCookie(res, athlete.id);
+    syncAdminAccessCookie(res, athlete);
 
     if (isNewAthlete) {
       sendWelcomeEmail({ athleteId: athlete.id, name: athlete.name, email: athlete.email });

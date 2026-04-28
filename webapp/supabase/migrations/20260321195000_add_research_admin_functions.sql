@@ -8,7 +8,6 @@ as $$
   from public.research_library_entries
   order by publication_date desc nulls last, inserted_at desc;
 $$;
-
 create or replace function public.admin_upsert_research_library_entry(
   p_id uuid,
   p_pubmed_id text,
@@ -99,7 +98,6 @@ begin
   return saved_entry;
 end;
 $$;
-
 create or replace function public.admin_delete_research_library_entry(p_id uuid)
 returns boolean
 language plpgsql
@@ -111,7 +109,6 @@ begin
   return true;
 end;
 $$;
-
 grant execute on function public.admin_list_research_library_entries() to anon, authenticated;
 grant execute on function public.admin_upsert_research_library_entry(uuid, text, text, text, text, integer, date, text, text[], text, text, text, integer, integer, integer, boolean) to anon, authenticated;
 grant execute on function public.admin_delete_research_library_entry(uuid) to anon, authenticated;

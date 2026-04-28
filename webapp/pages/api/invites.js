@@ -1,8 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
-import cookie from 'cookie';
 import crypto from 'crypto';
+import { getAthleteIdFromRequest, requireAdminRequest } from '../../lib/authServer';
 
-export const runtime = 'edge';
 
 /**
  * /api/invites
@@ -20,30 +19,13 @@ function getAdminClient() {
   return createClient(url, serviceKey);
 }
 
-async function getAthleteId(req) {
-  const cookies = cookie.parse(req.headers.cookie || '');
-  return cookies.athlete_id || null;
-}
-
-async function isAdmin(athleteId) {
-  if (!athleteId) return false;
-  const supabase = getAdminClient();
-  const { data } = await supabase
-    .from('athletes')
-    .select('is_admin')
-    .eq('id', athleteId)
-    .single();
-  return Boolean(data?.is_admin);
-}
-
 export default async function handler(req, res) {
-  const athleteId = await getAthleteId(req);
+  const athleteId = getAthleteIdFromRequest(req);
 
   // ── GET: list invites ─────────────────────────────────────────
   if (req.method === 'GET') {
-    if (!(await isAdmin(athleteId))) {
-      return res.status(403).json({ error: 'Admin only' });
-    }
+    const adminContext = await requireAdminRequest(req, res);
+    if (!adminContext) return;
     const supabase = getAdminClient();
     const { data, error } = await supabase
       .from('invites')
@@ -56,9 +38,8 @@ export default async function handler(req, res) {
 
   // ── POST: create invite ───────────────────────────────────────
   if (req.method === 'POST') {
-    if (!(await isAdmin(athleteId))) {
-      return res.status(403).json({ error: 'Admin only' });
-    }
+    const adminContext = await requireAdminRequest(req, res);
+    if (!adminContext) return;
     const { email = null, notes = null } = req.body || {};
     const token = crypto.randomBytes(24).toString('hex');
     const supabase = getAdminClient();

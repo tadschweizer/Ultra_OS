@@ -2,11 +2,11 @@ import { useRouter } from 'next/router';
 import DesktopSidebar from './DesktopSidebar';
 import MobileBottomNav from './MobileBottomNav';
 import RaceCountdownBanner from './RaceCountdownBanner';
-import { appShellExcludedRoutes } from '../lib/siteNavigation';
+import { shouldUseAppShell } from '../lib/siteNavigation';
 
 export default function AppShell({ children }) {
   const router = useRouter();
-  const useShell = !appShellExcludedRoutes.includes(router.pathname);
+  const useShell = shouldUseAppShell(router.pathname);
 
   if (!useShell) {
     return children;

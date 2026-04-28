@@ -1,8 +1,6 @@
-import { supabase } from '../../lib/supabaseClient';
+import { getAthleteIdFromRequest, getSupabaseAdminClient } from '../../lib/authServer';
 import { getActivityStreams, getDetailedActivity, refreshToken } from '../../lib/strava';
-import cookie from 'cookie';
 
-export const runtime = 'edge';
 
 function summarizeAltitude(streamData = []) {
   if (!Array.isArray(streamData) || streamData.length === 0) {
@@ -27,13 +25,14 @@ function summarizeAltitude(streamData = []) {
   };
 }
 
-async function getAuthenticatedAthlete(cookies) {
-  const athleteId = cookies.athlete_id;
+async function getAuthenticatedAthlete(req) {
+  const athleteId = getAthleteIdFromRequest(req);
   if (!athleteId) {
     return { error: { status: 401, message: 'Not authenticated' } };
   }
 
-  const { data: athlete, error } = await supabase
+  const admin = getSupabaseAdminClient();
+  const { data: athlete, error } = await admin
     .from('athletes')
     .select('*')
     .eq('id', athleteId)
@@ -59,7 +58,7 @@ async function getAuthenticatedAthlete(cookies) {
     refresh_token = refreshed.refresh_token;
     token_expires_at = new Date(refreshed.expires_at * 1000).toISOString();
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await admin
       .from('athletes')
       .update({ access_token, refresh_token, token_expires_at })
       .eq('id', athlete.id);
@@ -73,8 +72,7 @@ async function getAuthenticatedAthlete(cookies) {
 }
 
 export default async function handler(req, res) {
-  const cookies = cookie.parse(req.headers.cookie || '');
-  const { error, accessToken } = await getAuthenticatedAthlete(cookies);
+  const { error, accessToken } = await getAuthenticatedAthlete(req);
 
   if (error) {
     res.status(error.status).json({ error: error.message });

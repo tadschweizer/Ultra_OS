@@ -1,17 +1,16 @@
-import { createClient } from '@supabase/supabase-js';
-import { exchangeToken } from '../../../lib/strava';
-import { supabase } from '../../../lib/supabaseClient';
+import { exchangeToken, getStravaRedirectUri } from '../../../lib/strava';
 import cookie from 'cookie';
+import { syncAthleteStravaActivities } from '../../../lib/stravaSync';
 import { normalizeSubscriptionTier } from '../../../lib/subscriptionTiers';
+import {
+  clearAdminAccessCookie,
+  getAthleteIdFromRequest,
+  getSupabaseAdminClient,
+  setAdminAccessCookie,
+  setSignedAthleteSessionCookie,
+} from '../../../lib/authServer';
+import { upsertProviderConnection } from '../../../lib/providerEvents';
 
-export const runtime = 'edge';
-
-function getAdminClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !serviceKey) return null;
-  return createClient(url, serviceKey);
-}
 
 /**
  * Handle the Strava OAuth callback.
@@ -23,6 +22,7 @@ function getAdminClient() {
 export default async function handler(req, res) {
   const { code } = req.query;
   const cookies = cookie.parse(req.headers.cookie || '');
+  const isLinkMode = cookies.pending_account_link === '1';
   if (!code) {
     res.status(400).send('Missing authorisation code');
     return;
@@ -30,7 +30,7 @@ export default async function handler(req, res) {
   try {
     const clientId = process.env.STRAVA_CLIENT_ID;
     const clientSecret = process.env.STRAVA_CLIENT_SECRET;
-    const redirectUri = process.env.STRAVA_REDIRECT_URI;
+    const redirectUri = getStravaRedirectUri(req);
     if (!clientId || !clientSecret || !redirectUri) {
       throw new Error(
         'Missing Strava environment variables: STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET, and STRAVA_REDIRECT_URI are required.'
@@ -39,29 +39,34 @@ export default async function handler(req, res) {
     const tokenData = await exchangeToken(code, clientId, clientSecret, redirectUri);
     const { access_token, refresh_token, expires_at, athlete } = tokenData;
     const athleteName = [athlete.firstname, athlete.lastname].filter(Boolean).join(' ').trim();
-    const existingAthleteId = cookies.athlete_id;
+    const existingAthleteId = isLinkMode ? getAthleteIdFromRequest(req) : null;
+    const adminClient = getSupabaseAdminClient();
+    const grantedScopes = String(tokenData.scope || '')
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+    const athletePayload = {
+      strava_id: athlete.id.toString(),
+      access_token,
+      refresh_token,
+      token_expires_at: new Date(expires_at * 1000).toISOString(),
+      email: athlete.email || null,
+    };
     let savedAthlete;
 
     if (existingAthleteId) {
-      const adminClient = getAdminClient();
-      const client = adminClient || supabase;
-      const { data: linkedAthlete, error: linkError } = await client
-        .from('athletes')
-        .update({
-          strava_id: athlete.id.toString(),
-          access_token,
-          refresh_token,
-          token_expires_at: new Date(expires_at * 1000).toISOString(),
-          email: athlete.email || null,
-        })
-        .eq('id', existingAthleteId)
-        .select('id, onboarding_complete, name, subscription_tier')
-        .single();
+        const { data: linkedAthlete, error: linkError } = await adminClient
+          .from('athletes')
+          .update({
+            ...athletePayload,
+          })
+          .eq('id', existingAthleteId)
+          .select('id, onboarding_complete, name, subscription_tier, is_admin')
+          .single();
       if (linkError) throw linkError;
       savedAthlete = linkedAthlete;
     } else {
-      const adminClient = getAdminClient();
-      if (adminClient && athlete.email) {
+      if (athlete.email) {
         const { data: matchedAthlete } = await adminClient
           .from('athletes')
           .select('id, subscription_tier')
@@ -72,15 +77,11 @@ export default async function handler(req, res) {
           const { data: linkedAthlete, error: linkError } = await adminClient
             .from('athletes')
             .update({
-              strava_id: athlete.id.toString(),
-              access_token,
-              refresh_token,
-              token_expires_at: new Date(expires_at * 1000).toISOString(),
-              email: athlete.email || null,
+              ...athletePayload,
               subscription_tier: normalizeSubscriptionTier(matchedAthlete.subscription_tier),
             })
             .eq('id', matchedAthlete.id)
-            .select('id, onboarding_complete, name, subscription_tier')
+            .select('id, onboarding_complete, name, subscription_tier, is_admin')
             .single();
           if (linkError) throw linkError;
           savedAthlete = linkedAthlete;
@@ -88,21 +89,17 @@ export default async function handler(req, res) {
       }
 
       if (!savedAthlete) {
-        const { data: upsertedAthlete, error: athleteError } = await supabase
+        const { data: upsertedAthlete, error: athleteError } = await adminClient
           .from('athletes')
           .upsert(
             {
               name: athleteName || null,
-              email: athlete.email || null,
-              strava_id: athlete.id.toString(),
-              access_token,
-              refresh_token,
-              token_expires_at: new Date(expires_at * 1000).toISOString(),
+              ...athletePayload,
               subscription_tier: 'free',
             },
             { onConflict: 'strava_id' }
           )
-          .select('id, onboarding_complete, name, subscription_tier')
+          .select('id, onboarding_complete, name, subscription_tier, is_admin')
           .single();
         if (athleteError) throw athleteError;
         savedAthlete = upsertedAthlete;
@@ -110,18 +107,37 @@ export default async function handler(req, res) {
     }
 
     const athleteId = savedAthlete.id;
+    await upsertProviderConnection(adminClient, {
+      athleteId,
+      provider: 'strava',
+      providerAthleteId: athlete.id,
+      accessToken: access_token,
+      refreshToken: refresh_token,
+      tokenExpiresAt: new Date(expires_at * 1000).toISOString(),
+      scopes: grantedScopes,
+      metadata: {
+        athlete_name: athleteName || null,
+      },
+    });
+
+    try {
+      await syncAthleteStravaActivities({
+        admin: adminClient,
+        athleteId,
+        force: true,
+      });
+    } catch (syncError) {
+      console.warn('[strava/callback] initial activity sync failed:', syncError.message || syncError);
+    }
 
     // If there's a pending invite token cookie, mark it used now
     const inviteToken = cookies.pending_invite_token;
     if (inviteToken) {
-      const adminClient = getAdminClient();
-      if (adminClient) {
-        await adminClient
-          .from('invites')
-          .update({ used_at: new Date().toISOString(), used_by: athleteId })
-          .eq('token', inviteToken)
-          .is('used_at', null);
-      }
+      await adminClient
+        .from('invites')
+        .update({ used_at: new Date().toISOString(), used_by: athleteId })
+        .eq('token', inviteToken)
+        .is('used_at', null);
     }
 
     const cookieOptions = { secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/' };
@@ -133,6 +149,11 @@ export default async function handler(req, res) {
         httpOnly: false,
         maxAge: 60 * 60 * 24 * 30, // 30 days
       }),
+      cookie.serialize('pending_account_link', '', {
+        ...cookieOptions,
+        httpOnly: true,
+        maxAge: 0,
+      }),
       cookie.serialize('pending_invite_token', '', {
         ...cookieOptions,
         httpOnly: true,
@@ -140,6 +161,12 @@ export default async function handler(req, res) {
       }),
     ];
     res.setHeader('Set-Cookie', setCookies);
+    setSignedAthleteSessionCookie(res, athleteId);
+    if (savedAthlete.is_admin) {
+      setAdminAccessCookie(res, athleteId);
+    } else {
+      clearAdminAccessCookie(res);
+    }
 
     const destination = savedAthlete.onboarding_complete
       ? '/dashboard'

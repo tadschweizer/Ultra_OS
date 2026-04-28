@@ -1,7 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
-import cookie from 'cookie';
+import { requireAdminRequest } from '../../../lib/authServer';
 
-export const runtime = 'edge';
 
 /**
  * GET /api/admin/athletes
@@ -19,26 +18,16 @@ function getAdminClient() {
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
-  const cookies = cookie.parse(req.headers.cookie || '');
-  const athleteId = cookies.athlete_id;
-  if (!athleteId) return res.status(401).json({ error: 'Not authenticated' });
+  const adminContext = await requireAdminRequest(req, res);
+  if (!adminContext) return;
 
   const supabase = getAdminClient();
-
-  // Check admin
-  const { data: me } = await supabase
-    .from('athletes')
-    .select('is_admin')
-    .eq('id', athleteId)
-    .single();
-
-  if (!me?.is_admin) return res.status(403).json({ error: 'Admin only' });
 
   // Fetch all athletes
   const { data: athletes, error } = await supabase
     .from('athletes')
-    .select('id, name, email, strava_id, created_at, is_admin, onboarding_complete')
-    .order('created_at', { ascending: false });
+    .select('id, name, email, strava_id, created_at, is_admin, onboarding_complete, subscription_tier, stripe_subscription_status, strava_last_sync, strava_sync_status')
+    .order('id', { ascending: false });
 
   if (error) return res.status(500).json({ error: error.message });
 
@@ -47,15 +36,15 @@ export default async function handler(req, res) {
     athletes.map(async (a) => {
       const { count, data: latest } = await supabase
         .from('interventions')
-        .select('logged_at', { count: 'exact' })
+        .select('inserted_at', { count: 'exact' })
         .eq('athlete_id', a.id)
-        .order('logged_at', { ascending: false })
+        .order('inserted_at', { ascending: false })
         .limit(1);
 
       return {
         ...a,
         intervention_count: count || 0,
-        last_intervention_at: latest?.[0]?.logged_at || null,
+        last_intervention_at: latest?.[0]?.inserted_at || null,
       };
     })
   );

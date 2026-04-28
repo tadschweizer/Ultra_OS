@@ -5,6 +5,5 @@ create table if not exists public.athlete_supplements (
   dose text,
   inserted_at timestamptz default now()
 );
-
 alter table public.athlete_supplements disable row level security;
 grant select, insert, update, delete on table public.athlete_supplements to anon, authenticated;

@@ -1,4 +1,4 @@
-export const sidebarSections = [
+export const baseSidebarSections = [
   {
     title: 'Training',
     items: [
@@ -14,7 +14,8 @@ export const sidebarSections = [
     title: 'Platform',
     items: [
       { href: '/connections', label: 'Connections' },
-      { href: '/coaches', label: 'Coaches' },
+      { href: '/messages', label: 'Messages' },
+      { href: '/coach-command-center', label: 'Coach Command Center' },
       { href: '/content', label: 'Research' },
     ],
   },
@@ -23,6 +24,7 @@ export const sidebarSections = [
     items: [
       { href: '/guide', label: 'Guide' },
       { href: '/pricing', label: 'Pricing' },
+      { href: '/support', label: 'Support' },
     ],
   },
   {
@@ -35,12 +37,44 @@ export const sidebarSections = [
   },
 ];
 
+export const coachSidebarSection = {
+  title: 'Coaching',
+  items: [
+    { href: '/coach/dashboard', label: 'Dashboard' },
+    { href: '/coach/athletes', label: 'Athletes' },
+    { href: '/coach/cohort', label: 'Cohort' },
+    { href: '/coach/groups', label: 'Groups' },
+    { href: '/coach/protocols', label: 'Protocols' },
+    { href: '/coach/templates', label: 'Templates' },
+    { href: '/coach/settings', label: 'Settings' },
+  ],
+};
+
+export function buildSidebarSections({ hasCoachProfile = false } = {}) {
+  return hasCoachProfile
+    ? [coachSidebarSection, ...baseSidebarSections]
+    : baseSidebarSections;
+}
+
+export const sidebarSections = baseSidebarSections;
+
 export const appMenuLinks = [
-  ...sidebarSections.flatMap((section) => section.items),
+  ...baseSidebarSections.flatMap((section) => section.items),
   { href: '/', label: 'Landing Page' },
 ];
 
-export const appShellExcludedRoutes = ['/', '/content/admin', '/onboarding'];
+export const publicRoutes = [
+  '/',
+  '/guide',
+  '/pricing',
+  '/support',
+  '/content',
+  '/login',
+  '/signup',
+  '/join',
+  '/invite',
+  '/auth/callback',
+];
 
 export const protectedRoutes = [
   '/dashboard',
@@ -51,14 +85,45 @@ export const protectedRoutes = [
   '/insights',
   '/explorer',
   '/connections',
-  '/coaches',
+  '/messages',
+  '/coach-command-center',
   '/settings',
   '/account',
   '/notifications',
+  '/coach/dashboard',
+  '/coach/athletes',
+  '/coach/athletes/[athleteId]',
+  '/coach/athletes/[athleteId]/race-readiness',
+  '/coach/cohort',
+  '/coach/groups',
+  '/coach/protocols',
+  '/coach/templates',
+  '/coach/settings',
 ];
+
+export const appShellRoutes = [
+  ...protectedRoutes,
+  '/admin',
+  '/content/admin',
+];
+
+export function isProtectedRoutePath(pathname = '') {
+  return protectedRoutes.includes(pathname) || pathname.startsWith('/interventions/');
+}
+
+export function shouldUseAppShell(pathname = '') {
+  return appShellRoutes.includes(pathname) || pathname.startsWith('/interventions/');
+}
+
+export function isPublicRoutePath(pathname = '') {
+  return publicRoutes.includes(pathname) || pathname.startsWith('/invite/');
+}
 
 export function getSidebarActiveHref(pathname = '') {
   if (pathname.startsWith('/interventions/')) return '/history';
+  if (pathname.startsWith('/coach/athletes/')) return '/coach/athletes';
+  if (pathname.startsWith('/coach/groups')) return '/coach/groups';
+  if (pathname.startsWith('/coach/cohort')) return '/coach/cohort';
   if (pathname.startsWith('/content/admin')) return '';
   return pathname;
 }

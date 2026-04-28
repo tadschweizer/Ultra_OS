@@ -1,23 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
-import cookie from 'cookie';
+import { requireAdminRequest } from '../../../lib/authServer';
 
-export const runtime = 'edge';
 
 function getAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) throw new Error('Missing Supabase admin credentials.');
   return createClient(url, key, { auth: { persistSession: false } });
-}
-
-function requireAthlete(req, res) {
-  const cookies = cookie.parse(req.headers.cookie || '');
-  const athleteId = cookies.athlete_id;
-  if (!athleteId) {
-    res.status(401).json({ error: 'Not authenticated' });
-    return null;
-  }
-  return athleteId;
 }
 
 function normalizeTags(value) {
@@ -53,8 +42,8 @@ function normalizePayload(body = {}) {
 }
 
 export default async function handler(req, res) {
-  const athleteId = requireAthlete(req, res);
-  if (!athleteId) return;
+  const adminContext = await requireAdminRequest(req, res);
+  if (!adminContext) return;
 
   let supabase;
   try {

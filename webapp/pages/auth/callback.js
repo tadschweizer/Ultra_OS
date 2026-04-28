@@ -8,19 +8,61 @@ function getSupabaseClient() {
   );
 }
 
+function getHashParams() {
+  const hash = window.location.hash.startsWith('#')
+    ? window.location.hash.slice(1)
+    : window.location.hash;
+  return new URLSearchParams(hash);
+}
+
 export default function AuthCallbackPage() {
   const [status, setStatus] = useState('Processing your sign-in...');
 
   useEffect(() => {
     async function handleCallback() {
+      const params = new URLSearchParams(window.location.search);
+      const isLinkMode = params.get('link') === '1';
+      const nextUrl = params.get('next') || '';
       const supabase = getSupabaseClient();
-      const { data: sessionData, error: sessionError } = await supabase.auth.exchangeCodeForSession(window.location.href);
+      const hashParams = getHashParams();
+      let sessionData = null;
+      let sessionError = null;
+
+      const oauthErrorDescription =
+        params.get('error_description') ||
+        params.get('error') ||
+        hashParams.get('error_description') ||
+        hashParams.get('error');
+
+      if (oauthErrorDescription) {
+        sessionError = new Error(oauthErrorDescription);
+      }
+
+      if (!sessionError && params.get('code')) {
+        const exchangeResult = await supabase.auth.exchangeCodeForSession(params.get('code'));
+        sessionData = exchangeResult.data;
+        sessionError = exchangeResult.error;
+      } else if (!sessionError && hashParams.get('access_token') && hashParams.get('refresh_token')) {
+        const setSessionResult = await supabase.auth.setSession({
+          access_token: hashParams.get('access_token'),
+          refresh_token: hashParams.get('refresh_token'),
+        });
+        sessionData = setSessionResult.data;
+        sessionError = setSessionResult.error;
+      } else {
+        sessionError = new Error('No auth code or tokens were returned by Supabase.');
+      }
 
       if (sessionError || !sessionData?.session) {
         console.error('[auth/callback] exchange failed:', sessionError);
         setStatus('Sign-in failed. Redirecting...');
+        const loginUrl = new URL('/login', window.location.origin);
+        loginUrl.searchParams.set('error', 'oauth_failed');
+        if (sessionError?.message) {
+          loginUrl.searchParams.set('reason', sessionError.message.slice(0, 300));
+        }
         setTimeout(() => {
-          window.location.href = '/login?error=oauth_failed';
+          window.location.href = `${loginUrl.pathname}${loginUrl.search}`;
         }, 1500);
         return;
       }
@@ -28,21 +70,36 @@ export default function AuthCallbackPage() {
       const response = await fetch('/api/auth/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accessToken: sessionData.session.access_token }),
+        body: JSON.stringify({ accessToken: sessionData.session.access_token, linkAccount: isLinkMode }),
       });
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
         console.error('[auth/callback] sync failed:', data);
         setStatus('Sign-in failed. Redirecting...');
+        const loginUrl = new URL('/login', window.location.origin);
+        loginUrl.searchParams.set('error', 'session_sync');
+        if (data?.error) {
+          loginUrl.searchParams.set('reason', String(data.error).slice(0, 300));
+        }
         setTimeout(() => {
-          window.location.href = '/login?error=session_sync';
+          window.location.href = `${loginUrl.pathname}${loginUrl.search}`;
         }, 1500);
         return;
       }
 
       const data = await response.json();
       setStatus('Signed in. Redirecting...');
+      if (isLinkMode) {
+        window.location.href = '/account?linked=1';
+        return;
+      }
+
+      if (nextUrl && data.onboardingComplete) {
+        window.location.href = nextUrl;
+        return;
+      }
+
       window.location.href = data.onboardingComplete ? '/dashboard' : '/onboarding';
     }
 

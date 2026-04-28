@@ -1,5 +1,18 @@
 import axios from 'axios';
 
+export function getStravaRedirectUri(req) {
+  const forwardedProto = req.headers['x-forwarded-proto'];
+  const forwardedHost = req.headers['x-forwarded-host'];
+  const host = forwardedHost || req.headers.host;
+
+  if (host) {
+    const protocol = forwardedProto || (host.includes('localhost') ? 'http' : 'https');
+    return `${protocol}://${host}/api/strava/callback`;
+  }
+
+  return process.env.STRAVA_REDIRECT_URI || null;
+}
+
 /**
  * Exchange an authorisation code for Strava tokens.
  *

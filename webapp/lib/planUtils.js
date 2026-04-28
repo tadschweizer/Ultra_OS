@@ -10,7 +10,7 @@ export const planOptions = [
   { id: 'free', label: 'Free', price: '$0' },
   { id: 'research', label: 'Research Feed', price: '$7/mo' },
   { id: 'individual', label: 'Individual', price: '$29/mo' },
-  { id: 'coach', label: 'Coach', price: '$69/mo' },
+  { id: 'coach', label: 'Coach', price: '$59.99/mo' },
 ];
 
 export function getPlanLabel(planId) {

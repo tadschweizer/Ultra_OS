@@ -1,11 +1,10 @@
-import { getAthleteByCookie, getSupabaseAdminClient, setAthleteCookie } from '../../../lib/authServer';
-import { getTierFromPriceId } from '../../../lib/billingPlans';
+import { getAthleteByCookie, getSupabaseAdminClient, setAthleteCookie, syncAdminAccessCookie } from '../../../lib/authServer';
+import { getTierFromSubscription, getTierRank } from '../../../lib/billingPlans';
+import { syncCoachProfileFromSubscription } from '../../../lib/coachBilling';
 import { getStripeClient } from '../../../lib/stripeServer';
-import { supabase } from '../../../lib/supabaseClient';
 import cookie from 'cookie';
 import crypto from 'crypto';
 
-export const runtime = 'edge';
 
 function isActiveSubscriptionStatus(status) {
   return status === 'active' || status === 'trialing' || status === 'past_due';
@@ -15,7 +14,7 @@ async function writeSubscriptionToAthlete({ athleteId, customerId, subscription 
   const admin = getSupabaseAdminClient();
   const primaryItem = subscription?.items?.data?.[0];
   const priceId = primaryItem?.price?.id || null;
-  const tier = getTierFromPriceId(priceId);
+  const tier = getTierFromSubscription(subscription);
   const isPaid = isActiveSubscriptionStatus(subscription?.status);
 
   const updates = {
@@ -68,12 +67,20 @@ async function findLatestRelevantSubscription(stripe, customerId) {
   const subscriptions = await stripe.subscriptions.list({
     customer: customerId,
     status: 'all',
-    limit: 10,
+    limit: 20,
   });
 
-  return subscriptions.data.find((subscription) => isActiveSubscriptionStatus(subscription.status))
-    || subscriptions.data[0]
-    || null;
+  const activeSubscriptions = subscriptions.data.filter((subscription) => isActiveSubscriptionStatus(subscription.status));
+
+  if (activeSubscriptions.length) {
+    return [...activeSubscriptions].sort((left, right) => {
+      const tierDelta = getTierRank(getTierFromSubscription(right)) - getTierRank(getTierFromSubscription(left));
+      if (tierDelta !== 0) return tierDelta;
+      return (right.created || 0) - (left.created || 0);
+    })[0];
+  }
+
+  return subscriptions.data[0] || null;
 }
 
 function clearPendingCheckoutCookie(res) {
@@ -148,7 +155,7 @@ export default async function handler(req, res) {
   try {
     const cookies = cookie.parse(req.headers.cookie || '');
     const recoveryState = verifyPendingBillingState(cookies.pending_billing_state);
-    const athlete = await getAthleteByCookie(req, supabase);
+    const athlete = await getAthleteByCookie(req, getSupabaseAdminClient());
     const athleteId = athlete?.id || recoveryState?.athleteId || null;
     if (!athleteId) {
       res.status(401).json({ error: 'Not authenticated.' });
@@ -213,13 +220,20 @@ export default async function handler(req, res) {
       customerId,
       subscription,
     });
+    const coachProfile = await syncCoachProfileFromSubscription({
+      athleteId,
+      customerId,
+      subscription,
+    });
 
     setAthleteCookie(res, athleteId);
+    syncAdminAccessCookie(res, athlete);
     clearPendingCheckoutCookie(res);
 
     res.status(200).json({
       synced: true,
       athlete: updatedAthlete,
+      coachProfile,
     });
   } catch (error) {
     console.error('[billing/sync] failed:', error);
