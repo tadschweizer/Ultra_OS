@@ -150,6 +150,7 @@ export default function LogIntervention() {
   const [savingRace, setSavingRace] = useState(false);
   const [favoriteTypes, setFavoriteTypes] = useState(defaultFavoriteInterventions);
   const [quickLog, setQuickLog] = useState(false);
+  const [logMode, setLogMode] = useState('intervention');
   const [activitySearch, setActivitySearch] = useState('');
   const [stravaConnected, setStravaConnected] = useState(true);
   const router = useRouter();
@@ -503,11 +504,21 @@ export default function LogIntervention() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     setMessage('');
-    const latestType = form.intervention_type;
+    const payload = logMode === 'lightweight'
+      ? {
+          ...form,
+          intervention_type: 'Workout Check-in',
+          protocol_payload: {
+            session_load: Number(form.protocol_payload?.session_load || 0),
+            session_type: form.protocol_payload?.session_type || '',
+          },
+        }
+      : form;
+    const latestType = payload.intervention_type;
     const res = await fetch('/api/log-intervention', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
+      body: JSON.stringify(payload),
     });
 
     if (res.ok) {
@@ -576,6 +587,10 @@ export default function LogIntervention() {
             ) : null}
 
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-ink/10 bg-paper px-4 py-4">
+              <div className="flex items-center gap-2 rounded-full border border-ink/10 bg-white p-1">
+                <button type="button" onClick={() => setLogMode('intervention')} className={`rounded-full px-3 py-1.5 text-xs font-semibold ${logMode === 'intervention' ? 'bg-ink text-paper' : 'text-ink/70'}`}>Intervention</button>
+                <button type="button" onClick={() => setLogMode('lightweight')} className={`rounded-full px-3 py-1.5 text-xs font-semibold ${logMode === 'lightweight' ? 'bg-ink text-paper' : 'text-ink/70'}`}>Lightweight session</button>
+              </div>
               <div>
                 <p className="text-sm font-semibold text-ink">Quick Log</p>
                 <p className="mt-1 text-sm text-ink/65">Hide optional fields when you just need to save the essentials.</p>
@@ -593,6 +608,20 @@ export default function LogIntervention() {
             </div>
 
             <div id="type-selector-section" className="grid gap-5">
+              {logMode === 'lightweight' ? (
+                <div className="grid gap-4 rounded-[20px] border border-ink/10 bg-paper p-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-sm font-semibold text-ink">Session type</label>
+                    <input className={fieldClassName()} value={form.protocol_payload?.session_type || ''} onChange={(e) => handleProtocolFieldChange('session_type', e.target.value)} placeholder="Run / Bike / Strength" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-semibold text-ink">Session load</label>
+                    <input type="number" min="0" className={fieldClassName()} value={form.protocol_payload?.session_load || ''} onChange={(e) => handleProtocolFieldChange('session_load', e.target.value)} placeholder="e.g. 320" />
+                  </div>
+                </div>
+              ) : null}
+              {logMode !== 'lightweight' ? (
+                <>
               {/* When a type is selected, collapse the picker to a compact chip */}
               {form.intervention_type ? (
                 <div className="flex items-center justify-between rounded-[24px] border border-ink/10 bg-paper px-4 py-3">
@@ -663,6 +692,8 @@ export default function LogIntervention() {
                   </p>
                 ) : null}
               </div>
+              </>
+              ) : null}
 
               <div className="grid gap-5 md:grid-cols-2">
                 <div>

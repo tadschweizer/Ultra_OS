@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabaseClient';
 import {
   computePlannedSessions,
   countAssignmentCompletions,
+  evaluateProtocolRules,
   generateCoachCode,
 } from '../../lib/coachProtocols';
 
@@ -49,6 +50,14 @@ function normalizePayload(body = {}, coachId) {
     frequencyType: body.frequency_type,
     plannedSessions: body.planned_sessions,
   });
+  const rulesResult = evaluateProtocolRules({
+    interventionType: body.intervention_type,
+    frequencyType: body.frequency_type || 'weekly',
+    plannedSessions,
+    responseMetrics: body.response_metrics || {},
+    currentLoad: body.current_load || {},
+    coachOverrideReason: body.coach_override_reason || null,
+  });
 
   return {
     athlete_id: body.athlete_id,
@@ -57,11 +66,17 @@ function normalizePayload(body = {}, coachId) {
     intervention_type: body.intervention_type,
     start_date: body.start_date,
     target_completion_date: body.target_completion_date,
-    frequency_type: body.frequency_type || 'weekly',
-    frequency_details: body.frequency_details || {},
-    planned_sessions: plannedSessions,
+    frequency_type: rulesResult.recommendation.frequency_type || body.frequency_type || 'weekly',
+    frequency_details: {
+      ...(body.frequency_details || {}),
+      rules_engine: rulesResult,
+      why_this_next_step: rulesResult.recommendationText,
+      confidence: rulesResult.confidence,
+    },
+    planned_sessions: rulesResult.recommendation.planned_sessions ?? plannedSessions,
     note: body.note?.trim() || null,
     status: body.status || 'active',
+    coach_override_reason: rulesResult.override.reason,
     updated_at: new Date().toISOString(),
   };
 }
