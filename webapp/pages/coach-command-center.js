@@ -16,6 +16,9 @@ const NOTE_TYPES = [
   { value: 'flag', label: 'Flag' },
   { value: 'reminder', label: 'Reminder' },
   { value: 'race_debrief', label: 'Race Debrief' },
+  { value: 'daily', label: 'Daily' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'timeline', label: 'Timeline' },
 ];
 
 const TABS = [
@@ -54,6 +57,11 @@ function fmt(date) {
   return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+
+function extractTags(content) {
+  return Array.from(new Set((content.match(/#([a-zA-Z0-9_-]+)/g) || []).map((m) => m.slice(1).toLowerCase())));
+}
+
 function inviteUrl(token) {
   const base = typeof window !== 'undefined' ? window.location.origin : '';
   return `${base}/join?coach_invite=${token}`;
@@ -71,7 +79,7 @@ function SummaryCard({ label, value, accent }) {
 }
 
 function AthleteDrawer({ athlete, relationship, protocols, notes, onClose, onAddNote, onAddProtocol }) {
-  const [noteForm, setNoteForm] = useState({ content: '', note_type: 'observation' });
+  const [noteForm, setNoteForm] = useState({ content: '', note_type: 'observation', share_with_athlete: false });
   const [noteMsg, setNoteMsg] = useState('');
   const [protocolForm, setProtocolForm] = useState({
     protocol_name: '',
@@ -82,13 +90,16 @@ function AthleteDrawer({ athlete, relationship, protocols, notes, onClose, onAdd
     compliance_target: 80,
   });
   const [protocolMsg, setProtocolMsg] = useState('');
+  const [noteSearch, setNoteSearch] = useState('');
+  const [noteTag, setNoteTag] = useState('all');
+  const [noteDate, setNoteDate] = useState('');
 
   async function submitNote(e) {
     e.preventDefault();
     setNoteMsg('');
     if (!noteForm.content.trim()) return;
-    const ok = await onAddNote({ ...noteForm, athlete_id: relationship.athlete_id });
-    if (ok) { setNoteForm({ content: '', note_type: 'observation' }); setNoteMsg('Note saved.'); }
+    const ok = await onAddNote({ ...noteForm, tags: extractTags(noteForm.content), athlete_id: relationship.athlete_id });
+    if (ok) { setNoteForm({ content: '', note_type: 'observation', share_with_athlete: false }); setNoteMsg('Note saved.'); }
     else setNoteMsg('Failed to save note.');
   }
 
@@ -104,8 +115,15 @@ function AthleteDrawer({ athlete, relationship, protocols, notes, onClose, onAdd
 
   const athleteProtocols = protocols.filter((p) => p.athlete_id === relationship.athlete_id);
   const sortedNotes = [...notes].sort((a, b) => (b.is_pinned - a.is_pinned) || (new Date(b.created_at) - new Date(a.created_at)));
-  const pinnedNotes = sortedNotes.filter((n) => n.is_pinned);
-  const unpinnedNotes = sortedNotes.filter((n) => !n.is_pinned);
+  const allTags = Array.from(new Set(sortedNotes.flatMap((n) => n.tags || extractTags(n.content || ''))));
+  const visibleNotes = sortedNotes.filter((n) => {
+    if (noteSearch && !(n.content || '').toLowerCase().includes(noteSearch.toLowerCase()) && !(n.athlete?.name || '').toLowerCase().includes(noteSearch.toLowerCase())) return false;
+    if (noteTag !== 'all' && !(n.tags || extractTags(n.content || '')).includes(noteTag)) return false;
+    if (noteDate && !String(n.created_at || '').slice(0, 10).startsWith(noteDate)) return false;
+    return true;
+  });
+  const pinnedNotes = visibleNotes.filter((n) => n.is_pinned);
+  const unpinnedNotes = visibleNotes.filter((n) => !n.is_pinned);
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-end bg-ink/40 backdrop-blur-sm sm:items-stretch" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
@@ -129,7 +147,7 @@ function AthleteDrawer({ athlete, relationship, protocols, notes, onClose, onAdd
                   <div key={n.id} className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
                     <p className="text-xs uppercase tracking-[0.2em] text-amber-700">{n.note_type}</p>
                     <p className="mt-2 text-sm leading-relaxed text-ink">{n.content}</p>
-                    <p className="mt-2 text-xs text-ink/45">{fmt(n.created_at)}</p>
+                    <p className="mt-2 text-xs text-ink/45">{fmt(n.created_at)} · {n.share_with_athlete ? (n.athlete_read_at ? 'Read by athlete' : 'Shared, unread') : 'Private'}</p>
                   </div>
                 ))}
               </div>
@@ -226,9 +244,20 @@ function AthleteDrawer({ athlete, relationship, protocols, notes, onClose, onAdd
                 onChange={(e) => setNoteForm((f) => ({ ...f, content: e.target.value }))}
                 className="w-full rounded-xl border border-ink/10 bg-paper px-3 py-2 text-sm text-ink"
               />
+              <label className="flex items-center gap-2 text-xs text-ink/70"><input type="checkbox" checked={noteForm.share_with_athlete} onChange={(e) => setNoteForm((f) => ({ ...f, share_with_athlete: e.target.checked }))} /> Share with athlete</label>
               <button type="submit" className="rounded-full bg-panel px-4 py-2 text-sm font-semibold text-paper">Save note</button>
               {noteMsg && <p className="text-xs text-ink/60">{noteMsg}</p>}
             </form>
+          </section>
+
+
+          <section>
+            <p className="text-xs uppercase tracking-[0.25em] text-accent">Find notes</p>
+            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <input value={noteSearch} onChange={(e) => setNoteSearch(e.target.value)} placeholder="Search content" className="rounded-xl border border-ink/10 bg-white px-3 py-2 text-sm text-ink" />
+              <input type="date" value={noteDate} onChange={(e) => setNoteDate(e.target.value)} className="rounded-xl border border-ink/10 bg-white px-3 py-2 text-sm text-ink" />
+              <select value={noteTag} onChange={(e) => setNoteTag(e.target.value)} className="rounded-xl border border-ink/10 bg-white px-3 py-2 text-sm text-ink"><option value="all">All tags</option>{allTags.map((t) => <option key={t} value={t}>#{t}</option>)}</select>
+            </div>
           </section>
 
           {/* Note history */}
@@ -240,7 +269,7 @@ function AthleteDrawer({ athlete, relationship, protocols, notes, onClose, onAdd
                   <div key={n.id} className="rounded-2xl border border-ink/10 bg-white p-4">
                     <p className="text-xs uppercase tracking-[0.2em] text-accent">{n.note_type}</p>
                     <p className="mt-2 text-sm leading-relaxed text-ink">{n.content}</p>
-                    <p className="mt-2 text-xs text-ink/45">{fmt(n.created_at)}</p>
+                    <p className="mt-2 text-xs text-ink/45">{fmt(n.created_at)} · {n.share_with_athlete ? (n.athlete_read_at ? 'Read by athlete' : 'Shared, unread') : 'Private'}</p>
                   </div>
                 ))}
               </div>
@@ -271,6 +300,7 @@ export default function CoachCommandCenter() {
   const [activeTab, setActiveTab] = useState('roster');
   const [openAthleteId, setOpenAthleteId] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [quickNoteByAthlete, setQuickNoteByAthlete] = useState({});
 
   // Invitation form
   const [inviteEmail, setInviteEmail] = useState('');
@@ -639,7 +669,19 @@ export default function CoachCommandCenter() {
                                       {rel.alertLevel.charAt(0).toUpperCase() + rel.alertLevel.slice(1)}
                                     </span>
                                   </td>
-                                  <td className="py-4 text-ink/65">{activeProto?.protocol_name || '—'}</td>
+                                  <td className="py-4 text-ink/65">
+                                    <div>{activeProto?.protocol_name || '—'}</div>
+                                    <div className="mt-2 flex gap-2">
+                                      <input
+                                        value={quickNoteByAthlete[rel.athlete_id]?.content || ''}
+                                        onClick={(e) => e.stopPropagation()}
+                                        onChange={(e) => setQuickNoteByAthlete((m) => ({ ...m, [rel.athlete_id]: { ...(m[rel.athlete_id] || { note_type: 'daily', share_with_athlete: false }), content: e.target.value } }))}
+                                        placeholder="Quick note…"
+                                        className="w-44 rounded-lg border border-ink/10 px-2 py-1 text-xs"
+                                      />
+                                      <button onClick={async (e) => { e.stopPropagation(); const draft = quickNoteByAthlete[rel.athlete_id]; if (!draft?.content?.trim()) return; const ok = await handleAddNote({ athlete_id: rel.athlete_id, note_type: draft.note_type || 'daily', content: draft.content, share_with_athlete: !!draft.share_with_athlete, tags: extractTags(draft.content) }); if (ok) setQuickNoteByAthlete((m) => ({ ...m, [rel.athlete_id]: { ...m[rel.athlete_id], content: '' } })); }} className="rounded-lg bg-panel px-2 py-1 text-xs font-semibold text-paper">Add</button>
+                                    </div>
+                                  </td>
                                 </tr>
                               );
                             })}
