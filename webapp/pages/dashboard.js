@@ -382,6 +382,7 @@ export default function Dashboard() {
   const [activities, setActivities] = useState([]);
   const [interventions, setInterventions] = useState([]);
   const [interventionCount, setInterventionCount] = useState(0);
+  const [sessionLoad, setSessionLoad] = useState({ daily: 0, rollingWeekly: 0 });
   const [settings, setSettings] = useState(null);
   const [timeframe, setTimeframe] = useState(30);
   const [metric, setMetric] = useState('mileage');
@@ -415,6 +416,7 @@ export default function Dashboard() {
         if (interventionsRes.ok) {
           const interventionData = await interventionsRes.json();
           setInterventions(interventionData.interventions || []);
+          setSessionLoad(interventionData.sessionLoad || { daily: 0, rollingWeekly: 0 });
         }
 
         const protocolRes = await fetch('/api/current-protocol-assignment');
@@ -671,6 +673,14 @@ export default function Dashboard() {
                 <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
                   <p className="text-xs uppercase tracking-[0.2em] text-accent">Interventions</p>
                   <p className="mt-2 text-xl font-semibold">{trainingSummary.interventions}</p>
+                </div>
+                <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-accent">Daily Session Load</p>
+                  <p className="mt-2 text-xl font-semibold">{sessionLoad.daily}</p>
+                </div>
+                <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-accent">7D Session Load</p>
+                  <p className="mt-2 text-xl font-semibold">{sessionLoad.rollingWeekly}</p>
                 </div>
               </div>
             </div>

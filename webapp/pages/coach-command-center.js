@@ -266,6 +266,7 @@ export default function CoachCommandCenter() {
   const [templates, setTemplates] = useState([]);
   const [sharedTemplates, setSharedTemplates] = useState([]);
   const [notesMap, setNotesMap] = useState({}); // keyed by athlete_id
+  const [sessionLoad, setSessionLoad] = useState({ daily: 0, rollingWeekly: 0 });
 
   // UI state
   const [activeTab, setActiveTab] = useState('roster');
@@ -291,12 +292,13 @@ export default function CoachCommandCenter() {
 
     async function loadAll() {
       setLoading(true);
-      const [dashRes, relRes, protoRes, invRes, tplRes] = await Promise.all([
+      const [dashRes, relRes, protoRes, invRes, tplRes, loadRes] = await Promise.all([
         fetch('/api/coach/dashboard'),
         fetch('/api/coach/relationships'),
         fetch('/api/coach/protocols'),
         fetch('/api/coach/invitations'),
         fetch('/api/coach/templates'),
+        fetch('/api/interventions'),
       ]);
 
       if (dashRes.ok) {
@@ -314,6 +316,7 @@ export default function CoachCommandCenter() {
       if (protoRes.ok) { const d = await protoRes.json(); setProtocols(d.protocols || []); }
       if (invRes.ok) { const d = await invRes.json(); setInvitations(d.invitations || []); }
       if (tplRes.ok) { const d = await tplRes.json(); setTemplates(d.templates || []); setSharedTemplates(d.sharedTemplates || []); }
+      if (loadRes.ok) { const d = await loadRes.json(); setSessionLoad(d.sessionLoad || { daily: 0, rollingWeekly: 0 }); }
 
       setLoading(false);
     }
@@ -520,6 +523,8 @@ export default function CoachCommandCenter() {
                 <SummaryCard label="Active protocols" value={summary?.active_protocols} />
                 <SummaryCard label="Need attention" value={summary?.athletes_needing_attention} accent="text-amber-300" />
                 <SummaryCard label="Races in 30d" value={summary?.upcoming_races} accent="text-emerald-300" />
+                <SummaryCard label="Daily load" value={sessionLoad.daily} />
+                <SummaryCard label="7D load" value={sessionLoad.rollingWeekly} />
               </div>
             </div>
           </section>
