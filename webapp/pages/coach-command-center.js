@@ -22,10 +22,10 @@ const NOTE_TYPES = [
 ];
 
 const TABS = [
-  { id: 'roster', label: 'Roster' },
-  { id: 'protocols', label: 'Protocols' },
+  { id: 'roster', label: 'Roster + Triage' },
+  { id: 'protocols', label: 'Protocol Assignment' },
   { id: 'invitations', label: 'Invitations' },
-  { id: 'templates', label: 'Templates' },
+  { id: 'templates', label: 'Notes & Templates' },
   { id: 'settings', label: 'Profile' },
 ];
 
@@ -289,12 +289,16 @@ export default function CoachCommandCenter() {
   // Data state
   const [profile, setProfile] = useState(null);
   const [summary, setSummary] = useState(null);
+  const [coachKpis, setCoachKpis] = useState(null);
+  const [relationshipMeta, setRelationshipMeta] = useState({ atRiskAthletes: 0, avgCommunicationSlaHours: null });
+  const [protocolMeta, setProtocolMeta] = useState({ adherenceByAthlete: [], adherenceByInterventionType: [], subjectiveTrendVsDose: [] });
   const [relationships, setRelationships] = useState([]);
   const [protocols, setProtocols] = useState([]);
   const [invitations, setInvitations] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [sharedTemplates, setSharedTemplates] = useState([]);
   const [notesMap, setNotesMap] = useState({}); // keyed by athlete_id
+  const [sessionLoad, setSessionLoad] = useState({ daily: 0, rollingWeekly: 0 });
 
   // UI state
   const [activeTab, setActiveTab] = useState('roster');
@@ -321,18 +325,20 @@ export default function CoachCommandCenter() {
 
     async function loadAll() {
       setLoading(true);
-      const [dashRes, relRes, protoRes, invRes, tplRes] = await Promise.all([
+      const [dashRes, relRes, protoRes, invRes, tplRes, loadRes] = await Promise.all([
         fetch('/api/coach/dashboard'),
         fetch('/api/coach/relationships'),
         fetch('/api/coach/protocols'),
         fetch('/api/coach/invitations'),
         fetch('/api/coach/templates'),
+        fetch('/api/interventions'),
       ]);
 
       if (dashRes.ok) {
         const d = await dashRes.json();
         setProfile(d.profile || null);
         setSummary(d.summary || null);
+        setCoachKpis(d.coachKpis || null);
         setProfileForm({
           display_name: d.profile?.display_name || '',
           bio: d.profile?.bio || '',
@@ -340,10 +346,11 @@ export default function CoachCommandCenter() {
           certifications: (d.profile?.certifications || []).join(', '),
         });
       }
-      if (relRes.ok) { const d = await relRes.json(); setRelationships(d.relationships || []); }
-      if (protoRes.ok) { const d = await protoRes.json(); setProtocols(d.protocols || []); }
+      if (relRes.ok) { const d = await relRes.json(); setRelationships(d.relationships || []); setRelationshipMeta({ atRiskAthletes: d.atRiskAthletes || 0, avgCommunicationSlaHours: d.avgCommunicationSlaHours ?? null }); }
+      if (protoRes.ok) { const d = await protoRes.json(); setProtocols(d.protocols || []); setProtocolMeta({ adherenceByAthlete: d.adherenceByAthlete || [], adherenceByInterventionType: d.adherenceByInterventionType || [], subjectiveTrendVsDose: d.subjectiveTrendVsDose || [] }); }
       if (invRes.ok) { const d = await invRes.json(); setInvitations(d.invitations || []); }
       if (tplRes.ok) { const d = await tplRes.json(); setTemplates(d.templates || []); setSharedTemplates(d.sharedTemplates || []); }
+      if (loadRes.ok) { const d = await loadRes.json(); setSessionLoad(d.sessionLoad || { daily: 0, rollingWeekly: 0 }); }
 
       setLoading(false);
     }
@@ -530,7 +537,7 @@ export default function CoachCommandCenter() {
             <NavMenu label="Navigation" links={navLinks} primaryLink={{ href: '/dashboard', label: 'Home', variant: 'secondary' }} />
           </div>
 
-          <DashboardTabs activeHref="/coach-command-center" tabs={[{ href: '/coach-command-center', label: 'Command Center' }, { href: '/coaches', label: 'Classic View' }]} />
+          <DashboardTabs activeHref="/coach-command-center" tabs={[{ href: '/coach-command-center', label: 'Coach Command Center' }]} />
 
           {/* Hero */}
           <section className="overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(140deg,#1b2421_0%,#26332f_42%,#857056_100%)] p-6 text-white md:p-10">
@@ -550,7 +557,20 @@ export default function CoachCommandCenter() {
                 <SummaryCard label="Active protocols" value={summary?.active_protocols} />
                 <SummaryCard label="Need attention" value={summary?.athletes_needing_attention} accent="text-amber-300" />
                 <SummaryCard label="Races in 30d" value={summary?.upcoming_races} accent="text-emerald-300" />
+                <SummaryCard label="Daily load" value={sessionLoad.daily} />
+                <SummaryCard label="7D load" value={sessionLoad.rollingWeekly} />
               </div>
+            </div>
+          </section>
+
+
+
+          <section className="mt-6 rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+            <p className="text-sm uppercase tracking-[0.25em] text-accent">Coach KPIs</p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <SummaryCard label="At-risk athletes" value={relationshipMeta.atRiskAthletes} accent="text-amber-400" />
+              <SummaryCard label="Intervention lift" value={coachKpis?.intervention_lift_score ?? '—'} accent="text-emerald-300" />
+              <SummaryCard label="Comm SLA (hrs)" value={relationshipMeta.avgCommunicationSlaHours ?? '—'} accent="text-sky-300" />
             </div>
           </section>
 
@@ -665,9 +685,13 @@ export default function CoachCommandCenter() {
                                   </td>
                                   <td className="py-4 pr-5 text-ink/65">{daysLabel(rel.daysSinceLog)}</td>
                                   <td className="py-4 pr-5">
-                                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${alertBadge(rel.alertLevel)}`}>
-                                      {rel.alertLevel.charAt(0).toUpperCase() + rel.alertLevel.slice(1)}
-                                    </span>
+                                    <div className="flex items-center gap-2">
+                                      <span className={`rounded-full px-3 py-1 text-xs font-semibold ${alertBadge(rel.alertLevel)}`}>
+                                        {rel.alertLevel.charAt(0).toUpperCase() + rel.alertLevel.slice(1)}
+                                      </span>
+                                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${toneClass(rel.loadStatus?.tone)}`}>{rel.loadStatus?.label || 'Unknown'}</span>
+                                    </div>
+                                    <div className="mt-2"><MiniSparkline points={rel.loadMetrics?.sparkline || []} /></div>
                                   </td>
                                   <td className="py-4 text-ink/65">
                                     <div>{activeProto?.protocol_name || '—'}</div>

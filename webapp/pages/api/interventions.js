@@ -74,7 +74,27 @@ export default async function handler(req, res) {
       return;
     }
 
-    res.status(200).json({ interventions: data || [] });
+    const interventions = data || [];
+    const today = new Date().toISOString().slice(0, 10);
+    const dailySessionLoad = interventions
+      .filter((item) => (item.date || item.inserted_at || '').slice(0, 10) === today)
+      .reduce((sum, item) => sum + Number(item.protocol_payload?.session_load || 0), 0);
+    const rollingWeeklySessionLoad = interventions
+      .filter((item) => {
+        const d = new Date(item.date || item.inserted_at);
+        if (Number.isNaN(d.getTime())) return false;
+        const diffDays = (Date.now() - d.getTime()) / 86400000;
+        return diffDays >= 0 && diffDays < 7;
+      })
+      .reduce((sum, item) => sum + Number(item.protocol_payload?.session_load || 0), 0);
+
+    res.status(200).json({
+      interventions,
+      sessionLoad: {
+        daily: dailySessionLoad,
+        rollingWeekly: rollingWeeklySessionLoad,
+      },
+    });
     return;
   }
 

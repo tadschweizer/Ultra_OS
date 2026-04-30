@@ -103,3 +103,108 @@ export function defaultAssignmentWindow(startDate) {
   if (!startDate) return null;
   return addDays(startDate, 41).toISOString().slice(0, 10);
 }
+
+function toNumber(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function summarizeContraindications(guardrails = []) {
+  return guardrails.filter((item) => item.triggered).map((item) => item.reason);
+}
+
+export function evaluateProtocolRules({
+  interventionType,
+  frequencyType = 'weekly',
+  plannedSessions,
+  responseMetrics = {},
+  currentLoad = {},
+  coachOverrideReason = null,
+}) {
+  const metrics = {
+    adherenceRate: toNumber(responseMetrics.adherence_rate),
+    avgRpe: toNumber(responseMetrics.avg_rpe),
+    recoveryScore: toNumber(responseMetrics.recovery_score),
+    symptomScore: toNumber(responseMetrics.symptom_score),
+    sleepDebtHours: toNumber(responseMetrics.sleep_debt_hours),
+    readinessScore: toNumber(responseMetrics.readiness_score),
+  };
+
+  const load = {
+    weeklyLoad: toNumber(currentLoad.weekly_load),
+    acuteChronicRatio: toNumber(currentLoad.acute_chronic_ratio),
+  };
+
+  const guardrails = [
+    {
+      key: 'sleep_debt_high_load',
+      triggered: (metrics.sleepDebtHours ?? 0) >= 4 && (load.acuteChronicRatio ?? 0) >= 1.2,
+      reason: 'Sleep debt is elevated while acute load is high.',
+      action: 'reduce',
+    },
+    {
+      key: 'high_rpe_low_recovery',
+      triggered: (metrics.avgRpe ?? 0) >= 8 && (metrics.recoveryScore ?? 100) <= 55,
+      reason: 'Perceived effort is high with poor recovery trend.',
+      action: 'reduce',
+    },
+  ];
+
+  const contraindications = summarizeContraindications(guardrails);
+  let decision = 'maintain';
+  let confidence = 'moderate';
+  const reasons = [];
+  let frequencyRecommendation = frequencyType;
+  let plannedSessionsRecommendation = plannedSessions ?? null;
+
+  if (metrics.adherenceRate !== null && metrics.adherenceRate >= 0.85 && (metrics.recoveryScore ?? 0) >= 70) {
+    decision = 'progress';
+    confidence = 'high';
+    reasons.push('High adherence with stable recovery supports progression.');
+    if (frequencyType === 'weekly') frequencyRecommendation = 'every_other_day';
+    if (plannedSessionsRecommendation !== null && plannedSessionsRecommendation !== undefined) {
+      plannedSessionsRecommendation = Math.max(1, Number(plannedSessionsRecommendation) + 1);
+    }
+  }
+
+  if (metrics.symptomScore !== null && metrics.symptomScore >= 6) {
+    decision = 'reduce';
+    confidence = 'high';
+    reasons.push('Symptoms increased and indicate reduced tolerance.');
+  }
+
+  if (contraindications.length) {
+    decision = 'reduce';
+    confidence = 'high';
+    reasons.push(...contraindications);
+    if (frequencyType === 'every_other_day' || frequencyType === 'daily') frequencyRecommendation = 'weekly';
+    if (plannedSessionsRecommendation !== null && plannedSessionsRecommendation !== undefined) {
+      plannedSessionsRecommendation = Math.max(1, Number(plannedSessionsRecommendation) - 1);
+    }
+  }
+
+  if (!reasons.length) {
+    reasons.push('Insufficient signal for progression or reduction; maintain current plan.');
+    if ((metrics.readinessScore ?? 0) < 40) confidence = 'low';
+  }
+
+  const overrideApplied = Boolean(coachOverrideReason && coachOverrideReason.trim());
+  const recommendationText = `${interventionType || 'Protocol'}: ${decision.toUpperCase()} — ${reasons.join(' ')}`;
+
+  return {
+    decision,
+    confidence,
+    reasons,
+    contraindications,
+    recommendationText,
+    recommendation: {
+      frequency_type: frequencyRecommendation,
+      planned_sessions: plannedSessionsRecommendation,
+    },
+    override: {
+      applied: overrideApplied,
+      reason: overrideApplied ? coachOverrideReason.trim() : null,
+    },
+    generated_at: new Date().toISOString(),
+  };
+}
