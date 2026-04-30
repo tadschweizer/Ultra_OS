@@ -13,17 +13,31 @@ const sources = [
   },
   {
     name: 'Garmin',
-    status: 'Coming soon',
-    href: '#',
-    action: 'Coming soon',
-    enabled: false,
+    status: 'Placeholder ready',
+    href: '/api/garmin/login',
+    action: 'Connect (placeholder)',
+    enabled: true,
   },
   {
     name: 'COROS',
-    status: 'Coming soon',
-    href: '#',
-    action: 'Coming soon',
-    enabled: false,
+    status: 'Placeholder ready',
+    href: '/api/coros/login',
+    action: 'Connect (placeholder)',
+    enabled: true,
+  },
+  {
+    name: 'Oura',
+    status: 'Placeholder ready',
+    href: '/api/oura/login',
+    action: 'Connect (placeholder)',
+    enabled: true,
+  },
+  {
+    name: 'Ultrahuman',
+    status: 'Placeholder ready',
+    href: '/api/ultrahuman/login',
+    action: 'Connect (placeholder)',
+    enabled: true,
   },
   {
     name: 'Zwift',
@@ -34,6 +48,27 @@ const sources = [
   },
   {
     name: 'TrainingPeaks',
+    status: 'Beta import',
+    href: '#tp-import',
+    action: 'Review import',
+    enabled: true,
+  },
+  {
+    name: 'Oura',
+    status: 'Coming soon',
+    href: '#',
+    action: 'Coming soon',
+    enabled: false,
+  },
+  {
+    name: 'Ultrahuman',
+    status: 'Coming soon',
+    href: '#',
+    action: 'Coming soon',
+    enabled: false,
+  },
+  {
+    name: 'CORE Body Temp',
     status: 'Coming soon',
     href: '#',
     action: 'Coming soon',
@@ -45,7 +80,7 @@ export default function Connections() {
   const [athleteId, setAthleteId] = useState(null);
   const [athlete, setAthlete] = useState(null);
   const [notifyEmails, setNotifyEmails] = useState({});
-  const [notifySubmitted, setNotifySubmitted] = useState({});
+  const [notifyStatus, setNotifyStatus] = useState({});
   const navLinks = athleteId
     ? [
         { href: '/dashboard', label: 'Threshold Home', description: 'Insights, trends, and recent training.' },
@@ -83,12 +118,53 @@ export default function Connections() {
 
   const hasAnyConnections = Boolean(athlete?.strava_id);
   const stravaLastSeen = athlete?.strava_last_sync || athlete?.updated_at || null;
+  const migrationSections = [
+    {
+      label: 'Athlete history ingestion',
+      status: 'transferred',
+      detail: 'Historical workouts and key metadata imported from TrainingPeaks.',
+    },
+    {
+      label: 'Planned workouts / protocol mapping',
+      status: 'partial',
+      detail: 'Mapped core workout types. Some custom TP fields require manual mapping.',
+    },
+    {
+      label: 'Custom fields + tags',
+      status: 'manual',
+      detail: 'Manual mapping needed for custom fields before they can be used in insights.',
+    },
+  ];
 
-  function handleNotifySubmit(sourceName) {
+  async function handleNotifySubmit(sourceName) {
     const email = (notifyEmails[sourceName] || '').trim();
-    if (!email) return;
-    // Store locally — a real implementation would POST to an API
-    setNotifySubmitted((prev) => ({ ...prev, [sourceName]: true }));
+    if (!email) {
+      setNotifyStatus((prev) => ({ ...prev, [sourceName]: { ok: false, message: 'Please enter an email address.' } }));
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/integration-interest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source: sourceName, email }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        setNotifyStatus((prev) => ({ ...prev, [sourceName]: { ok: false, message: payload.error || 'Unable to save interest.' } }));
+        return;
+      }
+
+      setNotifyStatus((prev) => ({
+        ...prev,
+        [sourceName]: {
+          ok: true,
+          message: payload.message || `Got it — we'll notify you when ${sourceName} is ready.`,
+        },
+      }));
+    } catch (error) {
+      setNotifyStatus((prev) => ({ ...prev, [sourceName]: { ok: false, message: 'Network error. Please try again.' } }));
+    }
   }
 
   return (
@@ -121,6 +197,37 @@ export default function Connections() {
           </div>
         </div>
 
+        <section id="tp-import" className="mb-8 rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="text-sm uppercase tracking-[0.22em] text-accent">TrainingPeaks Migration</p>
+              <h2 className="mt-2 text-2xl font-semibold">Migration completeness</h2>
+              <p className="mt-2 max-w-3xl text-sm text-ink/70">
+                Review exactly what transferred from TrainingPeaks and what still needs manual mapping before data is used in planning and insights.
+              </p>
+            </div>
+            <span className="rounded-full bg-paper px-4 py-2 text-xs uppercase tracking-[0.18em] text-ink/70">
+              2 of 3 sections complete
+            </span>
+          </div>
+          <div className="mt-5 space-y-3">
+            {migrationSections.map((section) => {
+              const isDone = section.status === 'transferred';
+              const isPartial = section.status === 'partial';
+              const badge = isDone ? 'Transferred' : isPartial ? 'Needs review' : 'Manual mapping required';
+              return (
+                <div key={section.label} className="rounded-2xl border border-ink/10 bg-paper/60 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="font-semibold text-ink">{section.label}</p>
+                    <span className="rounded-full bg-white px-3 py-1 text-xs text-ink/70">{badge}</span>
+                  </div>
+                  <p className="mt-2 text-sm text-ink/70">{section.detail}</p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
         {!hasAnyConnections && athleteId ? (
           <section className="mt-2">
             <EmptyStateCard
@@ -150,8 +257,6 @@ export default function Connections() {
                   <a href={source.href} className="mt-6 inline-flex rounded-full bg-ink px-5 py-3 text-sm font-semibold text-paper">
                     {source.name === 'Strava' && hasAnyConnections ? 'Reconnect' : source.action}
                   </a>
-                ) : notifySubmitted[source.name] ? (
-                  <p className="mt-4 text-sm font-semibold text-accent">Got it — we&apos;ll notify you when {source.name} is ready.</p>
                 ) : (
                   <div className="mt-4">
                     <p className="mb-2 text-xs text-ink/50">Get notified when {source.name} is available:</p>
@@ -171,6 +276,11 @@ export default function Connections() {
                         Notify me
                       </button>
                     </div>
+                    {notifyStatus[source.name] ? (
+                      <p className={`mt-3 text-sm font-semibold ${notifyStatus[source.name].ok ? 'text-accent' : 'text-red-700'}`}>
+                        {notifyStatus[source.name].message}
+                      </p>
+                    ) : null}
                   </div>
                 )}
               </article>

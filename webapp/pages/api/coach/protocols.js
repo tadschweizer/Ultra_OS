@@ -37,6 +37,18 @@ async function ensureCoachProfile(athleteId) {
   return data;
 }
 
+
+
+function toNumber(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function mean(values) {
+  if (!values.length) return null;
+  return values.reduce((a, b) => a + b, 0) / values.length;
+}
+
 export default async function handler(req, res) {
   const athleteId = getAthleteId(req);
   if (!athleteId) { res.status(401).json({ error: 'Not authenticated' }); return; }
@@ -78,7 +90,51 @@ export default async function handler(req, res) {
         athlete: (athletes || []).find((a) => a.id === p.athlete_id) || null,
       }));
 
-      res.status(200).json({ protocols, profile });
+      const interventionLogs = ids.length
+        ? await supabase
+          .from('interventions')
+          .select('athlete_id, intervention_type, date, subjective_feel, dose_duration')
+          .in('athlete_id', ids)
+        : { data: [] };
+
+      const logs = interventionLogs.data || [];
+      const adherenceByAthlete = ids.map((id) => {
+        const athleteProtocols = protocols.filter((p) => p.athlete_id === id && ['assigned', 'in_progress', 'completed'].includes(p.status));
+        const athleteLogs = logs.filter((l) => l.athlete_id === id);
+        const completedProtocols = athleteProtocols.filter((p) => {
+          const count = athleteLogs.filter((l) => l.intervention_type === p.protocol_type).length;
+          return count > 0;
+        }).length;
+        return {
+          athlete_id: id,
+          adherence_pct: athleteProtocols.length ? Math.round((completedProtocols / athleteProtocols.length) * 100) : 0,
+        };
+      });
+
+      const adherenceByInterventionType = Object.values(logs.reduce((acc, log) => {
+        const key = log.intervention_type || 'unspecified';
+        if (!acc[key]) acc[key] = { intervention_type: key, logged: 0, subjective: [] };
+        acc[key].logged += 1;
+        const subj = toNumber(log.subjective_feel);
+        if (subj !== null) acc[key].subjective.push(subj);
+        return acc;
+      }, {})).map((row) => ({
+        intervention_type: row.intervention_type,
+        adherence_pct: Math.min(100, row.logged * 10),
+        avg_subjective_feel: row.subjective.length ? Number(mean(row.subjective).toFixed(2)) : null,
+      }));
+
+      const subjectiveTrendVsDose = logs
+        .filter((l) => l.subjective_feel !== null && l.subjective_feel !== undefined)
+        .map((l) => ({
+          athlete_id: l.athlete_id,
+          intervention_type: l.intervention_type,
+          date: l.date,
+          dose_duration: toNumber(l.dose_duration),
+          subjective_feel: l.subjective_feel,
+        }));
+
+      res.status(200).json({ protocols, profile, adherenceByAthlete, adherenceByInterventionType, subjectiveTrendVsDose });
       return;
     }
 

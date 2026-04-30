@@ -53,14 +53,17 @@ export default async function handler(req, res) {
   try {
     const profile = await ensureCoachProfile(athleteId);
 
-    const { data, error } = await supabase.rpc('get_coach_dashboard_summary', {
-      coach_uuid: profile.id,
-    });
+    const [{ data, error }, kpiRes] = await Promise.all([
+      supabase.rpc('get_coach_dashboard_summary', { coach_uuid: profile.id }),
+      supabase.rpc('get_coach_kpi_rollup', { coach_uuid: profile.id }),
+    ]);
 
     if (error) { res.status(500).json({ error: error.message }); return; }
 
     const summary = (Array.isArray(data) ? data[0] : data) || emptySummary;
-    res.status(200).json({ summary, profile });
+    const coachKpis = (Array.isArray(kpiRes.data) ? kpiRes.data[0] : kpiRes.data) || {};
+
+    res.status(200).json({ summary, profile, coachKpis });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

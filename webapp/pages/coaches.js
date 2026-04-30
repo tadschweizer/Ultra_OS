@@ -1,24 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
-import DashboardTabs from '../components/DashboardTabs';
-import NavMenu from '../components/NavMenu';
-import EmptyStateCard from '../components/EmptyStateCard';
-import UpgradePrompt from '../components/UpgradePrompt';
-import { usePlan } from '../lib/planUtils';
-import { defaultAssignmentWindow } from '../lib/coachProtocols';
-import { interventionCatalog } from '../lib/interventionCatalog';
-
-function statusTone(status) {
-  if (status === 'Green') return 'bg-category-sleep/55 text-ink';
-  if (status === 'Yellow') return 'bg-category-nutrition/70 text-ink';
-  return 'bg-category-respiratory/55 text-ink';
+export async function getServerSideProps() {
+  return {
+    redirect: {
+      destination: '/coach-command-center',
+      permanent: true,
+    },
+  };
 }
-
-function formatCountdown(daysUntilRace) {
-  if (daysUntilRace === null || daysUntilRace === undefined) return 'Date needed';
-  return `${daysUntilRace} days`;
-}
-
-const interventionTypes = interventionCatalog.flatMap((group) => group.types.map((type) => type.label));
 
 export default function CoachesPage() {
   const { coachFeatures } = usePlan();
