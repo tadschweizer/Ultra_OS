@@ -16,14 +16,16 @@ const NOTE_TYPES = [
   { value: 'flag', label: 'Flag' },
   { value: 'reminder', label: 'Reminder' },
   { value: 'race_debrief', label: 'Race Debrief' },
+  { value: 'daily', label: 'Daily' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'timeline', label: 'Timeline' },
 ];
 
 const TABS = [
-  { id: 'roster', label: 'Roster' },
-  { id: 'protocols', label: 'Protocols' },
-  { id: 'invitations', label: 'Invitations' },
-  { id: 'templates', label: 'Templates' },
-  { id: 'settings', label: 'Profile' },
+  { id: 'triage', label: 'Triage' },
+  { id: 'load-trends', label: 'Load Trends' },
+  { id: 'notes', label: 'Notes' },
+  { id: 'alerts', label: 'Alerts' },
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -54,6 +56,20 @@ function fmt(date) {
   return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+
+function toneClass(tone) {
+  if (tone === 'red') return 'bg-category-respiratory/50 text-ink';
+  if (tone === 'yellow') return 'bg-category-nutrition/70 text-ink';
+  return 'bg-category-sleep/55 text-ink';
+}
+
+function MiniSparkline({ points = [] }) {
+  if (!points.length) return <div className="h-8 w-24 rounded bg-paper" />;
+  const width = 96; const height = 28; const max = Math.max(...points.map((p) => p.load || 0), 1);
+  const poly = points.slice(-14).map((p, i, arr) => `${(i / Math.max(arr.length - 1, 1)) * width},${height - ((p.load || 0) / max) * (height - 2)}`).join(' ');
+  return <svg viewBox={`0 0 ${width} ${height}`} className="h-8 w-24"><polyline fill="none" stroke="currentColor" strokeWidth="2" points={poly} className="text-ink/70" /></svg>;
+}
+
 function inviteUrl(token) {
   const base = typeof window !== 'undefined' ? window.location.origin : '';
   return `${base}/join?coach_invite=${token}`;
@@ -70,8 +86,8 @@ function SummaryCard({ label, value, accent }) {
   );
 }
 
-function AthleteDrawer({ athlete, relationship, protocols, notes, docs, onClose, onAddNote, onAddProtocol, onAddDoc, onDeleteDoc }) {
-  const [noteForm, setNoteForm] = useState({ content: '', note_type: 'observation' });
+function AthleteDrawer({ athlete, relationship, protocols, notes, onClose, onAddNote, onAddProtocol }) {
+  const [noteForm, setNoteForm] = useState({ content: '', note_type: 'observation', share_with_athlete: false });
   const [noteMsg, setNoteMsg] = useState('');
   const [protocolForm, setProtocolForm] = useState({
     protocol_name: '',
@@ -82,21 +98,16 @@ function AthleteDrawer({ athlete, relationship, protocols, notes, docs, onClose,
     compliance_target: 80,
   });
   const [protocolMsg, setProtocolMsg] = useState('');
-  const [docForm, setDocForm] = useState({
-    title: '',
-    category: 'General',
-    doc_type: 'text',
-    content: '',
-    resource_url: '',
-  });
-  const [docMsg, setDocMsg] = useState('');
+  const [noteSearch, setNoteSearch] = useState('');
+  const [noteTag, setNoteTag] = useState('all');
+  const [noteDate, setNoteDate] = useState('');
 
   async function submitNote(e) {
     e.preventDefault();
     setNoteMsg('');
     if (!noteForm.content.trim()) return;
-    const ok = await onAddNote({ ...noteForm, athlete_id: relationship.athlete_id });
-    if (ok) { setNoteForm({ content: '', note_type: 'observation' }); setNoteMsg('Note saved.'); }
+    const ok = await onAddNote({ ...noteForm, tags: extractTags(noteForm.content), athlete_id: relationship.athlete_id });
+    if (ok) { setNoteForm({ content: '', note_type: 'observation', share_with_athlete: false }); setNoteMsg('Note saved.'); }
     else setNoteMsg('Failed to save note.');
   }
 
@@ -123,8 +134,15 @@ function AthleteDrawer({ athlete, relationship, protocols, notes, docs, onClose,
 
   const athleteProtocols = protocols.filter((p) => p.athlete_id === relationship.athlete_id);
   const sortedNotes = [...notes].sort((a, b) => (b.is_pinned - a.is_pinned) || (new Date(b.created_at) - new Date(a.created_at)));
-  const pinnedNotes = sortedNotes.filter((n) => n.is_pinned);
-  const unpinnedNotes = sortedNotes.filter((n) => !n.is_pinned);
+  const allTags = Array.from(new Set(sortedNotes.flatMap((n) => n.tags || extractTags(n.content || ''))));
+  const visibleNotes = sortedNotes.filter((n) => {
+    if (noteSearch && !(n.content || '').toLowerCase().includes(noteSearch.toLowerCase()) && !(n.athlete?.name || '').toLowerCase().includes(noteSearch.toLowerCase())) return false;
+    if (noteTag !== 'all' && !(n.tags || extractTags(n.content || '')).includes(noteTag)) return false;
+    if (noteDate && !String(n.created_at || '').slice(0, 10).startsWith(noteDate)) return false;
+    return true;
+  });
+  const pinnedNotes = visibleNotes.filter((n) => n.is_pinned);
+  const unpinnedNotes = visibleNotes.filter((n) => !n.is_pinned);
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-end bg-ink/40 backdrop-blur-sm sm:items-stretch" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
@@ -148,7 +166,7 @@ function AthleteDrawer({ athlete, relationship, protocols, notes, docs, onClose,
                   <div key={n.id} className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
                     <p className="text-xs uppercase tracking-[0.2em] text-amber-700">{n.note_type}</p>
                     <p className="mt-2 text-sm leading-relaxed text-ink">{n.content}</p>
-                    <p className="mt-2 text-xs text-ink/45">{fmt(n.created_at)}</p>
+                    <p className="mt-2 text-xs text-ink/45">{fmt(n.created_at)} · {n.share_with_athlete ? (n.athlete_read_at ? 'Read by athlete' : 'Shared, unread') : 'Private'}</p>
                   </div>
                 ))}
               </div>
@@ -287,9 +305,20 @@ function AthleteDrawer({ athlete, relationship, protocols, notes, docs, onClose,
                 onChange={(e) => setNoteForm((f) => ({ ...f, content: e.target.value }))}
                 className="w-full rounded-xl border border-ink/10 bg-paper px-3 py-2 text-sm text-ink"
               />
+              <label className="flex items-center gap-2 text-xs text-ink/70"><input type="checkbox" checked={noteForm.share_with_athlete} onChange={(e) => setNoteForm((f) => ({ ...f, share_with_athlete: e.target.checked }))} /> Share with athlete</label>
               <button type="submit" className="rounded-full bg-panel px-4 py-2 text-sm font-semibold text-paper">Save note</button>
               {noteMsg && <p className="text-xs text-ink/60">{noteMsg}</p>}
             </form>
+          </section>
+
+
+          <section>
+            <p className="text-xs uppercase tracking-[0.25em] text-accent">Find notes</p>
+            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <input value={noteSearch} onChange={(e) => setNoteSearch(e.target.value)} placeholder="Search content" className="rounded-xl border border-ink/10 bg-white px-3 py-2 text-sm text-ink" />
+              <input type="date" value={noteDate} onChange={(e) => setNoteDate(e.target.value)} className="rounded-xl border border-ink/10 bg-white px-3 py-2 text-sm text-ink" />
+              <select value={noteTag} onChange={(e) => setNoteTag(e.target.value)} className="rounded-xl border border-ink/10 bg-white px-3 py-2 text-sm text-ink"><option value="all">All tags</option>{allTags.map((t) => <option key={t} value={t}>#{t}</option>)}</select>
+            </div>
           </section>
 
           {/* Note history */}
@@ -301,7 +330,7 @@ function AthleteDrawer({ athlete, relationship, protocols, notes, docs, onClose,
                   <div key={n.id} className="rounded-2xl border border-ink/10 bg-white p-4">
                     <p className="text-xs uppercase tracking-[0.2em] text-accent">{n.note_type}</p>
                     <p className="mt-2 text-sm leading-relaxed text-ink">{n.content}</p>
-                    <p className="mt-2 text-xs text-ink/45">{fmt(n.created_at)}</p>
+                    <p className="mt-2 text-xs text-ink/45">{fmt(n.created_at)} · {n.share_with_athlete ? (n.athlete_read_at ? 'Read by athlete' : 'Shared, unread') : 'Private'}</p>
                   </div>
                 ))}
               </div>
@@ -321,18 +350,24 @@ export default function CoachCommandCenter() {
   // Data state
   const [profile, setProfile] = useState(null);
   const [summary, setSummary] = useState(null);
+  const [coachKpis, setCoachKpis] = useState(null);
+  const [relationshipMeta, setRelationshipMeta] = useState({ atRiskAthletes: 0, avgCommunicationSlaHours: null });
+  const [protocolMeta, setProtocolMeta] = useState({ adherenceByAthlete: [], adherenceByInterventionType: [], subjectiveTrendVsDose: [] });
   const [relationships, setRelationships] = useState([]);
   const [protocols, setProtocols] = useState([]);
   const [invitations, setInvitations] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [sharedTemplates, setSharedTemplates] = useState([]);
   const [notesMap, setNotesMap] = useState({}); // keyed by athlete_id
-  const [docsMap, setDocsMap] = useState({}); // keyed by athlete_id
+  const [sessionLoad, setSessionLoad] = useState({ daily: 0, rollingWeekly: 0 });
 
   // UI state
-  const [activeTab, setActiveTab] = useState('roster');
+  const [activeTab, setActiveTab] = useState('triage');
+  const [viewMode, setViewMode] = useState('basic');
+  const [advancedOpen, setAdvancedOpen] = useState('protocols');
   const [openAthleteId, setOpenAthleteId] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [quickNoteByAthlete, setQuickNoteByAthlete] = useState({});
 
   // Invitation form
   const [inviteEmail, setInviteEmail] = useState('');
@@ -353,18 +388,20 @@ export default function CoachCommandCenter() {
 
     async function loadAll() {
       setLoading(true);
-      const [dashRes, relRes, protoRes, invRes, tplRes] = await Promise.all([
+      const [dashRes, relRes, protoRes, invRes, tplRes, loadRes] = await Promise.all([
         fetch('/api/coach/dashboard'),
         fetch('/api/coach/relationships'),
         fetch('/api/coach/protocols'),
         fetch('/api/coach/invitations'),
         fetch('/api/coach/templates'),
+        fetch('/api/interventions'),
       ]);
 
       if (dashRes.ok) {
         const d = await dashRes.json();
         setProfile(d.profile || null);
         setSummary(d.summary || null);
+        setCoachKpis(d.coachKpis || null);
         setProfileForm({
           display_name: d.profile?.display_name || '',
           bio: d.profile?.bio || '',
@@ -372,10 +409,11 @@ export default function CoachCommandCenter() {
           certifications: (d.profile?.certifications || []).join(', '),
         });
       }
-      if (relRes.ok) { const d = await relRes.json(); setRelationships(d.relationships || []); }
-      if (protoRes.ok) { const d = await protoRes.json(); setProtocols(d.protocols || []); }
+      if (relRes.ok) { const d = await relRes.json(); setRelationships(d.relationships || []); setRelationshipMeta({ atRiskAthletes: d.atRiskAthletes || 0, avgCommunicationSlaHours: d.avgCommunicationSlaHours ?? null }); }
+      if (protoRes.ok) { const d = await protoRes.json(); setProtocols(d.protocols || []); setProtocolMeta({ adherenceByAthlete: d.adherenceByAthlete || [], adherenceByInterventionType: d.adherenceByInterventionType || [], subjectiveTrendVsDose: d.subjectiveTrendVsDose || [] }); }
       if (invRes.ok) { const d = await invRes.json(); setInvitations(d.invitations || []); }
       if (tplRes.ok) { const d = await tplRes.json(); setTemplates(d.templates || []); setSharedTemplates(d.sharedTemplates || []); }
+      if (loadRes.ok) { const d = await loadRes.json(); setSessionLoad(d.sessionLoad || { daily: 0, rollingWeekly: 0 }); }
 
       setLoading(false);
     }
@@ -543,6 +581,19 @@ export default function CoachCommandCenter() {
     setProfileMsg('Profile saved.');
   }
 
+
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const stored = window.localStorage.getItem('coach-command-center-view');
+    if (stored === 'basic' || stored === 'advanced') setViewMode(stored);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem('coach-command-center-view', viewMode);
+  }, [viewMode]);
+
   const navLinks = appMenuLinks;
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -603,7 +654,7 @@ export default function CoachCommandCenter() {
             <NavMenu label="Navigation" links={navLinks} primaryLink={{ href: '/dashboard', label: 'Home', variant: 'secondary' }} />
           </div>
 
-          <DashboardTabs activeHref="/coach-command-center" tabs={[{ href: '/coach-command-center', label: 'Command Center' }, { href: '/coaches', label: 'Classic View' }]} />
+          <DashboardTabs activeHref="/coach-command-center" tabs={[{ href: '/coach-command-center', label: 'Coach Command Center' }]} />
 
           {/* Hero */}
           <section className="overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(140deg,#1b2421_0%,#26332f_42%,#857056_100%)] p-6 text-white md:p-10">
@@ -623,7 +674,20 @@ export default function CoachCommandCenter() {
                 <SummaryCard label="Active protocols" value={summary?.active_protocols} />
                 <SummaryCard label="Need attention" value={summary?.athletes_needing_attention} accent="text-amber-300" />
                 <SummaryCard label="Races in 30d" value={summary?.upcoming_races} accent="text-emerald-300" />
+                <SummaryCard label="Daily load" value={sessionLoad.daily} />
+                <SummaryCard label="7D load" value={sessionLoad.rollingWeekly} />
               </div>
+            </div>
+          </section>
+
+
+
+          <section className="mt-6 rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+            <p className="text-sm uppercase tracking-[0.25em] text-accent">Coach KPIs</p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <SummaryCard label="At-risk athletes" value={relationshipMeta.atRiskAthletes} accent="text-amber-400" />
+              <SummaryCard label="Intervention lift" value={coachKpis?.intervention_lift_score ?? '—'} accent="text-emerald-300" />
+              <SummaryCard label="Comm SLA (hrs)" value={relationshipMeta.avgCommunicationSlaHours ?? '—'} accent="text-sky-300" />
             </div>
           </section>
 
@@ -644,8 +708,48 @@ export default function CoachCommandCenter() {
             ))}
           </div>
 
-          {/* ── ROSTER TAB ────────────────────────────────────────────────── */}
-          {activeTab === 'roster' && (
+
+          <div className="mt-4 flex items-center justify-between rounded-2xl border border-ink/10 bg-white p-3">
+            <p className="text-xs uppercase tracking-[0.22em] text-ink/55">Screen depth</p>
+            <div className="inline-flex rounded-full border border-ink/10 bg-paper p-1">
+              {['basic', 'advanced'].map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setViewMode(mode)}
+                  className={`rounded-full px-3 py-1.5 text-xs font-semibold capitalize ${
+                    viewMode === mode ? 'bg-panel text-paper' : 'text-ink/65'
+                  }`}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {viewMode === 'advanced' && (
+            <section className="mt-4 rounded-[24px] border border-ink/10 bg-white p-4">
+              <p className="text-xs uppercase tracking-[0.25em] text-accent">Advanced workspace</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {[
+                  { id: 'protocols', label: 'Protocol Actions' },
+                  { id: 'invitations', label: 'Invitations' },
+                  { id: 'templates', label: 'Templates' },
+                  { id: 'settings', label: 'Profile Settings' },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setAdvancedOpen(item.id)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-semibold ${advancedOpen === item.id ? 'bg-panel text-paper' : 'border border-ink/10 text-ink/70'}`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* ── TRIAGE TAB ────────────────────────────────────────────────── */}
+          {activeTab === 'triage' && (
             <div className="mt-8 space-y-6">
               {relationships.filter((r) => r.status === 'active').length === 0 ? (
                 <EmptyStateCard
@@ -686,6 +790,15 @@ export default function CoachCommandCenter() {
                                 {rel.alertLevel.charAt(0).toUpperCase() + rel.alertLevel.slice(1)}
                               </span>
                             </div>
+                            {rel.flagReasons?.length ? (
+                              <div className="mt-3 rounded-2xl border border-ink/10 bg-white/80 p-3">
+                                <p className="text-xs font-semibold text-ink/75">Why flagged:</p>
+                                <p className="mt-1 text-xs text-ink/70">{rel.flagReasons[0]}</p>
+                                <p className="mt-1 text-xs text-ink/60">Action: {rel.flagSuggestion}</p>
+                              </div>
+                            ) : (
+                              <p className="mt-3 text-xs text-ink/55">Why flagged: No active risk signal.</p>
+                            )}
                             {activeProto && (
                               <p className="mt-3 text-xs text-ink/65">
                                 Protocol: {activeProto.protocol_name} · {activeProto.status}
@@ -697,7 +810,7 @@ export default function CoachCommandCenter() {
                     </div>
                   </div>
 
-                  {/* Full roster table */}
+                  {/* Load trends snapshot */}
                   <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
                     <div className="flex items-center justify-between">
                       <p className="text-sm uppercase tracking-[0.25em] text-accent">Full roster</p>
@@ -738,11 +851,27 @@ export default function CoachCommandCenter() {
                                   </td>
                                   <td className="py-4 pr-5 text-ink/65">{daysLabel(rel.daysSinceLog)}</td>
                                   <td className="py-4 pr-5">
-                                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${alertBadge(rel.alertLevel)}`}>
-                                      {rel.alertLevel.charAt(0).toUpperCase() + rel.alertLevel.slice(1)}
-                                    </span>
+                                    <div className="flex items-center gap-2">
+                                      <span className={`rounded-full px-3 py-1 text-xs font-semibold ${alertBadge(rel.alertLevel)}`}>
+                                        {rel.alertLevel.charAt(0).toUpperCase() + rel.alertLevel.slice(1)}
+                                      </span>
+                                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${toneClass(rel.loadStatus?.tone)}`}>{rel.loadStatus?.label || 'Unknown'}</span>
+                                    </div>
+                                    <div className="mt-2"><MiniSparkline points={rel.loadMetrics?.sparkline || []} /></div>
                                   </td>
-                                  <td className="py-4 text-ink/65">{activeProto?.protocol_name || '—'}</td>
+                                  <td className="py-4 text-ink/65">
+                                    <div>{activeProto?.protocol_name || '—'}</div>
+                                    <div className="mt-2 flex gap-2">
+                                      <input
+                                        value={quickNoteByAthlete[rel.athlete_id]?.content || ''}
+                                        onClick={(e) => e.stopPropagation()}
+                                        onChange={(e) => setQuickNoteByAthlete((m) => ({ ...m, [rel.athlete_id]: { ...(m[rel.athlete_id] || { note_type: 'daily', share_with_athlete: false }), content: e.target.value } }))}
+                                        placeholder="Quick note…"
+                                        className="w-44 rounded-lg border border-ink/10 px-2 py-1 text-xs"
+                                      />
+                                      <button onClick={async (e) => { e.stopPropagation(); const draft = quickNoteByAthlete[rel.athlete_id]; if (!draft?.content?.trim()) return; const ok = await handleAddNote({ athlete_id: rel.athlete_id, note_type: draft.note_type || 'daily', content: draft.content, share_with_athlete: !!draft.share_with_athlete, tags: extractTags(draft.content) }); if (ok) setQuickNoteByAthlete((m) => ({ ...m, [rel.athlete_id]: { ...m[rel.athlete_id], content: '' } })); }} className="rounded-lg bg-panel px-2 py-1 text-xs font-semibold text-paper">Add</button>
+                                    </div>
+                                  </td>
                                 </tr>
                               );
                             })}
@@ -756,7 +885,7 @@ export default function CoachCommandCenter() {
           )}
 
           {/* ── PROTOCOLS TAB ─────────────────────────────────────────────── */}
-          {activeTab === 'protocols' && (
+          {activeTab === 'load-trends' && viewMode === 'advanced' && advancedOpen === 'protocols' && (
             <div className="mt-8 space-y-6">
               {protocols.length === 0 ? (
                 <EmptyStateCard icon="clipboard" title="No protocols assigned yet." body="Open an athlete from the Roster tab to assign their first protocol." />
@@ -799,7 +928,7 @@ export default function CoachCommandCenter() {
           )}
 
           {/* ── INVITATIONS TAB ───────────────────────────────────────────── */}
-          {activeTab === 'invitations' && (
+          {activeTab === 'notes' && viewMode === 'advanced' && advancedOpen === 'invitations' && (
             <div className="mt-8 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
               {/* Send invite form */}
               <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
@@ -869,7 +998,7 @@ export default function CoachCommandCenter() {
           )}
 
           {/* ── TEMPLATES TAB ─────────────────────────────────────────────── */}
-          {activeTab === 'templates' && (
+          {activeTab === 'alerts' && viewMode === 'advanced' && advancedOpen === 'templates' && (
             <div className="mt-8 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
               {/* Create template form */}
               <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
@@ -959,7 +1088,7 @@ export default function CoachCommandCenter() {
           )}
 
           {/* ── PROFILE/SETTINGS TAB ──────────────────────────────────────── */}
-          {activeTab === 'settings' && (
+          {activeTab === 'alerts' && viewMode === 'advanced' && advancedOpen === 'settings' && (
             <div className="mt-8 max-w-lg">
               <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
                 <div className="flex items-center justify-between">

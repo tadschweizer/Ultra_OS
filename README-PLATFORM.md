@@ -59,6 +59,25 @@ OUT OF SCOPE FOR CURRENT MVP: Mobile app, coach dashboard, social features, popu
 DECISION: Intervention logging is the core system of record for product value - REASON: the business moat is the intervention dataset, not generic workout history - DATE: 2026-03-21
 DECISION: Strava activity context is in scope before AI features - REASON: linked activity context improves intervention data quality and reduces logging friction - DATE: 2026-03-21
 DECISION: AI insight blocks remain placeholder UI only until higher-quality intervention and race context data is captured - REASON: shipping analysis before the dataset is structured would create low-trust output - DATE: 2026-03-21
+DECISION: TrainingPeaks migration must include a migration completeness surface (transferred vs manual mapping) before broad athlete onboarding - REASON: migration transparency is required for data trust and supportability - DATE: 2026-04-30
+DECISION: Parity matrix gates roadmap priority; table-stakes parity ships before advanced differentiation features - REASON: execution quality on core coaching workflows is a prerequisite for retention - DATE: 2026-04-30
+
+## TrainingPeaks Parity Matrix (Table-Stakes)
+Legend: ✅ parity-ready · 🟡 partial/in progress · ❌ missing
+
+| Domain | Capability | Status | Notes / Next Action |
+|---|---|---|---|
+| Planning | Athlete history ingestion | 🟡 | Initial import flow in connections; needs production API + job monitoring. |
+| Planning | Planned workouts / protocol mapping | 🟡 | Core mapping pass exists; custom TP fields still need manual mapping support. |
+| Planning | Migration completeness visibility | ✅ | UI exists to show transferred vs manual mapping requirements. |
+| Execution Tracking | Session execution logging | ✅ | Intervention log supports per-session outcomes today. |
+| Execution Tracking | Planned vs completed reconciliation | ❌ | Build daily/weekly reconciliation views tied to mapped workout IDs. |
+| Coach Reporting | Multi-athlete import health | ❌ | Add coach/admin dashboard cards for migration completion by athlete. |
+| Coach Reporting | Compliance and adherence rollups | 🟡 | Basic coach dashboard exists; adherence and completion exports not complete. |
+| Athlete Communication | Import issue prompts | 🟡 | Migration completeness UI highlights manual mapping needs; add outbound notifications. |
+| Athlete Communication | Coach-athlete follow-up workflows | ❌ | Add coach tasks/messages tied to missing mapping rows. |
+
+Roadmap rule: any ❌ in this matrix is prioritized before advanced differentiation work (AI personalization, novel analytics, or premium visualizations).
 
 ## Current Developer / Contractor
 [NAME, ROLE, HOURLY RATE, HOURS/WEEK, START DATE, CONTRACT TERMS]
