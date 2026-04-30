@@ -19,10 +19,10 @@ const NOTE_TYPES = [
 ];
 
 const TABS = [
-  { id: 'roster', label: 'Roster' },
-  { id: 'protocols', label: 'Protocols' },
+  { id: 'roster', label: 'Roster + Triage' },
+  { id: 'protocols', label: 'Protocol Assignment' },
   { id: 'invitations', label: 'Invitations' },
-  { id: 'templates', label: 'Templates' },
+  { id: 'templates', label: 'Notes & Templates' },
   { id: 'settings', label: 'Profile' },
 ];
 
@@ -274,6 +274,9 @@ export default function CoachCommandCenter() {
   // Data state
   const [profile, setProfile] = useState(null);
   const [summary, setSummary] = useState(null);
+  const [coachKpis, setCoachKpis] = useState(null);
+  const [relationshipMeta, setRelationshipMeta] = useState({ atRiskAthletes: 0, avgCommunicationSlaHours: null });
+  const [protocolMeta, setProtocolMeta] = useState({ adherenceByAthlete: [], adherenceByInterventionType: [], subjectiveTrendVsDose: [] });
   const [relationships, setRelationships] = useState([]);
   const [protocols, setProtocols] = useState([]);
   const [invitations, setInvitations] = useState([]);
@@ -317,6 +320,7 @@ export default function CoachCommandCenter() {
         const d = await dashRes.json();
         setProfile(d.profile || null);
         setSummary(d.summary || null);
+        setCoachKpis(d.coachKpis || null);
         setProfileForm({
           display_name: d.profile?.display_name || '',
           bio: d.profile?.bio || '',
@@ -324,8 +328,8 @@ export default function CoachCommandCenter() {
           certifications: (d.profile?.certifications || []).join(', '),
         });
       }
-      if (relRes.ok) { const d = await relRes.json(); setRelationships(d.relationships || []); }
-      if (protoRes.ok) { const d = await protoRes.json(); setProtocols(d.protocols || []); }
+      if (relRes.ok) { const d = await relRes.json(); setRelationships(d.relationships || []); setRelationshipMeta({ atRiskAthletes: d.atRiskAthletes || 0, avgCommunicationSlaHours: d.avgCommunicationSlaHours ?? null }); }
+      if (protoRes.ok) { const d = await protoRes.json(); setProtocols(d.protocols || []); setProtocolMeta({ adherenceByAthlete: d.adherenceByAthlete || [], adherenceByInterventionType: d.adherenceByInterventionType || [], subjectiveTrendVsDose: d.subjectiveTrendVsDose || [] }); }
       if (invRes.ok) { const d = await invRes.json(); setInvitations(d.invitations || []); }
       if (tplRes.ok) { const d = await tplRes.json(); setTemplates(d.templates || []); setSharedTemplates(d.sharedTemplates || []); }
 
@@ -514,7 +518,7 @@ export default function CoachCommandCenter() {
             <NavMenu label="Navigation" links={navLinks} primaryLink={{ href: '/dashboard', label: 'Home', variant: 'secondary' }} />
           </div>
 
-          <DashboardTabs activeHref="/coach-command-center" tabs={[{ href: '/coach-command-center', label: 'Command Center' }, { href: '/coaches', label: 'Classic View' }]} />
+          <DashboardTabs activeHref="/coach-command-center" tabs={[{ href: '/coach-command-center', label: 'Coach Command Center' }]} />
 
           {/* Hero */}
           <section className="overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(140deg,#1b2421_0%,#26332f_42%,#857056_100%)] p-6 text-white md:p-10">
@@ -535,6 +539,17 @@ export default function CoachCommandCenter() {
                 <SummaryCard label="Need attention" value={summary?.athletes_needing_attention} accent="text-amber-300" />
                 <SummaryCard label="Races in 30d" value={summary?.upcoming_races} accent="text-emerald-300" />
               </div>
+            </div>
+          </section>
+
+
+
+          <section className="mt-6 rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+            <p className="text-sm uppercase tracking-[0.25em] text-accent">Coach KPIs</p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <SummaryCard label="At-risk athletes" value={relationshipMeta.atRiskAthletes} accent="text-amber-400" />
+              <SummaryCard label="Intervention lift" value={coachKpis?.intervention_lift_score ?? '—'} accent="text-emerald-300" />
+              <SummaryCard label="Comm SLA (hrs)" value={relationshipMeta.avgCommunicationSlaHours ?? '—'} accent="text-sky-300" />
             </div>
           </section>
 

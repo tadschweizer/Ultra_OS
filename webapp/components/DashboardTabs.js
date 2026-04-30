@@ -3,7 +3,7 @@ const defaultTabs = [
   { href: '/pricing', label: 'Pricing' },
   { href: '/explorer', label: 'Explorer' },
   { href: '/insights', label: 'Insights' },
-  { href: '/coaches', label: 'Coaches' },
+  { href: '/coach-command-center', label: 'Coach Command Center' },
   { href: '/connections', label: 'Connections' },
   { href: '/log-intervention', label: 'Intervention' },
   { href: '/history', label: 'Intervention History' },
