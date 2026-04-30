@@ -39,13 +39,34 @@ const sources = [
     action: 'Coming soon',
     enabled: false,
   },
+  {
+    name: 'Oura',
+    status: 'Coming soon',
+    href: '#',
+    action: 'Coming soon',
+    enabled: false,
+  },
+  {
+    name: 'Ultrahuman',
+    status: 'Coming soon',
+    href: '#',
+    action: 'Coming soon',
+    enabled: false,
+  },
+  {
+    name: 'CORE Body Temp',
+    status: 'Coming soon',
+    href: '#',
+    action: 'Coming soon',
+    enabled: false,
+  },
 ];
 
 export default function Connections() {
   const [athleteId, setAthleteId] = useState(null);
   const [athlete, setAthlete] = useState(null);
   const [notifyEmails, setNotifyEmails] = useState({});
-  const [notifySubmitted, setNotifySubmitted] = useState({});
+  const [notifyStatus, setNotifyStatus] = useState({});
   const navLinks = athleteId
     ? [
         { href: '/dashboard', label: 'Threshold Home', description: 'Insights, trends, and recent training.' },
@@ -84,11 +105,35 @@ export default function Connections() {
   const hasAnyConnections = Boolean(athlete?.strava_id);
   const stravaLastSeen = athlete?.strava_last_sync || athlete?.updated_at || null;
 
-  function handleNotifySubmit(sourceName) {
+  async function handleNotifySubmit(sourceName) {
     const email = (notifyEmails[sourceName] || '').trim();
-    if (!email) return;
-    // Store locally — a real implementation would POST to an API
-    setNotifySubmitted((prev) => ({ ...prev, [sourceName]: true }));
+    if (!email) {
+      setNotifyStatus((prev) => ({ ...prev, [sourceName]: { ok: false, message: 'Please enter an email address.' } }));
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/integration-interest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source: sourceName, email }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        setNotifyStatus((prev) => ({ ...prev, [sourceName]: { ok: false, message: payload.error || 'Unable to save interest.' } }));
+        return;
+      }
+
+      setNotifyStatus((prev) => ({
+        ...prev,
+        [sourceName]: {
+          ok: true,
+          message: payload.message || `Got it — we'll notify you when ${sourceName} is ready.`,
+        },
+      }));
+    } catch (error) {
+      setNotifyStatus((prev) => ({ ...prev, [sourceName]: { ok: false, message: 'Network error. Please try again.' } }));
+    }
   }
 
   return (
@@ -150,8 +195,6 @@ export default function Connections() {
                   <a href={source.href} className="mt-6 inline-flex rounded-full bg-ink px-5 py-3 text-sm font-semibold text-paper">
                     {source.name === 'Strava' && hasAnyConnections ? 'Reconnect' : source.action}
                   </a>
-                ) : notifySubmitted[source.name] ? (
-                  <p className="mt-4 text-sm font-semibold text-accent">Got it — we&apos;ll notify you when {source.name} is ready.</p>
                 ) : (
                   <div className="mt-4">
                     <p className="mb-2 text-xs text-ink/50">Get notified when {source.name} is available:</p>
@@ -171,6 +214,11 @@ export default function Connections() {
                         Notify me
                       </button>
                     </div>
+                    {notifyStatus[source.name] ? (
+                      <p className={`mt-3 text-sm font-semibold ${notifyStatus[source.name].ok ? 'text-accent' : 'text-red-700'}`}>
+                        {notifyStatus[source.name].message}
+                      </p>
+                    ) : null}
                   </div>
                 )}
               </article>
