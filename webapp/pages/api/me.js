@@ -1,6 +1,7 @@
 import { supabase } from '../../lib/supabaseClient';
 import cookie from 'cookie';
 import { buildUsageSnapshot, getSubscriptionTierLabel, normalizeSubscriptionTier } from '../../lib/subscriptionTiers';
+import { buildLoadMetrics, buildLoadStatus } from '../../lib/loadRollups';
 
 export const runtime = 'edge';
 
@@ -51,6 +52,27 @@ export default async function handler(req, res) {
     return;
   }
 
+
+  const [interventionLoadRes, activityLoadRes] = await Promise.all([
+    supabase
+      .from('interventions')
+      .select('date, inserted_at, dose_duration, subjective_feel')
+      .eq('athlete_id', athleteId)
+      .gte('inserted_at', new Date(Date.now() - 42 * 86400000).toISOString()),
+    supabase
+      .from('activities')
+      .select('start_date, moving_time, perceived_exertion')
+      .eq('athlete_id', athleteId)
+      .gte('start_date', new Date(Date.now() - 42 * 86400000).toISOString()),
+  ]);
+
+  const loadMetrics = buildLoadMetrics({
+    interventions: interventionLoadRes.data || [],
+    activities: activityLoadRes.data || [],
+    lookbackDays: 42,
+  });
+  const loadStatus = buildLoadStatus(loadMetrics);
+
   const normalizedTier = normalizeSubscriptionTier(athlete.subscription_tier);
   const normalizedAthlete = {
     ...athlete,
@@ -63,6 +85,8 @@ export default async function handler(req, res) {
     athlete: normalizedAthlete,
     interventionCount: count ?? 0,
     weeklyCheckIns: weeklyCheckIns ?? 0,
+    load_metrics: loadMetrics,
+    load_status: loadStatus,
     usage: buildUsageSnapshot({
       athlete: normalizedAthlete,
       interventionCount: count ?? 0,

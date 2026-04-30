@@ -1,6 +1,7 @@
 import cookie from 'cookie';
 import { supabase } from '../../../lib/supabaseClient';
 import { generateCoachCode } from '../../../lib/coachProtocols';
+import { buildLoadMetrics, buildLoadStatus } from '../../../lib/loadRollups';
 
 export const runtime = 'edge';
 
@@ -58,11 +59,11 @@ export default async function handler(req, res) {
       let athletes = [];
       let lastLogs = [];
       let upcomingRaces = [];
-      let allLogs = [];
-      let coachNotes = [];
+      let loadInterventions = [];
+      let loadActivities = [];
 
       if (athleteIds.length) {
-        const [athleteRes, interventionRes, raceRes, allInterventionsRes, coachNotesRes] = await Promise.all([
+        const [athleteRes, interventionRes, loadInterventionRes, loadActivityRes, raceRes] = await Promise.all([
           supabase
             .from('athletes')
             .select('id, name, email, primary_sports, target_race_id')
@@ -72,6 +73,16 @@ export default async function handler(req, res) {
             .select('athlete_id, date, inserted_at')
             .in('athlete_id', athleteIds)
             .order('inserted_at', { ascending: false }),
+          supabase
+            .from('interventions')
+            .select('athlete_id, date, inserted_at, dose_duration, subjective_feel')
+            .in('athlete_id', athleteIds)
+            .gte('inserted_at', new Date(Date.now() - 42 * 86400000).toISOString()),
+          supabase
+            .from('activities')
+            .select('athlete_id, start_date, moving_time, perceived_exertion')
+            .in('athlete_id', athleteIds)
+            .gte('start_date', new Date(Date.now() - 42 * 86400000).toISOString()),
           supabase
             .from('races')
             .select('id, athlete_id, name, event_date, race_type, distance_miles')
@@ -93,6 +104,8 @@ export default async function handler(req, res) {
 
         athletes = athleteRes.data || [];
         lastLogs = interventionRes.data || [];
+        loadInterventions = loadInterventionRes.data || [];
+        loadActivities = loadActivityRes.data || [];
         upcomingRaces = raceRes.data || [];
         allLogs = allInterventionsRes.data || [];
         coachNotes = coachNotesRes.data || [];
@@ -102,6 +115,12 @@ export default async function handler(req, res) {
         const athlete = athletes.find((a) => a.id === rel.athlete_id) || null;
         const lastLog = lastLogs.find((l) => l.athlete_id === rel.athlete_id) || null;
         const nextRace = upcomingRaces.find((r) => r.athlete_id === rel.athlete_id) || null;
+        const loadMetrics = buildLoadMetrics({
+          interventions: loadInterventions.filter((item) => item.athlete_id === rel.athlete_id),
+          activities: loadActivities.filter((item) => item.athlete_id === rel.athlete_id),
+          lookbackDays: 42,
+        });
+        const loadStatus = buildLoadStatus(loadMetrics);
 
         const lastLogDate = lastLog?.date || lastLog?.inserted_at?.slice(0, 10) || null;
         const daysSinceLog = lastLogDate
@@ -112,20 +131,7 @@ export default async function handler(req, res) {
         if (daysSinceLog === null || daysSinceLog >= 7) alertLevel = 'red';
         else if (daysSinceLog >= 4) alertLevel = 'yellow';
 
-        const athleteLogs = allLogs.filter((l) => l.athlete_id === rel.athlete_id).sort((a, b) => new Date(b.date || b.inserted_at) - new Date(a.date || a.inserted_at));
-        const last3 = athleteLogs.slice(0, 3).map((l) => l.subjective_feel).filter((v) => v !== null && v !== undefined);
-        const prev3 = athleteLogs.slice(3, 6).map((l) => l.subjective_feel).filter((v) => v !== null && v !== undefined);
-        const decliningRecoveryBeforeMissedWorkouts = last3.length >= 2 && prev3.length >= 2
-          ? (last3.reduce((a, b) => a + b, 0) / last3.length) + 1.0 < (prev3.reduce((a, b) => a + b, 0) / prev3.length) && daysSinceLog >= 2
-          : false;
-
-        const lastAthleteLogAt = athleteLogs[0]?.inserted_at;
-        const firstCoachResponse = coachNotes.find((n) => n.athlete_id === rel.athlete_id && (!lastAthleteLogAt || new Date(n.created_at) >= new Date(lastAthleteLogAt)));
-        const communicationSlaHours = lastAthleteLogAt && firstCoachResponse
-          ? Math.round((new Date(firstCoachResponse.created_at) - new Date(lastAthleteLogAt)) / 36e5)
-          : null;
-
-        return { ...rel, athlete, lastLogDate, daysSinceLog, nextRace, alertLevel, decliningRecoveryBeforeMissedWorkouts, communicationSlaHours };
+        return { ...rel, athlete, lastLogDate, daysSinceLog, nextRace, alertLevel, loadMetrics, loadStatus };
       });
 
       const atRiskAthletes = enriched.filter((r) => r.alertLevel === 'red' || r.decliningRecoveryBeforeMissedWorkouts).length;

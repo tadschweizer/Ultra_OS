@@ -54,6 +54,20 @@ function fmt(date) {
   return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+
+function toneClass(tone) {
+  if (tone === 'red') return 'bg-category-respiratory/50 text-ink';
+  if (tone === 'yellow') return 'bg-category-nutrition/70 text-ink';
+  return 'bg-category-sleep/55 text-ink';
+}
+
+function MiniSparkline({ points = [] }) {
+  if (!points.length) return <div className="h-8 w-24 rounded bg-paper" />;
+  const width = 96; const height = 28; const max = Math.max(...points.map((p) => p.load || 0), 1);
+  const poly = points.slice(-14).map((p, i, arr) => `${(i / Math.max(arr.length - 1, 1)) * width},${height - ((p.load || 0) / max) * (height - 2)}`).join(' ');
+  return <svg viewBox={`0 0 ${width} ${height}`} className="h-8 w-24"><polyline fill="none" stroke="currentColor" strokeWidth="2" points={poly} className="text-ink/70" /></svg>;
+}
+
 function inviteUrl(token) {
   const base = typeof window !== 'undefined' ? window.location.origin : '';
   return `${base}/join?coach_invite=${token}`;
@@ -650,9 +664,13 @@ export default function CoachCommandCenter() {
                                   </td>
                                   <td className="py-4 pr-5 text-ink/65">{daysLabel(rel.daysSinceLog)}</td>
                                   <td className="py-4 pr-5">
-                                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${alertBadge(rel.alertLevel)}`}>
-                                      {rel.alertLevel.charAt(0).toUpperCase() + rel.alertLevel.slice(1)}
-                                    </span>
+                                    <div className="flex items-center gap-2">
+                                      <span className={`rounded-full px-3 py-1 text-xs font-semibold ${alertBadge(rel.alertLevel)}`}>
+                                        {rel.alertLevel.charAt(0).toUpperCase() + rel.alertLevel.slice(1)}
+                                      </span>
+                                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${toneClass(rel.loadStatus?.tone)}`}>{rel.loadStatus?.label || 'Unknown'}</span>
+                                    </div>
+                                    <div className="mt-2"><MiniSparkline points={rel.loadMetrics?.sparkline || []} /></div>
                                   </td>
                                   <td className="py-4 text-ink/65">{activeProto?.protocol_name || '—'}</td>
                                 </tr>
