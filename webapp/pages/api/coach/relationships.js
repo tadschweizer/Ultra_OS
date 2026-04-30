@@ -58,9 +58,11 @@ export default async function handler(req, res) {
       let athletes = [];
       let lastLogs = [];
       let upcomingRaces = [];
+      let allLogs = [];
+      let coachNotes = [];
 
       if (athleteIds.length) {
-        const [athleteRes, interventionRes, raceRes] = await Promise.all([
+        const [athleteRes, interventionRes, raceRes, allInterventionsRes, coachNotesRes] = await Promise.all([
           supabase
             .from('athletes')
             .select('id, name, email, primary_sports, target_race_id')
@@ -76,11 +78,24 @@ export default async function handler(req, res) {
             .in('athlete_id', athleteIds)
             .gte('event_date', new Date().toISOString().slice(0, 10))
             .order('event_date', { ascending: true }),
+          supabase
+            .from('interventions')
+            .select('athlete_id, date, subjective_feel, inserted_at')
+            .in('athlete_id', athleteIds)
+            .order('date', { ascending: false }),
+          supabase
+            .from('coach_notes')
+            .select('athlete_id, created_at')
+            .eq('coach_id', profile.id)
+            .in('athlete_id', athleteIds)
+            .order('created_at', { ascending: false }),
         ]);
 
         athletes = athleteRes.data || [];
         lastLogs = interventionRes.data || [];
         upcomingRaces = raceRes.data || [];
+        allLogs = allInterventionsRes.data || [];
+        coachNotes = coachNotesRes.data || [];
       }
 
       const enriched = (relationships || []).map((rel) => {
@@ -97,10 +112,31 @@ export default async function handler(req, res) {
         if (daysSinceLog === null || daysSinceLog >= 7) alertLevel = 'red';
         else if (daysSinceLog >= 4) alertLevel = 'yellow';
 
-        return { ...rel, athlete, lastLogDate, daysSinceLog, nextRace, alertLevel };
+        const athleteLogs = allLogs.filter((l) => l.athlete_id === rel.athlete_id).sort((a, b) => new Date(b.date || b.inserted_at) - new Date(a.date || a.inserted_at));
+        const last3 = athleteLogs.slice(0, 3).map((l) => l.subjective_feel).filter((v) => v !== null && v !== undefined);
+        const prev3 = athleteLogs.slice(3, 6).map((l) => l.subjective_feel).filter((v) => v !== null && v !== undefined);
+        const decliningRecoveryBeforeMissedWorkouts = last3.length >= 2 && prev3.length >= 2
+          ? (last3.reduce((a, b) => a + b, 0) / last3.length) + 1.0 < (prev3.reduce((a, b) => a + b, 0) / prev3.length) && daysSinceLog >= 2
+          : false;
+
+        const lastAthleteLogAt = athleteLogs[0]?.inserted_at;
+        const firstCoachResponse = coachNotes.find((n) => n.athlete_id === rel.athlete_id && (!lastAthleteLogAt || new Date(n.created_at) >= new Date(lastAthleteLogAt)));
+        const communicationSlaHours = lastAthleteLogAt && firstCoachResponse
+          ? Math.round((new Date(firstCoachResponse.created_at) - new Date(lastAthleteLogAt)) / 36e5)
+          : null;
+
+        return { ...rel, athlete, lastLogDate, daysSinceLog, nextRace, alertLevel, decliningRecoveryBeforeMissedWorkouts, communicationSlaHours };
       });
 
-      res.status(200).json({ relationships: enriched, profile });
+      const atRiskAthletes = enriched.filter((r) => r.alertLevel === 'red' || r.decliningRecoveryBeforeMissedWorkouts).length;
+      const communicationSlaHours = enriched
+        .map((r) => r.communicationSlaHours)
+        .filter((v) => v !== null && v !== undefined);
+      const avgCommunicationSlaHours = communicationSlaHours.length
+        ? Math.round(communicationSlaHours.reduce((a, b) => a + b, 0) / communicationSlaHours.length)
+        : null;
+
+      res.status(200).json({ relationships: enriched, profile, atRiskAthletes, avgCommunicationSlaHours });
       return;
     }
 
