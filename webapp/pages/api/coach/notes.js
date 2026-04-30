@@ -39,6 +39,23 @@ async function ensureCoachProfile(athleteId) {
   return data;
 }
 
+function normalizeEvidenceCards(rawCards) {
+  if (!Array.isArray(rawCards)) return [];
+  return rawCards
+    .map((card) => ({
+      type: card?.type,
+      title: card?.title?.trim() || null,
+      value: card?.value?.trim() || null,
+      source_ref: card?.source_ref?.trim() || null,
+    }))
+    .filter((card) => VALID_EVIDENCE_TYPES.includes(card.type));
+}
+
+function buildThreadKey({ athleteId, protocolAssignmentId, workoutId, workoutDate }) {
+  const datePart = workoutDate || 'none';
+  return `${athleteId}::${protocolAssignmentId || 'none'}::${workoutId || 'none'}::${datePart}`;
+}
+
 export default async function handler(req, res) {
   const athleteId = getAthleteId(req);
   if (!athleteId) { res.status(401).json({ error: 'Not authenticated' }); return; }
@@ -46,7 +63,6 @@ export default async function handler(req, res) {
   try {
     const profile = await ensureCoachProfile(athleteId);
 
-    // ── GET: list notes, filtered by athlete_id ─────────────────────────────
     if (req.method === 'GET') {
       const filterAthleteId = typeof req.query.athlete_id === 'string' ? req.query.athlete_id : null;
       if (!filterAthleteId) {
@@ -71,14 +87,19 @@ export default async function handler(req, res) {
 
       const { data, error: queryError } = await query
         .order('is_pinned', { ascending: false })
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: true });
+
+      if (protocolAssignmentId) query = query.eq('protocol_assignment_id', protocolAssignmentId);
+      if (workoutId) query = query.eq('workout_id', workoutId);
+      if (workoutDate) query = query.eq('workout_date', workoutDate);
+
+      const { data, error } = await query;
 
       if (queryError) { res.status(500).json({ error: queryError.message }); return; }
       res.status(200).json({ notes: data || [] });
       return;
     }
 
-    // ── POST: create a note ─────────────────────────────────────────────────
     if (req.method === 'POST') {
       const body = req.body || {};
       if (!body.athlete_id) { res.status(400).json({ error: 'athlete_id is required' }); return; }
@@ -97,6 +118,12 @@ export default async function handler(req, res) {
           note_type: body.note_type,
           related_intervention_id: body.related_intervention_id || null,
           related_protocol_id: body.related_protocol_id || null,
+          protocol_assignment_id: protocolAssignmentId,
+          workout_id: workoutId,
+          workout_date: workoutDate,
+          parent_note_id: body.parent_note_id || null,
+          thread_key: buildThreadKey({ athleteId: body.athlete_id, protocolAssignmentId, workoutId, workoutDate }),
+          evidence_cards: evidenceCards,
           is_pinned: body.is_pinned === true,
           share_with_athlete: body.share_with_athlete === true,
           athlete_read_at: body.athlete_read_at || null,
@@ -110,7 +137,6 @@ export default async function handler(req, res) {
       return;
     }
 
-    // ── PATCH: update content, type, pin status ─────────────────────────────
     if (req.method === 'PATCH') {
       const body = req.body || {};
       if (!body.id) { res.status(400).json({ error: 'id is required' }); return; }
@@ -124,6 +150,11 @@ export default async function handler(req, res) {
         }
         updates.note_type = body.note_type;
       }
+      if (body.protocol_assignment_id !== undefined) updates.protocol_assignment_id = body.protocol_assignment_id || null;
+      if (body.workout_id !== undefined) updates.workout_id = body.workout_id || null;
+      if (body.workout_date !== undefined) updates.workout_date = body.workout_date || null;
+      if (body.parent_note_id !== undefined) updates.parent_note_id = body.parent_note_id || null;
+      if (body.evidence_cards !== undefined) updates.evidence_cards = normalizeEvidenceCards(body.evidence_cards);
       if (body.is_pinned !== undefined) updates.is_pinned = Boolean(body.is_pinned);
       if (body.share_with_athlete !== undefined) updates.share_with_athlete = Boolean(body.share_with_athlete);
       if (body.athlete_read_at !== undefined) updates.athlete_read_at = body.athlete_read_at;
@@ -143,7 +174,6 @@ export default async function handler(req, res) {
       return;
     }
 
-    // ── DELETE: remove a note ───────────────────────────────────────────────
     if (req.method === 'DELETE') {
       const id = req.query.id || req.body?.id;
       if (!id) { res.status(400).json({ error: 'id is required' }); return; }
