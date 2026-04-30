@@ -19,10 +19,10 @@ const NOTE_TYPES = [
 ];
 
 const TABS = [
-  { id: 'roster', label: 'Roster' },
-  { id: 'protocols', label: 'Protocols' },
+  { id: 'roster', label: 'Roster + Triage' },
+  { id: 'protocols', label: 'Protocol Assignment' },
   { id: 'invitations', label: 'Invitations' },
-  { id: 'templates', label: 'Templates' },
+  { id: 'templates', label: 'Notes & Templates' },
   { id: 'settings', label: 'Profile' },
 ];
 
@@ -504,7 +504,7 @@ export default function CoachCommandCenter() {
             <NavMenu label="Navigation" links={navLinks} primaryLink={{ href: '/dashboard', label: 'Home', variant: 'secondary' }} />
           </div>
 
-          <DashboardTabs activeHref="/coach-command-center" tabs={[{ href: '/coach-command-center', label: 'Command Center' }, { href: '/coaches', label: 'Classic View' }]} />
+          <DashboardTabs activeHref="/coach-command-center" tabs={[{ href: '/coach-command-center', label: 'Coach Command Center' }]} />
 
           {/* Hero */}
           <section className="overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(140deg,#1b2421_0%,#26332f_42%,#857056_100%)] p-6 text-white md:p-10">
