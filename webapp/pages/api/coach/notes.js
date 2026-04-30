@@ -4,15 +4,7 @@ import { generateCoachCode } from '../../../lib/coachProtocols';
 
 export const runtime = 'edge';
 
-const VALID_NOTE_TYPES = ['observation', 'flag', 'reminder', 'race_debrief'];
-const VALID_EVIDENCE_TYPES = ['sleep_dip', 'hrv_trend', 'compliance_miss'];
-const QUICK_COACH_PROMPT_TEMPLATES = [
-  'How did legs feel after heat block day 4?',
-  "Any unusual soreness after today's intensity?",
-  'Did fueling match the protocol targets?',
-  'How was sleep quality before this workout?',
-];
-
+const VALID_NOTE_TYPES = ['observation', 'flag', 'reminder', 'race_debrief', 'daily', 'weekly', 'timeline'];
 
 function getAthleteId(req) {
   return cookie.parse(req.headers.cookie || '').athlete_id;
@@ -78,15 +70,22 @@ export default async function handler(req, res) {
         return;
       }
 
-      const protocolAssignmentId = typeof req.query.protocol_assignment_id === 'string' ? req.query.protocol_assignment_id : null;
-      const workoutId = typeof req.query.workout_id === 'string' ? req.query.workout_id : null;
-      const workoutDate = typeof req.query.workout_date === 'string' ? req.query.workout_date : null;
-
       let query = supabase
         .from('coach_notes')
-        .select('id, athlete_id, content, note_type, related_intervention_id, related_protocol_id, protocol_assignment_id, workout_id, workout_date, is_pinned, created_at, parent_note_id, thread_key, evidence_cards')
+        .select('id, athlete_id, content, note_type, related_intervention_id, related_protocol_id, is_pinned, created_at, share_with_athlete, athlete_read_at, tags')
         .eq('coach_id', profile.id)
-        .eq('athlete_id', filterAthleteId)
+        .eq('athlete_id', filterAthleteId);
+
+      if (typeof req.query.pinned === 'string') query = query.eq('is_pinned', req.query.pinned === 'true');
+      if (typeof req.query.note_type === 'string' && VALID_NOTE_TYPES.includes(req.query.note_type)) query = query.eq('note_type', req.query.note_type);
+      if (typeof req.query.from === 'string') query = query.gte('created_at', req.query.from);
+      if (typeof req.query.to === 'string') query = query.lte('created_at', req.query.to);
+      if (typeof req.query.share_with_athlete === 'string') query = query.eq('share_with_athlete', req.query.share_with_athlete === 'true');
+
+      const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
+      if (search) query = query.or(`content.ilike.%${search}%,tags.cs.{${search}}`);
+
+      const { data, error } = await query
         .order('is_pinned', { ascending: false })
         .order('created_at', { ascending: true });
 
@@ -131,6 +130,9 @@ export default async function handler(req, res) {
           thread_key: buildThreadKey({ athleteId: body.athlete_id, protocolAssignmentId, workoutId, workoutDate }),
           evidence_cards: evidenceCards,
           is_pinned: body.is_pinned === true,
+          share_with_athlete: body.share_with_athlete === true,
+          athlete_read_at: body.athlete_read_at || null,
+          tags: Array.isArray(body.tags) ? body.tags.map((t) => String(t).trim()).filter(Boolean) : null,
         })
         .select('*')
         .single();
@@ -159,6 +161,10 @@ export default async function handler(req, res) {
       if (body.parent_note_id !== undefined) updates.parent_note_id = body.parent_note_id || null;
       if (body.evidence_cards !== undefined) updates.evidence_cards = normalizeEvidenceCards(body.evidence_cards);
       if (body.is_pinned !== undefined) updates.is_pinned = Boolean(body.is_pinned);
+      if (body.share_with_athlete !== undefined) updates.share_with_athlete = Boolean(body.share_with_athlete);
+      if (body.athlete_read_at !== undefined) updates.athlete_read_at = body.athlete_read_at;
+      if (body.mark_read === true) updates.athlete_read_at = new Date().toISOString();
+      if (body.tags !== undefined) updates.tags = Array.isArray(body.tags) ? body.tags.map((t) => String(t).trim()).filter(Boolean) : null;
 
       if (updates.protocol_assignment_id !== undefined || updates.workout_id !== undefined || updates.workout_date !== undefined) {
         const { data: existing } = await supabase.from('coach_notes').select('athlete_id, protocol_assignment_id, workout_id, workout_date').eq('id', body.id).eq('coach_id', profile.id).maybeSingle();
