@@ -48,10 +48,10 @@ const sources = [
   },
   {
     name: 'TrainingPeaks',
-    status: 'Coming soon',
-    href: '#',
-    action: 'Coming soon',
-    enabled: false,
+    status: 'Beta import',
+    href: '#tp-import',
+    action: 'Review import',
+    enabled: true,
   },
   {
     name: 'Oura',
@@ -118,6 +118,23 @@ export default function Connections() {
 
   const hasAnyConnections = Boolean(athlete?.strava_id);
   const stravaLastSeen = athlete?.strava_last_sync || athlete?.updated_at || null;
+  const migrationSections = [
+    {
+      label: 'Athlete history ingestion',
+      status: 'transferred',
+      detail: 'Historical workouts and key metadata imported from TrainingPeaks.',
+    },
+    {
+      label: 'Planned workouts / protocol mapping',
+      status: 'partial',
+      detail: 'Mapped core workout types. Some custom TP fields require manual mapping.',
+    },
+    {
+      label: 'Custom fields + tags',
+      status: 'manual',
+      detail: 'Manual mapping needed for custom fields before they can be used in insights.',
+    },
+  ];
 
   async function handleNotifySubmit(sourceName) {
     const email = (notifyEmails[sourceName] || '').trim();
@@ -179,6 +196,37 @@ export default function Connections() {
             </div>
           </div>
         </div>
+
+        <section id="tp-import" className="mb-8 rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="text-sm uppercase tracking-[0.22em] text-accent">TrainingPeaks Migration</p>
+              <h2 className="mt-2 text-2xl font-semibold">Migration completeness</h2>
+              <p className="mt-2 max-w-3xl text-sm text-ink/70">
+                Review exactly what transferred from TrainingPeaks and what still needs manual mapping before data is used in planning and insights.
+              </p>
+            </div>
+            <span className="rounded-full bg-paper px-4 py-2 text-xs uppercase tracking-[0.18em] text-ink/70">
+              2 of 3 sections complete
+            </span>
+          </div>
+          <div className="mt-5 space-y-3">
+            {migrationSections.map((section) => {
+              const isDone = section.status === 'transferred';
+              const isPartial = section.status === 'partial';
+              const badge = isDone ? 'Transferred' : isPartial ? 'Needs review' : 'Manual mapping required';
+              return (
+                <div key={section.label} className="rounded-2xl border border-ink/10 bg-paper/60 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="font-semibold text-ink">{section.label}</p>
+                    <span className="rounded-full bg-white px-3 py-1 text-xs text-ink/70">{badge}</span>
+                  </div>
+                  <p className="mt-2 text-sm text-ink/70">{section.detail}</p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
 
         {!hasAnyConnections && athleteId ? (
           <section className="mt-2">
