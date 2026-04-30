@@ -1,6 +1,7 @@
 import cookie from 'cookie';
 import { supabase } from '../../../lib/supabaseClient';
 import { generateCoachCode } from '../../../lib/coachProtocols';
+import { buildLoadMetrics, buildLoadStatus } from '../../../lib/loadRollups';
 
 export const runtime = 'edge';
 
@@ -58,9 +59,11 @@ export default async function handler(req, res) {
       let athletes = [];
       let lastLogs = [];
       let upcomingRaces = [];
+      let loadInterventions = [];
+      let loadActivities = [];
 
       if (athleteIds.length) {
-        const [athleteRes, interventionRes, raceRes] = await Promise.all([
+        const [athleteRes, interventionRes, loadInterventionRes, loadActivityRes, raceRes] = await Promise.all([
           supabase
             .from('athletes')
             .select('id, name, email, primary_sports, target_race_id')
@@ -71,22 +74,53 @@ export default async function handler(req, res) {
             .in('athlete_id', athleteIds)
             .order('inserted_at', { ascending: false }),
           supabase
+            .from('interventions')
+            .select('athlete_id, date, inserted_at, dose_duration, subjective_feel')
+            .in('athlete_id', athleteIds)
+            .gte('inserted_at', new Date(Date.now() - 42 * 86400000).toISOString()),
+          supabase
+            .from('activities')
+            .select('athlete_id, start_date, moving_time, perceived_exertion')
+            .in('athlete_id', athleteIds)
+            .gte('start_date', new Date(Date.now() - 42 * 86400000).toISOString()),
+          supabase
             .from('races')
             .select('id, athlete_id, name, event_date, race_type, distance_miles')
             .in('athlete_id', athleteIds)
             .gte('event_date', new Date().toISOString().slice(0, 10))
             .order('event_date', { ascending: true }),
+          supabase
+            .from('interventions')
+            .select('athlete_id, date, subjective_feel, inserted_at')
+            .in('athlete_id', athleteIds)
+            .order('date', { ascending: false }),
+          supabase
+            .from('coach_notes')
+            .select('athlete_id, created_at')
+            .eq('coach_id', profile.id)
+            .in('athlete_id', athleteIds)
+            .order('created_at', { ascending: false }),
         ]);
 
         athletes = athleteRes.data || [];
         lastLogs = interventionRes.data || [];
+        loadInterventions = loadInterventionRes.data || [];
+        loadActivities = loadActivityRes.data || [];
         upcomingRaces = raceRes.data || [];
+        allLogs = allInterventionsRes.data || [];
+        coachNotes = coachNotesRes.data || [];
       }
 
       const enriched = (relationships || []).map((rel) => {
         const athlete = athletes.find((a) => a.id === rel.athlete_id) || null;
         const lastLog = lastLogs.find((l) => l.athlete_id === rel.athlete_id) || null;
         const nextRace = upcomingRaces.find((r) => r.athlete_id === rel.athlete_id) || null;
+        const loadMetrics = buildLoadMetrics({
+          interventions: loadInterventions.filter((item) => item.athlete_id === rel.athlete_id),
+          activities: loadActivities.filter((item) => item.athlete_id === rel.athlete_id),
+          lookbackDays: 42,
+        });
+        const loadStatus = buildLoadStatus(loadMetrics);
 
         const lastLogDate = lastLog?.date || lastLog?.inserted_at?.slice(0, 10) || null;
         const daysSinceLog = lastLogDate
@@ -97,10 +131,18 @@ export default async function handler(req, res) {
         if (daysSinceLog === null || daysSinceLog >= 7) alertLevel = 'red';
         else if (daysSinceLog >= 4) alertLevel = 'yellow';
 
-        return { ...rel, athlete, lastLogDate, daysSinceLog, nextRace, alertLevel };
+        return { ...rel, athlete, lastLogDate, daysSinceLog, nextRace, alertLevel, loadMetrics, loadStatus };
       });
 
-      res.status(200).json({ relationships: enriched, profile });
+      const atRiskAthletes = enriched.filter((r) => r.alertLevel === 'red' || r.decliningRecoveryBeforeMissedWorkouts).length;
+      const communicationSlaHours = enriched
+        .map((r) => r.communicationSlaHours)
+        .filter((v) => v !== null && v !== undefined);
+      const avgCommunicationSlaHours = communicationSlaHours.length
+        ? Math.round(communicationSlaHours.reduce((a, b) => a + b, 0) / communicationSlaHours.length)
+        : null;
+
+      res.status(200).json({ relationships: enriched, profile, atRiskAthletes, avgCommunicationSlaHours });
       return;
     }
 

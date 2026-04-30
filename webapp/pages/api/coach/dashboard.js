@@ -1,6 +1,7 @@
 import cookie from 'cookie';
 import { supabase } from '../../../lib/supabaseClient';
 import { generateCoachCode } from '../../../lib/coachProtocols';
+import { buildLoadMetrics } from '../../../lib/loadRollups';
 
 export const runtime = 'edge';
 
@@ -53,14 +54,50 @@ export default async function handler(req, res) {
   try {
     const profile = await ensureCoachProfile(athleteId);
 
-    const { data, error } = await supabase.rpc('get_coach_dashboard_summary', {
-      coach_uuid: profile.id,
-    });
+    const [{ data, error }, kpiRes] = await Promise.all([
+      supabase.rpc('get_coach_dashboard_summary', { coach_uuid: profile.id }),
+      supabase.rpc('get_coach_kpi_rollup', { coach_uuid: profile.id }),
+    ]);
 
     if (error) { res.status(500).json({ error: error.message }); return; }
 
     const summary = (Array.isArray(data) ? data[0] : data) || emptySummary;
-    res.status(200).json({ summary, profile });
+
+    const { data: activeLinks } = await supabase
+      .from('coach_athlete_relationships')
+      .select('athlete_id')
+      .eq('coach_id', profile.id)
+      .eq('status', 'active');
+
+    const athleteIds = (activeLinks || []).map((item) => item.athlete_id);
+    let loadSummary = { acute: 0, chronic: 0, form: 0 };
+    if (athleteIds.length) {
+      const [interventionsRes, activitiesRes] = await Promise.all([
+        supabase
+          .from('interventions')
+          .select('athlete_id, date, inserted_at, dose_duration, subjective_feel')
+          .in('athlete_id', athleteIds)
+          .gte('inserted_at', new Date(Date.now() - 42 * 86400000).toISOString()),
+        supabase
+          .from('activities')
+          .select('athlete_id, start_date, moving_time, perceived_exertion')
+          .in('athlete_id', athleteIds)
+          .gte('start_date', new Date(Date.now() - 42 * 86400000).toISOString()),
+      ]);
+      const metrics = athleteIds.map((athleteId) => buildLoadMetrics({
+        interventions: (interventionsRes.data || []).filter((item) => item.athlete_id === athleteId),
+        activities: (activitiesRes.data || []).filter((item) => item.athlete_id === athleteId),
+        lookbackDays: 42,
+      }));
+      const divisor = Math.max(metrics.length, 1);
+      loadSummary = {
+        acute: Number((metrics.reduce((sum, item) => sum + item.acute, 0) / divisor).toFixed(1)),
+        chronic: Number((metrics.reduce((sum, item) => sum + item.chronic, 0) / divisor).toFixed(1)),
+        form: Number((metrics.reduce((sum, item) => sum + item.form, 0) / divisor).toFixed(1)),
+      };
+    }
+
+    res.status(200).json({ summary, profile, loadSummary });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

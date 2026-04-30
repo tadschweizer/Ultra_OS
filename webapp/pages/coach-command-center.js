@@ -22,11 +22,10 @@ const NOTE_TYPES = [
 ];
 
 const TABS = [
-  { id: 'roster', label: 'Roster' },
-  { id: 'protocols', label: 'Protocols' },
-  { id: 'invitations', label: 'Invitations' },
-  { id: 'templates', label: 'Templates' },
-  { id: 'settings', label: 'Profile' },
+  { id: 'triage', label: 'Triage' },
+  { id: 'load-trends', label: 'Load Trends' },
+  { id: 'notes', label: 'Notes' },
+  { id: 'alerts', label: 'Alerts' },
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -58,8 +57,17 @@ function fmt(date) {
 }
 
 
-function extractTags(content) {
-  return Array.from(new Set((content.match(/#([a-zA-Z0-9_-]+)/g) || []).map((m) => m.slice(1).toLowerCase())));
+function toneClass(tone) {
+  if (tone === 'red') return 'bg-category-respiratory/50 text-ink';
+  if (tone === 'yellow') return 'bg-category-nutrition/70 text-ink';
+  return 'bg-category-sleep/55 text-ink';
+}
+
+function MiniSparkline({ points = [] }) {
+  if (!points.length) return <div className="h-8 w-24 rounded bg-paper" />;
+  const width = 96; const height = 28; const max = Math.max(...points.map((p) => p.load || 0), 1);
+  const poly = points.slice(-14).map((p, i, arr) => `${(i / Math.max(arr.length - 1, 1)) * width},${height - ((p.load || 0) / max) * (height - 2)}`).join(' ');
+  return <svg viewBox={`0 0 ${width} ${height}`} className="h-8 w-24"><polyline fill="none" stroke="currentColor" strokeWidth="2" points={poly} className="text-ink/70" /></svg>;
 }
 
 function inviteUrl(token) {
@@ -289,15 +297,21 @@ export default function CoachCommandCenter() {
   // Data state
   const [profile, setProfile] = useState(null);
   const [summary, setSummary] = useState(null);
+  const [coachKpis, setCoachKpis] = useState(null);
+  const [relationshipMeta, setRelationshipMeta] = useState({ atRiskAthletes: 0, avgCommunicationSlaHours: null });
+  const [protocolMeta, setProtocolMeta] = useState({ adherenceByAthlete: [], adherenceByInterventionType: [], subjectiveTrendVsDose: [] });
   const [relationships, setRelationships] = useState([]);
   const [protocols, setProtocols] = useState([]);
   const [invitations, setInvitations] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [sharedTemplates, setSharedTemplates] = useState([]);
   const [notesMap, setNotesMap] = useState({}); // keyed by athlete_id
+  const [sessionLoad, setSessionLoad] = useState({ daily: 0, rollingWeekly: 0 });
 
   // UI state
-  const [activeTab, setActiveTab] = useState('roster');
+  const [activeTab, setActiveTab] = useState('triage');
+  const [viewMode, setViewMode] = useState('basic');
+  const [advancedOpen, setAdvancedOpen] = useState('protocols');
   const [openAthleteId, setOpenAthleteId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [quickNoteByAthlete, setQuickNoteByAthlete] = useState({});
@@ -321,18 +335,20 @@ export default function CoachCommandCenter() {
 
     async function loadAll() {
       setLoading(true);
-      const [dashRes, relRes, protoRes, invRes, tplRes] = await Promise.all([
+      const [dashRes, relRes, protoRes, invRes, tplRes, loadRes] = await Promise.all([
         fetch('/api/coach/dashboard'),
         fetch('/api/coach/relationships'),
         fetch('/api/coach/protocols'),
         fetch('/api/coach/invitations'),
         fetch('/api/coach/templates'),
+        fetch('/api/interventions'),
       ]);
 
       if (dashRes.ok) {
         const d = await dashRes.json();
         setProfile(d.profile || null);
         setSummary(d.summary || null);
+        setCoachKpis(d.coachKpis || null);
         setProfileForm({
           display_name: d.profile?.display_name || '',
           bio: d.profile?.bio || '',
@@ -340,10 +356,11 @@ export default function CoachCommandCenter() {
           certifications: (d.profile?.certifications || []).join(', '),
         });
       }
-      if (relRes.ok) { const d = await relRes.json(); setRelationships(d.relationships || []); }
-      if (protoRes.ok) { const d = await protoRes.json(); setProtocols(d.protocols || []); }
+      if (relRes.ok) { const d = await relRes.json(); setRelationships(d.relationships || []); setRelationshipMeta({ atRiskAthletes: d.atRiskAthletes || 0, avgCommunicationSlaHours: d.avgCommunicationSlaHours ?? null }); }
+      if (protoRes.ok) { const d = await protoRes.json(); setProtocols(d.protocols || []); setProtocolMeta({ adherenceByAthlete: d.adherenceByAthlete || [], adherenceByInterventionType: d.adherenceByInterventionType || [], subjectiveTrendVsDose: d.subjectiveTrendVsDose || [] }); }
       if (invRes.ok) { const d = await invRes.json(); setInvitations(d.invitations || []); }
       if (tplRes.ok) { const d = await tplRes.json(); setTemplates(d.templates || []); setSharedTemplates(d.sharedTemplates || []); }
+      if (loadRes.ok) { const d = await loadRes.json(); setSessionLoad(d.sessionLoad || { daily: 0, rollingWeekly: 0 }); }
 
       setLoading(false);
     }
@@ -473,6 +490,19 @@ export default function CoachCommandCenter() {
     setProfileMsg('Profile saved.');
   }
 
+
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const stored = window.localStorage.getItem('coach-command-center-view');
+    if (stored === 'basic' || stored === 'advanced') setViewMode(stored);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem('coach-command-center-view', viewMode);
+  }, [viewMode]);
+
   const navLinks = appMenuLinks;
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -530,7 +560,7 @@ export default function CoachCommandCenter() {
             <NavMenu label="Navigation" links={navLinks} primaryLink={{ href: '/dashboard', label: 'Home', variant: 'secondary' }} />
           </div>
 
-          <DashboardTabs activeHref="/coach-command-center" tabs={[{ href: '/coach-command-center', label: 'Command Center' }, { href: '/coaches', label: 'Classic View' }]} />
+          <DashboardTabs activeHref="/coach-command-center" tabs={[{ href: '/coach-command-center', label: 'Coach Command Center' }]} />
 
           {/* Hero */}
           <section className="overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(140deg,#1b2421_0%,#26332f_42%,#857056_100%)] p-6 text-white md:p-10">
@@ -550,7 +580,20 @@ export default function CoachCommandCenter() {
                 <SummaryCard label="Active protocols" value={summary?.active_protocols} />
                 <SummaryCard label="Need attention" value={summary?.athletes_needing_attention} accent="text-amber-300" />
                 <SummaryCard label="Races in 30d" value={summary?.upcoming_races} accent="text-emerald-300" />
+                <SummaryCard label="Daily load" value={sessionLoad.daily} />
+                <SummaryCard label="7D load" value={sessionLoad.rollingWeekly} />
               </div>
+            </div>
+          </section>
+
+
+
+          <section className="mt-6 rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+            <p className="text-sm uppercase tracking-[0.25em] text-accent">Coach KPIs</p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <SummaryCard label="At-risk athletes" value={relationshipMeta.atRiskAthletes} accent="text-amber-400" />
+              <SummaryCard label="Intervention lift" value={coachKpis?.intervention_lift_score ?? '—'} accent="text-emerald-300" />
+              <SummaryCard label="Comm SLA (hrs)" value={relationshipMeta.avgCommunicationSlaHours ?? '—'} accent="text-sky-300" />
             </div>
           </section>
 
@@ -571,8 +614,48 @@ export default function CoachCommandCenter() {
             ))}
           </div>
 
-          {/* ── ROSTER TAB ────────────────────────────────────────────────── */}
-          {activeTab === 'roster' && (
+
+          <div className="mt-4 flex items-center justify-between rounded-2xl border border-ink/10 bg-white p-3">
+            <p className="text-xs uppercase tracking-[0.22em] text-ink/55">Screen depth</p>
+            <div className="inline-flex rounded-full border border-ink/10 bg-paper p-1">
+              {['basic', 'advanced'].map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setViewMode(mode)}
+                  className={`rounded-full px-3 py-1.5 text-xs font-semibold capitalize ${
+                    viewMode === mode ? 'bg-panel text-paper' : 'text-ink/65'
+                  }`}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {viewMode === 'advanced' && (
+            <section className="mt-4 rounded-[24px] border border-ink/10 bg-white p-4">
+              <p className="text-xs uppercase tracking-[0.25em] text-accent">Advanced workspace</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {[
+                  { id: 'protocols', label: 'Protocol Actions' },
+                  { id: 'invitations', label: 'Invitations' },
+                  { id: 'templates', label: 'Templates' },
+                  { id: 'settings', label: 'Profile Settings' },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setAdvancedOpen(item.id)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-semibold ${advancedOpen === item.id ? 'bg-panel text-paper' : 'border border-ink/10 text-ink/70'}`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* ── TRIAGE TAB ────────────────────────────────────────────────── */}
+          {activeTab === 'triage' && (
             <div className="mt-8 space-y-6">
               {relationships.filter((r) => r.status === 'active').length === 0 ? (
                 <EmptyStateCard
@@ -624,7 +707,7 @@ export default function CoachCommandCenter() {
                     </div>
                   </div>
 
-                  {/* Full roster table */}
+                  {/* Load trends snapshot */}
                   <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
                     <div className="flex items-center justify-between">
                       <p className="text-sm uppercase tracking-[0.25em] text-accent">Full roster</p>
@@ -665,9 +748,13 @@ export default function CoachCommandCenter() {
                                   </td>
                                   <td className="py-4 pr-5 text-ink/65">{daysLabel(rel.daysSinceLog)}</td>
                                   <td className="py-4 pr-5">
-                                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${alertBadge(rel.alertLevel)}`}>
-                                      {rel.alertLevel.charAt(0).toUpperCase() + rel.alertLevel.slice(1)}
-                                    </span>
+                                    <div className="flex items-center gap-2">
+                                      <span className={`rounded-full px-3 py-1 text-xs font-semibold ${alertBadge(rel.alertLevel)}`}>
+                                        {rel.alertLevel.charAt(0).toUpperCase() + rel.alertLevel.slice(1)}
+                                      </span>
+                                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${toneClass(rel.loadStatus?.tone)}`}>{rel.loadStatus?.label || 'Unknown'}</span>
+                                    </div>
+                                    <div className="mt-2"><MiniSparkline points={rel.loadMetrics?.sparkline || []} /></div>
                                   </td>
                                   <td className="py-4 text-ink/65">
                                     <div>{activeProto?.protocol_name || '—'}</div>
@@ -695,7 +782,7 @@ export default function CoachCommandCenter() {
           )}
 
           {/* ── PROTOCOLS TAB ─────────────────────────────────────────────── */}
-          {activeTab === 'protocols' && (
+          {activeTab === 'load-trends' && viewMode === 'advanced' && advancedOpen === 'protocols' && (
             <div className="mt-8 space-y-6">
               {protocols.length === 0 ? (
                 <EmptyStateCard icon="clipboard" title="No protocols assigned yet." body="Open an athlete from the Roster tab to assign their first protocol." />
@@ -738,7 +825,7 @@ export default function CoachCommandCenter() {
           )}
 
           {/* ── INVITATIONS TAB ───────────────────────────────────────────── */}
-          {activeTab === 'invitations' && (
+          {activeTab === 'notes' && viewMode === 'advanced' && advancedOpen === 'invitations' && (
             <div className="mt-8 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
               {/* Send invite form */}
               <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
@@ -808,7 +895,7 @@ export default function CoachCommandCenter() {
           )}
 
           {/* ── TEMPLATES TAB ─────────────────────────────────────────────── */}
-          {activeTab === 'templates' && (
+          {activeTab === 'alerts' && viewMode === 'advanced' && advancedOpen === 'templates' && (
             <div className="mt-8 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
               {/* Create template form */}
               <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
@@ -898,7 +985,7 @@ export default function CoachCommandCenter() {
           )}
 
           {/* ── PROFILE/SETTINGS TAB ──────────────────────────────────────── */}
-          {activeTab === 'settings' && (
+          {activeTab === 'alerts' && viewMode === 'advanced' && advancedOpen === 'settings' && (
             <div className="mt-8 max-w-lg">
               <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
                 <div className="flex items-center justify-between">

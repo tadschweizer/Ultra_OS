@@ -15,7 +15,6 @@ export const sidebarSections = [
     items: [
       { href: '/connections', label: 'Connections' },
       { href: '/coach-command-center', label: 'Coach Command Center' },
-      { href: '/coaches', label: 'Coaches (Classic)' },
       { href: '/content', label: 'Research' },
     ],
   },
@@ -53,7 +52,6 @@ export const protectedRoutes = [
   '/explorer',
   '/connections',
   '/coach-command-center',
-  '/coaches',
   '/settings',
   '/account',
   '/notifications',

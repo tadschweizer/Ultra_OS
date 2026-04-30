@@ -52,12 +52,12 @@ const sections = [
     cta: { label: 'Browse the research library', href: '/content' },
   },
   {
-    title: 'Coach Dashboard',
+    title: 'Coach Command Center',
     body:
-      'If you are on a coach plan, the coach dashboard is built around triage, full-roster monitoring, and protocol assignment. It is designed to show which athletes need attention now, not to duplicate the athlete dashboard.',
+      'If you are on a coach plan, the Coach Command Center is now the canonical coach home for triage, roster monitoring, protocol assignment, and reusable notes/templates workflows.',
     value:
-      'Coaches get a faster path to the handful of decisions that matter most in a given week.',
-    cta: { label: 'Go to Coach Dashboard', href: '/coaches' },
+      'This keeps every coach workflow in one place so you can move from triage to action without context switching.',
+    cta: { label: 'Open Coach Command Center', href: '/coach-command-center' },
     coachOnly: true,
   },
 ];
