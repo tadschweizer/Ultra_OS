@@ -19,11 +19,10 @@ const NOTE_TYPES = [
 ];
 
 const TABS = [
-  { id: 'roster', label: 'Roster' },
-  { id: 'protocols', label: 'Protocols' },
-  { id: 'invitations', label: 'Invitations' },
-  { id: 'templates', label: 'Templates' },
-  { id: 'settings', label: 'Profile' },
+  { id: 'triage', label: 'Triage' },
+  { id: 'load-trends', label: 'Load Trends' },
+  { id: 'notes', label: 'Notes' },
+  { id: 'alerts', label: 'Alerts' },
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -268,7 +267,9 @@ export default function CoachCommandCenter() {
   const [notesMap, setNotesMap] = useState({}); // keyed by athlete_id
 
   // UI state
-  const [activeTab, setActiveTab] = useState('roster');
+  const [activeTab, setActiveTab] = useState('triage');
+  const [viewMode, setViewMode] = useState('basic');
+  const [advancedOpen, setAdvancedOpen] = useState('protocols');
   const [openAthleteId, setOpenAthleteId] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -443,6 +444,19 @@ export default function CoachCommandCenter() {
     setProfileMsg('Profile saved.');
   }
 
+
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const stored = window.localStorage.getItem('coach-command-center-view');
+    if (stored === 'basic' || stored === 'advanced') setViewMode(stored);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem('coach-command-center-view', viewMode);
+  }, [viewMode]);
+
   const navLinks = appMenuLinks;
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -541,8 +555,48 @@ export default function CoachCommandCenter() {
             ))}
           </div>
 
-          {/* ── ROSTER TAB ────────────────────────────────────────────────── */}
-          {activeTab === 'roster' && (
+
+          <div className="mt-4 flex items-center justify-between rounded-2xl border border-ink/10 bg-white p-3">
+            <p className="text-xs uppercase tracking-[0.22em] text-ink/55">Screen depth</p>
+            <div className="inline-flex rounded-full border border-ink/10 bg-paper p-1">
+              {['basic', 'advanced'].map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setViewMode(mode)}
+                  className={`rounded-full px-3 py-1.5 text-xs font-semibold capitalize ${
+                    viewMode === mode ? 'bg-panel text-paper' : 'text-ink/65'
+                  }`}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {viewMode === 'advanced' && (
+            <section className="mt-4 rounded-[24px] border border-ink/10 bg-white p-4">
+              <p className="text-xs uppercase tracking-[0.25em] text-accent">Advanced workspace</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {[
+                  { id: 'protocols', label: 'Protocol Actions' },
+                  { id: 'invitations', label: 'Invitations' },
+                  { id: 'templates', label: 'Templates' },
+                  { id: 'settings', label: 'Profile Settings' },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setAdvancedOpen(item.id)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-semibold ${advancedOpen === item.id ? 'bg-panel text-paper' : 'border border-ink/10 text-ink/70'}`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* ── TRIAGE TAB ────────────────────────────────────────────────── */}
+          {activeTab === 'triage' && (
             <div className="mt-8 space-y-6">
               {relationships.filter((r) => r.status === 'active').length === 0 ? (
                 <EmptyStateCard
@@ -594,7 +648,7 @@ export default function CoachCommandCenter() {
                     </div>
                   </div>
 
-                  {/* Full roster table */}
+                  {/* Load trends snapshot */}
                   <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
                     <div className="flex items-center justify-between">
                       <p className="text-sm uppercase tracking-[0.25em] text-accent">Full roster</p>
@@ -653,7 +707,7 @@ export default function CoachCommandCenter() {
           )}
 
           {/* ── PROTOCOLS TAB ─────────────────────────────────────────────── */}
-          {activeTab === 'protocols' && (
+          {activeTab === 'load-trends' && viewMode === 'advanced' && advancedOpen === 'protocols' && (
             <div className="mt-8 space-y-6">
               {protocols.length === 0 ? (
                 <EmptyStateCard icon="clipboard" title="No protocols assigned yet." body="Open an athlete from the Roster tab to assign their first protocol." />
@@ -696,7 +750,7 @@ export default function CoachCommandCenter() {
           )}
 
           {/* ── INVITATIONS TAB ───────────────────────────────────────────── */}
-          {activeTab === 'invitations' && (
+          {activeTab === 'notes' && viewMode === 'advanced' && advancedOpen === 'invitations' && (
             <div className="mt-8 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
               {/* Send invite form */}
               <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
@@ -766,7 +820,7 @@ export default function CoachCommandCenter() {
           )}
 
           {/* ── TEMPLATES TAB ─────────────────────────────────────────────── */}
-          {activeTab === 'templates' && (
+          {activeTab === 'alerts' && viewMode === 'advanced' && advancedOpen === 'templates' && (
             <div className="mt-8 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
               {/* Create template form */}
               <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
@@ -856,7 +910,7 @@ export default function CoachCommandCenter() {
           )}
 
           {/* ── PROFILE/SETTINGS TAB ──────────────────────────────────────── */}
-          {activeTab === 'settings' && (
+          {activeTab === 'alerts' && viewMode === 'advanced' && advancedOpen === 'settings' && (
             <div className="mt-8 max-w-lg">
               <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
                 <div className="flex items-center justify-between">
