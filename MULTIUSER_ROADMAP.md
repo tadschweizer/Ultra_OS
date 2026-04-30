@@ -122,6 +122,27 @@ The DB already has coach-related tables. When you're ready:
 
 ---
 
+## TrainingPeaks Migration + Parity Gate (New)
+
+### Immediate build scope on Connections
+1. Initial TrainingPeaks import flow:
+   - athlete history ingestion
+   - planned workouts/protocol mapping
+2. Migration completeness screen:
+   - explicit "transferred" vs "needs manual mapping" state
+   - visible before imported data powers planning or coach reports
+
+### Product parity matrix enforcement
+Use the parity matrix in `README-PLATFORM.md` as a release gate across:
+- planning
+- execution tracking
+- coach reporting
+- athlete communication
+
+Rule: prioritize all table-stakes parity gaps before advanced differentiation features.
+
+---
+
 ## Key technical decisions
 
 **Why keep Strava as the only auth method (for now)?**
