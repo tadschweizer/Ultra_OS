@@ -1,6 +1,6 @@
 import cookie from 'cookie';
 import { supabase } from '../../../lib/supabaseClient';
-import { generateCoachCode } from '../../../lib/coachProtocols';
+import { evaluateProtocolRules, generateCoachCode } from '../../../lib/coachProtocols';
 
 export const runtime = 'edge';
 
@@ -92,6 +92,15 @@ export default async function handler(req, res) {
         return;
       }
 
+      const rulesResult = evaluateProtocolRules({
+        interventionType: body.protocol_type,
+        frequencyType: body.instructions?.frequency_type || 'weekly',
+        plannedSessions: body.instructions?.planned_sessions ?? null,
+        responseMetrics: body.response_metrics || {},
+        currentLoad: body.current_load || {},
+        coachOverrideReason: body.coach_override_reason || null,
+      });
+
       const { data, error } = await supabase
         .from('assigned_protocols')
         .insert({
@@ -100,12 +109,18 @@ export default async function handler(req, res) {
           protocol_name: body.protocol_name.trim(),
           protocol_type: body.protocol_type,
           description: body.description?.trim() || null,
-          instructions: body.instructions || {},
+          instructions: {
+            ...(body.instructions || {}),
+            rules_engine: rulesResult,
+            why_this_next_step: rulesResult.recommendationText,
+            confidence: rulesResult.confidence,
+          },
           target_race_id: body.target_race_id || null,
           start_date: body.start_date,
           end_date: body.end_date,
           status: body.status || 'assigned',
           compliance_target: body.compliance_target ?? 80,
+          coach_override_reason: rulesResult.override.reason,
         })
         .select('*')
         .single();
@@ -120,6 +135,15 @@ export default async function handler(req, res) {
       const body = req.body || {};
       if (!body.id) { res.status(400).json({ error: 'id is required' }); return; }
 
+      const rulesResult = evaluateProtocolRules({
+        interventionType: body.protocol_type,
+        frequencyType: body.instructions?.frequency_type || 'weekly',
+        plannedSessions: body.instructions?.planned_sessions ?? null,
+        responseMetrics: body.response_metrics || {},
+        currentLoad: body.current_load || {},
+        coachOverrideReason: body.coach_override_reason || null,
+      });
+
       const updates = {};
       const updatable = [
         'protocol_name', 'protocol_type', 'description', 'instructions',
@@ -128,6 +152,15 @@ export default async function handler(req, res) {
       for (const key of updatable) {
         if (body[key] !== undefined) updates[key] = body[key];
       }
+      if (updates.instructions || body.instructions === undefined) {
+        updates.instructions = {
+          ...(updates.instructions || body.instructions || {}),
+          rules_engine: rulesResult,
+          why_this_next_step: rulesResult.recommendationText,
+          confidence: rulesResult.confidence,
+        };
+      }
+      updates.coach_override_reason = rulesResult.override.reason;
 
       const { data, error } = await supabase
         .from('assigned_protocols')

@@ -34,6 +34,7 @@ export default function CoachesPage() {
     frequency_type: 'weekly',
     planned_sessions: '',
     note: '',
+    coach_override_reason: '',
   });
 
   const navLinks = [
@@ -312,6 +313,13 @@ export default function CoachesPage() {
                     placeholder="Optional note to athlete"
                     className="w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-ink"
                   />
+                  <input
+                    type="text"
+                    value={form.coach_override_reason}
+                    onChange={(event) => setForm((current) => ({ ...current, coach_override_reason: event.target.value }))}
+                    placeholder="Optional override reason (stored for transparency)"
+                    className="w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-ink"
+                  />
                   <button type="submit" className="rounded-full bg-panel px-5 py-3 text-sm font-semibold text-paper">
                     Assign protocol
                   </button>
@@ -343,6 +351,12 @@ export default function CoachesPage() {
                             <span className="rounded-full bg-paper px-3 py-1 text-xs font-semibold text-ink/75">
                               {row.completion_count} / {row.planned_sessions}
                             </span>
+                            <p className="mt-2 text-xs text-ink/70">
+                              {row.frequency_details?.why_this_next_step || row.frequency_details?.rules_engine?.recommendationText || 'Why unavailable'}
+                            </p>
+                            <p className="mt-1 text-[11px] uppercase tracking-[0.12em] text-ink/55">
+                              Confidence: {row.frequency_details?.confidence || row.frequency_details?.rules_engine?.confidence || 'unknown'}
+                            </p>
                           </td>
                         </tr>
                       ))}
