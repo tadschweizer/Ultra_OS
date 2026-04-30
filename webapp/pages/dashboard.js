@@ -388,6 +388,8 @@ export default function Dashboard() {
   const [currentRace, setCurrentRace] = useState(null);
   const [protocolSummary, setProtocolSummary] = useState(null);
   const [heatmapDay, setHeatmapDay] = useState(null);
+  const [loadMetrics, setLoadMetrics] = useState(null);
+  const [loadStatus, setLoadStatus] = useState(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -398,6 +400,8 @@ export default function Dashboard() {
         const me = await meRes.json();
         setAthlete(me.athlete);
         setInterventionCount(me.interventionCount);
+        setLoadMetrics(me.load_metrics || null);
+        setLoadStatus(me.load_status || null);
 
         const settingsRes = await fetch('/api/settings');
         if (settingsRes.ok) {
@@ -515,6 +519,22 @@ export default function Dashboard() {
   return (
     <main className="min-h-screen bg-paper px-4 py-6 text-ink">
       <div className="mx-auto max-w-6xl">
+
+        {loadMetrics && (
+          <section className="mb-6 rounded-[24px] border border-ink/10 bg-white p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-xs uppercase tracking-[0.22em] text-accent">Training load</p>
+              <span title={loadMetrics.explainability} className="cursor-help text-xs text-ink/55">ⓘ</span>
+            </div>
+            <div className="mt-3 flex items-center gap-4 text-sm">
+              <span>Acute <strong>{loadMetrics.acute}</strong></span>
+              <span>Chronic <strong>{loadMetrics.chronic}</strong></span>
+              <span>Form <strong>{loadMetrics.form}</strong></span>
+              <span className="rounded-full bg-paper px-2 py-0.5 text-xs">{loadStatus?.label || 'Unknown'}</span>
+            </div>
+          </section>
+        )}
+
         <div className="mb-6 flex items-center justify-between rounded-full border border-ink/10 bg-white/70 px-4 py-3 backdrop-blur">
           <div>
             <p className="text-xs uppercase tracking-[0.35em] text-accent">Threshold Home</p>
