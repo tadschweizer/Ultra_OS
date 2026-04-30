@@ -1,6 +1,7 @@
 import cookie from 'cookie';
 import { supabase } from '../../../lib/supabaseClient';
 import { generateCoachCode } from '../../../lib/coachProtocols';
+import { evaluateAthleteTriage } from '../../../lib/coachTriageRules';
 
 export const runtime = 'edge';
 
@@ -58,16 +59,17 @@ export default async function handler(req, res) {
       let athletes = [];
       let lastLogs = [];
       let upcomingRaces = [];
+      let coachNotes = [];
 
       if (athleteIds.length) {
-        const [athleteRes, interventionRes, raceRes] = await Promise.all([
+        const [athleteRes, interventionRes, raceRes, notesRes] = await Promise.all([
           supabase
             .from('athletes')
             .select('id, name, email, primary_sports, target_race_id')
             .in('id', athleteIds),
           supabase
             .from('interventions')
-            .select('athlete_id, date, inserted_at')
+            .select('athlete_id, date, inserted_at, dose_duration, protocol_payload, notes, details')
             .in('athlete_id', athleteIds)
             .order('inserted_at', { ascending: false }),
           supabase
@@ -76,28 +78,42 @@ export default async function handler(req, res) {
             .in('athlete_id', athleteIds)
             .gte('event_date', new Date().toISOString().slice(0, 10))
             .order('event_date', { ascending: true }),
+          supabase
+            .from('coach_notes')
+            .select('athlete_id, content, created_at')
+            .eq('coach_id', profile.id)
+            .in('athlete_id', athleteIds)
+            .order('created_at', { ascending: false }),
         ]);
 
         athletes = athleteRes.data || [];
         lastLogs = interventionRes.data || [];
         upcomingRaces = raceRes.data || [];
+        coachNotes = notesRes.data || [];
       }
 
       const enriched = (relationships || []).map((rel) => {
         const athlete = athletes.find((a) => a.id === rel.athlete_id) || null;
-        const lastLog = lastLogs.find((l) => l.athlete_id === rel.athlete_id) || null;
+        const athleteInterventions = lastLogs.filter((l) => l.athlete_id === rel.athlete_id);
+        const athleteNotes = coachNotes.filter((n) => n.athlete_id === rel.athlete_id);
+        const lastLog = athleteInterventions[0] || null;
         const nextRace = upcomingRaces.find((r) => r.athlete_id === rel.athlete_id) || null;
 
-        const lastLogDate = lastLog?.date || lastLog?.inserted_at?.slice(0, 10) || null;
-        const daysSinceLog = lastLogDate
-          ? Math.floor((Date.now() - new Date(lastLogDate).getTime()) / 86400000)
-          : null;
+        const triage = evaluateAthleteTriage({
+          interventions: athleteInterventions,
+          notes: athleteNotes,
+        });
 
-        let alertLevel = 'green';
-        if (daysSinceLog === null || daysSinceLog >= 7) alertLevel = 'red';
-        else if (daysSinceLog >= 4) alertLevel = 'yellow';
-
-        return { ...rel, athlete, lastLogDate, daysSinceLog, nextRace, alertLevel };
+        return {
+          ...rel,
+          athlete,
+          lastLogDate: triage.lastLogDate,
+          daysSinceLog: triage.daysSinceLog,
+          nextRace,
+          alertLevel: triage.alertLevel,
+          flagReasons: triage.reasons,
+          flagSuggestion: triage.suggestion,
+        };
       });
 
       res.status(200).json({ relationships: enriched, profile });
