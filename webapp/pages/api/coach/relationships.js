@@ -70,7 +70,7 @@ export default async function handler(req, res) {
             .in('id', athleteIds),
           supabase
             .from('interventions')
-            .select('athlete_id, date, inserted_at')
+            .select('athlete_id, date, inserted_at, dose_duration, protocol_payload, notes, details')
             .in('athlete_id', athleteIds)
             .order('inserted_at', { ascending: false }),
           supabase
@@ -113,7 +113,9 @@ export default async function handler(req, res) {
 
       const enriched = (relationships || []).map((rel) => {
         const athlete = athletes.find((a) => a.id === rel.athlete_id) || null;
-        const lastLog = lastLogs.find((l) => l.athlete_id === rel.athlete_id) || null;
+        const athleteInterventions = lastLogs.filter((l) => l.athlete_id === rel.athlete_id);
+        const athleteNotes = coachNotes.filter((n) => n.athlete_id === rel.athlete_id);
+        const lastLog = athleteInterventions[0] || null;
         const nextRace = upcomingRaces.find((r) => r.athlete_id === rel.athlete_id) || null;
         const loadMetrics = buildLoadMetrics({
           interventions: loadInterventions.filter((item) => item.athlete_id === rel.athlete_id),

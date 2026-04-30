@@ -696,6 +696,15 @@ export default function CoachCommandCenter() {
                                 {rel.alertLevel.charAt(0).toUpperCase() + rel.alertLevel.slice(1)}
                               </span>
                             </div>
+                            {rel.flagReasons?.length ? (
+                              <div className="mt-3 rounded-2xl border border-ink/10 bg-white/80 p-3">
+                                <p className="text-xs font-semibold text-ink/75">Why flagged:</p>
+                                <p className="mt-1 text-xs text-ink/70">{rel.flagReasons[0]}</p>
+                                <p className="mt-1 text-xs text-ink/60">Action: {rel.flagSuggestion}</p>
+                              </div>
+                            ) : (
+                              <p className="mt-3 text-xs text-ink/55">Why flagged: No active risk signal.</p>
+                            )}
                             {activeProto && (
                               <p className="mt-3 text-xs text-ink/65">
                                 Protocol: {activeProto.protocol_name} · {activeProto.status}
