@@ -387,6 +387,7 @@ export default function Dashboard() {
   const [metric, setMetric] = useState('mileage');
   const [currentRace, setCurrentRace] = useState(null);
   const [protocolSummary, setProtocolSummary] = useState(null);
+  const [sharedDocs, setSharedDocs] = useState([]);
   const [heatmapDay, setHeatmapDay] = useState(null);
 
   useEffect(() => {
@@ -422,6 +423,12 @@ export default function Dashboard() {
           const protocolData = await protocolRes.json();
           setProtocolSummary(protocolData);
           setCurrentRace(protocolData.currentRace || null);
+        }
+
+        const docsRes = await fetch('/api/athlete/shared-docs');
+        if (docsRes.ok) {
+          const docsData = await docsRes.json();
+          setSharedDocs(docsData.docs || []);
         }
       } catch (err) {
         console.error(err);
@@ -527,6 +534,39 @@ export default function Dashboard() {
         </div>
 
         <DashboardTabs activeHref="/dashboard" />
+
+
+        <section className="mb-8 rounded-[30px] border border-ink/10 bg-white p-6 shadow-warm">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="ui-eyebrow">Coach Resources</p>
+              <p className="mt-2 text-sm text-ink/65">Warmups, strength protocols, links, and general guidance from your coach.</p>
+            </div>
+          </div>
+          {sharedDocs.length === 0 ? (
+            <div className="mt-4 rounded-[24px] bg-paper p-4 text-sm text-ink/70">
+              Your coach has not shared any central docs yet.
+            </div>
+          ) : (
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              {sharedDocs.map((doc) => (
+                <article key={doc.id} className="rounded-[22px] border border-ink/10 bg-paper p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-ink">{doc.title}</p>
+                    <span className="rounded-full bg-white px-2 py-0.5 text-[11px] uppercase tracking-[0.12em] text-ink/55">{doc.category || 'General'}</span>
+                  </div>
+                  <p className="mt-2 text-xs uppercase tracking-[0.18em] text-ink/45">{doc.doc_type}</p>
+                  {doc.content ? <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-ink/75">{doc.content}</p> : null}
+                  {doc.resource_url ? (
+                    <a href={doc.resource_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex rounded-full border border-ink/15 px-3 py-1 text-xs font-semibold text-ink/75 hover:bg-white">
+                      Open resource
+                    </a>
+                  ) : null}
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
 
         {isFirstLogin ? (
           <div className="mb-6 flex items-start gap-4 rounded-[22px] border border-accent/30 bg-accent/8 px-5 py-4">
