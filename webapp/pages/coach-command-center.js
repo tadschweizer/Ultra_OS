@@ -18,11 +18,13 @@ const NOTE_TYPES = [
   { value: 'race_debrief', label: 'Race Debrief' },
 ];
 
+const CLASSIC_RETIREMENT_DATE = 'June 30, 2026';
+
 const TABS = [
-  { id: 'roster', label: 'Roster' },
-  { id: 'protocols', label: 'Protocols' },
+  { id: 'roster', label: 'Roster + Triage' },
+  { id: 'protocols', label: 'Protocol Assignment' },
   { id: 'invitations', label: 'Invitations' },
-  { id: 'templates', label: 'Templates' },
+  { id: 'templates', label: 'Notes & Templates' },
   { id: 'settings', label: 'Profile' },
 ];
 
@@ -500,7 +502,14 @@ export default function CoachCommandCenter() {
             <NavMenu label="Navigation" links={navLinks} primaryLink={{ href: '/dashboard', label: 'Home', variant: 'secondary' }} />
           </div>
 
-          <DashboardTabs activeHref="/coach-command-center" tabs={[{ href: '/coach-command-center', label: 'Command Center' }, { href: '/coaches', label: 'Classic View' }]} />
+          <DashboardTabs activeHref="/coach-command-center" tabs={[{ href: '/coach-command-center', label: 'Coach Command Center' }]} />
+
+          <section className="mb-6 rounded-2xl border border-amber-300/70 bg-amber-50 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-900">Migration notice</p>
+            <p className="mt-1 text-sm text-amber-900/90">
+              Classic view retiring on {CLASSIC_RETIREMENT_DATE}. Triage, roster, protocol assignment, and notes/templates now live here in the Coach Command Center.
+            </p>
+          </section>
 
           {/* Hero */}
           <section className="overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(140deg,#1b2421_0%,#26332f_42%,#857056_100%)] p-6 text-white md:p-10">
