@@ -4,7 +4,7 @@ import { generateCoachCode } from '../../../lib/coachProtocols';
 
 export const runtime = 'edge';
 
-const VALID_NOTE_TYPES = ['observation', 'flag', 'reminder', 'race_debrief'];
+const VALID_NOTE_TYPES = ['observation', 'flag', 'reminder', 'race_debrief', 'daily', 'weekly', 'timeline'];
 
 function getAthleteId(req) {
   return cookie.parse(req.headers.cookie || '').athlete_id;
@@ -54,11 +54,22 @@ export default async function handler(req, res) {
         return;
       }
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('coach_notes')
-        .select('id, athlete_id, content, note_type, related_intervention_id, related_protocol_id, is_pinned, created_at')
+        .select('id, athlete_id, content, note_type, related_intervention_id, related_protocol_id, is_pinned, created_at, share_with_athlete, athlete_read_at, tags')
         .eq('coach_id', profile.id)
-        .eq('athlete_id', filterAthleteId)
+        .eq('athlete_id', filterAthleteId);
+
+      if (typeof req.query.pinned === 'string') query = query.eq('is_pinned', req.query.pinned === 'true');
+      if (typeof req.query.note_type === 'string' && VALID_NOTE_TYPES.includes(req.query.note_type)) query = query.eq('note_type', req.query.note_type);
+      if (typeof req.query.from === 'string') query = query.gte('created_at', req.query.from);
+      if (typeof req.query.to === 'string') query = query.lte('created_at', req.query.to);
+      if (typeof req.query.share_with_athlete === 'string') query = query.eq('share_with_athlete', req.query.share_with_athlete === 'true');
+
+      const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
+      if (search) query = query.or(`content.ilike.%${search}%,tags.cs.{${search}}`);
+
+      const { data, error } = await query
         .order('is_pinned', { ascending: false })
         .order('created_at', { ascending: false });
 
@@ -87,6 +98,9 @@ export default async function handler(req, res) {
           related_intervention_id: body.related_intervention_id || null,
           related_protocol_id: body.related_protocol_id || null,
           is_pinned: body.is_pinned === true,
+          share_with_athlete: body.share_with_athlete === true,
+          athlete_read_at: body.athlete_read_at || null,
+          tags: Array.isArray(body.tags) ? body.tags.map((t) => String(t).trim()).filter(Boolean) : null,
         })
         .select('*')
         .single();
@@ -111,6 +125,10 @@ export default async function handler(req, res) {
         updates.note_type = body.note_type;
       }
       if (body.is_pinned !== undefined) updates.is_pinned = Boolean(body.is_pinned);
+      if (body.share_with_athlete !== undefined) updates.share_with_athlete = Boolean(body.share_with_athlete);
+      if (body.athlete_read_at !== undefined) updates.athlete_read_at = body.athlete_read_at;
+      if (body.mark_read === true) updates.athlete_read_at = new Date().toISOString();
+      if (body.tags !== undefined) updates.tags = Array.isArray(body.tags) ? body.tags.map((t) => String(t).trim()).filter(Boolean) : null;
 
       const { data, error } = await supabase
         .from('coach_notes')
