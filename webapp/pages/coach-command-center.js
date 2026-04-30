@@ -121,6 +121,17 @@ function AthleteDrawer({ athlete, relationship, protocols, notes, onClose, onAdd
     } else setProtocolMsg('Failed to assign protocol.');
   }
 
+
+  async function submitDoc(e) {
+    e.preventDefault();
+    setDocMsg('');
+    const ok = await onAddDoc({ ...docForm, athlete_id: relationship.athlete_id });
+    if (ok) {
+      setDocForm({ title: '', category: 'General', doc_type: 'text', content: '', resource_url: '' });
+      setDocMsg('Resource saved.');
+    } else setDocMsg('Failed to save resource.');
+  }
+
   const athleteProtocols = protocols.filter((p) => p.athlete_id === relationship.athlete_id);
   const sortedNotes = [...notes].sort((a, b) => (b.is_pinned - a.is_pinned) || (new Date(b.created_at) - new Date(a.created_at)));
   const allTags = Array.from(new Set(sortedNotes.flatMap((n) => n.tags || extractTags(n.content || ''))));
@@ -230,6 +241,48 @@ function AthleteDrawer({ athlete, relationship, protocols, notes, onClose, onAdd
               />
               <button type="submit" className="rounded-full bg-panel px-4 py-2 text-sm font-semibold text-paper">Assign protocol</button>
               {protocolMsg && <p className="text-xs text-ink/60">{protocolMsg}</p>}
+            </form>
+          </section>
+
+
+          <section>
+            <p className="text-xs uppercase tracking-[0.25em] text-accent">Shared resources</p>
+            <div className="mt-3 space-y-2">
+              {!docs.length && <p className="text-sm text-ink/55">No shared resources yet.</p>}
+              {docs.map((doc) => (
+                <div key={doc.id} className="rounded-2xl border border-ink/10 bg-white p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-semibold text-ink">{doc.title}</p>
+                      <p className="mt-1 text-xs text-ink/55">{doc.category || 'General'} · {doc.doc_type}</p>
+                    </div>
+                    <button type="button" onClick={() => onDeleteDoc(doc.id)} className="rounded-full border border-ink/10 px-2 py-1 text-xs text-ink/60">Remove</button>
+                  </div>
+                  {doc.content ? <p className="mt-2 text-sm leading-relaxed text-ink/80 whitespace-pre-wrap">{doc.content}</p> : null}
+                  {doc.resource_url ? <a href={doc.resource_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex text-xs font-semibold text-accent underline">Open resource</a> : null}
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <p className="text-xs uppercase tracking-[0.25em] text-accent">Add shared resource</p>
+            <form onSubmit={submitDoc} className="mt-3 space-y-3 rounded-2xl border border-ink/10 bg-white p-4">
+              <input required placeholder="Title (e.g., Monday warm-up)" value={docForm.title} onChange={(e) => setDocForm((f) => ({ ...f, title: e.target.value }))} className="w-full rounded-xl border border-ink/10 bg-paper px-3 py-2 text-sm text-ink" />
+              <div className="grid grid-cols-2 gap-3">
+                <input placeholder="Category (strength, warmup, core)" value={docForm.category} onChange={(e) => setDocForm((f) => ({ ...f, category: e.target.value }))} className="w-full rounded-xl border border-ink/10 bg-paper px-3 py-2 text-sm text-ink" />
+                <select value={docForm.doc_type} onChange={(e) => setDocForm((f) => ({ ...f, doc_type: e.target.value }))} className="w-full rounded-xl border border-ink/10 bg-paper px-3 py-2 text-sm text-ink">
+                  <option value="text">Text note</option>
+                  <option value="link">Video/link</option>
+                  <option value="file">File link</option>
+                </select>
+              </div>
+              <textarea rows={3} placeholder="Type guidance or recommendations here" value={docForm.content} onChange={(e) => setDocForm((f) => ({ ...f, content: e.target.value }))} className="w-full rounded-xl border border-ink/10 bg-paper px-3 py-2 text-sm text-ink" />
+              {(docForm.doc_type === 'link' || docForm.doc_type === 'file') && (
+                <input type="url" required placeholder="Paste YouTube, Drive, Dropbox, or file URL" value={docForm.resource_url} onChange={(e) => setDocForm((f) => ({ ...f, resource_url: e.target.value }))} className="w-full rounded-xl border border-ink/10 bg-paper px-3 py-2 text-sm text-ink" />
+              )}
+              <button type="submit" className="rounded-full bg-panel px-4 py-2 text-sm font-semibold text-paper">Save resource</button>
+              {docMsg && <p className="text-xs text-ink/60">{docMsg}</p>}
             </form>
           </section>
 
@@ -380,6 +433,17 @@ export default function CoachCommandCenter() {
       .catch(() => {});
   }, [openAthleteId, notesMap]);
 
+  useEffect(() => {
+    if (!openAthleteId || docsMap[openAthleteId]) return;
+
+    fetch(`/api/coach/shared-docs?athlete_id=${openAthleteId}`)
+      .then((r) => r.json())
+      .then((d) => {
+        setDocsMap((m) => ({ ...m, [openAthleteId]: d.docs || [] }));
+      })
+      .catch(() => {});
+  }, [openAthleteId, docsMap]);
+
   // ── Derived data ──────────────────────────────────────────────────────────
   const openRelationship = useMemo(
     () => relationships.find((r) => r.athlete_id === openAthleteId) || null,
@@ -387,6 +451,7 @@ export default function CoachCommandCenter() {
   );
   const openAthleteData = openRelationship?.athlete || null;
   const openNotes = openAthleteId ? (notesMap[openAthleteId] || []) : [];
+  const openDocs = openAthleteId ? (docsMap[openAthleteId] || []) : [];
 
   const triageList = useMemo(
     () =>
@@ -426,6 +491,32 @@ export default function CoachCommandCenter() {
     setProtocols((prev) => [d.protocol, ...prev]);
     return true;
   }, []);
+
+
+  const handleAddDoc = useCallback(async (payload) => {
+    const res = await fetch('/api/coach/shared-docs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) return false;
+    const d = await res.json();
+    setDocsMap((m) => ({
+      ...m,
+      [payload.athlete_id]: [d.doc, ...(m[payload.athlete_id] || [])],
+    }));
+    return true;
+  }, []);
+
+  const handleDeleteDoc = useCallback(async (id) => {
+    if (!openAthleteId) return;
+    const res = await fetch(`/api/coach/shared-docs?id=${id}`, { method: 'DELETE' });
+    if (!res.ok) return;
+    setDocsMap((m) => ({
+      ...m,
+      [openAthleteId]: (m[openAthleteId] || []).filter((doc) => doc.id !== id),
+    }));
+  }, [openAthleteId]);
 
   async function sendInvite(e) {
     e.preventDefault();
@@ -543,9 +634,12 @@ export default function CoachCommandCenter() {
           relationship={openRelationship}
           protocols={protocols}
           notes={openNotes}
+          docs={openDocs}
           onClose={() => setOpenAthleteId(null)}
           onAddNote={handleAddNote}
           onAddProtocol={handleAddProtocol}
+          onAddDoc={handleAddDoc}
+          onDeleteDoc={handleDeleteDoc}
         />
       )}
 
