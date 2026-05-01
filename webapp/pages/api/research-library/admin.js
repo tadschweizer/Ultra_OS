@@ -1,8 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import cookie from 'cookie';
 
-export const runtime = 'edge';
-
 function getAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;

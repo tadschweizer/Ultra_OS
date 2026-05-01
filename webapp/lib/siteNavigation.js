@@ -40,7 +40,16 @@ export const appMenuLinks = [
   { href: '/', label: 'Landing Page' },
 ];
 
-export const appShellExcludedRoutes = ['/', '/content/admin', '/onboarding'];
+export const appShellExcludedRoutes = [
+  '/',
+  '/login',
+  '/signup',
+  '/pricing',
+  '/guide',
+  '/content/admin',
+  '/onboarding',
+  '/auth/callback',
+];
 
 export const protectedRoutes = [
   '/dashboard',

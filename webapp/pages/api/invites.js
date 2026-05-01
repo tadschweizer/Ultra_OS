@@ -2,8 +2,6 @@ import { createClient } from '@supabase/supabase-js';
 import cookie from 'cookie';
 import crypto from 'crypto';
 
-export const runtime = 'edge';
-
 /**
  * /api/invites
  *

@@ -1,10 +1,4 @@
 export const BILLING_PLANS = {
-  research_monthly: {
-    id: 'research_monthly',
-    tier: 'research',
-    label: 'Research Feed',
-    envKey: 'STRIPE_PRICE_RESEARCH_MONTHLY',
-  },
   individual_monthly: {
     id: 'individual_monthly',
     tier: 'individual',

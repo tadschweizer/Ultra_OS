@@ -4,4 +4,5 @@ node_modules/
 .vercel/
 *.log
 webapp/.env.local
+webapp/.wrangler/
 webapp/supabase/.temp/

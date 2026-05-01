@@ -1,8 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import cookie from 'cookie';
 
-export const runtime = 'edge';
-
 /**
  * GET /api/admin/recent-logs
  *

@@ -2,8 +2,6 @@ import cookie from 'cookie';
 import { supabase } from '../../lib/supabaseClient';
 import { deriveRaceType } from '../../lib/raceTypes';
 
-export const runtime = 'edge';
-
 function parseOptionalFloat(value) {
   if (value === '' || value === null || value === undefined) return null;
   const parsed = parseFloat(value);

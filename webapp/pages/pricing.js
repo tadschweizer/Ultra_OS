@@ -5,37 +5,19 @@ const navLinks = [
   { href: '/', label: 'Home' },
   { href: '/guide', label: 'How It Works' },
   { href: '/content', label: 'Research' },
-  { href: '/api/strava/login', label: 'Login' },
+  { href: '/login', label: 'Login' },
 ];
 
 const tiers = [
   {
-    id: 'research_feed',
-    name: 'Research Feed',
-    price: '$7',
-    period: 'month',
-    annualNote: null,
-    description: 'The evidence layer — curated sports science without the full tracking system.',
-    includes: [
-      '72 peer-reviewed studies, plain English',
-      '19 topic filters (heat, gut, HRV, taper…)',
-      'Bookmark studies for race week',
-      'Sport-relevance scores (ultra / gravel / triathlon)',
-    ],
-    checkoutPlan: 'research_monthly',
-    cta: 'Start Research Feed',
-    bestValue: false,
-    highlight: false,
-  },
-  {
     id: 'individual_monthly',
     name: 'Individual',
-    price: '$29',
+    price: '$15',
     period: 'month',
     annualNote: null,
-    description: 'Full Threshold — log, correlate, and plan. Flexible month-to-month.',
+    description: 'Full Threshold for athletes — log, correlate, and plan. Flexible month-to-month.',
     includes: [
-      'Everything in Research Feed',
+      'Free research library included',
       'Intervention logging (heat, gut, sleep, bicarb…)',
       'Workout check-ins + training response correlations',
       'Race blueprint auto-builder',
@@ -44,16 +26,16 @@ const tiers = [
       'Strava activity sync',
     ],
     checkoutPlan: 'individual_monthly',
-    cta: 'Start Individual Monthly',
+    cta: 'Start Individual',
     bestValue: false,
-    highlight: false,
+    highlight: true,
   },
   {
     id: 'individual_annual',
     name: 'Individual Annual',
-    price: '$20',
+    price: '$12',
     period: 'month',
-    annualNote: '$240 billed annually — save $108/yr',
+    annualNote: '$144 billed annually — save $36/yr',
     description: 'Full Threshold at the lowest per-month cost.',
     includes: [
       'Everything in Individual Monthly',
@@ -63,7 +45,7 @@ const tiers = [
     checkoutPlan: 'individual_annual',
     cta: 'Start Individual Annual',
     bestValue: true,
-    highlight: true,
+    highlight: false,
   },
   {
     id: 'coach_monthly',
@@ -113,8 +95,8 @@ const faq = [
     a: 'Monthly plans can be canceled at any time with no penalty. Annual plans run for the full term and renew unless canceled before the renewal date.',
   },
   {
-    q: 'What is the Research Feed?',
-    a: 'The Research Feed is Threshold\'s curated library of peer-reviewed sports science — 72 studies across 19 topics written in plain English with practical takeaways. It\'s the lightest plan if you just want the evidence layer.',
+    q: 'Is research included for free?',
+    a: 'Yes. The research library is part of the free tier. Paid plans are for deeper logging, insights, race blueprint tools, and coach workflows.',
   },
   {
     q: 'Is this a replacement for TrainingPeaks?',
@@ -156,6 +138,16 @@ export default function PricingPage() {
         <div className="mx-auto max-w-6xl">
           <div className="flex items-center justify-between rounded-full border border-ink/10 bg-white/80 px-4 py-3 shadow-sm backdrop-blur">
             <a href="/" className="text-xs font-semibold uppercase tracking-[0.35em] text-accent">Threshold</a>
+            <div className="hidden items-center gap-7 lg:flex">
+              {(athleteId ? [{ href: '/dashboard', label: 'Dashboard' }, ...navLinks.slice(1, 3)] : navLinks.slice(0, 3)).map((link) => (
+                <a key={link.href} href={link.href} className="text-sm font-semibold text-ink/65 transition hover:text-ink">
+                  {link.label}
+                </a>
+              ))}
+              <a href={athleteId ? '/dashboard' : '/login'} className="ui-button-primary py-2.5">
+                {athleteId ? 'Open App' : 'Login'}
+              </a>
+            </div>
             <NavMenu
               label="Pricing navigation"
               links={athleteId ? [{ href: '/dashboard', label: 'Dashboard' }, ...navLinks.slice(1)] : navLinks}
@@ -248,27 +240,27 @@ export default function PricingPage() {
                 <thead>
                   <tr className="border-b border-ink/8">
                     <th className="py-3 pr-6 text-left text-xs font-semibold uppercase tracking-[0.18em] text-ink/40">Feature</th>
-                    <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.12em] text-ink/40">Research</th>
+                    <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.12em] text-ink/40">Free</th>
                     <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.12em] text-accent">Individual</th>
                     <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.12em] text-ink/40">Coach</th>
                   </tr>
                 </thead>
                 <tbody>
                   {[
-                    { label: 'Research library (72 studies)', research: true, individual: true, coach: true },
-                    { label: 'Intervention logging', research: false, individual: true, coach: true },
-                    { label: 'Workout check-ins', research: false, individual: true, coach: true },
-                    { label: 'Training response correlations', research: false, individual: true, coach: true },
-                    { label: 'Race blueprint auto-builder', research: false, individual: true, coach: true },
-                    { label: 'Post-race outcome debrief', research: false, individual: true, coach: true },
-                    { label: 'Strava activity sync', research: false, individual: true, coach: true },
-                    { label: 'Coach roster dashboard', research: false, individual: false, coach: true },
-                    { label: 'Protocol assignments', research: false, individual: false, coach: true },
+                    { label: 'Research library', free: true, individual: true, coach: true },
+                    { label: 'Intervention logging', free: false, individual: true, coach: true },
+                    { label: 'Workout check-ins', free: false, individual: true, coach: true },
+                    { label: 'Training response correlations', free: false, individual: true, coach: true },
+                    { label: 'Race blueprint auto-builder', free: false, individual: true, coach: true },
+                    { label: 'Post-race outcome debrief', free: false, individual: true, coach: true },
+                    { label: 'Strava activity sync', free: false, individual: true, coach: true },
+                    { label: 'Coach roster dashboard', free: false, individual: false, coach: true },
+                    { label: 'Protocol assignments', free: false, individual: false, coach: true },
                   ].map((row, i) => (
                     <tr key={row.label} className={i % 2 === 0 ? 'bg-paper/40' : ''}>
                       <td className="py-3 pr-6 text-ink/70">{row.label}</td>
                       <td className="px-3 py-3 text-center">
-                        {row.research ? <span className="text-emerald-600">✓</span> : <span className="text-ink/20">—</span>}
+                        {row.free ? <span className="text-emerald-600">✓</span> : <span className="text-ink/20">—</span>}
                       </td>
                       <td className="px-3 py-3 text-center">
                         {row.individual ? <span className="font-semibold text-emerald-600">✓</span> : <span className="text-ink/20">—</span>}

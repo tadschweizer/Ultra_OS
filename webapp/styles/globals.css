@@ -4,26 +4,26 @@
 
 :root {
   /* ── Surfaces ── */
-  --color-page-background: #eae4da;
-  --color-surface-light: #f5f0e8;
+  --color-page-background: #eef1ed;
+  --color-surface-light: #f7f4ee;
   --color-surface-white: #ffffff;
-  --color-surface-dark: #1c1a17;
-  --color-surface-dark-raised: #252320;
+  --color-surface-dark: #173247;
+  --color-surface-dark-raised: #21465f;
   /* ── Borders ── */
   --color-border-subtle: #ddd6ca;
   --color-border-default: #c8b8a8;
   /* ── Ink / text ── */
-  --color-text-primary: #1c1a17;
-  --color-text-secondary: #4a3a2a;
+  --color-text-primary: #102432;
+  --color-text-secondary: #314b58;
   --color-text-muted: #7a6a5a;
   --color-text-faint: #b8a898;
   --color-text-on-dark: #f0eae0;
   --color-text-muted-on-dark: #b6a899;
   /* ── Accent amber — canonical blueprint value ── */
-  --color-accent-amber: #c4882a;
-  --color-accent-amber-deep: #b8752a;
-  --color-accent-amber-light: #d4893a;
-  --color-accent-amber-dim: rgba(196, 136, 42, 0.14);
+  --color-accent-amber: #c9831d;
+  --color-accent-amber-deep: #a76416;
+  --color-accent-amber-light: #e0a13a;
+  --color-accent-amber-dim: rgba(201, 131, 29, 0.14);
   /* ── Hero gradients ── */
   --color-hero-start: #f7f2ea;
   --color-hero-mid: #ebe1d4;

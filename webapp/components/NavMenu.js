@@ -63,17 +63,17 @@ export default function NavMenu({ primaryLink = null }) {
       .catch(() => {});
   }, []);
 
-  // Lock body scroll when sheet is open
+  // Avoid horizontal page drift while keeping the menu itself scrollable.
   useEffect(() => {
     const previousBodyOverflow = document.body.style.overflow;
     const previousHtmlOverflow = document.documentElement.style.overflow;
 
     if (open) {
-      document.body.style.overflow = 'hidden';
-      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflowX = 'hidden';
+      document.documentElement.style.overflowX = 'hidden';
     } else {
-      document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
+      document.body.style.overflowX = '';
+      document.documentElement.style.overflowX = '';
     }
 
     return () => {
@@ -143,14 +143,12 @@ export default function NavMenu({ primaryLink = null }) {
       ) : null}
 
       {/* Slide-up bottom sheet */}
+      {open ? (
       <div
-        aria-hidden={!open}
-        className={`fixed inset-x-0 bottom-0 z-50 transition-transform duration-300 ease-out lg:hidden ${
-          open ? 'translate-y-0' : 'translate-y-full pointer-events-none'
-        }`}
+        className="fixed inset-x-0 bottom-0 z-50 lg:hidden"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
-        <div className="rounded-t-[32px] bg-white shadow-[0_-8px_40px_rgba(19,24,22,0.18)]">
+        <div className="mx-3 mb-3 max-h-[calc(100dvh-88px)] overflow-hidden rounded-[28px] border border-ink/10 bg-white shadow-[0_-8px_40px_rgba(19,24,22,0.18)]">
           {/* Drag handle */}
           <div className="flex justify-center pb-1 pt-3">
             <div className="h-1 w-10 rounded-full bg-ink/15" />
@@ -190,7 +188,7 @@ export default function NavMenu({ primaryLink = null }) {
           ) : null}
 
           {/* Sections */}
-          <div className="max-h-[72vh] overflow-y-auto px-4 pb-8">
+          <div className="max-h-[calc(100dvh-220px)] overflow-y-auto overscroll-contain px-4 pb-8">
             {sheetSections.map((section, si) => (
               <div key={section.title} className={si > 0 ? 'mt-5' : ''}>
                 <div className="mb-2 flex items-center gap-2 px-1">
@@ -249,6 +247,7 @@ export default function NavMenu({ primaryLink = null }) {
           </div>
         </div>
       </div>
+      ) : null}
     </div>
   );
 }

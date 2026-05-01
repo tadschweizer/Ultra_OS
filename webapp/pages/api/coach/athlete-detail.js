@@ -1,8 +1,6 @@
 import cookie from 'cookie';
 import { supabase } from '../../../lib/supabaseClient';
 
-export const runtime = 'edge';
-
 function buildRaceReadiness({ upcomingRace, activeProtocols, compliance, activities, checkins, interventions }) {
   const daysUntilRace = upcomingRace?.event_date ? Math.ceil((new Date(upcomingRace.event_date) - new Date()) / 86400000) : null;
   const daysUntilRaceLabel = daysUntilRace === null ? null : daysUntilRace < 0 ? `Race date passed (${Math.abs(daysUntilRace)}d ago)` : `${daysUntilRace} days`;

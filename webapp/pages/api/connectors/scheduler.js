@@ -1,5 +1,3 @@
-export const runtime = 'edge';
-
 const P1_PROVIDERS = ['oura', 'garmin', 'coros'];
 const P2_PROVIDERS = ['ultrahuman'];
 const P3_PROVIDERS = ['trainingpeaks', 'zwift'];

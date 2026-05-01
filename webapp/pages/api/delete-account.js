@@ -1,8 +1,6 @@
 import { supabase } from '../../lib/supabaseClient';
 import cookie from 'cookie';
 
-export const runtime = 'edge';
-
 /**
  * DELETE /api/delete-account
  *

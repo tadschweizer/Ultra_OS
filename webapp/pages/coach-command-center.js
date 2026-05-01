@@ -86,7 +86,7 @@ function SummaryCard({ label, value, accent }) {
   );
 }
 
-function AthleteDrawer({ athlete, relationship, protocols, notes, onClose, onAddNote, onAddProtocol }) {
+function AthleteDrawer({ athlete, relationship, protocols, notes, docs = [], onClose, onAddNote, onAddProtocol, onAddDoc, onDeleteDoc }) {
   const [noteForm, setNoteForm] = useState({ content: '', note_type: 'observation', share_with_athlete: false });
   const [noteMsg, setNoteMsg] = useState('');
   const [protocolForm, setProtocolForm] = useState({
@@ -101,6 +101,8 @@ function AthleteDrawer({ athlete, relationship, protocols, notes, onClose, onAdd
   const [noteSearch, setNoteSearch] = useState('');
   const [noteTag, setNoteTag] = useState('all');
   const [noteDate, setNoteDate] = useState('');
+  const [docForm, setDocForm] = useState({ title: '', category: 'General', doc_type: 'text', content: '', resource_url: '' });
+  const [docMsg, setDocMsg] = useState('');
 
   async function submitNote(e) {
     e.preventDefault();
@@ -359,6 +361,7 @@ export default function CoachCommandCenter() {
   const [templates, setTemplates] = useState([]);
   const [sharedTemplates, setSharedTemplates] = useState([]);
   const [notesMap, setNotesMap] = useState({}); // keyed by athlete_id
+  const [docsMap, setDocsMap] = useState({}); // keyed by athlete_id
   const [sessionLoad, setSessionLoad] = useState({ daily: 0, rollingWeekly: 0 });
 
   // UI state

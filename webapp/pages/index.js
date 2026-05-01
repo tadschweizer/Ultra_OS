@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import NavMenu from '../components/NavMenu';
 
 const publicLinks = [
-  { href: '/guide', label: 'How It Works' },
+  { href: '/guide', label: 'How it works' },
   { href: '/content', label: 'Research' },
   { href: '/pricing', label: 'Pricing' },
 ];
@@ -36,7 +36,7 @@ const features = [
   {
     emoji: '🔬',
     label: 'Research Library',
-    headline: '72 peer-reviewed studies, curated for endurance athletes',
+    headline: 'A practical research library for race-week decisions',
     body: 'Every topic filter returns depth — heat acclimation, lactate threshold, gut training, HRV, taper, injury prevention, and more. Save studies, bookmark for race week, and connect the evidence directly to your logged protocols.',
     stat: '19',
     statLabel: 'topic categories, all populated',
@@ -101,6 +101,16 @@ export default function Home() {
         <div className="mx-auto max-w-6xl">
           <div className="flex items-center justify-between rounded-full border border-ink/10 bg-white/80 px-4 py-3 shadow-sm backdrop-blur">
             <a href="/" className="text-xs font-semibold uppercase tracking-[0.35em] text-accent">Threshold</a>
+            <div className="hidden items-center gap-7 lg:flex">
+              {publicLinks.map((link) => (
+                <a key={link.href} href={link.href} className="text-sm font-semibold text-ink/65 transition hover:text-ink">
+                  {link.label}
+                </a>
+              ))}
+              <a href={loginHref} className="ui-button-primary py-2.5">
+                {loginLabel}
+              </a>
+            </div>
             <NavMenu
               label="Homepage navigation"
               links={athleteId ? athleteLinks : publicLinks}
@@ -114,40 +124,39 @@ export default function Home() {
 
         {/* ── Hero ───────────────────────────────────────────────────── */}
         <section
-          className="relative mt-6 overflow-hidden rounded-[40px]"
-          style={{ background: 'linear-gradient(135deg, #f7f2ea 0%, #ebe1d4 55%, #dcc9b0 100%)', padding: '72px 64px' }}
+          className="relative mt-6 overflow-hidden rounded-[28px] border border-ink/10 bg-white p-6 shadow-warm md:p-10 lg:p-14"
         >
-          <p className="ui-eyebrow" style={{ fontSize: 11 }}>Performance Intelligence · Endurance Athletes</p>
-          <h1
-            className="font-display mt-5 max-w-[860px] font-semibold text-ink"
-            style={{ fontSize: 'clamp(42px, 6vw, 72px)', lineHeight: 1.05, letterSpacing: '-0.015em' }}
-          >
-            The protocols behind your race-day outcomes.
-          </h1>
-          <p className="mt-6 max-w-xl text-base leading-[1.8] text-ink/70 md:text-lg" style={{ maxWidth: 580 }}>
-            Threshold tracks the interventions — heat blocks, gut training, sleep, bicarb, cold immersion — and shows you which ones actually moved your training quality and race performance.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <a
-              href={loginHref}
-              className="rounded-full bg-ink px-7 py-3.5 text-sm font-semibold text-paper shadow-[0_4px_20px_rgba(19,24,22,0.25)] transition hover:opacity-85"
-            >
-              Start free — log your first intervention →
-            </a>
-            <a
-              href="/guide"
-              className="rounded-full border border-ink/20 bg-white/60 px-7 py-3.5 text-sm font-semibold text-ink transition hover:bg-white/80"
-            >
-              How it works
-            </a>
-          </div>
-          <p className="mt-5 text-xs text-ink/40">Free to start · No credit card required · Email, Google, or Strava</p>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_88%_12%,rgba(16,185,129,0.16),transparent_30%),linear-gradient(135deg,rgba(196,136,42,0.08),rgba(16,185,129,0.05))]" />
+          <div className="relative grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-center xl:grid-cols-[minmax(0,1fr)_360px]">
+            <div className="min-w-0">
+              <p className="ui-eyebrow" style={{ fontSize: 11 }}>Performance Intelligence · Endurance Athletes</p>
+              <h1
+                className="font-display mt-5 max-w-[760px] font-semibold text-ink"
+                style={{ fontSize: 'clamp(40px, 6vw, 72px)', lineHeight: 1.03 }}
+              >
+                The protocols behind your race-day outcomes.
+              </h1>
+              <p className="mt-6 max-w-2xl text-base leading-[1.8] text-ink/70 md:text-lg">
+                Threshold tracks heat blocks, gut training, sleep, bicarb, cold immersion, and other interventions so you can see what actually moved training quality and race performance.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <a
+                  href={loginHref}
+                  className="rounded-full bg-ink px-7 py-3.5 text-sm font-semibold text-paper shadow-[0_4px_20px_rgba(19,24,22,0.18)] transition hover:opacity-85"
+                >
+                  Start free — log your first intervention →
+                </a>
+                <a
+                  href="/guide"
+                  className="rounded-full border border-ink/15 bg-white px-7 py-3.5 text-sm font-semibold text-ink transition hover:bg-surface-light"
+                >
+                  How it works
+                </a>
+              </div>
+              <p className="mt-5 text-xs text-ink/45">Free to start · No credit card required · Email, Google, or Strava</p>
+            </div>
 
-          {/* Floating correlation card — only renders beside text on xl screens */}
-          <div
-            className="hidden xl:block"
-            style={{ position: 'absolute', right: 48, top: 64, width: 308 }}
-          >
+            <div className="min-w-0">
             <div className="rounded-[22px] bg-panel p-6 text-white shadow-[0_40px_100px_rgba(28,26,23,0.20)]">
               <p className="ui-eyebrow" style={{ color: 'var(--color-accent-amber-light)' }}>Correlation · N=1</p>
               <p className="mt-2 text-[15px] font-semibold leading-snug">What moved your training quality</p>
@@ -166,6 +175,7 @@ export default function Home() {
                   </div>
                 </div>
               ))}
+            </div>
             </div>
           </div>
         </section>

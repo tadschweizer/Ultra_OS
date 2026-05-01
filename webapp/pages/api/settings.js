@@ -1,8 +1,6 @@
 import { supabase } from '../../lib/supabaseClient';
 import cookie from 'cookie';
 
-export const runtime = 'edge';
-
 function parseOptionalInt(value) {
   if (value === '' || value === null || value === undefined) return null;
   const parsed = parseInt(value, 10);

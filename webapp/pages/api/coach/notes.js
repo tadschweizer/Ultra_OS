@@ -2,8 +2,6 @@ import cookie from 'cookie';
 import { supabase } from '../../../lib/supabaseClient';
 import { generateCoachCode } from '../../../lib/coachProtocols';
 
-export const runtime = 'edge';
-
 const VALID_NOTE_TYPES = ['observation', 'flag', 'reminder', 'race_debrief', 'daily', 'weekly', 'timeline'];
 
 function getAthleteId(req) {

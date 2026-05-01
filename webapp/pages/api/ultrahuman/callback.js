@@ -1,7 +1,5 @@
 import { getConnector } from '../../../lib/connectors';
 
-export const runtime = 'edge';
-
 export default async function handler(req, res) {
   const provider = req.url.split('/').slice(-2)[0];
   const connector = getConnector(provider);

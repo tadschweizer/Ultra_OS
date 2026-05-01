@@ -1,8 +1,6 @@
 import cookie from 'cookie';
 import { supabase } from '../../lib/supabaseClient';
 
-export const runtime = 'edge';
-
 const DEFAULT_NOTIFICATIONS = {
   coach_note_reply: true,
   protocol_assignment_comment: true,

@@ -22,6 +22,13 @@ export default function LoginPage() {
       window.location.href = '/dashboard';
       return;
     }
+    const params = new URLSearchParams(window.location.search);
+    const errorParam = params.get('error');
+    if (errorParam === 'strava_not_configured') {
+      setError('Strava login is not configured yet. You can still log in with email or Google.');
+    } else if (errorParam === 'oauth_failed' || errorParam === 'session_sync') {
+      setError('Google sign-in started, but Threshold could not finish the login. Please try again.');
+    }
     setChecking(false);
   }, []);
 
@@ -78,6 +85,12 @@ export default function LoginPage() {
         <div className="mx-auto max-w-6xl">
           <div className="flex items-center justify-between rounded-full border border-ink/10 bg-white/80 px-4 py-3 shadow-sm backdrop-blur">
             <a href="/" className="text-xs font-semibold uppercase tracking-[0.35em] text-accent">Threshold</a>
+            <div className="hidden items-center gap-7 lg:flex">
+              <a href="/guide" className="text-sm font-semibold text-ink/65 transition hover:text-ink">How it works</a>
+              <a href="/content" className="text-sm font-semibold text-ink/65 transition hover:text-ink">Research</a>
+              <a href="/pricing" className="text-sm font-semibold text-ink/65 transition hover:text-ink">Pricing</a>
+              <a href="/signup" className="ui-button-primary py-2.5">Sign Up</a>
+            </div>
             <NavMenu
               label="Login navigation"
               links={[

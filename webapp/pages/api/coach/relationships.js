@@ -3,8 +3,6 @@ import { supabase } from '../../../lib/supabaseClient';
 import { generateCoachCode } from '../../../lib/coachProtocols';
 import { buildLoadMetrics, buildLoadStatus } from '../../../lib/loadRollups';
 
-export const runtime = 'edge';
-
 function getAthleteId(req) {
   return cookie.parse(req.headers.cookie || '').athlete_id;
 }

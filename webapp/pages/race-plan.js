@@ -224,7 +224,7 @@ export default function RacePlanPage() {
 
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [generated, setGenerated] = useState(false);
-  const [blueprintAllowed, setBlueprintAllowed] = useState(true);
+  const [blueprintAllowed, setBlueprintAllowed] = useState(false);
 
   // Load race from localStorage + settings from API
   useEffect(() => {
@@ -263,10 +263,13 @@ export default function RacePlanPage() {
     fetch('/api/me')
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
-        if (!data?.athlete) return;
+        if (!data?.athlete) {
+          setBlueprintAllowed(false);
+          return;
+        }
         setBlueprintAllowed(canAccessRaceBlueprint(data.athlete).allowed);
       })
-      .catch(() => {});
+      .catch(() => setBlueprintAllowed(false));
   }, []);
 
   function handleChange(e) {
@@ -356,9 +359,9 @@ export default function RacePlanPage() {
         </div>
 
         {/* ── Hero ───────────────────────────────────────────── */}
-        <section className="overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(145deg,#eee7dc_0%,#d8c7b2_48%,#8e7354_100%)] p-6 md:p-10">
+        <section className="overflow-hidden rounded-[28px] border border-ink/10 bg-white p-6 shadow-warm md:p-10">
           <p className="text-sm uppercase tracking-[0.35em] text-accent">Race Architecture Builder</p>
-          <h1 className="font-display mt-4 text-5xl leading-tight md:text-7xl">Your race,<br />your blueprint.</h1>
+          <h1 className="font-display mt-4 text-4xl leading-tight md:text-6xl">Your race,<br />your blueprint.</h1>
           <p className="mt-4 max-w-xl text-sm leading-7 text-ink/70">
             Enter your race details and current training state. The builder generates a personalized fueling plan, hydration targets, and a pre-race intervention timeline — all from your logged data.
           </p>

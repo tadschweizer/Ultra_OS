@@ -3,8 +3,6 @@ import cookie from 'cookie';
 import { buildUsageSnapshot, getSubscriptionTierLabel, normalizeSubscriptionTier } from '../../lib/subscriptionTiers';
 import { buildLoadMetrics, buildLoadStatus } from '../../lib/loadRollups';
 
-export const runtime = 'edge';
-
 /**
  * Returns the authenticated athlete profile plus subscription tier and usage.
  */
