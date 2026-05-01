@@ -374,7 +374,7 @@ export default function CoachCommandCenter() {
   const [inviteMsg, setInviteMsg] = useState('');
 
   // Template form
-  const [templateForm, setTemplateForm] = useState({ name: '', protocol_type: PROTOCOL_TYPES[0] || '', description: '', duration_weeks: '', is_shared: false });
+  const [templateForm, setTemplateForm] = useState({ name: '', protocol_type: PROTOCOL_TYPES[0] || '', description: '', duration_weeks: '', is_shared: false, goal: '', steps: '', athlete_logging: '', compliance_target: 80, coach_notes: '', evidence_notes: '' });
   const [templateMsg, setTemplateMsg] = useState('');
 
   // Profile edit form
@@ -552,12 +552,20 @@ export default function CoachCommandCenter() {
       body: JSON.stringify({
         ...templateForm,
         duration_weeks: templateForm.duration_weeks ? Number(templateForm.duration_weeks) : null,
+        instructions: {
+          goal: templateForm.goal,
+          steps: templateForm.steps,
+          athlete_logging: templateForm.athlete_logging,
+          compliance_target: templateForm.compliance_target,
+          coach_notes: templateForm.coach_notes,
+          evidence_notes: templateForm.evidence_notes,
+        },
       }),
     });
     const d = await res.json();
     if (!res.ok) { setTemplateMsg(d.error || 'Failed to save template.'); return; }
     setTemplates((prev) => [d.template, ...prev]);
-    setTemplateForm({ name: '', protocol_type: PROTOCOL_TYPES[0] || '', description: '', duration_weeks: '', is_shared: false });
+    setTemplateForm({ name: '', protocol_type: PROTOCOL_TYPES[0] || '', description: '', duration_weeks: '', is_shared: false, goal: '', steps: '', athlete_logging: '', compliance_target: 80, coach_notes: '', evidence_notes: '' });
     setTemplateMsg('Template saved.');
   }
 
@@ -782,6 +790,13 @@ export default function CoachCommandCenter() {
                             <div className="flex items-start justify-between gap-3">
                               <div>
                                 <p className="text-sm font-semibold text-ink">{rel.athlete?.name || 'Athlete'}</p>
+                                <a
+                                  href={`/coach/athletes/${rel.athlete_id}`}
+                                  className="mt-1 inline-block text-xs font-semibold text-panel underline-offset-2 hover:underline"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  Open detail file →
+                                </a>
                                 <p className="mt-1 text-xs text-ink/60">
                                   Last logged {daysLabel(rel.daysSinceLog)} · {rel.nextRace ? `${rel.nextRace.name} ${raceDaysLabel(rel.nextRace.event_date)}` : 'No upcoming race'}
                                 </p>
@@ -1033,6 +1048,12 @@ export default function CoachCommandCenter() {
                     onChange={(e) => setTemplateForm((f) => ({ ...f, duration_weeks: e.target.value }))}
                     className="w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-ink"
                   />
+                  <input placeholder="Goal" value={templateForm.goal} onChange={(e) => setTemplateForm((f) => ({ ...f, goal: e.target.value }))} className="w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-ink" />
+                  <textarea rows={2} placeholder="Steps or schedule" value={templateForm.steps} onChange={(e) => setTemplateForm((f) => ({ ...f, steps: e.target.value }))} className="w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-ink" />
+                  <input placeholder="What athlete should log" value={templateForm.athlete_logging} onChange={(e) => setTemplateForm((f) => ({ ...f, athlete_logging: e.target.value }))} className="w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-ink" />
+                  <input type="number" min="0" max="100" placeholder="Compliance target %" value={templateForm.compliance_target} onChange={(e) => setTemplateForm((f) => ({ ...f, compliance_target: Number(e.target.value) }))} className="w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-ink" />
+                  <textarea rows={2} placeholder="Coach notes" value={templateForm.coach_notes} onChange={(e) => setTemplateForm((f) => ({ ...f, coach_notes: e.target.value }))} className="w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-ink" />
+                  <textarea rows={2} placeholder="Optional research links or evidence notes" value={templateForm.evidence_notes} onChange={(e) => setTemplateForm((f) => ({ ...f, evidence_notes: e.target.value }))} className="w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-ink" />
                   <label className="flex items-center gap-3 text-sm text-ink/70">
                     <input
                       type="checkbox"
