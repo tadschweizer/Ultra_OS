@@ -284,6 +284,17 @@ export default function PricingPage() {
           </div>
         </section>
 
+
+        <section className="mt-16 rounded-[28px] border border-ink/10 bg-white p-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-accent">Coach positioning</p>
+          <h2 className="mt-3 text-2xl font-semibold text-ink md:text-3xl">Coach plan designed for intervention oversight and athlete triage.</h2>
+          <div className="mt-5 space-y-3 text-sm leading-7 text-ink/70">
+            <p>Threshold is not claiming to replace TrainingPeaks immediately. Many coaches use Threshold as a second layer to monitor protocol execution and race-readiness risk.</p>
+            <p>You can assign protocol templates, track compliance trends, and see who is responding well versus who needs plan adjustments.</p>
+            <p>Coach billing is flat-rate, so your monthly cost is predictable and does not scale linearly with roster size.</p>
+          </div>
+        </section>
+
         {/* ── FAQ ──────────────────────────────────────────────────── */}
         <section className="mt-10">
           <div className="rounded-[28px] border border-ink/10 bg-white p-8 shadow-[0_8px_24px_rgba(19,24,22,0.05)]">
