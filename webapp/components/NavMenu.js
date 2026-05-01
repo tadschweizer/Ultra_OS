@@ -65,8 +65,21 @@ export default function NavMenu({ primaryLink = null }) {
 
   // Lock body scroll when sheet is open
   useEffect(() => {
-    document.body.style.overflow = open ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+
+    if (open) {
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    }
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
   }, [open]);
 
   // Close on route change
@@ -80,7 +93,7 @@ export default function NavMenu({ primaryLink = null }) {
   }, []);
 
   return (
-    <div className="relative lg:hidden">
+    <div className="relative z-50 lg:hidden">
       <div className="flex items-center gap-3">
         {primaryLink ? (
           <a
@@ -95,7 +108,7 @@ export default function NavMenu({ primaryLink = null }) {
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="relative inline-flex h-11 w-11 items-center justify-center rounded-pill border border-ink/10 bg-white/70 text-ink backdrop-blur transition"
+          className="relative z-[60] inline-flex h-11 w-11 items-center justify-center rounded-pill border border-ink/10 bg-white/70 text-ink backdrop-blur transition"
           aria-expanded={open}
           aria-label={open ? 'Close menu' : 'Open menu'}
         >
