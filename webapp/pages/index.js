@@ -254,6 +254,21 @@ export default function Home() {
           ))}
         </section>
 
+
+        <section className="mt-16 rounded-[32px] border border-ink/10 bg-white p-8 md:p-10">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-accent">For coaches</p>
+          <h2 className="mt-3 text-3xl font-semibold text-ink">Built to support your coaching workflow, not replace your planning stack overnight.</h2>
+          <p className="mt-4 max-w-3xl text-sm leading-7 text-ink/65">Threshold is an intervention intelligence layer alongside your existing workflow. Use it to track protocol compliance, race-readiness risk, and how athletes respond after each intervention block.</p>
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            {[
+              'Assign protocol templates to athletes or groups in minutes.',
+              'Triage athletes who need attention first using readiness status and confidence.',
+              'See intervention-response patterns without digging through message threads.',
+              'Use flat coach pricing instead of per-athlete billing surprises.'
+            ].map((item) => <div key={item} className="rounded-2xl border border-ink/10 bg-paper p-4 text-sm text-ink/75">{item}</div>)}
+          </div>
+        </section>
+
         {/* ── How it works ──────────────────────────────────────────── */}
         <section className="mt-16">
           <p className="ui-eyebrow">The system</p>
