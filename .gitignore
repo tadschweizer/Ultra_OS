@@ -6,3 +6,5 @@ node_modules/
 webapp/.env.local
 webapp/.wrangler/
 webapp/supabase/.temp/
+
+.vercel
