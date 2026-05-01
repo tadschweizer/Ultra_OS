@@ -141,8 +141,21 @@ export default async function handler(req, res) {
     // ── POST: assign a new protocol ─────────────────────────────────────────
     if (req.method === 'POST') {
       const body = req.body || {};
-      const required = ['athlete_id', 'protocol_name', 'protocol_type', 'start_date', 'end_date'];
-      const missing = required.filter((k) => !body[k]);
+      const required = ['athlete_id', 'start_date', 'end_date'];
+
+      let template = null;
+      if (body.template_id) {
+        const { data: tpl } = await supabase
+          .from('protocol_templates')
+          .select('id, name, protocol_type, description, instructions')
+          .eq('id', body.template_id)
+          .maybeSingle();
+        template = tpl || null;
+      }
+      const protocolName = (body.protocol_name || template?.name || '').trim();
+      const protocolType = body.protocol_type || template?.protocol_type;
+      const mergedInstructions = { ...(template?.instructions || {}), ...(body.instructions || {}) };
+      const missing = required.filter((k) => !body[k]).concat(!protocolName ? ['protocol_name'] : []).concat(!protocolType ? ['protocol_type'] : []);
       if (missing.length) {
         res.status(400).json({ error: `Missing required fields: ${missing.join(', ')}` });
         return;
@@ -162,11 +175,11 @@ export default async function handler(req, res) {
         .insert({
           coach_id: profile.id,
           athlete_id: body.athlete_id,
-          protocol_name: body.protocol_name.trim(),
-          protocol_type: body.protocol_type,
-          description: body.description?.trim() || null,
+          protocol_name: protocolName,
+          protocol_type: protocolType,
+          description: body.description?.trim() || template?.description || null,
           instructions: {
-            ...(body.instructions || {}),
+            ...mergedInstructions,
             rules_engine: rulesResult,
             why_this_next_step: rulesResult.recommendationText,
             confidence: rulesResult.confidence,
@@ -192,9 +205,9 @@ export default async function handler(req, res) {
       if (!body.id) { res.status(400).json({ error: 'id is required' }); return; }
 
       const rulesResult = evaluateProtocolRules({
-        interventionType: body.protocol_type,
-        frequencyType: body.instructions?.frequency_type || 'weekly',
-        plannedSessions: body.instructions?.planned_sessions ?? null,
+        interventionType: protocolType,
+        frequencyType: mergedInstructions?.frequency_type || 'weekly',
+        plannedSessions: mergedInstructions?.planned_sessions ?? null,
         responseMetrics: body.response_metrics || {},
         currentLoad: body.current_load || {},
         coachOverrideReason: body.coach_override_reason || null,
