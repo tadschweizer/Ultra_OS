@@ -60,7 +60,7 @@ function buildRaceReadiness({ upcomingRace, activeProtocols, compliance, activit
     suggestedAction: missingData.length
       ? `Collect missing inputs first: ${missingData.slice(0, 2).join(', ')}.`
       : (avgCompliance !== null && avgCompliance < 70)
-        ? 'Review protocol barriers with the athlete and simplify this week's plan.'
+        ? "Review protocol barriers with the athlete and simplify this week's plan."
         : 'Stay with current progression and monitor check-ins for drift.',
   };
 }
