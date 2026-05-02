@@ -21,6 +21,10 @@ export default function OnboardingGate({ children }) {
       try {
         const res = await fetch('/api/me');
         if (!res.ok) {
+          if (!cancelled && isProtected) {
+            router.replace(`/login?next=${encodeURIComponent(router.asPath || path)}`);
+            return;
+          }
           setStatus('ready');
           return;
         }

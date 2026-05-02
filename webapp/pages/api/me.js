@@ -9,6 +9,19 @@ import { buildLoadMetrics, buildLoadStatus } from '../../lib/loadRollups';
 export default async function handler(req, res) {
   const cookies = cookie.parse(req.headers.cookie || '');
   const athleteId = cookies.athlete_id;
+  const clearCookie = () => {
+    res.setHeader(
+      'Set-Cookie',
+      cookie.serialize('athlete_id', '', {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 0,
+      })
+    );
+  };
+
   if (!athleteId) {
     res.status(401).json({ error: 'Not authenticated' });
     return;
@@ -18,10 +31,15 @@ export default async function handler(req, res) {
     .from('athletes')
     .select('id, name, email, strava_id, onboarding_complete, primary_sports, years_racing_band, weekly_training_hours_band, home_elevation_ft, target_race_id, is_admin, subscription_tier, supabase_user_id, stripe_subscription_status')
     .eq('id', athleteId)
-    .single();
+    .maybeSingle();
   if (athleteError) {
     console.error(athleteError);
     res.status(500).json({ error: athleteError.message });
+    return;
+  }
+  if (!athlete) {
+    clearCookie();
+    res.status(401).json({ error: 'Not authenticated' });
     return;
   }
   const { count, error: interventionsError } = await supabase

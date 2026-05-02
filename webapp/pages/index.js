@@ -84,14 +84,35 @@ export default function Home() {
   const [athleteId, setAthleteId] = useState(null);
 
   useEffect(() => {
-    if (typeof document !== 'undefined') {
-      const match = document.cookie.match(/athlete_id=([^;]+)/);
-      if (match) setAthleteId(match[1]);
+    let cancelled = false;
+
+    async function checkSession() {
+      try {
+        const response = await fetch('/api/me', {
+          cache: 'no-store',
+          credentials: 'include',
+        });
+        if (!response.ok) {
+          if (!cancelled) setAthleteId(null);
+          return;
+        }
+
+        const data = await response.json();
+        if (!cancelled) setAthleteId(data.athlete?.id || null);
+      } catch {
+        if (!cancelled) setAthleteId(null);
+      }
     }
+
+    checkSession();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const loginHref = athleteId ? '/dashboard' : '/login';
   const loginLabel = athleteId ? 'Open Threshold' : 'Log In';
+  const startHref = athleteId ? '/dashboard' : '/signup';
 
   return (
     <main className="min-h-screen bg-paper text-ink">
@@ -141,7 +162,7 @@ export default function Home() {
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <a
-                  href={loginHref}
+                  href={startHref}
                   className="rounded-full bg-ink px-7 py-3.5 text-sm font-semibold text-paper shadow-[0_4px_20px_rgba(19,24,22,0.18)] transition hover:opacity-85"
                 >
                   Start free — log your first intervention →
