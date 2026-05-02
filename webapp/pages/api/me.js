@@ -9,6 +9,8 @@ import { buildLoadMetrics, buildLoadStatus } from '../../lib/loadRollups';
 export default async function handler(req, res) {
   const cookies = cookie.parse(req.headers.cookie || '');
   const athleteId = cookies.athlete_id;
+  const isUuid = (value) =>
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value || '');
   const clearCookie = () => {
     res.setHeader(
       'Set-Cookie',
@@ -23,6 +25,11 @@ export default async function handler(req, res) {
   };
 
   if (!athleteId) {
+    res.status(401).json({ error: 'Not authenticated' });
+    return;
+  }
+  if (!isUuid(athleteId)) {
+    clearCookie();
     res.status(401).json({ error: 'Not authenticated' });
     return;
   }

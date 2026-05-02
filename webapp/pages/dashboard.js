@@ -397,7 +397,10 @@ export default function Dashboard() {
     async function fetchData() {
       try {
         const meRes = await fetch('/api/me');
-        if (!meRes.ok) return;
+        if (!meRes.ok) {
+          router.replace(`/login?next=${encodeURIComponent(router.asPath || '/dashboard')}`);
+          return;
+        }
 
         const me = await meRes.json();
         setAthlete(me.athlete);
@@ -444,7 +447,7 @@ export default function Dashboard() {
     }
 
     fetchData();
-  }, []);
+  }, [router]);
   const trainingSummary = useMemo(
     () => buildTimeframeSummary(activities, interventions, timeframe),
     [activities, interventions, timeframe]

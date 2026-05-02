@@ -47,6 +47,10 @@ export default function OnboardingGate({ children }) {
         }
       } catch {
         if (!cancelled) {
+          if (isProtected) {
+            router.replace(`/login?next=${encodeURIComponent(router.asPath || path)}`);
+            return;
+          }
           setStatus('ready');
         }
       }
