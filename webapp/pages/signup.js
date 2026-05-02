@@ -18,12 +18,34 @@ export default function SignupPage() {
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    const match = document.cookie.match(/athlete_id=([^;]+)/);
-    if (match) {
-      window.location.href = '/dashboard';
-      return;
+    let cancelled = false;
+
+    async function checkExistingSession() {
+      try {
+        const res = await fetch('/api/me', {
+          cache: 'no-store',
+          credentials: 'include',
+        });
+        if (res.ok) {
+          const data = await res.json();
+          window.location.href = data.athlete?.onboarding_complete ? '/dashboard' : '/onboarding';
+          return;
+        }
+      } catch {
+        // Show the signup form if the session check cannot complete.
+      }
+
+      if (cancelled) return;
+
+      document.cookie = 'athlete_id=; Max-Age=0; Path=/; SameSite=Lax';
+      document.cookie = 'athlete_id=; Max-Age=0; Path=/; Secure; SameSite=Lax';
+      setChecking(false);
     }
-    setChecking(false);
+
+    checkExistingSession();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function handleEmailSignup(event) {

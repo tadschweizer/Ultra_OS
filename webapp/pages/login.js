@@ -17,19 +17,42 @@ export default function LoginPage() {
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    const match = document.cookie.match(/athlete_id=([^;]+)/);
-    if (match) {
-      window.location.href = '/dashboard';
-      return;
+    let cancelled = false;
+
+    async function checkExistingSession() {
+      try {
+        const res = await fetch('/api/me', {
+          cache: 'no-store',
+          credentials: 'include',
+        });
+        if (res.ok) {
+          const data = await res.json();
+          window.location.href = data.athlete?.onboarding_complete ? '/dashboard' : '/onboarding';
+          return;
+        }
+      } catch {
+        // Show the login form if the session check cannot complete.
+      }
+
+      if (cancelled) return;
+
+      document.cookie = 'athlete_id=; Max-Age=0; Path=/; SameSite=Lax';
+      document.cookie = 'athlete_id=; Max-Age=0; Path=/; Secure; SameSite=Lax';
+
+      const params = new URLSearchParams(window.location.search);
+      const errorParam = params.get('error');
+      if (errorParam === 'strava_not_configured') {
+        setError('Strava login is not configured yet. You can still log in with email or Google.');
+      } else if (errorParam === 'oauth_failed' || errorParam === 'session_sync') {
+        setError('Google sign-in started, but Threshold could not finish the login. Please try again.');
+      }
+      setChecking(false);
     }
-    const params = new URLSearchParams(window.location.search);
-    const errorParam = params.get('error');
-    if (errorParam === 'strava_not_configured') {
-      setError('Strava login is not configured yet. You can still log in with email or Google.');
-    } else if (errorParam === 'oauth_failed' || errorParam === 'session_sync') {
-      setError('Google sign-in started, but Threshold could not finish the login. Please try again.');
-    }
-    setChecking(false);
+
+    checkExistingSession();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function handleEmailLogin(event) {
