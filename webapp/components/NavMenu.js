@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 
@@ -53,7 +54,12 @@ const sheetSections = [
 export default function NavMenu({ primaryLink = null }) {
   const [open, setOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Fetch admin status once on mount
   useEffect(() => {
@@ -93,7 +99,7 @@ export default function NavMenu({ primaryLink = null }) {
   }, []);
 
   return (
-    <div className="relative z-50 lg:hidden">
+    <div className="relative z-[70] lg:hidden">
       <div className="flex items-center gap-3">
         {primaryLink ? (
           <a
@@ -133,29 +139,31 @@ export default function NavMenu({ primaryLink = null }) {
         </button>
       </div>
 
+      {mounted && open ? createPortal(
+      <>
       {/* Backdrop — tap to dismiss */}
-      {open ? (
         <div
-          className="fixed inset-0 z-40 bg-ink/30 backdrop-blur-[2px]"
+          className="fixed inset-0 z-[90] bg-ink/30 backdrop-blur-[2px]"
           onClick={() => setOpen(false)}
           aria-hidden="true"
         />
-      ) : null}
 
       {/* Slide-up bottom sheet */}
-      {open ? (
       <div
-        className="fixed inset-x-0 bottom-0 z-50 lg:hidden"
+        className="fixed inset-x-0 bottom-0 top-4 z-[100] flex items-end overflow-hidden px-3 lg:hidden"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
-        <div className="mx-3 mb-3 max-h-[calc(100dvh-88px)] overflow-hidden rounded-[28px] border border-ink/10 bg-white shadow-[0_-8px_40px_rgba(19,24,22,0.18)]">
+        <div
+          className="flex w-full flex-col overflow-hidden rounded-[28px] border border-ink/10 bg-white shadow-[0_-8px_40px_rgba(19,24,22,0.18)]"
+          style={{ height: 'calc(100dvh - 1rem - env(safe-area-inset-bottom))' }}
+        >
           {/* Drag handle */}
-          <div className="flex justify-center pb-1 pt-3">
+          <div className="flex shrink-0 justify-center pb-1 pt-3">
             <div className="h-1 w-10 rounded-full bg-ink/15" />
           </div>
 
           {/* Sheet header */}
-          <div className="flex items-center justify-between px-5 pb-3 pt-2">
+          <div className="flex shrink-0 items-center justify-between px-5 pb-3 pt-2">
             <span className="font-display text-xl font-semibold text-ink">More</span>
             <button
               type="button"
@@ -172,7 +180,7 @@ export default function NavMenu({ primaryLink = null }) {
 
           {/* Admin toggle strip — only for admins */}
           {isAdmin ? (
-            <div className="mx-4 mb-1 flex items-center justify-between rounded-[18px] bg-amber-50 px-4 py-2.5">
+            <div className="mx-4 mb-1 flex shrink-0 items-center justify-between rounded-[18px] bg-amber-50 px-4 py-2.5">
               <div className="flex items-center gap-2">
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-[9px] font-bold text-white">A</span>
                 <span className="text-xs font-semibold text-amber-800">Admin access on</span>
@@ -188,7 +196,7 @@ export default function NavMenu({ primaryLink = null }) {
           ) : null}
 
           {/* Sections */}
-          <div className="max-h-[calc(100dvh-220px)] overflow-y-auto overscroll-contain px-4 pb-8">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-8">
             {sheetSections.map((section, si) => (
               <div key={section.title} className={si > 0 ? 'mt-5' : ''}>
                 <div className="mb-2 flex items-center gap-2 px-1">
@@ -247,6 +255,8 @@ export default function NavMenu({ primaryLink = null }) {
           </div>
         </div>
       </div>
+      </>,
+      document.body
       ) : null}
     </div>
   );

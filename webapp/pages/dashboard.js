@@ -34,6 +34,16 @@ const metricOptions = [
   { value: 'count', label: 'Sessions' },
 ];
 
+const emptyRaceForm = {
+  name: '',
+  event_date: '',
+  distance_miles: '',
+  elevation_gain_ft: '',
+  surface: '',
+};
+
+const surfaceOptions = ['Trail', 'Road', 'Mixed', 'Track', 'Gravel', 'Treadmill'];
+
 function formatActivityDate(startDate) {
   return new Date(startDate).toLocaleString();
 }
@@ -132,6 +142,87 @@ function getHeatmapTone(count) {
   if (count <= 3) return 'bg-accent/34';
   if (count <= 5) return 'bg-accent/58';
   return 'bg-accent';
+}
+
+function TargetRaceSetupForm({
+  form,
+  onChange,
+  onSubmit,
+  saving,
+  status,
+}) {
+  return (
+    <form onSubmit={onSubmit} className="grid gap-4 md:grid-cols-2">
+      <div>
+        <label className="mb-1 block text-sm font-semibold text-ink">Race name</label>
+        <input
+          type="text"
+          name="name"
+          value={form.name}
+          onChange={onChange}
+          placeholder="Leadville 100"
+          className="w-full rounded-[18px] border border-ink/10 bg-white px-4 py-3 text-sm text-ink outline-none transition focus:border-accent"
+          required
+        />
+      </div>
+      <div>
+        <label className="mb-1 block text-sm font-semibold text-ink">Race date</label>
+        <input
+          type="date"
+          name="event_date"
+          value={form.event_date}
+          onChange={onChange}
+          className="w-full rounded-[18px] border border-ink/10 bg-white px-4 py-3 text-sm text-ink outline-none transition focus:border-accent"
+          required
+        />
+      </div>
+      <div>
+        <label className="mb-1 block text-sm font-semibold text-ink">Distance (mi)</label>
+        <input
+          type="number"
+          step="0.1"
+          name="distance_miles"
+          value={form.distance_miles}
+          onChange={onChange}
+          placeholder="100"
+          className="w-full rounded-[18px] border border-ink/10 bg-white px-4 py-3 text-sm text-ink outline-none transition focus:border-accent"
+        />
+      </div>
+      <div>
+        <label className="mb-1 block text-sm font-semibold text-ink">Elevation gain (ft)</label>
+        <input
+          type="number"
+          name="elevation_gain_ft"
+          value={form.elevation_gain_ft}
+          onChange={onChange}
+          placeholder="18000"
+          className="w-full rounded-[18px] border border-ink/10 bg-white px-4 py-3 text-sm text-ink outline-none transition focus:border-accent"
+        />
+      </div>
+      <div className="md:col-span-2">
+        <label className="mb-1 block text-sm font-semibold text-ink">Surface</label>
+        <select
+          name="surface"
+          value={form.surface}
+          onChange={onChange}
+          className="w-full rounded-[18px] border border-ink/10 bg-white px-4 py-3 text-sm text-ink outline-none transition focus:border-accent"
+        >
+          <option value="">Select surface</option>
+          {surfaceOptions.map((surface) => (
+            <option key={surface} value={surface}>
+              {surface}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="flex flex-wrap items-center gap-3 md:col-span-2">
+        <button type="submit" disabled={saving} className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-paper disabled:opacity-60">
+          {saving ? 'Saving race...' : 'Save target race'}
+        </button>
+        {status ? <p className="text-sm text-ink/65">{status}</p> : null}
+      </div>
+    </form>
+  );
 }
 
 function TrendChart({ points, metric, interventionOverlay = {} }) {
@@ -392,6 +483,9 @@ export default function Dashboard() {
   const [heatmapDay, setHeatmapDay] = useState(null);
   const [loadMetrics, setLoadMetrics] = useState(null);
   const [loadStatus, setLoadStatus] = useState(null);
+  const [raceForm, setRaceForm] = useState(emptyRaceForm);
+  const [raceSaving, setRaceSaving] = useState(false);
+  const [raceStatus, setRaceStatus] = useState('');
 
   useEffect(() => {
     async function fetchData() {
@@ -448,6 +542,52 @@ export default function Dashboard() {
 
     fetchData();
   }, [router]);
+
+  function handleRaceFormChange(event) {
+    const { name, value } = event.target;
+    setRaceForm((current) => ({ ...current, [name]: value }));
+    setRaceStatus('');
+  }
+
+  async function refreshProtocolSummary() {
+    const response = await fetch('/api/current-protocol-assignment');
+    if (!response.ok) return null;
+    const data = await response.json();
+    setProtocolSummary(data);
+    setCurrentRace(data.currentRace || null);
+    return data;
+  }
+
+  async function handleTargetRaceSubmit(event) {
+    event.preventDefault();
+    setRaceSaving(true);
+    setRaceStatus('');
+
+    try {
+      const response = await fetch('/api/races', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(raceForm),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setRaceStatus(data.error || 'Could not save race.');
+        return;
+      }
+
+      setCurrentRace(data.race);
+      setRaceForm(emptyRaceForm);
+      setRaceStatus(`Saved ${data.race.name}.`);
+      await refreshProtocolSummary();
+    } catch (error) {
+      console.error(error);
+      setRaceStatus('Could not save race.');
+    } finally {
+      setRaceSaving(false);
+    }
+  }
+
   const trainingSummary = useMemo(
     () => buildTimeframeSummary(activities, interventions, timeframe),
     [activities, interventions, timeframe]
@@ -652,9 +792,9 @@ export default function Dashboard() {
             <div className="ui-card p-7">
               <p className="ui-eyebrow">Race countdown</p>
               <p className="font-display mt-2 text-2xl font-semibold leading-snug text-ink">{currentRace.name}</p>
-              {currentRace.race_date ? (
+              {currentRace.event_date ? (
                 <p className="mt-1 text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                  {new Date(currentRace.race_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                  {new Date(currentRace.event_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                   {currentRace.race_type ? ` · ${currentRace.race_type}` : ''}
                 </p>
               ) : null}
@@ -674,13 +814,22 @@ export default function Dashboard() {
             </div>
           </section>
         ) : (
-          <section className="mb-8 rounded-[30px] border border-ink/10 bg-white p-6 shadow-warm">
+          <section id="target-race-setup" className="mb-8 scroll-mt-6 rounded-[30px] border border-ink/10 bg-white p-6 shadow-warm">
             <p className="ui-eyebrow">Race Countdown</p>
-            <div className="mt-4 rounded-[24px] bg-paper p-4 text-sm text-ink/75">
-              <p>Set your target race to activate your dashboard.</p>
-              <a href="/log-intervention" className="mt-4 inline-flex rounded-full bg-panel px-4 py-2 text-sm font-semibold text-paper">
-                Set Target Race
-              </a>
+            <div className="mt-4 rounded-[24px] bg-paper p-4">
+              <div className="mb-4">
+                <p className="text-sm font-semibold text-ink">Set your target race</p>
+                <p className="mt-1 text-sm leading-6 text-ink/60">
+                  Add the race here and Threshold will use it immediately for your countdown, phase, and protocol context.
+                </p>
+              </div>
+              <TargetRaceSetupForm
+                form={raceForm}
+                onChange={handleRaceFormChange}
+                onSubmit={handleTargetRaceSubmit}
+                saving={raceSaving}
+                status={raceStatus}
+              />
             </div>
           </section>
         )}
@@ -756,7 +905,7 @@ export default function Dashboard() {
             <h2 className="font-display mt-3 text-2xl font-semibold text-ink">Three steps to your first insight</h2>
             <div className="mt-6 grid gap-3 md:grid-cols-3">
               <a
-                href="/log-intervention"
+                href={currentRace ? '/log-intervention' : '#target-race-setup'}
                 className="group flex flex-col rounded-[22px] border border-ink/10 bg-paper p-4 transition hover:border-ink/20 hover:shadow-sm"
               >
                 <div className="flex items-center gap-3">
