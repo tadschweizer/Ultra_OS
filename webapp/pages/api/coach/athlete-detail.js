@@ -64,6 +64,69 @@ function buildRaceReadiness({ upcomingRace, activeProtocols, compliance, activit
 }
 
 
+function buildRaceReadiness({ upcomingRace, activeProtocols, compliance, activities, checkins, interventions }) {
+  const daysUntilRace = upcomingRace?.event_date ? Math.ceil((new Date(upcomingRace.event_date) - new Date()) / 86400000) : null;
+  const daysUntilRaceLabel = daysUntilRace === null ? null : daysUntilRace < 0 ? `Race date passed (${Math.abs(daysUntilRace)}d ago)` : `${daysUntilRace} days`;
+
+  const protocolSummary = activeProtocols.length
+    ? activeProtocols.map((p) => p.protocol_name).slice(0, 3).join(', ')
+    : null;
+
+  const avgCompliance = compliance.length
+    ? Math.round(compliance.reduce((acc, item) => acc + Number(item.actual || 0), 0) / compliance.length)
+    : null;
+
+  const domainRows = [
+    { name: 'Heat', key: 'heat' },
+    { name: 'Gut', key: 'gut' },
+    { name: 'Fueling', key: 'fuel' },
+    { name: 'Sleep', key: 'sleep' },
+    { name: 'Recovery', key: 'recovery' },
+  ];
+
+  const domains = domainRows.map((row) => {
+    const hits = interventions.filter((i) => String(i?.intervention_type || '').toLowerCase().includes(row.key)).length;
+    if (!hits) return { name: row.name, status: 'Not enough data', note: 'No recent logs found.' };
+    if (hits < 2) return { name: row.name, status: 'Early signal', note: `${hits} recent log${hits === 1 ? '' : 's'}; monitor response.` };
+    return { name: row.name, status: 'On track', note: `${hits} recent logs recorded.` };
+  });
+
+  const signals = [];
+  if (activities[0]) signals.push(`Latest workout: ${activities[0].name || activities[0].activity_type || 'Activity'} on ${String(activities[0].start_date || '').slice(0, 10)}.`);
+  if (checkins[0]) signals.push(`Latest check-in readiness score: ${checkins[0].readiness_score ?? 'not entered'} (${String(checkins[0].created_at || '').slice(0, 10)}).`);
+  if (checkins.length >= 3) {
+    const avg = Math.round(checkins.slice(0, 3).reduce((a, c) => a + Number(c.readiness_score || 0), 0) / 3);
+    signals.push(`3-check-in readiness average: ${avg}.`);
+  }
+
+  const missingData = [];
+  if (!upcomingRace) missingData.push('Upcoming race date');
+  if (!activeProtocols.length) missingData.push('Active protocol assignment');
+  if (!checkins.length) missingData.push('Recent readiness check-ins');
+  if (!activities.length) missingData.push('Recent workouts');
+  if (!interventions.length) missingData.push('Recent protocol logs');
+
+  const dataPoints = [upcomingRace, activeProtocols.length, compliance.length, activities.length, checkins.length, interventions.length].filter(Boolean).length;
+  const confidence = dataPoints >= 5 ? 'high' : dataPoints >= 3 ? 'medium' : 'low';
+
+  return {
+    daysUntilRace,
+    daysUntilRaceLabel,
+    protocolSummary,
+    complianceSummary: avgCompliance === null ? null : `${avgCompliance}% average vs assigned targets`,
+    domains,
+    signals,
+    missingData,
+    confidence,
+    suggestedAction: missingData.length
+      ? `Collect missing inputs first: ${missingData.slice(0, 2).join(', ')}.`
+      : (avgCompliance !== null && avgCompliance < 70)
+        ? "Review protocol barriers with the athlete and simplify this week's plan."
+        : 'Stay with current progression and monitor check-ins for drift.',
+  };
+}
+
+
 function getAthleteId(req) {
   return cookie.parse(req.headers.cookie || '').athlete_id;
 }
