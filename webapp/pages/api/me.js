@@ -1,4 +1,4 @@
-import { supabase } from '../../lib/supabaseClient';
+import { getSupabaseAdminClient } from '../../lib/authServer';
 import { buildUsageSnapshot, getSubscriptionTierLabel, normalizeSubscriptionTier } from '../../lib/subscriptionTiers';
 import { buildLoadMetrics, buildLoadStatus } from '../../lib/loadRollups';
 import { clearAthleteCookie, getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
@@ -19,8 +19,11 @@ export default async function handler(req, res) {
     res.status(401).json({ error: 'Not authenticated' });
     return;
   }
+
+  const admin = getSupabaseAdminClient();
+
   // Fetch athlete
-  const { data: athlete, error: athleteError } = await supabase
+  const { data: athlete, error: athleteError } = await admin
     .from('athletes')
     .select('id, name, email, strava_id, onboarding_complete, primary_sports, years_racing_band, weekly_training_hours_band, home_elevation_ft, target_race_id, is_admin, subscription_tier, supabase_user_id, stripe_subscription_status')
     .eq('id', athleteId)
@@ -35,7 +38,7 @@ export default async function handler(req, res) {
     res.status(401).json({ error: 'Not authenticated' });
     return;
   }
-  const { count, error: interventionsError } = await supabase
+  const { count, error: interventionsError } = await admin
     .from('interventions')
     .select('id', { count: 'exact', head: true })
     .eq('athlete_id', athleteId);
@@ -48,7 +51,7 @@ export default async function handler(req, res) {
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-  const { count: weeklyCheckIns, error: weeklyError } = await supabase
+  const { count: weeklyCheckIns, error: weeklyError } = await admin
     .from('interventions')
     .select('id', { count: 'exact', head: true })
     .eq('athlete_id', athleteId)
@@ -63,12 +66,12 @@ export default async function handler(req, res) {
 
 
   const [interventionLoadRes, activityLoadRes] = await Promise.all([
-    supabase
+    admin
       .from('interventions')
       .select('date, inserted_at, dose_duration, subjective_feel')
       .eq('athlete_id', athleteId)
       .gte('inserted_at', new Date(Date.now() - 42 * 86400000).toISOString()),
-    supabase
+    admin
       .from('activities')
       .select('start_date, moving_time, perceived_exertion')
       .eq('athlete_id', athleteId)
