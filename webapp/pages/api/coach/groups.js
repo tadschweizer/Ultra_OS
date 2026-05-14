@@ -1,6 +1,7 @@
 import cookie from 'cookie';
 import { supabase } from '../../../lib/supabaseClient';
 import { generateCoachCode } from '../../../lib/coachProtocols';
+import { countGroupMembers } from '../../../lib/coach/groupMembership';
 
 async function ensureCoachProfile(athleteId) {
   const { data: athlete } = await supabase.from('athletes').select('id, name').eq('id', athleteId).single();
@@ -21,7 +22,7 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     const { data: groups, error } = await supabase.from('coach_groups').select('id, name, description, created_at, coach_group_members(athlete_id, athletes(id, name, email))').eq('coach_id', profile.id).order('created_at', { ascending: false });
     if (error) return res.status(500).json({ error: error.message });
-    return res.status(200).json({ groups: groups || [] });
+    return res.status(200).json({ groups: countGroupMembers(groups || []) });
   }
   if (req.method === 'POST') {
     const body = req.body || {};
@@ -33,7 +34,21 @@ export default async function handler(req, res) {
   if (req.method === 'PUT') {
     const body = req.body || {};
     if (!body.group_id) return res.status(400).json({ error: 'group_id is required' });
+    const { data: group, error: groupError } = await supabase.from('coach_groups').select('id, coach_id').eq('id', body.group_id).eq('coach_id', profile.id).maybeSingle();
+    if (groupError) return res.status(500).json({ error: groupError.message });
+    if (!group) return res.status(404).json({ error: 'Group not found' });
+
     if (body.athlete_id) {
+      const { data: relationship, error: relationshipError } = await supabase
+        .from('coach_athlete_relationships')
+        .select('id, status')
+        .eq('coach_id', profile.id)
+        .eq('athlete_id', body.athlete_id)
+        .in('status', ['active', 'accepted'])
+        .maybeSingle();
+      if (relationshipError) return res.status(500).json({ error: relationshipError.message });
+      if (!relationship) return res.status(400).json({ error: 'Athlete is not on your active roster' });
+
       if (body.action === 'remove') {
         const { error } = await supabase.from('coach_group_members').delete().eq('group_id', body.group_id).eq('athlete_id', body.athlete_id);
         if (error) return res.status(500).json({ error: error.message });
@@ -46,6 +61,13 @@ export default async function handler(req, res) {
     const { data, error } = await supabase.from('coach_groups').update({ name: body.name, description: body.description }).eq('id', body.group_id).eq('coach_id', profile.id).select('*').single();
     if (error) return res.status(500).json({ error: error.message });
     return res.status(200).json({ group: data });
+  }
+  if (req.method === 'DELETE') {
+    const body = req.body || {};
+    if (!body.group_id) return res.status(400).json({ error: 'group_id is required' });
+    const { error } = await supabase.from('coach_groups').delete().eq('id', body.group_id).eq('coach_id', profile.id);
+    if (error) return res.status(500).json({ error: error.message });
+    return res.status(200).json({ success: true });
   }
   res.status(405).end();
 }
