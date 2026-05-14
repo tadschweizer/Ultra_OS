@@ -84,6 +84,14 @@ export default function Home() {
   const [athleteId, setAthleteId] = useState(null);
 
   useEffect(() => {
+    // Supabase implicit-flow fallback: when the Site URL is the root, Supabase
+    // appends OAuth tokens as a hash fragment here instead of /auth/callback.
+    // Detect and forward so the callback page can complete the sign-in.
+    if (typeof window !== 'undefined' && window.location.hash.includes('access_token=')) {
+      window.location.replace('/auth/callback' + window.location.hash);
+      return;
+    }
+
     let cancelled = false;
 
     async function checkSession() {
