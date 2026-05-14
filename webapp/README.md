@@ -88,3 +88,9 @@ This MVP intentionally keeps RLS disabled and uses an `athlete_id` cookie to kee
 - Push to GitHub for version control
 - Let Vercel deploy preview and production
 - Keep Supabase schema in versioned SQL files instead of dashboard-only edits
+
+## Auth QA automation
+
+- Fast PR gate: `npm run test:auth:smoke`
+- Extended nightly/full regression: `npm run test:auth:full`
+- Release checklist + go/no-go criteria: `docs/release-auth-checklist.md`
