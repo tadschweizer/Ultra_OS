@@ -87,7 +87,8 @@ export default async function handler(req, res) {
       }
 
       if (!savedAthlete) {
-        const { data: upsertedAthlete, error: athleteError } = await supabase
+        const upsertClient = getAdminClient() || supabase;
+        const { data: upsertedAthlete, error: athleteError } = await upsertClient
           .from('athletes')
           .upsert(
             {
