@@ -1,4 +1,5 @@
 import { findOrCreateAthleteForAuthUser, getSupabaseAdminClient, setAthleteCookie } from '../../../lib/authServer';
+import { assertAuthPostMethod, AUTH_ERROR_MESSAGES, AUTH_STATUS } from '../../../lib/auth/contracts.js';
 
 async function sendWelcomeEmail({ athleteId, name, email }) {
   try {
@@ -13,14 +14,11 @@ async function sendWelcomeEmail({ athleteId, name, email }) {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method not allowed' });
-    return;
-  }
+  if (!assertAuthPostMethod(req, res)) return;
 
   const { accessToken } = req.body || {};
   if (!accessToken) {
-    res.status(400).json({ error: 'Missing access token.' });
+    res.status(AUTH_STATUS.BAD_REQUEST).json({ error: AUTH_ERROR_MESSAGES.MISSING_ACCESS_TOKEN });
     return;
   }
 
@@ -28,7 +26,7 @@ export default async function handler(req, res) {
   const { data: { user }, error: userError } = await admin.auth.getUser(accessToken);
 
   if (userError || !user) {
-    res.status(401).json({ error: 'Invalid or expired session token.' });
+    res.status(AUTH_STATUS.UNAUTHORIZED).json({ error: AUTH_ERROR_MESSAGES.INVALID_SESSION_TOKEN });
     return;
   }
 
@@ -55,6 +53,6 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error('[session] sync error:', error);
-    res.status(500).json({ error: 'Could not finish sign-in. Please try again.' });
+    res.status(AUTH_STATUS.SERVER_ERROR).json({ error: AUTH_ERROR_MESSAGES.SESSION_SYNC_FAILED });
   }
 }

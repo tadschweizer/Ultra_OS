@@ -1,10 +1,8 @@
-import { clearAthleteCookie } from '../../../lib/authServer';
+import { clearAthleteCookie } from '../../../lib/auth/sessionCookies.js';
+import { assertAuthPostMethod } from '../../../lib/auth/contracts.js';
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method not allowed' });
-    return;
-  }
+  if (!assertAuthPostMethod(req, res)) return;
 
   clearAthleteCookie(res);
   res.status(200).json({ ok: true });

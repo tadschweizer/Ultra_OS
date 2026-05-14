@@ -4,12 +4,10 @@ import {
   getSupabaseAnonServerClient,
   setAthleteCookie,
 } from '../../../lib/authServer';
+import { assertAuthPostMethod, AUTH_ERROR_MESSAGES, AUTH_STATUS } from '../../../lib/auth/contracts.js';
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method not allowed' });
-    return;
-  }
+  if (!assertAuthPostMethod(req, res)) return;
 
   const { email, password } = req.body || {};
   if (!email || !password) {
@@ -21,7 +19,7 @@ export default async function handler(req, res) {
   const { data: authData, error: authError } = await anonClient.auth.signInWithPassword({ email, password });
 
   if (authError || !authData?.user) {
-    res.status(401).json({ error: 'Invalid email or password.' });
+    res.status(AUTH_STATUS.UNAUTHORIZED).json({ error: AUTH_ERROR_MESSAGES.INVALID_CREDENTIALS });
     return;
   }
 
@@ -43,6 +41,6 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error('[login] athlete lookup error:', error);
-    res.status(500).json({ error: 'Login succeeded but profile setup failed. Please try again.' });
+    res.status(AUTH_STATUS.SERVER_ERROR).json({ error: AUTH_ERROR_MESSAGES.LOGIN_PROFILE_SYNC_FAILED });
   }
 }

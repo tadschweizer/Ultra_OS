@@ -1,4 +1,5 @@
 import { findOrCreateAthleteForAuthUser, getSupabaseAdminClient, setAthleteCookie } from '../../../lib/authServer';
+import { assertAuthPostMethod, AUTH_ERROR_MESSAGES, AUTH_STATUS } from '../../../lib/auth/contracts.js';
 
 async function sendWelcomeEmail({ athleteId, name, email }) {
   try {
@@ -13,10 +14,7 @@ async function sendWelcomeEmail({ athleteId, name, email }) {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method not allowed' });
-    return;
-  }
+  if (!assertAuthPostMethod(req, res)) return;
 
   const { email, password, name } = req.body || {};
   if (!email || !password) {
@@ -40,8 +38,8 @@ export default async function handler(req, res) {
       || authError?.code === 'email_exists';
     res.status(isDuplicate ? 409 : 500).json({
       error: isDuplicate
-        ? 'An account with that email already exists. Try logging in instead.'
-        : 'Could not create account. Please try again.',
+        ? AUTH_ERROR_MESSAGES.DUPLICATE_ACCOUNT
+        : AUTH_ERROR_MESSAGES.SIGNUP_FAILED,
     });
     return;
   }
@@ -70,6 +68,6 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('[signup] profile creation error:', error);
     await admin.auth.admin.deleteUser(authData.user.id);
-    res.status(500).json({ error: 'Could not create athlete profile. Please try again.' });
+    res.status(AUTH_STATUS.SERVER_ERROR).json({ error: AUTH_ERROR_MESSAGES.SIGNUP_PROFILE_FAILED });
   }
 }
