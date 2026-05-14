@@ -370,6 +370,7 @@ export default function CoachCommandCenter() {
   const [advancedOpen, setAdvancedOpen] = useState('protocols');
   const [openAthleteId, setOpenAthleteId] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [quickNoteByAthlete, setQuickNoteByAthlete] = useState({});
 
   // Invitation form
@@ -391,34 +392,39 @@ export default function CoachCommandCenter() {
 
     async function loadAll() {
       setLoading(true);
-      const [dashRes, relRes, protoRes, invRes, tplRes, loadRes] = await Promise.all([
-        fetch('/api/coach/dashboard'),
-        fetch('/api/coach/relationships'),
-        fetch('/api/coach/protocols'),
-        fetch('/api/coach/invitations'),
-        fetch('/api/coach/templates'),
-        fetch('/api/interventions'),
-      ]);
+      setLoadError('');
+      try {
+        const [dashRes, relRes, protoRes, invRes, tplRes, loadRes] = await Promise.all([
+          fetch('/api/coach/dashboard'),
+          fetch('/api/coach/relationships'),
+          fetch('/api/coach/protocols'),
+          fetch('/api/coach/invitations'),
+          fetch('/api/coach/templates'),
+          fetch('/api/interventions'),
+        ]);
 
-      if (dashRes.ok) {
-        const d = await dashRes.json();
-        setProfile(d.profile || null);
-        setSummary(d.summary || null);
-        setCoachKpis(d.coachKpis || null);
-        setProfileForm({
-          display_name: d.profile?.display_name || '',
-          bio: d.profile?.bio || '',
-          specialties: (d.profile?.specialties || []).join(', '),
-          certifications: (d.profile?.certifications || []).join(', '),
-        });
+        if (dashRes.ok) {
+          const d = await dashRes.json();
+          setProfile(d.profile || null);
+          setSummary(d.summary || null);
+          setCoachKpis(d.coachKpis || null);
+          setProfileForm({
+            display_name: d.profile?.display_name || '',
+            bio: d.profile?.bio || '',
+            specialties: (d.profile?.specialties || []).join(', '),
+            certifications: (d.profile?.certifications || []).join(', '),
+          });
+        }
+        if (relRes.ok) { const d = await relRes.json(); setRelationships(d.relationships || []); setRelationshipMeta({ atRiskAthletes: d.atRiskAthletes || 0, avgCommunicationSlaHours: d.avgCommunicationSlaHours ?? null }); }
+        if (protoRes.ok) { const d = await protoRes.json(); setProtocols(d.protocols || []); setProtocolMeta({ adherenceByAthlete: d.adherenceByAthlete || [], adherenceByInterventionType: d.adherenceByInterventionType || [], subjectiveTrendVsDose: d.subjectiveTrendVsDose || [] }); }
+        if (invRes.ok) { const d = await invRes.json(); setInvitations(d.invitations || []); }
+        if (tplRes.ok) { const d = await tplRes.json(); setTemplates(d.templates || []); setSharedTemplates(d.sharedTemplates || []); }
+        if (loadRes.ok) { const d = await loadRes.json(); setSessionLoad(d.sessionLoad || { daily: 0, rollingWeekly: 0 }); }
+      } catch (err) {
+        setLoadError('We could not load the command center. Please refresh to retry.');
+      } finally {
+        setLoading(false);
       }
-      if (relRes.ok) { const d = await relRes.json(); setRelationships(d.relationships || []); setRelationshipMeta({ atRiskAthletes: d.atRiskAthletes || 0, avgCommunicationSlaHours: d.avgCommunicationSlaHours ?? null }); }
-      if (protoRes.ok) { const d = await protoRes.json(); setProtocols(d.protocols || []); setProtocolMeta({ adherenceByAthlete: d.adherenceByAthlete || [], adherenceByInterventionType: d.adherenceByInterventionType || [], subjectiveTrendVsDose: d.subjectiveTrendVsDose || [] }); }
-      if (invRes.ok) { const d = await invRes.json(); setInvitations(d.invitations || []); }
-      if (tplRes.ok) { const d = await tplRes.json(); setTemplates(d.templates || []); setSharedTemplates(d.sharedTemplates || []); }
-      if (loadRes.ok) { const d = await loadRes.json(); setSessionLoad(d.sessionLoad || { daily: 0, rollingWeekly: 0 }); }
-
-      setLoading(false);
     }
 
     loadAll();
@@ -632,6 +638,16 @@ export default function CoachCommandCenter() {
     return (
       <main className="flex min-h-screen items-center justify-center bg-paper">
         <p className="text-sm text-ink/55">Loading Coach Command Center…</p>
+      </main>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <main className="min-h-screen bg-paper px-4 py-6 text-ink">
+        <div className="mx-auto max-w-3xl rounded-2xl border border-red-200 bg-red-50 px-4 py-5 text-red-700">
+          {loadError}
+        </div>
       </main>
     );
   }

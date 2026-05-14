@@ -3,6 +3,12 @@ import { supabase } from '../../../lib/supabaseClient';
 import { generateCoachCode } from '../../../lib/coachProtocols';
 
 const VALID_NOTE_TYPES = ['observation', 'flag', 'reminder', 'race_debrief', 'daily', 'weekly', 'timeline'];
+const VALID_EVIDENCE_TYPES = ['metric', 'workout', 'checkin', 'message', 'race', 'note'];
+const QUICK_COACH_PROMPT_TEMPLATES = [
+  'What changed since the last check-in?',
+  'What is the smallest next step for the next 48 hours?',
+  'What support does the athlete need from coaching this week?',
+];
 
 function getAthleteId(req) {
   return cookie.parse(req.headers.cookie || '').athlete_id;
@@ -54,6 +60,8 @@ function buildThreadKey({ athleteId, protocolAssignmentId, workoutId, workoutDat
   return `${athleteId}::${protocolAssignmentId || 'none'}::${workoutId || 'none'}::${datePart}`;
 }
 
+export const __testables = { normalizeEvidenceCards, buildThreadKey, VALID_EVIDENCE_TYPES };
+
 export default async function handler(req, res) {
   const athleteId = getAthleteId(req);
   if (!athleteId) { res.status(401).json({ error: 'Not authenticated' }); return; }
@@ -79,19 +87,18 @@ export default async function handler(req, res) {
       if (typeof req.query.from === 'string') query = query.gte('created_at', req.query.from);
       if (typeof req.query.to === 'string') query = query.lte('created_at', req.query.to);
       if (typeof req.query.share_with_athlete === 'string') query = query.eq('share_with_athlete', req.query.share_with_athlete === 'true');
+      const protocolAssignmentId = typeof req.query.protocol_assignment_id === 'string' ? req.query.protocol_assignment_id : null;
+      const workoutId = typeof req.query.workout_id === 'string' ? req.query.workout_id : null;
+      const workoutDate = typeof req.query.workout_date === 'string' ? req.query.workout_date : null;
 
       const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
       if (search) query = query.or(`content.ilike.%${search}%,tags.cs.{${search}}`);
-
-      const { data: noteRows, error: queryError } = await query
-        .order('is_pinned', { ascending: false })
-        .order('created_at', { ascending: true });
 
       if (protocolAssignmentId) query = query.eq('protocol_assignment_id', protocolAssignmentId);
       if (workoutId) query = query.eq('workout_id', workoutId);
       if (workoutDate) query = query.eq('workout_date', workoutDate);
 
-      const { data, error } = await query;
+      const { data, error } = await query.order('is_pinned', { ascending: false }).order('created_at', { ascending: false });
 
       if (error) { res.status(500).json({ error: error.message }); return; }
       res.status(200).json({ notes: data || [], quickPromptTemplates: QUICK_COACH_PROMPT_TEMPLATES });
@@ -135,8 +142,8 @@ export default async function handler(req, res) {
         .select('*')
         .single();
 
-      if (insertError) { res.status(500).json({ error: insertError.message }); return; }
-      res.status(200).json({ note: insertedNote });
+      if (error) { res.status(500).json({ error: error.message }); return; }
+      res.status(200).json({ note: data });
       return;
     }
 
@@ -182,8 +189,8 @@ export default async function handler(req, res) {
         .select('*')
         .single();
 
-      if (updateError) { res.status(500).json({ error: updateError.message }); return; }
-      res.status(200).json({ note: updatedNote });
+      if (error) { res.status(500).json({ error: error.message }); return; }
+      res.status(200).json({ note: data });
       return;
     }
 
