@@ -10,7 +10,9 @@
     "pages:deploy": "npm run pages:build && wrangler pages deploy",
     "pages:preview": "npm run pages:build && wrangler pages dev",
     "test:auth": "node --test tests/auth-regression.test.mjs tests/auth-oauth-regression.test.mjs",
-    "test:protocols": "node --test tests/protocol-lifecycle.test.mjs"
+    "test:protocols": "node --test tests/protocol-lifecycle.test.mjs",
+    "test:auth:smoke": "node --test tests/auth-smoke.test.mjs tests/auth-regression.test.mjs tests/auth-oauth-regression.test.mjs",
+    "test:auth:full": "node --test tests/auth-smoke.test.mjs tests/auth-regression.test.mjs tests/auth-oauth-regression.test.mjs tests/coach-group-membership.test.mjs tests/protocol-lifecycle.test.mjs"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
