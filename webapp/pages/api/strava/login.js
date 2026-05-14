@@ -9,7 +9,7 @@ import { getStravaRedirectUri } from '../../../lib/auth/oauth.js';
 export default function handler(req, res) {
   const clientId = process.env.STRAVA_CLIENT_ID;
   const redirectUri = getStravaRedirectUri(req);
-  if (!clientId) {
+  if (!clientId || !redirectUri) {
     res.setHeader('Location', '/login?error=strava_not_configured');
     res.statusCode = 302;
     res.end();

@@ -13,10 +13,25 @@ test('does not parse hash token when code flow is present', () => {
   assert.equal(parsed, null);
 });
 
-test('builds strava callback from host when explicit redirect is unset', () => {
-  const original = process.env.STRAVA_REDIRECT_URI;
+test('returns null when neither STRAVA_REDIRECT_URI nor NEXT_PUBLIC_SITE_URL is set', () => {
+  const origStrava = process.env.STRAVA_REDIRECT_URI;
+  const origSite = process.env.NEXT_PUBLIC_SITE_URL;
   delete process.env.STRAVA_REDIRECT_URI;
+  delete process.env.NEXT_PUBLIC_SITE_URL;
   const uri = getStravaRedirectUri({ headers: { host: 'localhost:3000', 'x-forwarded-proto': 'https' } });
-  assert.equal(uri, 'https://localhost:3000/api/strava/callback');
-  if (original) process.env.STRAVA_REDIRECT_URI = original;
+  assert.equal(uri, null);
+  if (origStrava) process.env.STRAVA_REDIRECT_URI = origStrava;
+  if (origSite) process.env.NEXT_PUBLIC_SITE_URL = origSite;
+});
+
+test('builds strava callback from NEXT_PUBLIC_SITE_URL when STRAVA_REDIRECT_URI is unset', () => {
+  const origStrava = process.env.STRAVA_REDIRECT_URI;
+  const origSite = process.env.NEXT_PUBLIC_SITE_URL;
+  delete process.env.STRAVA_REDIRECT_URI;
+  process.env.NEXT_PUBLIC_SITE_URL = 'https://app.threshold.run';
+  const uri = getStravaRedirectUri({});
+  assert.equal(uri, 'https://app.threshold.run/api/strava/callback');
+  if (origStrava) process.env.STRAVA_REDIRECT_URI = origStrava;
+  if (origSite) process.env.NEXT_PUBLIC_SITE_URL = origSite;
+  else delete process.env.NEXT_PUBLIC_SITE_URL;
 });

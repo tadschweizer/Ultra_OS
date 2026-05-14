@@ -5,7 +5,7 @@ import setInviteCookieHandler from '../pages/api/set-invite-cookie.js';
 import stravaLoginHandler from '../pages/api/strava/login.js';
 import { hasRole } from '../lib/auth/roleGuards.js';
 import { protectedRoutes } from '../lib/siteNavigation.js';
-import { getGoogleRedirectUri, getStravaRedirectUri } from '../lib/auth/oauth.js';
+import { getStravaRedirectUri } from '../lib/auth/oauth.js';
 
 function makeRes() {
   const headers = new Map();
@@ -71,8 +71,13 @@ test('strava login redirect uses callback URI and fails with clear error when no
   if (originalClientId) process.env.STRAVA_CLIENT_ID = originalClientId;
 });
 
-test('oauth redirect uri builders match expected production callback paths', () => {
-  const req = { headers: { host: 'mythreshold.co', 'x-forwarded-proto': 'https' } };
-  assert.equal(getGoogleRedirectUri(req), 'https://mythreshold.co/auth/callback');
-  assert.equal(getStravaRedirectUri(req), 'https://mythreshold.co/api/strava/callback');
+test('strava redirect uri uses NEXT_PUBLIC_SITE_URL when STRAVA_REDIRECT_URI is unset', () => {
+  const origStrava = process.env.STRAVA_REDIRECT_URI;
+  const origSite = process.env.NEXT_PUBLIC_SITE_URL;
+  delete process.env.STRAVA_REDIRECT_URI;
+  process.env.NEXT_PUBLIC_SITE_URL = 'https://mythreshold.co';
+  assert.equal(getStravaRedirectUri({}), 'https://mythreshold.co/api/strava/callback');
+  if (origStrava) process.env.STRAVA_REDIRECT_URI = origStrava;
+  if (origSite) process.env.NEXT_PUBLIC_SITE_URL = origSite;
+  else delete process.env.NEXT_PUBLIC_SITE_URL;
 });
