@@ -1,6 +1,12 @@
 import cookie from 'cookie';
 import { supabase } from '../../../lib/supabaseClient';
-import { evaluateProtocolRules, generateCoachCode } from '../../../lib/coachProtocols';
+import {
+  evaluateProtocolRules,
+  generateCoachCode,
+  validateProtocolWindow,
+  isActiveProtocolStatus,
+  hasDateWindowOverlap,
+} from '../../../lib/coachProtocols';
 
 function getAthleteId(req) {
   return cookie.parse(req.headers.cookie || '').athlete_id;
@@ -35,8 +41,6 @@ async function ensureCoachProfile(athleteId) {
   return data;
 }
 
-
-
 function toNumber(v) {
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
@@ -54,59 +58,33 @@ export default async function handler(req, res) {
   try {
     const profile = await ensureCoachProfile(athleteId);
 
-    // ── GET: list protocols, optionally filtered by athlete_id ──────────────
     if (req.method === 'GET') {
       let query = supabase
-        .from('assigned_protocols')
-        .select(`
-          id, athlete_id, protocol_name, protocol_type, description,
-          instructions, target_race_id, start_date, end_date,
-          status, compliance_target, created_at, updated_at,
-          races(id, name, event_date, race_type)
-        `)
+        .from('coach_protocol_assignments')
+        .select('id, athlete_id, protocol_name, intervention_type, description, protocol_payload, start_date, target_completion_date, status, planned_sessions, created_at, updated_at, target_race_id')
         .eq('coach_id', profile.id)
         .order('start_date', { ascending: false });
 
-      if (typeof req.query.athlete_id === 'string') {
-        query = query.eq('athlete_id', req.query.athlete_id);
-      }
-      if (typeof req.query.status === 'string') {
-        query = query.eq('status', req.query.status);
-      }
+      if (typeof req.query.athlete_id === 'string') query = query.eq('athlete_id', req.query.athlete_id);
+      if (typeof req.query.status === 'string') query = query.eq('status', req.query.status);
 
       const { data, error } = await query;
       if (error) { res.status(500).json({ error: error.message }); return; }
 
-      // Attach athlete names
       const ids = [...new Set((data || []).map((p) => p.athlete_id))];
-      const { data: athletes } = ids.length
-        ? await supabase.from('athletes').select('id, name').in('id', ids)
-        : { data: [] };
-
-      const protocols = (data || []).map((p) => ({
-        ...p,
-        athlete: (athletes || []).find((a) => a.id === p.athlete_id) || null,
-      }));
+      const { data: athletes } = ids.length ? await supabase.from('athletes').select('id, name').in('id', ids) : { data: [] };
+      const protocols = (data || []).map((p) => ({ ...p, athlete: (athletes || []).find((a) => a.id === p.athlete_id) || null }));
 
       const interventionLogs = ids.length
-        ? await supabase
-          .from('interventions')
-          .select('athlete_id, intervention_type, date, subjective_feel, dose_duration')
-          .in('athlete_id', ids)
+        ? await supabase.from('interventions').select('athlete_id, intervention_type, date, subjective_feel, dose_duration').in('athlete_id', ids)
         : { data: [] };
 
       const logs = interventionLogs.data || [];
       const adherenceByAthlete = ids.map((id) => {
-        const athleteProtocols = protocols.filter((p) => p.athlete_id === id && ['assigned', 'in_progress', 'completed'].includes(p.status));
+        const athleteProtocols = protocols.filter((p) => p.athlete_id === id && ['assigned', 'in_progress', 'completed', 'active'].includes(p.status));
         const athleteLogs = logs.filter((l) => l.athlete_id === id);
-        const completedProtocols = athleteProtocols.filter((p) => {
-          const count = athleteLogs.filter((l) => l.intervention_type === p.protocol_type).length;
-          return count > 0;
-        }).length;
-        return {
-          athlete_id: id,
-          adherence_pct: athleteProtocols.length ? Math.round((completedProtocols / athleteProtocols.length) * 100) : 0,
-        };
+        const completedProtocols = athleteProtocols.filter((p) => athleteLogs.some((l) => l.intervention_type === p.intervention_type)).length;
+        return { athlete_id: id, adherence_pct: athleteProtocols.length ? Math.round((completedProtocols / athleteProtocols.length) * 100) : 0 };
       });
 
       const adherenceByInterventionType = Object.values(logs.reduce((acc, log) => {
@@ -116,91 +94,46 @@ export default async function handler(req, res) {
         const subj = toNumber(log.subjective_feel);
         if (subj !== null) acc[key].subjective.push(subj);
         return acc;
-      }, {})).map((row) => ({
-        intervention_type: row.intervention_type,
-        adherence_pct: Math.min(100, row.logged * 10),
-        avg_subjective_feel: row.subjective.length ? Number(mean(row.subjective).toFixed(2)) : null,
-      }));
+      }, {})).map((row) => ({ intervention_type: row.intervention_type, adherence_pct: Math.min(100, row.logged * 10), avg_subjective_feel: row.subjective.length ? Number(mean(row.subjective).toFixed(2)) : null }));
 
-      const subjectiveTrendVsDose = logs
-        .filter((l) => l.subjective_feel !== null && l.subjective_feel !== undefined)
-        .map((l) => ({
-          athlete_id: l.athlete_id,
-          intervention_type: l.intervention_type,
-          date: l.date,
-          dose_duration: toNumber(l.dose_duration),
-          subjective_feel: l.subjective_feel,
-        }));
+      const subjectiveTrendVsDose = logs.filter((l) => l.subjective_feel !== null && l.subjective_feel !== undefined).map((l) => ({ athlete_id: l.athlete_id, intervention_type: l.intervention_type, date: l.date, dose_duration: toNumber(l.dose_duration), subjective_feel: l.subjective_feel }));
 
       res.status(200).json({ protocols, profile, adherenceByAthlete, adherenceByInterventionType, subjectiveTrendVsDose });
       return;
     }
 
-    // ── POST: assign a new protocol ─────────────────────────────────────────
     if (req.method === 'POST') {
       const body = req.body || {};
       const required = ['athlete_id', 'start_date', 'end_date'];
 
       let template = null;
       if (body.template_id) {
-        const { data: tpl } = await supabase
-          .from('protocol_templates')
-          .select('id, name, protocol_type, description, instructions')
-          .eq('id', body.template_id)
-          .maybeSingle();
+        const { data: tpl } = await supabase.from('protocol_templates').select('id, name, protocol_type, description, instructions').eq('id', body.template_id).maybeSingle();
         template = tpl || null;
       }
       const protocolName = (body.protocol_name || template?.name || '').trim();
       const protocolType = body.protocol_type || template?.protocol_type;
       const mergedInstructions = { ...(template?.instructions || {}), ...(body.instructions || {}) };
       const missing = required.filter((k) => !body[k]).concat(!protocolName ? ['protocol_name'] : []).concat(!protocolType ? ['protocol_type'] : []);
-      if (missing.length) {
-        res.status(400).json({ error: `Missing required fields: ${missing.join(', ')}` });
+      if (missing.length) { res.status(400).json({ error: `Missing required fields: ${missing.join(', ')}` }); return; }
+
+      const windowValidation = validateProtocolWindow(body.start_date, body.end_date);
+      if (!windowValidation.valid) { res.status(400).json({ error: windowValidation.error }); return; }
+
+      const { data: relationship } = await supabase.from('coach_athlete_relationships').select('id').eq('coach_id', profile.id).eq('athlete_id', body.athlete_id).eq('status', 'active').maybeSingle();
+      if (!relationship) { res.status(403).json({ error: 'Athlete is not in your active roster' }); return; }
+
+      const { data: existingActive } = await supabase
+        .from('coach_protocol_assignments')
+        .select('id, start_date, target_completion_date, status')
+        .eq('coach_id', profile.id)
+        .eq('athlete_id', body.athlete_id)
+        .in('status', ['assigned', 'in_progress', 'active']);
+
+      if (!body.allow_parallel_active && (existingActive || []).some((row) => hasDateWindowOverlap(body.start_date, body.end_date, row.start_date, row.target_completion_date))) {
+        res.status(409).json({ error: 'Conflicting active protocol already exists for this athlete and date window' });
         return;
       }
-
-      const rulesResult = evaluateProtocolRules({
-        interventionType: body.protocol_type,
-        frequencyType: body.instructions?.frequency_type || 'weekly',
-        plannedSessions: body.instructions?.planned_sessions ?? null,
-        responseMetrics: body.response_metrics || {},
-        currentLoad: body.current_load || {},
-        coachOverrideReason: body.coach_override_reason || null,
-      });
-
-      const { data, error } = await supabase
-        .from('assigned_protocols')
-        .insert({
-          coach_id: profile.id,
-          athlete_id: body.athlete_id,
-          protocol_name: protocolName,
-          protocol_type: protocolType,
-          description: body.description?.trim() || template?.description || null,
-          instructions: {
-            ...mergedInstructions,
-            rules_engine: rulesResult,
-            why_this_next_step: rulesResult.recommendationText,
-            confidence: rulesResult.confidence,
-          },
-          target_race_id: body.target_race_id || null,
-          start_date: body.start_date,
-          end_date: body.end_date,
-          status: body.status || 'assigned',
-          compliance_target: body.compliance_target ?? 80,
-          coach_override_reason: rulesResult.override.reason,
-        })
-        .select('*')
-        .single();
-
-      if (error) { res.status(500).json({ error: error.message }); return; }
-      res.status(200).json({ protocol: data, profile });
-      return;
-    }
-
-    // ── PUT: update an existing protocol ────────────────────────────────────
-    if (req.method === 'PUT') {
-      const body = req.body || {};
-      if (!body.id) { res.status(400).json({ error: 'id is required' }); return; }
 
       const rulesResult = evaluateProtocolRules({
         interventionType: protocolType,
@@ -211,48 +144,78 @@ export default async function handler(req, res) {
         coachOverrideReason: body.coach_override_reason || null,
       });
 
+      const { data, error } = await supabase.from('coach_protocol_assignments').insert({
+        coach_id: profile.id,
+        athlete_id: body.athlete_id,
+        protocol_name: protocolName,
+        intervention_type: protocolType,
+        description: body.description?.trim() || template?.description || null,
+        protocol_payload: { ...mergedInstructions, rules_engine: rulesResult, why_this_next_step: rulesResult.recommendationText, confidence: rulesResult.confidence },
+        target_race_id: body.target_race_id || null,
+        start_date: body.start_date,
+        target_completion_date: body.end_date,
+        status: body.status || 'assigned',
+        planned_sessions: body.compliance_target ?? mergedInstructions?.planned_sessions ?? 1,
+      }).select('*').single();
+
+      if (error) { res.status(500).json({ error: error.message }); return; }
+      res.status(200).json({ protocol: data, profile });
+      return;
+    }
+
+    if (req.method === 'PUT') {
+      const body = req.body || {};
+      if (!body.id) { res.status(400).json({ error: 'id is required' }); return; }
+
+      const { data: existing, error: existingErr } = await supabase.from('coach_protocol_assignments').select('*').eq('id', body.id).eq('coach_id', profile.id).maybeSingle();
+      if (existingErr) { res.status(500).json({ error: existingErr.message }); return; }
+      if (!existing) { res.status(404).json({ error: 'Protocol assignment not found' }); return; }
+
+      const startDate = body.start_date ?? existing.start_date;
+      const endDate = body.end_date ?? existing.target_completion_date;
+      const validation = validateProtocolWindow(startDate, endDate);
+      if (!validation.valid) { res.status(400).json({ error: validation.error }); return; }
+
+      const protocolType = body.protocol_type ?? existing.intervention_type;
+      const mergedInstructions = { ...(existing.protocol_payload || {}), ...(body.instructions || {}) };
+      const rulesResult = evaluateProtocolRules({
+        interventionType: protocolType,
+        frequencyType: mergedInstructions?.frequency_type || 'weekly',
+        plannedSessions: mergedInstructions?.planned_sessions ?? null,
+        responseMetrics: body.response_metrics || {},
+        currentLoad: body.current_load || {},
+        coachOverrideReason: body.coach_override_reason || null,
+      });
+
       const updates = {};
-      const updatable = [
-        'protocol_name', 'protocol_type', 'description', 'instructions',
-        'target_race_id', 'start_date', 'end_date', 'status', 'compliance_target',
-      ];
-      for (const key of updatable) {
-        if (body[key] !== undefined) updates[key] = body[key];
-      }
-      if (updates.instructions || body.instructions === undefined) {
-        updates.instructions = {
-          ...(updates.instructions || body.instructions || {}),
-          rules_engine: rulesResult,
-          why_this_next_step: rulesResult.recommendationText,
-          confidence: rulesResult.confidence,
-        };
-      }
-      updates.coach_override_reason = rulesResult.override.reason;
+      if (body.protocol_name !== undefined) updates.protocol_name = body.protocol_name;
+      if (body.protocol_type !== undefined) updates.intervention_type = body.protocol_type;
+      if (body.description !== undefined) updates.description = body.description;
+      if (body.target_race_id !== undefined) updates.target_race_id = body.target_race_id;
+      if (body.start_date !== undefined) updates.start_date = body.start_date;
+      if (body.end_date !== undefined) updates.target_completion_date = body.end_date;
+      if (body.status !== undefined) updates.status = body.status;
+      updates.protocol_payload = { ...mergedInstructions, rules_engine: rulesResult, why_this_next_step: rulesResult.recommendationText, confidence: rulesResult.confidence };
 
-      const { data, error } = await supabase
-        .from('assigned_protocols')
-        .update(updates)
-        .eq('id', body.id)
-        .eq('coach_id', profile.id)
-        .select('*')
-        .single();
+      if ((body.start_date !== undefined || body.end_date !== undefined || body.status !== undefined) && isActiveProtocolStatus(updates.status ?? existing.status) && !body.allow_parallel_active) {
+        const { data: siblingActive } = await supabase.from('coach_protocol_assignments').select('id, start_date, target_completion_date, status').eq('coach_id', profile.id).eq('athlete_id', existing.athlete_id).in('status', ['assigned', 'in_progress', 'active']).neq('id', existing.id);
+        if ((siblingActive || []).some((row) => hasDateWindowOverlap(startDate, endDate, row.start_date, row.target_completion_date))) {
+          res.status(409).json({ error: 'Updated assignment overlaps another active assignment for this athlete' });
+          return;
+        }
+      }
 
+      const { data, error } = await supabase.from('coach_protocol_assignments').update(updates).eq('id', body.id).eq('coach_id', profile.id).select('*').single();
       if (error) { res.status(500).json({ error: error.message }); return; }
       res.status(200).json({ protocol: data });
       return;
     }
 
-    // ── DELETE: abandon a protocol ───────────────────────────────────────────
     if (req.method === 'DELETE') {
       const id = req.query.id || req.body?.id;
       if (!id) { res.status(400).json({ error: 'id is required' }); return; }
 
-      const { error } = await supabase
-        .from('assigned_protocols')
-        .update({ status: 'abandoned' })
-        .eq('id', id)
-        .eq('coach_id', profile.id);
-
+      const { error } = await supabase.from('coach_protocol_assignments').update({ status: 'abandoned' }).eq('id', id).eq('coach_id', profile.id);
       if (error) { res.status(500).json({ error: error.message }); return; }
       res.status(200).json({ success: true });
       return;
