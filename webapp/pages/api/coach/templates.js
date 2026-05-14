@@ -72,6 +72,7 @@ export default async function handler(req, res) {
       const body = req.body || {};
       if (!body.name?.trim()) { res.status(400).json({ error: 'name is required' }); return; }
       if (!body.protocol_type) { res.status(400).json({ error: 'protocol_type is required' }); return; }
+      if (body.duration_weeks !== undefined && (!Number.isInteger(Number(body.duration_weeks)) || Number(body.duration_weeks) <= 0)) { res.status(400).json({ error: 'duration_weeks must be a positive integer' }); return; }
 
       const { data, error } = await supabase
         .from('protocol_templates')
@@ -102,6 +103,9 @@ export default async function handler(req, res) {
       for (const key of updatable) {
         if (body[key] !== undefined) updates[key] = body[key];
       }
+      if (updates.name !== undefined) updates.name = String(updates.name).trim();
+      if (updates.description !== undefined) updates.description = updates.description ? String(updates.description).trim() : null;
+      if (updates.duration_weeks !== undefined && (!Number.isInteger(Number(updates.duration_weeks)) || Number(updates.duration_weeks) <= 0)) { res.status(400).json({ error: 'duration_weeks must be a positive integer' }); return; }
 
       const { data, error } = await supabase
         .from('protocol_templates')
