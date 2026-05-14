@@ -1,4 +1,5 @@
-import { getAthleteByCookie, getSupabaseAdminClient, setAthleteCookie } from '../../../lib/authServer';
+import { getAthleteByCookie, getSupabaseAdminClient } from '../../../lib/authServer';
+import { setAthleteCookie } from '../../../lib/auth/sessionCookies.js';
 import { getTierFromPriceId } from '../../../lib/billingPlans';
 import { getStripeClient } from '../../../lib/stripeServer';
 import { supabase } from '../../../lib/supabaseClient';
