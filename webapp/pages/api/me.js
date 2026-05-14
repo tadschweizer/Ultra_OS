@@ -1,35 +1,21 @@
 import { supabase } from '../../lib/supabaseClient';
-import cookie from 'cookie';
 import { buildUsageSnapshot, getSubscriptionTierLabel, normalizeSubscriptionTier } from '../../lib/subscriptionTiers';
 import { buildLoadMetrics, buildLoadStatus } from '../../lib/loadRollups';
+import { clearAthleteCookie, getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
+import { isValidAthleteId } from '../../lib/auth/contracts.js';
 
 /**
  * Returns the authenticated athlete profile plus subscription tier and usage.
  */
 export default async function handler(req, res) {
-  const cookies = cookie.parse(req.headers.cookie || '');
-  const athleteId = cookies.athlete_id;
-  const isUuid = (value) =>
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value || '');
-  const clearCookie = () => {
-    res.setHeader(
-      'Set-Cookie',
-      cookie.serialize('athlete_id', '', {
-        httpOnly: false,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 0,
-      })
-    );
-  };
+  const athleteId = getAthleteIdFromRequest(req);
 
   if (!athleteId) {
     res.status(401).json({ error: 'Not authenticated' });
     return;
   }
-  if (!isUuid(athleteId)) {
-    clearCookie();
+  if (!isValidAthleteId(athleteId)) {
+    clearAthleteCookie(res);
     res.status(401).json({ error: 'Not authenticated' });
     return;
   }
@@ -45,7 +31,7 @@ export default async function handler(req, res) {
     return;
   }
   if (!athlete) {
-    clearCookie();
+    clearAthleteCookie(res);
     res.status(401).json({ error: 'Not authenticated' });
     return;
   }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
+import { getAccessTokenFromCallbackUrl } from '../../lib/auth/oauth.js';
 
 function getSupabaseClient() {
   return createClient(
@@ -14,10 +15,37 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     async function handleCallback() {
       const supabase = getSupabaseClient();
-      const { data: sessionData, error: sessionError } = await supabase.auth.exchangeCodeForSession(window.location.href);
+      let accessToken = null;
+      const code = new URL(window.location.href).searchParams.get('code');
 
-      if (sessionError || !sessionData?.session) {
-        console.error('[auth/callback] exchange failed:', sessionError);
+      if (code) {
+        const { data: sessionData, error: sessionError } = await supabase.auth.exchangeCodeForSession(window.location.href);
+        if (sessionError || !sessionData?.session) {
+          console.error('[auth/callback] exchange failed:', sessionError);
+        } else {
+          accessToken = sessionData.session.access_token;
+        }
+      }
+
+      if (!accessToken) {
+        const hashTokens = getAccessTokenFromCallbackUrl(window.location.href);
+        if (hashTokens?.accessToken && hashTokens?.refreshToken) {
+          const { data: setSessionData, error: setSessionError } = await supabase.auth.setSession({
+            access_token: hashTokens.accessToken,
+            refresh_token: hashTokens.refreshToken,
+          });
+          if (!setSessionError) {
+            accessToken = setSessionData.session?.access_token || null;
+          }
+        }
+      }
+
+      if (!accessToken) {
+        const { data: currentSession } = await supabase.auth.getSession();
+        accessToken = currentSession?.session?.access_token || null;
+      }
+
+      if (!accessToken) {
         setStatus('Sign-in failed. Redirecting...');
         setTimeout(() => {
           window.location.href = '/login?error=oauth_failed';
@@ -28,7 +56,7 @@ export default function AuthCallbackPage() {
       const response = await fetch('/api/auth/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accessToken: sessionData.session.access_token }),
+        body: JSON.stringify({ accessToken }),
       });
 
       if (!response.ok) {

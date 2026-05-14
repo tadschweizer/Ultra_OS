@@ -3,6 +3,7 @@ import { exchangeToken } from '../../../lib/strava';
 import { supabase } from '../../../lib/supabaseClient';
 import cookie from 'cookie';
 import { normalizeSubscriptionTier } from '../../../lib/subscriptionTiers';
+import { getStravaRedirectUri } from '../../../lib/auth/oauth.js';
 
 function getAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -28,10 +29,10 @@ export default async function handler(req, res) {
   try {
     const clientId = process.env.STRAVA_CLIENT_ID;
     const clientSecret = process.env.STRAVA_CLIENT_SECRET;
-    const redirectUri = process.env.STRAVA_REDIRECT_URI;
-    if (!clientId || !clientSecret || !redirectUri) {
+    const redirectUri = getStravaRedirectUri(req);
+    if (!clientId || !clientSecret) {
       throw new Error(
-        'Missing Strava environment variables: STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET, and STRAVA_REDIRECT_URI are required.'
+        'Missing Strava environment variables: STRAVA_CLIENT_ID and STRAVA_CLIENT_SECRET are required.'
       );
     }
     const tokenData = await exchangeToken(code, clientId, clientSecret, redirectUri);

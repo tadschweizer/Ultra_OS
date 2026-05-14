@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
-import cookie from 'cookie';
 import { normalizeSubscriptionTier } from './subscriptionTiers';
+import { getAthleteIdFromRequest } from './auth/sessionCookies.js';
 
 let adminClient = null;
 let anonClient = null;
@@ -33,50 +33,6 @@ export function getSupabaseAnonServerClient() {
     );
   }
   return anonClient;
-}
-
-export function parseRequestCookies(req) {
-  return cookie.parse(req.headers.cookie || '');
-}
-
-export function getAthleteIdFromRequest(req) {
-  return parseRequestCookies(req).athlete_id || null;
-}
-
-function appendSetCookie(res, nextCookie) {
-  const current = res.getHeader('Set-Cookie');
-  if (!current) {
-    res.setHeader('Set-Cookie', nextCookie);
-    return;
-  }
-  const cookies = Array.isArray(current) ? current : [current];
-  res.setHeader('Set-Cookie', [...cookies, nextCookie]);
-}
-
-export function setAthleteCookie(res, athleteId) {
-  appendSetCookie(
-    res,
-    cookie.serialize('athlete_id', athleteId, {
-      httpOnly: false,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 30,
-    })
-  );
-}
-
-export function clearAthleteCookie(res) {
-  appendSetCookie(
-    res,
-    cookie.serialize('athlete_id', '', {
-      httpOnly: false,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 0,
-    })
-  );
 }
 
 export async function findOrCreateAthleteForAuthUser({
