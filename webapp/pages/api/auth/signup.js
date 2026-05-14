@@ -1,4 +1,5 @@
-import { findOrCreateAthleteForAuthUser, getSupabaseAdminClient, setAthleteCookie } from '../../../lib/authServer';
+import { findOrCreateAthleteForAuthUser, getSupabaseAdminClient } from '../../../lib/authServer';
+import { setAthleteCookie } from '../../../lib/auth/sessionCookies.js';
 import { assertAuthPostMethod, AUTH_ERROR_MESSAGES, AUTH_STATUS } from '../../../lib/auth/contracts.js';
 
 async function sendWelcomeEmail({ athleteId, name, email }) {

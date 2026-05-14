@@ -2,8 +2,8 @@ import {
   findOrCreateAthleteForAuthUser,
   getSupabaseAdminClient,
   getSupabaseAnonServerClient,
-  setAthleteCookie,
 } from '../../../lib/authServer';
+import { setAthleteCookie } from '../../../lib/auth/sessionCookies.js';
 import { assertAuthPostMethod, AUTH_ERROR_MESSAGES, AUTH_STATUS } from '../../../lib/auth/contracts.js';
 
 export default async function handler(req, res) {
