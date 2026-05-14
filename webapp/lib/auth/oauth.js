@@ -10,11 +10,13 @@ export function buildAbsoluteSiteUrl(req) {
 export function getStravaRedirectUri(req) {
   const explicit = process.env.STRAVA_REDIRECT_URI;
   if (explicit) return explicit;
-  return `${buildAbsoluteSiteUrl(req)}/api/strava/callback`;
-}
-
-export function getGoogleRedirectUri(req) {
-  return `${buildAbsoluteSiteUrl(req)}/auth/callback`;
+  // Only fall back to dynamic detection when NEXT_PUBLIC_SITE_URL is explicitly
+  // set, so we don't silently produce a URL that won't match Strava's registered
+  // redirect URI (Strava rejects mismatches with a 400 Bad Request).
+  if (process.env.NEXT_PUBLIC_SITE_URL) {
+    return `${process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, '')}/api/strava/callback`;
+  }
+  return null;
 }
 
 export function getAccessTokenFromCallbackUrl(rawUrl) {

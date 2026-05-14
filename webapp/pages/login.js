@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import NavMenu from '../components/NavMenu';
-import { getGoogleRedirectUri } from '../lib/auth/oauth.js';
 
 function getSupabaseClient() {
   return createClient(
@@ -90,7 +89,7 @@ export default function LoginPage() {
         const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: getGoogleRedirectUri(),
+        redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 
