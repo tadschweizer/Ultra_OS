@@ -1,4 +1,4 @@
-import { deriveRaceType } from './raceTypes';
+import { deriveRaceType } from './raceTypes.js';
 
 function addDays(dateString, days) {
   const date = new Date(`${dateString}T00:00:00`);
@@ -111,6 +111,30 @@ function toNumber(value) {
 
 function summarizeContraindications(guardrails = []) {
   return guardrails.filter((item) => item.triggered).map((item) => item.reason);
+}
+
+
+
+export function validateProtocolWindow(startDate, endDate) {
+  if (!startDate || !endDate) return { valid: false, error: 'start_date and end_date are required' };
+  const start = new Date(`${startDate}T00:00:00`);
+  const end = new Date(`${endDate}T00:00:00`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return { valid: false, error: 'Invalid protocol date format' };
+  if (end < start) return { valid: false, error: 'end_date cannot be before start_date' };
+  return { valid: true };
+}
+
+export function hasDateWindowOverlap(startA, endA, startB, endB) {
+  const a1 = new Date(`${startA}T00:00:00`).getTime();
+  const a2 = new Date(`${endA}T00:00:00`).getTime();
+  const b1 = new Date(`${startB}T00:00:00`).getTime();
+  const b2 = new Date(`${endB}T00:00:00`).getTime();
+  if ([a1,a2,b1,b2].some(Number.isNaN)) return false;
+  return a1 <= b2 && b1 <= a2;
+}
+
+export function isActiveProtocolStatus(status) {
+  return ['assigned', 'in_progress', 'active'].includes(status);
 }
 
 export function evaluateProtocolRules({
