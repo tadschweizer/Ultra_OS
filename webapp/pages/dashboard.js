@@ -502,33 +502,36 @@ export default function Dashboard() {
         setLoadMetrics(me.load_metrics || null);
         setLoadStatus(me.load_status || null);
 
-        const settingsRes = await fetch('/api/settings');
+        const [settingsRes, actRes, interventionsRes, protocolRes, docsRes] = await Promise.all([
+          fetch('/api/settings'),
+          fetch('/api/activities'),
+          fetch('/api/interventions'),
+          fetch('/api/current-protocol-assignment'),
+          fetch('/api/athlete/shared-docs'),
+        ]);
+
         if (settingsRes.ok) {
           const settingsData = await settingsRes.json();
           setSettings({ ...settingsData.settings, supplements: settingsData.supplements || [] });
         }
 
-        const actRes = await fetch('/api/activities');
         if (actRes.ok) {
           const actData = await actRes.json();
           setActivities(sortActivitiesMostRecentFirst(actData.activities));
         }
 
-        const interventionsRes = await fetch('/api/interventions');
         if (interventionsRes.ok) {
           const interventionData = await interventionsRes.json();
           setInterventions(interventionData.interventions || []);
           setSessionLoad(interventionData.sessionLoad || { daily: 0, rollingWeekly: 0 });
         }
 
-        const protocolRes = await fetch('/api/current-protocol-assignment');
         if (protocolRes.ok) {
           const protocolData = await protocolRes.json();
           setProtocolSummary(protocolData);
           setCurrentRace(protocolData.currentRace || null);
         }
 
-        const docsRes = await fetch('/api/athlete/shared-docs');
         if (docsRes.ok) {
           const docsData = await docsRes.json();
           setSharedDocs(docsData.docs || []);
@@ -745,6 +748,71 @@ export default function Dashboard() {
           </div>
         ) : null}
 
+        <div className="mb-10 overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(135deg,#f7f2ea_0%,#ebe1d4_55%,#dcc9b0_100%)] p-6 md:p-10">
+          <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+            <div>
+              <p className="ui-eyebrow">
+                {protocolSummary?.phase ? `Phase: ${protocolSummary.phase}` : 'Training Intelligence'}
+                {currentRace && protocolSummary?.daysUntilRace != null ? ` · ${protocolSummary.daysUntilRace} days to ${currentRace.name}` : ''}
+              </p>
+              <h1 className="font-display mt-4 max-w-4xl text-5xl font-semibold leading-tight md:text-7xl" style={{ letterSpacing: '-0.015em' }}>
+                Welcome back, {athlete.name?.split(' ')[0] || athlete.name}.
+              </h1>
+              {currentRace ? (
+                <p className="mt-3 text-base leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
+                  {interventions.length > 0
+                    ? `${interventions.length} interventions logged — keep building your protocol foundation.`
+                    : 'Log your first intervention to start building your readiness score.'}
+                </p>
+              ) : (
+                <p className="mt-3 text-base leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
+                  Set a target race to activate your race blueprint and readiness dashboard.
+                </p>
+              )}
+              <div className="mt-8 flex flex-wrap gap-3">
+                <a href="/log-intervention" className="ui-button-primary inline-flex items-center gap-2 px-6 py-3">
+                  + Log intervention
+                </a>
+                <a href="/insights" className="ui-button-secondary px-5 py-3 text-sm">Insights</a>
+                <a href="/history" className="ui-button-ghost px-5 py-3 text-sm">History</a>
+              </div>
+            </div>
+
+            <div className="rounded-[34px] bg-panel p-6 text-white shadow-[0_40px_100px_rgba(0,0,0,0.28)]">
+              <div className="flex items-center justify-between">
+                <p className="text-sm uppercase tracking-[0.25em] text-accent">Current Trend Window</p>
+                <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/80">Last {timeframe} Days</span>
+              </div>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-accent">Mileage</p>
+                  <p className="mt-2 text-xl font-semibold">{formatMiles(trainingSummary.mileage)}</p>
+                </div>
+                <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-accent">Elevation</p>
+                  <p className="mt-2 text-xl font-semibold">{formatFeet(trainingSummary.elevation)}</p>
+                </div>
+                <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-accent">Time Spent</p>
+                  <p className="mt-2 text-xl font-semibold">{formatHours(trainingSummary.hours)}</p>
+                </div>
+                <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-accent">Interventions</p>
+                  <p className="mt-2 text-xl font-semibold">{trainingSummary.interventions}</p>
+                </div>
+                <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-accent">Daily Session Load</p>
+                  <p className="mt-2 text-xl font-semibold">{sessionLoad.daily}</p>
+                </div>
+                <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-accent">7D Session Load</p>
+                  <p className="mt-2 text-xl font-semibold">{sessionLoad.rollingWeekly}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Race readiness + countdown — design system layout */}
         {currentRace ? (
           <section className="mb-8 grid gap-5 lg:grid-cols-[1.4fr_1fr]">
@@ -833,71 +901,6 @@ export default function Dashboard() {
             </div>
           </section>
         )}
-
-        <div className="mb-10 overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(135deg,#f7f2ea_0%,#ebe1d4_55%,#dcc9b0_100%)] p-6 md:p-10">
-          <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
-            <div>
-              <p className="ui-eyebrow">
-                {protocolSummary?.phase ? `Phase: ${protocolSummary.phase}` : 'Training Intelligence'}
-                {currentRace && protocolSummary?.daysUntilRace != null ? ` · ${protocolSummary.daysUntilRace} days to ${currentRace.name}` : ''}
-              </p>
-              <h1 className="font-display mt-4 max-w-4xl text-5xl font-semibold leading-tight md:text-7xl" style={{ letterSpacing: '-0.015em' }}>
-                Welcome back, {athlete.name?.split(' ')[0] || athlete.name}.
-              </h1>
-              {currentRace ? (
-                <p className="mt-3 text-base leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
-                  {interventions.length > 0
-                    ? `${interventions.length} interventions logged — keep building your protocol foundation.`
-                    : 'Log your first intervention to start building your readiness score.'}
-                </p>
-              ) : (
-                <p className="mt-3 text-base leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
-                  Set a target race to activate your race blueprint and readiness dashboard.
-                </p>
-              )}
-              <div className="mt-8 flex flex-wrap gap-3">
-                <a href="/log-intervention" className="ui-button-primary inline-flex items-center gap-2 px-6 py-3">
-                  + Log intervention
-                </a>
-                <a href="/insights" className="ui-button-secondary px-5 py-3 text-sm">Insights</a>
-                <a href="/history" className="ui-button-ghost px-5 py-3 text-sm">History</a>
-              </div>
-            </div>
-
-            <div className="rounded-[34px] bg-panel p-6 text-white shadow-[0_40px_100px_rgba(0,0,0,0.28)]">
-              <div className="flex items-center justify-between">
-                <p className="text-sm uppercase tracking-[0.25em] text-accent">Current Trend Window</p>
-                <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/80">Last {timeframe} Days</span>
-              </div>
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-accent">Mileage</p>
-                  <p className="mt-2 text-xl font-semibold">{formatMiles(trainingSummary.mileage)}</p>
-                </div>
-                <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-accent">Elevation</p>
-                  <p className="mt-2 text-xl font-semibold">{formatFeet(trainingSummary.elevation)}</p>
-                </div>
-                <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-accent">Time Spent</p>
-                  <p className="mt-2 text-xl font-semibold">{formatHours(trainingSummary.hours)}</p>
-                </div>
-                <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-accent">Interventions</p>
-                  <p className="mt-2 text-xl font-semibold">{trainingSummary.interventions}</p>
-                </div>
-                <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-accent">Daily Session Load</p>
-                  <p className="mt-2 text-xl font-semibold">{sessionLoad.daily}</p>
-                </div>
-                <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-accent">7D Session Load</p>
-                  <p className="mt-2 text-xl font-semibold">{sessionLoad.rollingWeekly}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
 
         {showWelcomeChecklist ? (
           <section className="mb-10 rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
