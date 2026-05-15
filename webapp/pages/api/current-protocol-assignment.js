@@ -37,7 +37,7 @@ export default async function handler(req, res) {
 
   const { data: athlete, error: athleteError } = await supabase
     .from('athletes')
-    .select('target_race_id')
+    .select('target_race_id, target_race, target_race_date')
     .eq('id', athleteId)
     .maybeSingle();
 
@@ -61,7 +61,21 @@ export default async function handler(req, res) {
   const athleteTargetRace = athlete?.target_race_id
     ? normalizedRaces.find((race) => race.id === athlete.target_race_id) || null
     : null;
-  const baseRace = athleteTargetRace || selectCurrentRace(normalizedRaces);
+  const fallbackRace =
+    !athleteTargetRace && athlete?.target_race
+      ? normalizeRace({
+          id: null,
+          name: athlete.target_race,
+          event_date: athlete.target_race_date || null,
+          race_type: null,
+          distance_miles: null,
+          elevation_gain_ft: null,
+          location: null,
+          surface: null,
+          notes: null,
+        })
+      : null;
+  const baseRace = athleteTargetRace || selectCurrentRace(normalizedRaces) || fallbackRace;
 
   const { data: activeAssignments, error: assignmentError } = await supabase
     .from('coach_protocol_assignments')

@@ -632,6 +632,20 @@ export default function Dashboard() {
     () => buildInterventionOverlay(interventions, timeframe),
     [interventions, timeframe]
   );
+  const overallTrainingStatus = useMemo(() => {
+    const readiness = Math.min(100, Math.round((trainingSummary.activityCount * 5) + (trainingSummary.interventions * 7) + (settings?.hr_zone_3_min ? 15 : 0) + (currentRace?.event_date ? 20 : 0)));
+    if (readiness >= 80) return { label: 'On track', score: readiness, tone: 'text-emerald-500' };
+    if (readiness >= 55) return { label: 'Building momentum', score: readiness, tone: 'text-amber-500' };
+    return { label: 'Foundation mode', score: readiness, tone: 'text-ink/70' };
+  }, [trainingSummary, settings, currentRace]);
+  const funFacts = useMemo(() => {
+    const longestActivity = activities.reduce((best, activity) => ((activity?.distance || 0) > (best?.distance || 0) ? activity : best), null);
+    return [
+      `You logged ${trainingSummary.activityCount} sessions in the last ${timeframe} days.`,
+      trainingSummary.mileage > 0 ? `You covered ${trainingSummary.mileage.toFixed(1)} miles in this window.` : 'No distance in this window yet — your first run will kick off the trend.',
+      longestActivity ? `Longest recent outing: ${metersToMiles(longestActivity.distance || 0).toFixed(1)} mi (${longestActivity.name || 'Unnamed activity'}).` : 'No activities yet, so your longest outing spotlight is waiting.',
+    ];
+  }, [activities, trainingSummary, timeframe]);
   const weeklyTableRows = useMemo(
     () => buildWeeklyTableRows(activities, interventions),
     [activities, interventions]
@@ -947,7 +961,12 @@ export default function Dashboard() {
 
         {!showDashboardEmptyState ? (
         <>
-        <section className="grid gap-4 md:grid-cols-4">
+        <section className="grid gap-4 md:grid-cols-5">
+          <article className="rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+            <p className="text-sm uppercase tracking-[0.22em] text-accent">Overall Status</p>
+            <p className={`mt-4 text-3xl font-semibold ${overallTrainingStatus.tone}`}>{overallTrainingStatus.label}</p>
+            <p className="mt-2 text-sm text-ink/65">Readiness score: {overallTrainingStatus.score}/100</p>
+          </article>
           <article className="rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
             <p className="text-sm uppercase tracking-[0.22em] text-accent">Connections</p>
             <p className="mt-4 text-3xl font-semibold text-ink">1</p>
@@ -1004,8 +1023,16 @@ export default function Dashboard() {
 
           <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
             <div className="flex items-center justify-between">
-              <p className="text-sm uppercase tracking-[0.25em] text-accent">AI Insights</p>
+              <p className="text-sm uppercase tracking-[0.25em] text-accent">AI Insights + Fun Facts</p>
               <span className="rounded-full bg-paper px-3 py-1 text-xs text-ink/70">Current</span>
+            </div>
+            <div className="mt-4 rounded-[22px] bg-panel px-4 py-3 text-sm text-paper">
+              <p className="text-xs uppercase tracking-[0.2em] text-accent">Fun Facts</p>
+              <ul className="mt-2 space-y-1.5 text-sm text-paper/90">
+                {funFacts.map((fact) => (
+                  <li key={fact}>• {fact}</li>
+                ))}
+              </ul>
             </div>
             <div className="mt-5 space-y-4">
               {insightCards.map((card) => (

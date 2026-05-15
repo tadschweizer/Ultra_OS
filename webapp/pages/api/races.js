@@ -80,6 +80,40 @@ export default async function handler(req, res) {
       .single();
 
     if (error) {
+      const isStackDepthError = /stack depth limit exceeded/i.test(error.message || '');
+      if (isStackDepthError) {
+        const { error: athleteError } = await supabase
+          .from('athletes')
+          .update({
+            target_race: payload.name,
+            target_race_date: payload.event_date,
+            target_race_id: null,
+          })
+          .eq('id', athleteId);
+
+        if (athleteError) {
+          console.error(athleteError);
+          res.status(500).json({ error: athleteError.message });
+          return;
+        }
+
+        res.status(200).json({
+          race: {
+            id: null,
+            name: payload.name,
+            event_date: payload.event_date,
+            race_type: payload.race_type,
+            distance_miles: payload.distance_miles,
+            elevation_gain_ft: payload.elevation_gain_ft,
+            location: payload.location,
+            surface: payload.surface,
+            notes: payload.notes,
+            fallback_saved: true,
+          },
+        });
+        return;
+      }
+
       console.error(error);
       res.status(500).json({ error: error.message });
       return;
