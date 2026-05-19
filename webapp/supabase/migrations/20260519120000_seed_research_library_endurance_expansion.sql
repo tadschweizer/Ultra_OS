@@ -240,7 +240,7 @@ values
   (
     '41572516',
     'Working Memory Performance is Reduced after a Marathon Race and Associated with Low Energy Availability in Females.',
-    'Authors from Med Sci Sports Exerc study',
+    'Boere K, Young N, Dauphinee R, Copithorne F, Kirby BS, Krigolson OE, Stellingwerff T',
     'Medicine and science in sports and exercise',
     2026,
     'https://pubmed.ncbi.nlm.nih.gov/41572516/',
