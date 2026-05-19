@@ -117,7 +117,7 @@ export default function Connections() {
   }, [athleteId]);
 
   const hasAnyConnections = Boolean(athlete?.strava_id);
-  const stravaLastSeen = athlete?.strava_last_sync || athlete?.updated_at || null;
+  const stravaLastSeen = athlete?.token_expires_at || null;
   const migrationSections = [
     {
       label: 'Athlete history ingestion',
@@ -250,7 +250,7 @@ export default function Connections() {
                 </div>
                 {source.name === 'Strava' && hasAnyConnections && stravaLastSeen ? (
                   <p className="mt-2 text-xs text-ink/45">
-                    Last synced: {new Date(stravaLastSeen).toLocaleString()}
+                    Token valid until: {new Date(stravaLastSeen).toLocaleString()}
                   </p>
                 ) : null}
                 {source.enabled ? (
