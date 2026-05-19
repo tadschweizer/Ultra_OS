@@ -22,6 +22,12 @@ const topicOptions = [
   'Hydration',
   'Taper',
   'Injury Prevention',
+  'Periodization',
+  'Concurrent Training',
+  'Caffeine',
+  'Iron Deficiency',
+  'Female Athletes',
+  'Cardiac Health',
 ];
 
 const sportOptions = [
