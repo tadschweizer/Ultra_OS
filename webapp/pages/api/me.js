@@ -25,7 +25,7 @@ export default async function handler(req, res) {
   // Fetch athlete
   const { data: athlete, error: athleteError } = await admin
     .from('athletes')
-    .select('id, name, email, strava_id, onboarding_complete, primary_sports, years_racing_band, weekly_training_hours_band, home_elevation_ft, target_race_id, is_admin, subscription_tier, supabase_user_id, stripe_subscription_status')
+    .select('id, name, email, strava_id, token_expires_at, onboarding_complete, primary_sports, years_racing_band, weekly_training_hours_band, home_elevation_ft, target_race_id, is_admin, subscription_tier, supabase_user_id, stripe_subscription_status')
     .eq('id', athleteId)
     .maybeSingle();
   if (athleteError) {

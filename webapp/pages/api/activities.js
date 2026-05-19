@@ -30,6 +30,10 @@ export default async function handler(req, res) {
     return;
   }
   let { access_token, refresh_token, token_expires_at } = athlete;
+  if (!athlete.strava_id || !access_token || !refresh_token) {
+    res.status(400).json({ error: 'Strava not connected', activities: [] });
+    return;
+  }
   const expiresAt = token_expires_at ? new Date(token_expires_at).getTime() : 0;
   // Refresh the token if expired
   if (Date.now() > expiresAt) {
@@ -53,8 +57,8 @@ export default async function handler(req, res) {
       return;
     }
   }
-  // Default the live dashboard window to the most recent 60 days.
-  const since = Math.floor(Date.now() / 1000) - 60 * 24 * 3600;
+  // Default the initial backfill window to the most recent 90 days.
+  const since = Math.floor(Date.now() / 1000) - 90 * 24 * 3600;
   try {
     const activities = await getRecentActivities(access_token, since);
     res.status(200).json({ activities });
