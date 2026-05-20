@@ -3,6 +3,9 @@
 @tailwind utilities;
 
 :root {
+  --font-sans: "Inter", "Aptos", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Lora", "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   /* ── Surfaces ── */
   --color-page-background: #eef1ed;
   --color-surface-light: #f7f4ee;
