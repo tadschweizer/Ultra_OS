@@ -17,6 +17,7 @@ import {
   secondsToHours,
   sortActivitiesMostRecentFirst,
 } from '../lib/activityInsights';
+import { getLoadMetrics } from '../lib/trainingLoad';
 import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
 import EmptyStateCard from '../components/EmptyStateCard';
@@ -533,7 +534,16 @@ export default function Dashboard() {
 
         if (actResult.status === 'fulfilled' && actResult.value.ok) {
           const actData = await actResult.value.json();
-          setActivities(sortActivitiesMostRecentFirst(actData.activities));
+          const nextActivities = sortActivitiesMostRecentFirst(actData.activities);
+          setActivities(nextActivities);
+          const computedLoad = getLoadMetrics(nextActivities);
+          setLoadMetrics({
+            acute: computedLoad.acute.toFixed(1),
+            chronic: computedLoad.chronic.toFixed(1),
+            form: computedLoad.form.toFixed(1),
+            explainability: 'Calculated from your synced activities using rolling 7-day (acute) and 42-day (chronic) training load.',
+          });
+          setLoadStatus({ label: computedLoad.status.label });
         }
 
         if (interventionsResult.status === 'fulfilled' && interventionsResult.value.ok) {
