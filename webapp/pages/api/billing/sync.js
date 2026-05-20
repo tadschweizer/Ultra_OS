@@ -2,7 +2,6 @@ import { getAthleteByCookie, getSupabaseAdminClient } from '../../../lib/authSer
 import { setAthleteCookie } from '../../../lib/auth/sessionCookies.js';
 import { getTierFromPriceId } from '../../../lib/billingPlans';
 import { getStripeClient } from '../../../lib/stripeServer';
-import { supabase } from '../../../lib/supabaseClient';
 import cookie from 'cookie';
 import crypto from 'crypto';
 
@@ -147,7 +146,7 @@ export default async function handler(req, res) {
   try {
     const cookies = cookie.parse(req.headers.cookie || '');
     const recoveryState = verifyPendingBillingState(cookies.pending_billing_state);
-    const athlete = await getAthleteByCookie(req, supabase);
+    const athlete = await getAthleteByCookie(req, getSupabaseAdminClient());
     const athleteId = athlete?.id || recoveryState?.athleteId || null;
     if (!athleteId) {
       res.status(401).json({ error: 'Not authenticated.' });

@@ -1,7 +1,6 @@
-import { getAthleteByCookie } from '../../../lib/authServer';
+import { getAthleteByCookie, getSupabaseAdminClient } from '../../../lib/authServer';
 import { getBillingPlan, getBillingPriceId } from '../../../lib/billingPlans';
 import { getStripeClient } from '../../../lib/stripeServer';
-import { supabase } from '../../../lib/supabaseClient';
 import cookie from 'cookie';
 import crypto from 'crypto';
 
@@ -65,7 +64,7 @@ export default async function handler(req, res) {
     return;
   }
 
-  const athlete = await getAthleteByCookie(req, supabase);
+  const athlete = await getAthleteByCookie(req, getSupabaseAdminClient());
   if (!athlete) {
     res.redirect(`/signup?plan=${encodeURIComponent(planId)}`);
     return;

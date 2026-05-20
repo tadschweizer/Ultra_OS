@@ -1,9 +1,8 @@
-import { getAthleteByCookie } from '../../../lib/authServer';
+import { getAthleteByCookie, getSupabaseAdminClient } from '../../../lib/authServer';
 import { getStripeClient } from '../../../lib/stripeServer';
-import { supabase } from '../../../lib/supabaseClient';
 
 export default async function handler(req, res) {
-  const athlete = await getAthleteByCookie(req, supabase);
+  const athlete = await getAthleteByCookie(req, getSupabaseAdminClient());
   if (!athlete) {
     res.status(401).json({ error: 'Not authenticated.' });
     return;
