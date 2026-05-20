@@ -44,6 +44,19 @@ const emptyRaceForm = {
 
 const surfaceOptions = ['Trail', 'Road', 'Mixed', 'Track', 'Gravel', 'Treadmill'];
 
+
+function fetchWithTimeout(resource, options = {}, timeoutMs = 10000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  return fetch(resource, {
+    ...options,
+    signal: controller.signal,
+  }).finally(() => {
+    clearTimeout(timeoutId);
+  });
+}
+
 function formatActivityDate(startDate) {
   return new Date(startDate).toLocaleString();
 }
@@ -490,7 +503,16 @@ export default function Dashboard() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const meRes = await fetch('/api/me');
+        const mePromise = fetchWithTimeout('/api/me');
+        const dataPromises = [
+          fetchWithTimeout('/api/settings'),
+          fetchWithTimeout('/api/activities'),
+          fetchWithTimeout('/api/interventions'),
+          fetchWithTimeout('/api/current-protocol-assignment'),
+          fetchWithTimeout('/api/athlete/shared-docs'),
+        ];
+
+        const meRes = await mePromise;
         if (!meRes.ok) {
           router.replace(`/login?next=${encodeURIComponent(router.asPath || '/dashboard')}`);
           return;
@@ -502,38 +524,32 @@ export default function Dashboard() {
         setLoadMetrics(me.load_metrics || null);
         setLoadStatus(me.load_status || null);
 
-        const [settingsRes, actRes, interventionsRes, protocolRes, docsRes] = await Promise.all([
-          fetch('/api/settings'),
-          fetch('/api/activities'),
-          fetch('/api/interventions'),
-          fetch('/api/current-protocol-assignment'),
-          fetch('/api/athlete/shared-docs'),
-        ]);
+        const [settingsResult, actResult, interventionsResult, protocolResult, docsResult] = await Promise.allSettled(dataPromises);
 
-        if (settingsRes.ok) {
-          const settingsData = await settingsRes.json();
+        if (settingsResult.status === 'fulfilled' && settingsResult.value.ok) {
+          const settingsData = await settingsResult.value.json();
           setSettings({ ...settingsData.settings, supplements: settingsData.supplements || [] });
         }
 
-        if (actRes.ok) {
-          const actData = await actRes.json();
+        if (actResult.status === 'fulfilled' && actResult.value.ok) {
+          const actData = await actResult.value.json();
           setActivities(sortActivitiesMostRecentFirst(actData.activities));
         }
 
-        if (interventionsRes.ok) {
-          const interventionData = await interventionsRes.json();
+        if (interventionsResult.status === 'fulfilled' && interventionsResult.value.ok) {
+          const interventionData = await interventionsResult.value.json();
           setInterventions(interventionData.interventions || []);
           setSessionLoad(interventionData.sessionLoad || { daily: 0, rollingWeekly: 0 });
         }
 
-        if (protocolRes.ok) {
-          const protocolData = await protocolRes.json();
+        if (protocolResult.status === 'fulfilled' && protocolResult.value.ok) {
+          const protocolData = await protocolResult.value.json();
           setProtocolSummary(protocolData);
           setCurrentRace(protocolData.currentRace || null);
         }
 
-        if (docsRes.ok) {
-          const docsData = await docsRes.json();
+        if (docsResult.status === 'fulfilled' && docsResult.value.ok) {
+          const docsData = await docsResult.value.json();
           setSharedDocs(docsData.docs || []);
         }
       } catch (err) {
