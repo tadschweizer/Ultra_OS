@@ -6,8 +6,14 @@ import cookie from 'cookie';
 import crypto from 'crypto';
 
 function getRequestOrigin(req) {
-  const forwardedProto = req.headers['x-forwarded-proto'];
-  const forwardedHost = req.headers['x-forwarded-host'];
+  const forwardedProtoHeader = req.headers['x-forwarded-proto'];
+  const forwardedHostHeader = req.headers['x-forwarded-host'];
+  const forwardedProto = Array.isArray(forwardedProtoHeader)
+    ? forwardedProtoHeader[0]
+    : String(forwardedProtoHeader || '').split(',')[0].trim();
+  const forwardedHost = Array.isArray(forwardedHostHeader)
+    ? forwardedHostHeader[0]
+    : String(forwardedHostHeader || '').split(',')[0].trim();
 
   if (forwardedProto && forwardedHost) {
     return `${forwardedProto}://${forwardedHost}`;
