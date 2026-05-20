@@ -19,7 +19,6 @@ export default function AccountPage() {
   const [coachMessage, setCoachMessage] = useState('');
   const [loggingOut, setLoggingOut] = useState(false);
   const [billingMessage, setBillingMessage] = useState('');
-  const [billingSyncing, setBillingSyncing] = useState(false);
   const navLinks = [
     { href: '/dashboard', label: 'Threshold Home' },
     { href: '/guide', label: 'Guide' },
@@ -48,11 +47,11 @@ export default function AccountPage() {
     const pendingCheckoutSession = document.cookie.match(/pending_checkout_session_id=([^;]+)/)?.[1];
 
     if (checkoutStatus === 'success' && sessionId) {
-      syncBilling(sessionId);
+      syncBilling(sessionId, { userVisible: true });
     } else if (pendingCheckoutSession) {
-      syncBilling();
+      syncBilling(null, { userVisible: false });
     } else if (checkoutStatus === 'success') {
-      setBillingMessage('Payment succeeded. Click "Refresh Billing Status" to pull the plan from Stripe.');
+      setBillingMessage('Payment succeeded. We are finalizing your plan now.');
     }
   }, []);
 
@@ -96,11 +95,12 @@ export default function AccountPage() {
     window.location.href = '/';
   }
 
-  async function syncBilling(sessionId = null) {
-    setBillingSyncing(true);
-    setBillingMessage(sessionId
-      ? 'Confirming your purchase with Stripe and updating your account...'
-      : 'Refreshing your billing status from Stripe...');
+  async function syncBilling(sessionId = null, { userVisible = true } = {}) {
+    if (userVisible) {
+      setBillingMessage(sessionId
+        ? 'Confirming your purchase with Stripe and updating your account...'
+        : 'Refreshing your billing status from Stripe...');
+    }
 
     try {
       const res = await fetch('/api/billing/sync', {
@@ -121,12 +121,15 @@ export default function AccountPage() {
         return;
       }
 
-      setBillingMessage('Stripe did not return an active subscription for this account yet.');
+      if (userVisible) {
+        setBillingMessage('Stripe did not return an active subscription for this account yet.');
+      }
     } catch (error) {
       console.error('[account] billing sync failed:', error);
-      setBillingMessage('Could not reach Stripe to refresh billing status.');
+      if (userVisible) {
+        setBillingMessage('Could not reach Stripe to refresh billing status.');
+      }
     } finally {
-      setBillingSyncing(false);
     }
   }
 
@@ -158,7 +161,7 @@ export default function AccountPage() {
             <p className="text-sm uppercase tracking-[0.25em] text-accent">Plan</p>
             <p className="mt-4 text-2xl font-semibold text-ink">{planLabel}</p>
             <p className="mt-4 text-sm leading-7 text-ink/76">
-              Your current subscription tier is stored on your athlete profile and powers app access everywhere else in Threshold.
+              Your current subscription tier is saved automatically from Stripe webhooks and applied across Threshold without manual refresh.
             </p>
             <p className="mt-2 text-xs uppercase tracking-[0.18em] text-ink/45">Tier code: {planId}</p>
             <a href="/pricing" className="mt-5 inline-flex rounded-full bg-ink px-5 py-3 text-sm font-semibold text-paper">
@@ -169,14 +172,6 @@ export default function AccountPage() {
                 Manage Billing
               </a>
             ) : null}
-            <button
-              type="button"
-              onClick={() => syncBilling()}
-              disabled={billingSyncing}
-              className="mt-3 inline-flex rounded-full border border-ink/10 px-5 py-3 text-sm font-semibold text-ink disabled:opacity-50"
-            >
-              {billingSyncing ? 'Refreshing Billing...' : 'Refresh Billing Status'}
-            </button>
             {billingMessage ? (
               <p className="mt-3 text-sm leading-6 text-ink/70">{billingMessage}</p>
             ) : null}
