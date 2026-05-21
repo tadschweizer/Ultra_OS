@@ -35,25 +35,52 @@ export default async function handler(req, res) {
     return;
   }
 
-  const { data: athlete, error: athleteError } = await supabase
-    .from('athletes')
-    .select('target_race_id, target_race, target_race_date')
-    .eq('id', athleteId)
-    .maybeSingle();
+  const oneYearAgo = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10);
+
+  const [
+    { data: athlete, error: athleteError },
+    { data: races, error: raceError },
+    { data: activeAssignments, error: assignmentError },
+    { data: interventions, error: interventionError },
+  ] = await Promise.all([
+    supabase
+      .from('athletes')
+      .select('target_race_id, target_race, target_race_date')
+      .eq('id', athleteId)
+      .maybeSingle(),
+    supabase
+      .from('races')
+      .select('id, name, event_date, race_type, distance_miles, elevation_gain_ft, location, surface, notes')
+      .eq('athlete_id', athleteId)
+      .order('event_date', { ascending: true, nullsFirst: false }),
+    supabase
+      .from('coach_protocol_assignments')
+      .select('id, athlete_id, coach_id, target_race_id, intervention_type, start_date, target_completion_date, frequency_type, frequency_details, planned_sessions, note, status, created_at, updated_at')
+      .eq('athlete_id', athleteId)
+      .eq('status', 'active')
+      .order('updated_at', { ascending: false }),
+    supabase
+      .from('interventions')
+      .select('id, athlete_id, date, inserted_at, intervention_type, training_phase, target_race, race_id, races(id, name)')
+      .eq('athlete_id', athleteId)
+      .gte('date', oneYearAgo)
+      .order('date', { ascending: false }),
+  ]);
 
   if (athleteError) {
     res.status(500).json({ error: athleteError.message });
     return;
   }
-
-  const { data: races, error: raceError } = await supabase
-    .from('races')
-    .select('id, name, event_date, race_type, distance_miles, elevation_gain_ft, location, surface, notes')
-    .eq('athlete_id', athleteId)
-    .order('event_date', { ascending: true, nullsFirst: false });
-
   if (raceError) {
     res.status(500).json({ error: raceError.message });
+    return;
+  }
+  if (assignmentError) {
+    res.status(500).json({ error: assignmentError.message });
+    return;
+  }
+  if (interventionError) {
+    res.status(500).json({ error: interventionError.message });
     return;
   }
 
@@ -76,29 +103,6 @@ export default async function handler(req, res) {
         })
       : null;
   const baseRace = athleteTargetRace || selectCurrentRace(normalizedRaces) || fallbackRace;
-
-  const { data: activeAssignments, error: assignmentError } = await supabase
-    .from('coach_protocol_assignments')
-    .select('id, athlete_id, coach_id, target_race_id, intervention_type, start_date, target_completion_date, frequency_type, frequency_details, planned_sessions, note, status, created_at, updated_at')
-    .eq('athlete_id', athleteId)
-    .eq('status', 'active')
-    .order('updated_at', { ascending: false });
-
-  if (assignmentError) {
-    res.status(500).json({ error: assignmentError.message });
-    return;
-  }
-
-  const { data: interventions, error: interventionError } = await supabase
-    .from('interventions')
-    .select('id, athlete_id, date, inserted_at, intervention_type, training_phase, target_race, race_id, races(id, name)')
-    .eq('athlete_id', athleteId)
-    .order('date', { ascending: false });
-
-  if (interventionError) {
-    res.status(500).json({ error: interventionError.message });
-    return;
-  }
 
   const activeAssignment = activeAssignments?.[0] || null;
   const assignmentRace =

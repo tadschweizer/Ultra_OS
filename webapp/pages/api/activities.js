@@ -57,8 +57,8 @@ export default async function handler(req, res) {
       return;
     }
   }
-  // Default the initial backfill window to the most recent 90 days.
-  const since = Math.floor(Date.now() / 1000) - 90 * 24 * 3600;
+  // 42 days covers the full chronic load window (6 weeks) needed for ATL/CTL/TSB.
+  const since = Math.floor(Date.now() / 1000) - 42 * 24 * 3600;
   try {
     const activities = await getRecentActivities(access_token, since);
     res.status(200).json({ activities });
