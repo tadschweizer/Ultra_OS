@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import {
   buildInsightCards,
@@ -44,6 +44,14 @@ const emptyRaceForm = {
 };
 
 const surfaceOptions = ['Trail', 'Road', 'Mixed', 'Track', 'Gravel', 'Treadmill'];
+
+function deriveSurfaceFromSportType(sportType) {
+  const t = (sportType || '').toLowerCase();
+  if (t.includes('gravel') || t.includes('mtb') || t.includes('mountain')) return 'Gravel';
+  if (t.includes('ultra') || t.includes('trail') || t.includes('xterra')) return 'Trail';
+  if (t.includes('triathlon')) return 'Mixed';
+  return 'Road';
+}
 
 
 function fetchWithTimeout(resource, options = {}, timeoutMs = 10000) {
@@ -164,20 +172,83 @@ function TargetRaceSetupForm({
   onSubmit,
   saving,
   status,
+  onSelectCatalogRace,
 }) {
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const debounceRef = useRef(null);
+
+  function handleNameChange(event) {
+    onChange(event);
+    const value = event.target.value;
+
+    clearTimeout(debounceRef.current);
+    if (!value.trim() || value.length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/race-catalog?q=${encodeURIComponent(value)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setSuggestions(data.races || []);
+          setShowSuggestions((data.races || []).length > 0);
+        }
+      } catch {
+        // ignore network errors silently
+      }
+    }, 300);
+  }
+
+  function handleSelectSuggestion(race) {
+    onSelectCatalogRace(race);
+    setSuggestions([]);
+    setShowSuggestions(false);
+  }
+
   return (
     <form onSubmit={onSubmit} className="grid gap-4 md:grid-cols-2">
-      <div>
+      <div className="relative md:col-span-2">
         <label className="mb-1 block text-sm font-semibold text-ink">Race name</label>
         <input
           type="text"
           name="name"
           value={form.name}
-          onChange={onChange}
-          placeholder="Leadville 100"
+          onChange={handleNameChange}
+          onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+          onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+          placeholder="Search races or enter a name…"
           className="w-full rounded-[18px] border border-ink/10 bg-white px-4 py-3 text-sm text-ink outline-none transition focus:border-accent"
           required
+          autoComplete="off"
         />
+        {showSuggestions && (
+          <ul className="absolute left-0 right-0 z-50 mt-1 max-h-60 overflow-y-auto rounded-[18px] border border-ink/10 bg-white shadow-lg">
+            {suggestions.map((race) => (
+              <li
+                key={race.id}
+                onMouseDown={() => handleSelectSuggestion(race)}
+                className="cursor-pointer px-4 py-3 text-sm transition hover:bg-paper first:rounded-t-[18px] last:rounded-b-[18px]"
+              >
+                <div className="font-medium text-ink">{race.name}</div>
+                <div className="mt-0.5 text-xs text-ink/55">
+                  {[
+                    race.event_date ? new Date(race.event_date + 'T12:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : null,
+                    race.city,
+                    race.state || (race.country !== 'USA' ? race.country : null),
+                    race.distance_miles ? `${race.distance_miles} mi` : null,
+                    race.sport_type,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
       <div>
         <label className="mb-1 block text-sm font-semibold text-ink">Race date</label>
@@ -578,6 +649,17 @@ export default function Dashboard() {
     setRaceStatus('');
   }
 
+  function handleSelectCatalogRace(catalogRace) {
+    setRaceForm({
+      name: catalogRace.name,
+      event_date: catalogRace.event_date || '',
+      distance_miles: catalogRace.distance_miles != null ? String(catalogRace.distance_miles) : '',
+      elevation_gain_ft: '',
+      surface: deriveSurfaceFromSportType(catalogRace.sport_type),
+    });
+    setRaceStatus('');
+  }
+
   async function refreshProtocolSummary() {
     const response = await fetch('/api/current-protocol-assignment');
     if (!response.ok) return null;
@@ -937,6 +1019,7 @@ export default function Dashboard() {
                 onSubmit={handleTargetRaceSubmit}
                 saving={raceSaving}
                 status={raceStatus}
+                onSelectCatalogRace={handleSelectCatalogRace}
               />
             </div>
           </section>
