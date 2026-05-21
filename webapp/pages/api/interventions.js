@@ -63,7 +63,9 @@ export default async function handler(req, res) {
       return;
     }
 
+    const oneYearAgo = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10);
     const { data, error } = await query
+      .gte('date', oneYearAgo)
       .order('date', { ascending: false })
       .order('inserted_at', { ascending: false });
 
