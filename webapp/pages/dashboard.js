@@ -41,6 +41,7 @@ const emptyRaceForm = {
   distance_miles: '',
   elevation_gain_ft: '',
   surface: '',
+  catalog_id: '',
 };
 
 const surfaceOptions = ['Trail', 'Road', 'Mixed', 'Track', 'Gravel', 'Treadmill'];
@@ -656,6 +657,7 @@ export default function Dashboard() {
       distance_miles: catalogRace.distance_miles != null ? String(catalogRace.distance_miles) : '',
       elevation_gain_ft: '',
       surface: deriveSurfaceFromSportType(catalogRace.sport_type),
+      catalog_id: catalogRace.id,
     });
     setRaceStatus('');
   }

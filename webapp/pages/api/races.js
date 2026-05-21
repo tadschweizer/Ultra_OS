@@ -14,6 +14,52 @@ function parseOptionalFloat(value) {
   return Number.isNaN(parsed) ? null : parsed;
 }
 
+function deriveSportType(name, raceType, surface, distanceMiles) {
+  const n = (name || '').toLowerCase();
+  const s = (surface || '').toLowerCase();
+  const d = Number(distanceMiles) || 0;
+
+  if (n.includes('ironman') || (n.includes('triathlon') && d > 50)) return 'Long-Course Triathlon';
+  if (n.includes('xterra')) return 'XTERRA Triathlon';
+  if (n.includes('triathlon') && d >= 25) return 'Olympic Triathlon';
+  if (n.includes('triathlon')) return 'Sprint Triathlon';
+  if (s === 'gravel') return 'Gravel Cycling';
+  if (s === 'mixed' && d > 50) return 'Long-Course Triathlon';
+  if (s === 'mixed') return 'Olympic Triathlon';
+  if (raceType === 'Gravel') return 'Gravel Cycling';
+  if (raceType === 'Triathlon') return d >= 70 ? 'Long-Course Triathlon' : 'Olympic Triathlon';
+  if (raceType === '50K+' || d > 30) return 'Ultrarunning';
+  if (raceType === 'Marathon') return 'Marathon';
+  if (raceType === 'Half Marathon') return 'Half Marathon';
+  if (raceType === '10K') return '10K';
+  if (raceType === '3K / 5K') return '5K';
+  if (raceType === '1 Mile / 1500m') return 'Mile';
+  return 'Other Running';
+}
+
+async function contributeManualEntryToCatalog(payload) {
+  // Skip if name already exists in the catalog (case-insensitive)
+  const { count } = await supabase
+    .from('race_catalog')
+    .select('*', { count: 'exact', head: true })
+    .ilike('name', payload.name);
+
+  if (count && count > 0) return;
+
+  const sportType = deriveSportType(payload.name, payload.race_type, payload.surface, payload.distance_miles);
+
+  await supabase.from('race_catalog').insert({
+    name: payload.name,
+    event_date: payload.event_date || null,
+    city: null,
+    state: null,
+    country: 'USA',
+    distance_miles: payload.distance_miles || null,
+    sport_type: sportType,
+    // TODO: enrich with online race data (race website, official distance, elevation, location)
+  });
+}
+
 export default async function handler(req, res) {
   const cookies = cookie.parse(req.headers.cookie || '');
   const athleteId = cookies.athlete_id;
@@ -117,6 +163,11 @@ export default async function handler(req, res) {
       console.error(error);
       res.status(500).json({ error: error.message });
       return;
+    }
+
+    // Grow the catalog from manual entries (catalog-selected races already exist)
+    if (!body.catalog_id) {
+      contributeManualEntryToCatalog(payload).catch((err) => console.error('catalog contribute error:', err));
     }
 
     res.status(200).json({ race: data });
