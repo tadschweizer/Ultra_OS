@@ -1,7 +1,27 @@
 import { useEffect, useMemo, useState } from 'react';
 import NavMenu from '../components/NavMenu';
 import UpgradePrompt from '../components/UpgradePrompt';
+import RaceSearchInput from '../components/RaceSearchInput';
 import { canAccessRaceBlueprint } from '../lib/subscriptionTiers';
+
+const SPORT_TO_RACE_TYPE = {
+  'Ultrarunning': '50K+',
+  'Marathon': 'Marathon',
+  'Half Marathon': 'Half Marathon',
+  '10K': '10K',
+  '5K': '3K / 5K',
+  'Mile': '1 Mile / 1500m',
+  'Gravel Cycling': 'Gravel',
+  'Road Cycling': 'Gravel',
+  'Long-Course Triathlon': 'Triathlon',
+  'Olympic Triathlon': 'Triathlon',
+  'Sprint Triathlon': 'Triathlon',
+  'XTERRA Triathlon': 'Triathlon',
+};
+
+function mapSportToRaceType(sportType) {
+  return SPORT_TO_RACE_TYPE[sportType] || null;
+}
 
 // ─── Fueling targets by race type ────────────────────────────────────────────
 const RACE_FUELING = {
@@ -389,13 +409,23 @@ export default function RacePlanPage() {
 
                 <div>
                   <label className="mb-1 block text-sm font-semibold text-ink">Race name</label>
-                  <input
-                    type="text"
-                    name="raceName"
+                  <RaceSearchInput
                     value={form.raceName}
-                    onChange={handleChange}
+                    onChange={(v) => {
+                      setForm((prev) => ({ ...prev, raceName: v }));
+                      setGenerated(false);
+                    }}
+                    onSelect={(race) => {
+                      setForm((prev) => ({
+                        ...prev,
+                        raceName: race.name || prev.raceName,
+                        raceDate: race.event_date || prev.raceDate,
+                        raceType: mapSportToRaceType(race.race_type) || prev.raceType,
+                        distanceMiles: race.distance_miles ? String(race.distance_miles) : prev.distanceMiles,
+                      }));
+                      setGenerated(false);
+                    }}
                     placeholder="e.g. Western States 100"
-                    className="w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-sm text-ink placeholder-ink/30 focus:outline-none focus:ring-2 focus:ring-accent/30"
                   />
                 </div>
 

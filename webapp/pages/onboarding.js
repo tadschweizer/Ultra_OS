@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
+import RaceSearchInput from '../components/RaceSearchInput';
 
 const sportOptions = [
   'Ultrarunner',
@@ -44,8 +45,7 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [catalogQuery, setCatalogQuery] = useState('');
-  const [catalogResults, setCatalogResults] = useState([]);
+  const [raceSearchQuery, setRaceSearchQuery] = useState('');
   const [manualRace, setManualRace] = useState(false);
   const [stravaName, setStravaName] = useState('');
   const [form, setForm] = useState({
@@ -94,29 +94,6 @@ export default function OnboardingPage() {
   }, [router.query.name]);
 
   useEffect(() => {
-    if (!manualRace && catalogQuery.trim().length < 2) {
-      setCatalogResults([]);
-      return;
-    }
-
-    let cancelled = false;
-    async function searchCatalog() {
-      const res = await fetch(`/api/race-catalog?q=${encodeURIComponent(catalogQuery.trim())}`);
-      if (!res.ok) return;
-      const data = await res.json();
-      if (!cancelled) {
-        setCatalogResults(data.races || []);
-      }
-    }
-
-    const id = setTimeout(searchCatalog, 180);
-    return () => {
-      cancelled = true;
-      clearTimeout(id);
-    };
-  }, [catalogQuery, manualRace]);
-
-  useEffect(() => {
     if (!navigator.geolocation || form.home_elevation_ft) return;
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -143,52 +120,38 @@ export default function OnboardingPage() {
         </div>
 
         <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-          <label className="mb-2 block text-sm font-semibold text-ink">Search race catalog</label>
-          <input
-            type="text"
-            value={catalogQuery}
-            onChange={(event) => {
+          <label className="mb-2 block text-sm font-semibold text-ink">Search races</label>
+          <RaceSearchInput
+            value={raceSearchQuery}
+            onChange={(v) => {
               setManualRace(false);
-              setCatalogQuery(event.target.value);
+              setRaceSearchQuery(v);
+            }}
+            onSelect={(race) => {
+              setRaceSearchQuery(race.name || '');
+              setForm((current) => ({
+                ...current,
+                target_race_id: race.catalog_id || '',
+                target_race: {
+                  name: race.name,
+                  event_date: race.event_date || '',
+                  distance_miles: race.distance_miles || '',
+                  location: race.location || '',
+                  race_type: race.race_type || '',
+                },
+              }));
+              if (race.source === 'web') {
+                setManualRace(true);
+              }
             }}
             placeholder="Western States 100"
-            className={fieldClassName()}
           />
-          <div className="mt-4 max-h-72 space-y-2 overflow-y-auto pr-1">
-            {catalogResults.map((race) => (
-              <button
-                key={race.id}
-                type="button"
-                onClick={() =>
-                  setForm((current) => ({
-                    ...current,
-                    target_race_id: '',
-                    target_race: {
-                      name: race.name,
-                      event_date: race.event_date,
-                      distance_miles: race.distance_miles,
-                      location: [race.city, race.state, race.country].filter(Boolean).join(', '),
-                      race_type: race.sport_type,
-                    },
-                  }))
-                }
-                className="w-full rounded-[22px] border border-ink/10 bg-paper px-4 py-3 text-left transition hover:bg-[#efe7dc]"
-              >
-                <p className="text-sm font-semibold text-ink">{race.name}</p>
-                <p className="mt-1 text-xs uppercase tracking-[0.16em] text-accent">{race.sport_type}</p>
-                <p className="mt-2 text-sm text-ink/64">
-                  {race.event_date} · {[race.city, race.state, race.country].filter(Boolean).join(', ')} · {race.distance_miles} mi
-                </p>
-              </button>
-            ))}
-          </div>
 
           <div className="mt-5 flex items-center justify-between gap-3">
             <button
               type="button"
               onClick={() => {
                 setManualRace((current) => !current);
-                setCatalogResults([]);
               }}
               className="text-sm font-semibold text-accent"
             >
@@ -384,7 +347,7 @@ export default function OnboardingPage() {
         </div>
       </section>,
     ],
-    [catalogQuery, catalogResults, form, manualRace, router.query.strava, stravaName]
+    [raceSearchQuery, form, manualRace, router.query.strava, stravaName]
   );
 
   async function saveProgress(onboardingComplete = false) {
