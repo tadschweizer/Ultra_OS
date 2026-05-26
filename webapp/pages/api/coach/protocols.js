@@ -73,7 +73,13 @@ export default async function handler(req, res) {
 
       const ids = [...new Set((data || []).map((p) => p.athlete_id))];
       const { data: athletes } = ids.length ? await supabase.from('athletes').select('id, name').in('id', ids) : { data: [] };
-      const protocols = (data || []).map((p) => ({ ...p, athlete: (athletes || []).find((a) => a.id === p.athlete_id) || null }));
+      const protocols = (data || []).map((p) => ({
+        ...p,
+        protocol_type: p.intervention_type,
+        end_date: p.target_completion_date,
+        compliance_target: p.planned_sessions,
+        athlete: (athletes || []).find((a) => a.id === p.athlete_id) || null,
+      }));
 
       const interventionLogs = ids.length
         ? await supabase.from('interventions').select('athlete_id, intervention_type, date, subjective_feel, dose_duration').in('athlete_id', ids)
@@ -159,7 +165,15 @@ export default async function handler(req, res) {
       }).select('*').single();
 
       if (error) { res.status(500).json({ error: error.message }); return; }
-      res.status(200).json({ protocol: data, profile });
+      res.status(200).json({
+        protocol: {
+          ...data,
+          protocol_type: data.intervention_type,
+          end_date: data.target_completion_date,
+          compliance_target: data.planned_sessions,
+        },
+        profile,
+      });
       return;
     }
 

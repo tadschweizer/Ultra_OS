@@ -95,7 +95,7 @@ export default async function handler(req, res) {
       };
     }
 
-    res.status(200).json({ summary, profile, loadSummary });
+    res.status(200).json({ summary, profile, loadSummary, coachKpis: kpiRes.data || null });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

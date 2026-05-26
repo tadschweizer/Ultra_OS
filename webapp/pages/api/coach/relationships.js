@@ -57,7 +57,7 @@ export default async function handler(req, res) {
         supabase.from('athletes').select('id, name, email, primary_sports, target_race_id').in('id', athleteIds),
         supabase.from('interventions').select('athlete_id, date, inserted_at').in('athlete_id', athleteIds).order('inserted_at', { ascending: false }),
         supabase.from('races').select('id, athlete_id, name, event_date').in('athlete_id', athleteIds).gte('event_date', new Date().toISOString().slice(0, 10)).order('event_date', { ascending: true }),
-        supabase.from('coach_protocol_assignments').select('athlete_id, protocol_name, compliance_target, status, start_date, end_date').in('athlete_id', athleteIds),
+        supabase.from('coach_protocol_assignments').select('athlete_id, protocol_name, planned_sessions, status, start_date, target_completion_date').in('athlete_id', athleteIds),
         supabase.from('coach_notes').select('athlete_id, created_at').eq('coach_id', profile.id).in('athlete_id', athleteIds).order('created_at', { ascending: false }),
         supabase.from('daily_checkins').select('athlete_id, created_at, readiness_score').in('athlete_id', athleteIds).order('created_at', { ascending: false }),
         supabase.from('interventions').select('athlete_id, date, inserted_at, dose_duration, subjective_feel').in('athlete_id', athleteIds).gte('inserted_at', new Date(Date.now() - 42 * 86400000).toISOString()),
@@ -145,6 +145,35 @@ export default async function handler(req, res) {
       const avgCommunicationSlaHours = communicationSlaHours.length ? Math.round(communicationSlaHours.reduce((a, b) => a + b, 0) / communicationSlaHours.length) : null;
 
       res.status(200).json({ relationships: enriched, profile, atRiskAthletes, avgCommunicationSlaHours });
+      return;
+    }
+
+    if (req.method === 'PATCH') {
+      const body = req.body || {};
+      if (!body.id) { res.status(400).json({ error: 'id is required' }); return; }
+
+      const validStatuses = ['active', 'paused', 'removed'];
+      if (body.status && !validStatuses.includes(body.status)) {
+        res.status(400).json({ error: `status must be one of: ${validStatuses.join(', ')}` });
+        return;
+      }
+
+      const updates = {};
+      if (body.status !== undefined) updates.status = body.status;
+      if (body.group_name !== undefined) updates.group_name = body.group_name;
+      if (body.notes !== undefined) updates.notes = body.notes;
+      if (body.status === 'removed') updates.removed_at = new Date().toISOString();
+
+      const { data, error } = await supabase
+        .from('coach_athlete_relationships')
+        .update(updates)
+        .eq('id', body.id)
+        .eq('coach_id', profile.id)
+        .select('id, athlete_id, status, group_name, notes, removed_at')
+        .single();
+
+      if (error) { res.status(500).json({ error: error.message }); return; }
+      res.status(200).json({ relationship: data });
       return;
     }
 
