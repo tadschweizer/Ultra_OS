@@ -3,6 +3,7 @@ export const sidebarSections = [
     title: 'Training',
     items: [
       { href: '/dashboard', label: 'Dashboard' },
+      { href: '/races', label: 'Race Calendar' },
       { href: '/race-plan', label: 'Race Blueprint' },
       { href: '/log-intervention', label: 'Log Intervention' },
       { href: '/history', label: 'Intervention History' },
@@ -54,6 +55,7 @@ export const appShellExcludedRoutes = [
 
 export const protectedRoutes = [
   '/dashboard',
+  '/races',
   '/race-plan',
   '/race-outcome',
   '/log-intervention',
