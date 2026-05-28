@@ -30,10 +30,19 @@ const topicOptions = [
   'Cardiac Health',
 ];
 
-const sportOptions = [
-  { key: 'ultra_score', label: 'Running' },
-  { key: 'gravel_score', label: 'Gravel' },
-  { key: 'triathlon_score', label: 'Triathlon' },
+// All sport-to-score-column mappings. Used for the filter pills and the
+// per-entry relevance display.
+const ALL_SPORT_OPTIONS = [
+  { key: 'ultra_score',      label: 'Ultra / Trail' },
+  { key: 'running_score',    label: 'Road Running' },
+  { key: 'gravel_score',     label: 'Gravel' },
+  { key: 'cycling_score',    label: 'Road Cycling' },
+  { key: 'triathlon_score',  label: 'Triathlon' },
+  { key: 'swimming_score',   label: 'Swimming' },
+  { key: 'rowing_score',     label: 'Rowing / Paddling' },
+  { key: 'skating_score',    label: 'Speed Skating' },
+  { key: 'ski_score',        label: 'Nordic Ski / Biathlon' },
+  { key: 'team_sport_score', label: 'Team Sports' },
 ];
 
 const suggestedSearches = [
@@ -144,6 +153,10 @@ export default function Content() {
         if (res.ok) {
           const data = await res.json();
           setEntries(data.entries || []);
+          // Auto-select the athlete's sports so the feed is personalised on first load.
+          if (data.athleteSportKeys?.length) {
+            setSelectedSports(data.athleteSportKeys);
+          }
         }
       } catch (error) {
         console.error(error);
@@ -326,7 +339,7 @@ export default function Content() {
           <div className="mt-5">
             <p className="mb-3 text-xs uppercase tracking-[0.25em] text-accent">Sport</p>
             <div className="flex flex-wrap gap-2">
-              {sportOptions.map((sport) => (
+              {ALL_SPORT_OPTIONS.map((sport) => (
                 <button
                   key={sport.key}
                   type="button"
@@ -473,9 +486,9 @@ export default function Content() {
                   </div>
 
                   <div className="mt-4 flex flex-wrap items-center gap-4">
-                    <ScorePips label="Running" score={entry.ultra_score || 0} />
-                    <ScorePips label="Gravel" score={entry.gravel_score || 0} />
-                    <ScorePips label="Triathlon" score={entry.triathlon_score || 0} />
+                    {ALL_SPORT_OPTIONS.filter((s) => Number(entry[s.key] || 0) > 0).map((s) => (
+                      <ScorePips key={s.key} label={s.label} score={Number(entry[s.key] || 0)} />
+                    ))}
                     <span
                       className="text-xs text-ink/35"
                       title="Relevance score 1–5: how strongly this study applies to each sport"
