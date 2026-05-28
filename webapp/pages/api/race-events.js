@@ -1,6 +1,23 @@
 import { supabase } from '../../lib/supabaseClient';
 import cookie from 'cookie';
 
+// Map a race_type string + optional distance to a catalog sport_type
+function deriveSportType(raceType, distanceMiles) {
+  const rt = (raceType || '').toLowerCase();
+  if (rt.includes('triathlon') || rt === 'triathlon') return 'Long-Course Triathlon';
+  if (rt === 'gravel') return 'Gravel Cycling';
+  if (rt === 'marathon') return 'Marathon';
+  if (rt === 'half marathon') return 'Half Marathon';
+  if (rt === '10k') return '10K';
+  if (rt === '3k / 5k' || rt === '5k') return '5K';
+  if (rt === '1 mile / 1500m' || rt === 'mile') return 'Mile';
+  if (rt === '50k+') {
+    const d = parseFloat(distanceMiles);
+    return !isNaN(d) && d >= 99 ? 'Ultrarunning' : 'Ultrarunning';
+  }
+  return 'Other Running';
+}
+
 export default async function handler(req, res) {
   const cookies = cookie.parse(req.headers.cookie || '');
   const athleteId = cookies.athlete_id;
@@ -30,6 +47,7 @@ export default async function handler(req, res) {
       res.status(400).json({ error: 'Name is required' });
       return;
     }
+    const source = ['catalog', 'web', 'manual'].includes(body.source) ? body.source : 'manual';
     const payload = {
       athlete_id: athleteId,
       name: body.name.trim(),
@@ -41,7 +59,7 @@ export default async function handler(req, res) {
       is_goal_race: body.is_goal_race === true,
       url: body.url?.trim() || null,
       notes: body.notes?.trim() || null,
-      source: ['catalog', 'web', 'manual'].includes(body.source) ? body.source : 'manual',
+      source,
       catalog_id: body.catalog_id || null,
     };
     const { data, error } = await supabase
@@ -54,6 +72,32 @@ export default async function handler(req, res) {
       res.status(500).json({ error: error.message });
       return;
     }
+
+    // When a web-sourced race is saved, upsert it into race_catalog so future
+    // searches hit the DB instead of calling Exa again.
+    if (source === 'web' && payload.name) {
+      const sportType = deriveSportType(payload.race_type, payload.distance_miles);
+      const catalogEntry = {
+        name: payload.name,
+        event_date: payload.event_date || null,
+        city: null,
+        state: null,
+        country: 'USA',
+        distance_miles: payload.distance_miles || null,
+        sport_type: sportType,
+        url: payload.url || null,
+        elevation_gain_ft: body.elevation_gain_ft ? parseInt(body.elevation_gain_ft, 10) : null,
+        terrain: body.terrain || null,
+      };
+      // Best-effort upsert — don't block the response on failure
+      supabase
+        .from('race_catalog')
+        .upsert(catalogEntry, { onConflict: 'name', ignoreDuplicates: false })
+        .then(({ error: catalogErr }) => {
+          if (catalogErr) console.error('catalog upsert error:', catalogErr.message);
+        });
+    }
+
     res.status(200).json({ event: data });
     return;
   }

@@ -6,26 +6,141 @@ function getClient() {
   return new Exa(key);
 }
 
+// ─── Parsing helpers ──────────────────────────────────────────────────────────
+
+function parseEventDate(text) {
+  if (!text) return null;
+  const t = text.replace(/\n/g, ' ');
+
+  // "June 27, 2026" / "Jun 27, 2026" / "June 27 2026"
+  const m1 = t.match(
+    /\b(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec)\s+(\d{1,2})[,\s]+(202[3-9]|203\d)\b/i
+  );
+  if (m1) {
+    const d = new Date(`${m1[1]} ${m1[2]}, ${m1[3]}`);
+    if (!isNaN(d)) return d.toISOString().split('T')[0];
+  }
+
+  // ISO "2026-06-27"
+  const m2 = t.match(/\b(202[3-9]|203\d)-(\d{2})-(\d{2})\b/);
+  if (m2) return `${m2[1]}-${m2[2]}-${m2[3]}`;
+
+  // "06/27/2026"
+  const m3 = t.match(/\b(\d{1,2})\/(\d{1,2})\/(202[3-9]|203\d)\b/);
+  if (m3) {
+    const d = new Date(`${m3[3]}-${m3[1].padStart(2, '0')}-${m3[2].padStart(2, '0')}`);
+    if (!isNaN(d)) return d.toISOString().split('T')[0];
+  }
+
+  return null;
+}
+
+function parseDistanceMiles(text) {
+  if (!text) return null;
+
+  // "100 miles" / "100-mile" / "100 Mile"
+  const milesMatch = text.match(/\b(\d+(?:\.\d+)?)\s*[-–]?\s*miles?\b/i);
+  if (milesMatch) {
+    const v = parseFloat(milesMatch[1]);
+    if (v > 0 && v < 1000) return v;
+  }
+
+  // "100km" / "50km" — convert to miles
+  const kmMatch = text.match(/\b(\d+(?:\.\d+)?)\s*km\b/i) || text.match(/\b(\d+(?:\.\d+)?)\s*K\b/);
+  if (kmMatch) {
+    const v = parseFloat(kmMatch[1]) * 0.621371;
+    if (v > 0 && v < 700) return Math.round(v * 10) / 10;
+  }
+
+  // Named distances
+  if (/\bhalf[- ]marathon\b/i.test(text)) return 13.1;
+  if (/\bmarathon\b/i.test(text) && !/\bhalf\b/i.test(text)) return 26.2;
+
+  return null;
+}
+
+function parseElevationGain(text) {
+  if (!text) return null;
+  const patterns = [
+    /\b([\d,]+)\s*(?:feet|ft|foot|')\s+(?:of\s+)?(?:gain|climbing|vert(?:ical)?|elevation\s+gain)\b/i,
+    /(?:gain|climbing|vert(?:ical)?|elevation\s+gain)\s+(?:of\s+)?([\d,]+)\s*(?:feet|ft|foot|')\b/i,
+    /\b([\d,]+)\s*(?:feet|ft|foot|')\s+(?:total\s+)?(?:of\s+)?(?:ascent)\b/i,
+  ];
+  for (const p of patterns) {
+    const m = text.match(p);
+    if (m) {
+      const raw = (m[1] || m[2] || '').replace(/,/g, '');
+      const v = parseFloat(raw);
+      if (!isNaN(v) && v > 100 && v < 60000) return Math.round(v);
+    }
+  }
+  return null;
+}
+
+function parseTerrain(text) {
+  if (!text) return null;
+  const lower = text.toLowerCase();
+  const trailScore = (lower.match(/\b(?:trail|single\s*track|dirt|mountain|technical)\b/g) || []).length;
+  const roadScore = (lower.match(/\b(?:road|pavement|paved|street|tarmac|asphalt)\b/g) || []).length;
+  if (trailScore > 0 && roadScore === 0) return 'trail';
+  if (roadScore > 0 && trailScore === 0) return 'road';
+  if (trailScore > 0 || roadScore > 0) return 'mixed';
+  return null;
+}
+
+function parseLocation(text) {
+  if (!text) return null;
+  // "City, ST" pattern — US states only
+  const m = text.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?),\s*([A-Z]{2})\b/);
+  if (m) return `${m[1]}, ${m[2]}`;
+  return null;
+}
+
+// Normalize a title to a short key for deduplication
+function normalizeTitle(title) {
+  if (!title) return '';
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .slice(0, 5)
+    .join(' ');
+}
+
 function mapResult(r) {
+  const fullText = [r.title || '', r.text || '', ...(r.highlights || [])].join(' ');
   return {
     title: r.title || null,
     url: r.url,
     publishedDate: r.publishedDate || null,
     highlights: r.highlights || [],
+    event_date: parseEventDate(fullText),
+    distance_miles: parseDistanceMiles(fullText),
+    elevation_gain_ft: parseElevationGain(fullText),
+    terrain: parseTerrain(fullText),
+    location: parseLocation(fullText),
   };
 }
 
+// ─── Public functions ─────────────────────────────────────────────────────────
+
 /**
  * Discover races not yet in the database.
+ * Fetches extra results to allow title-based deduplication.
  * @param {string} query  e.g. "ultramarathon 100 mile Colorado 2026"
  * @param {{ numResults?: number }} [options]
  */
 export async function searchRaces(query, options = {}) {
   const exa = getClient();
-  const numResults = options.numResults ?? 10;
+  const numResults = options.numResults ?? 6;
+  // Fetch 2× requested to absorb duplicates, capped at 20
+  const fetchNum = Math.min(numResults * 2, 20);
+
   const results = await exa.search(query, {
     type: 'auto',
-    numResults,
+    numResults: fetchNum,
     includeDomains: [
       'ultrasignup.com',
       'runningintheusa.com',
@@ -38,9 +153,22 @@ export async function searchRaces(query, options = {}) {
       'theathletesvillage.com',
       'ultrarunning.com',
     ],
-    contents: { highlights: true },
+    contents: {
+      highlights: true,
+      text: { maxCharacters: 2000 },
+    },
   });
-  return results.results.map(mapResult);
+
+  // Deduplicate by normalized title, keep up to numResults
+  const seen = new Set();
+  const deduplicated = results.results.filter((r) => {
+    const key = normalizeTitle(r.title);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, numResults);
+
+  return deduplicated.map(mapResult);
 }
 
 /**
@@ -56,7 +184,10 @@ export async function enrichRace(raceName, location = '') {
   const results = await exa.search(q, {
     type: 'auto',
     numResults: 6,
-    contents: { highlights: true },
+    contents: {
+      highlights: true,
+      text: { maxCharacters: 2000 },
+    },
   });
   return results.results.map(mapResult);
 }

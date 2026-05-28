@@ -75,6 +75,10 @@ export default function RaceSearchInput({ value, onChange, onSelect, placeholder
       distance_miles: race.distance_miles,
       location: [race.city, race.state, race.country].filter(Boolean).join(', '),
       race_type: race.sport_type,
+      elevation_gain_ft: race.elevation_gain_ft || null,
+      terrain: race.terrain || null,
+      avg_temp_f: race.avg_temp_f || null,
+      url: race.url || null,
     });
   }
 
@@ -86,10 +90,12 @@ export default function RaceSearchInput({ value, onChange, onSelect, placeholder
       source: 'web',
       name,
       url: result.url,
-      event_date: null,
-      distance_miles: null,
-      location: null,
+      event_date: result.event_date || null,
+      distance_miles: result.distance_miles || null,
+      location: result.location || null,
       race_type: null,
+      elevation_gain_ft: result.elevation_gain_ft || null,
+      terrain: result.terrain || null,
       highlights: result.highlights || [],
     });
   }

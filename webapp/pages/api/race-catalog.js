@@ -11,7 +11,7 @@ export default async function handler(req, res) {
 
   let request = supabase
     .from('race_catalog')
-    .select('id, name, event_date, city, state, country, distance_miles, sport_type')
+    .select('id, name, event_date, city, state, country, distance_miles, sport_type, elevation_gain_ft, terrain, course_profile, avg_temp_f, url')
     .order('event_date', { ascending: true, nullsFirst: false })
     .limit(query ? 10 : 20);
 
