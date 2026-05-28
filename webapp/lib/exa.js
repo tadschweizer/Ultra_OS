@@ -12,21 +12,21 @@ function parseEventDate(text) {
   if (!text) return null;
   const t = text.replace(/\n/g, ' ');
 
-  // "June 27, 2026" / "Jun 27, 2026" / "June 27 2026"
+  // "June 27, 2026" / "Jun 27, 2026" / "June 27 2026" — any year 2010–2039
   const m1 = t.match(
-    /\b(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec)\s+(\d{1,2})[,\s]+(202[3-9]|203\d)\b/i
+    /\b(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec)\s+(\d{1,2})[,\s]+(20[1-3]\d)\b/i
   );
   if (m1) {
     const d = new Date(`${m1[1]} ${m1[2]}, ${m1[3]}`);
     if (!isNaN(d)) return d.toISOString().split('T')[0];
   }
 
-  // ISO "2026-06-27"
-  const m2 = t.match(/\b(202[3-9]|203\d)-(\d{2})-(\d{2})\b/);
+  // ISO "2026-06-27" — any year 2010–2039
+  const m2 = t.match(/\b(20[1-3]\d)-(\d{2})-(\d{2})\b/);
   if (m2) return `${m2[1]}-${m2[2]}-${m2[3]}`;
 
-  // "06/27/2026"
-  const m3 = t.match(/\b(\d{1,2})\/(\d{1,2})\/(202[3-9]|203\d)\b/);
+  // "06/27/2026" — any year 2010–2039
+  const m3 = t.match(/\b(\d{1,2})\/(\d{1,2})\/(20[1-3]\d)\b/);
   if (m3) {
     const d = new Date(`${m3[3]}-${m3[1].padStart(2, '0')}-${m3[2].padStart(2, '0')}`);
     if (!isNaN(d)) return d.toISOString().split('T')[0];
@@ -135,10 +135,14 @@ function mapResult(r) {
 export async function searchRaces(query, options = {}) {
   const exa = getClient();
   const numResults = options.numResults ?? 6;
-  // Fetch 2× requested to absorb duplicates, capped at 20
-  const fetchNum = Math.min(numResults * 2, 20);
+  // Fetch 3× requested to absorb duplicates and filtered-out past events, capped at 30
+  const fetchNum = Math.min(numResults * 3, 30);
 
-  const results = await exa.search(query, {
+  // Append current year to bias Exa toward upcoming races
+  const year = new Date().getFullYear();
+  const futureQuery = query.includes(String(year)) ? query : `${query} ${year}`;
+
+  const results = await exa.search(futureQuery, {
     type: 'auto',
     numResults: fetchNum,
     includeDomains: [
@@ -159,16 +163,20 @@ export async function searchRaces(query, options = {}) {
     },
   });
 
-  // Deduplicate by normalized title, keep up to numResults
-  const seen = new Set();
-  const deduplicated = results.results.filter((r) => {
-    const key = normalizeTitle(r.title);
-    if (!key || seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  }).slice(0, numResults);
+  const today = new Date().toISOString().split('T')[0];
 
-  return deduplicated.map(mapResult);
+  // Deduplicate, map, then drop any result whose parsed date is in the past
+  const seen = new Set();
+  return results.results
+    .filter((r) => {
+      const key = normalizeTitle(r.title);
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .map(mapResult)
+    .filter((r) => !r.event_date || r.event_date >= today)
+    .slice(0, numResults);
 }
 
 /**
