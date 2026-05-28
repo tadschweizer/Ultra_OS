@@ -25,9 +25,5 @@ setupDevPlatform();
 module.exports = withSentryConfig(withPWA(nextConfig), {
   silent: true,
   disableLogger: true,
-  // Source map uploads require SENTRY_AUTH_TOKEN — skipped until token is configured.
-  sourcemaps: {
-    disable: true,
-  },
   widenClientFileUpload: true,
 });
