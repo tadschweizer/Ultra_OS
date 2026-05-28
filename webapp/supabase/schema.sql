@@ -132,15 +132,41 @@ create table if not exists public.research_library_entries (
   plain_english_summary text,
   practical_takeaway text,
   commentary text,
-  ultra_score integer not null default 0,
-  gravel_score integer not null default 0,
-  triathlon_score integer not null default 0,
+  ultra_score       integer not null default 0,
+  gravel_score      integer not null default 0,
+  triathlon_score   integer not null default 0,
+  running_score     integer not null default 0,
+  cycling_score     integer not null default 0,
+  swimming_score    integer not null default 0,
+  rowing_score      integer not null default 0,
+  skating_score     integer not null default 0,
+  ski_score         integer not null default 0,
+  team_sport_score  integer not null default 0,
   published boolean not null default false,
   inserted_at timestamptz default now(),
   updated_at timestamptz default now(),
-  constraint research_library_entries_ultra_score_check check (ultra_score between 0 and 5),
-  constraint research_library_entries_gravel_score_check check (gravel_score between 0 and 5),
-  constraint research_library_entries_triathlon_score_check check (triathlon_score between 0 and 5)
+  constraint research_library_entries_ultra_score_check    check (ultra_score    between 0 and 5),
+  constraint research_library_entries_gravel_score_check   check (gravel_score   between 0 and 5),
+  constraint research_library_entries_triathlon_score_check check (triathlon_score between 0 and 5),
+  constraint research_library_entries_running_score_check   check (running_score  between 0 and 5),
+  constraint research_library_entries_cycling_score_check   check (cycling_score  between 0 and 5),
+  constraint research_library_entries_swimming_score_check  check (swimming_score between 0 and 5),
+  constraint research_library_entries_rowing_score_check    check (rowing_score   between 0 and 5),
+  constraint research_library_entries_skating_score_check   check (skating_score  between 0 and 5),
+  constraint research_library_entries_ski_score_check       check (ski_score      between 0 and 5),
+  constraint research_library_entries_team_sport_score_check check (team_sport_score between 0 and 5)
+);
+
+create table if not exists public.sports_registry (
+  id              uuid primary key default gen_random_uuid(),
+  sport_key       text not null unique,
+  display_name    text not null,
+  sport_group     text not null,
+  strava_types    text[] not null default '{}',
+  activity_family text not null,
+  score_column    text,
+  description     text,
+  inserted_at     timestamptz default now()
 );
 
 create table if not exists public.coach_profiles (
