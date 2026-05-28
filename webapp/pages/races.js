@@ -53,6 +53,7 @@ function sortByDate(a, b) {
 const emptyForm = {
   name: '', event_date: '', race_type: 'Other', distance_miles: '',
   location: '', priority: 'B', url: '', source: 'manual', catalog_id: null,
+  elevation_gain_ft: '', terrain: '',
 };
 
 export default function RacesPage() {
@@ -88,6 +89,8 @@ export default function RacesPage() {
       url: race.url || '',
       source: race.source || 'manual',
       catalog_id: race.catalog_id || null,
+      elevation_gain_ft: race.elevation_gain_ft ? String(race.elevation_gain_ft) : '',
+      terrain: race.terrain || '',
     });
     setShowForm(true);
   }
