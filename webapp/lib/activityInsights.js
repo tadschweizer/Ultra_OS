@@ -33,19 +33,73 @@ export function classifyActivityType(activity = {}) {
   const elevationFeet = metersToFeet(activity?.total_elevation_gain);
   const distanceMiles = metersToMiles(activity?.distance);
 
-  if (sportType.includes('virtualride')) {
+  // ── Cycling ──────────────────────────────────────────────────────────────
+  if (sportType === 'virtualride' || sportType === 'virtualrow') {
+    const isRow = sportType === 'virtualrow';
     return {
-      label: 'Virtual Ride',
-      family: 'bike',
-      reason: 'Strava marked the session as a virtual ride.',
+      label: isRow ? 'Virtual Row' : 'Virtual Ride',
+      family: isRow ? 'row' : 'bike',
+      reason: `Strava marked the session as a ${isRow ? 'virtual row' : 'virtual ride'}.`,
     };
   }
 
-  if (sportType.includes('ride') || sportType.includes('ecycle')) {
+  if (sportType === 'mountainbikeride' || sportType === 'emountainbikeride') {
+    return {
+      label: 'MTB Ride',
+      family: 'bike',
+      reason: 'Strava marked the session as a mountain bike ride.',
+    };
+  }
+
+  if (sportType === 'gravelride') {
+    return {
+      label: 'Gravel Ride',
+      family: 'bike',
+      reason: 'Strava marked the session as a gravel ride.',
+    };
+  }
+
+  if (sportType.includes('ride') || sportType.includes('ecycle') || sportType === 'handcycle' || sportType === 'velomobile') {
     return {
       label: 'Bike Ride',
       family: 'bike',
       reason: 'Strava marked the session as a ride.',
+    };
+  }
+
+  // ── Running ───────────────────────────────────────────────────────────────
+  if (sportType === 'trailrun') {
+    return {
+      label: 'Trail Run',
+      family: 'run',
+      reason: 'Strava marked the session as a trail run.',
+    };
+  }
+
+  if (sportType.includes('run') && !sportType.includes('ski')) {
+    if (
+      includesAny(text, ['trail', 'singletrack', 'mountain']) ||
+      (elevationFeet >= 800 && distanceMiles <= 15)
+    ) {
+      return {
+        label: 'Trail Run',
+        family: 'run',
+        reason: 'Run activity with trail language or terrain-heavy elevation profile.',
+      };
+    }
+    return {
+      label: 'Road Run',
+      family: 'run',
+      reason: 'Run activity without strong trail signals.',
+    };
+  }
+
+  // ── Hiking / Walking ──────────────────────────────────────────────────────
+  if (sportType === 'snowshoe') {
+    return {
+      label: 'Snowshoe',
+      family: 'hike',
+      reason: 'Strava marked the session as a snowshoe outing.',
     };
   }
 
@@ -57,30 +111,181 @@ export function classifyActivityType(activity = {}) {
     };
   }
 
-  if (sportType.includes('trailrun')) {
+  // ── Swimming ──────────────────────────────────────────────────────────────
+  if (sportType === 'openwaterswim') {
     return {
-      label: 'Trail Run',
-      family: 'run',
-      reason: 'Strava marked the session as a trail run.',
+      label: 'Open-Water Swim',
+      family: 'swim',
+      reason: 'Strava marked the session as open-water swimming.',
     };
   }
 
-  if (sportType.includes('run')) {
-    if (
-      includesAny(text, ['trail', 'singletrack', 'mountain']) ||
-      (elevationFeet >= 800 && distanceMiles <= 15)
-    ) {
-      return {
-        label: 'Trail Run',
-        family: 'run',
-        reason: 'Run activity with trail language or terrain-heavy elevation profile.',
-      };
-    }
-
+  if (sportType === 'swim') {
     return {
-      label: 'Road Run',
-      family: 'run',
-      reason: 'Run activity without strong trail signals.',
+      label: 'Pool Swim',
+      family: 'swim',
+      reason: 'Strava marked the session as a pool swim.',
+    };
+  }
+
+  // ── Rowing & Paddling ─────────────────────────────────────────────────────
+  if (sportType === 'rowing') {
+    return {
+      label: 'Rowing',
+      family: 'row',
+      reason: 'Strava marked the session as rowing.',
+    };
+  }
+
+  if (sportType === 'canoeing' || sportType === 'kayaking' || sportType === 'standup paddling' || sportType === 'standuppaddling') {
+    return {
+      label: 'Paddling',
+      family: 'row',
+      reason: 'Strava marked the session as a paddling activity.',
+    };
+  }
+
+  // ── Skating ───────────────────────────────────────────────────────────────
+  if (sportType === 'iceskate' || sportType === 'inlineskate') {
+    return {
+      label: sportType === 'iceskate' ? 'Ice Skating' : 'Inline Skating',
+      family: 'skate',
+      reason: 'Strava marked the session as a skating activity.',
+    };
+  }
+
+  if (sportType === 'skateboard') {
+    return {
+      label: 'Skateboarding',
+      family: 'skate',
+      reason: 'Strava marked the session as skateboarding.',
+    };
+  }
+
+  // ── Cross-Country / Nordic Skiing ─────────────────────────────────────────
+  if (sportType === 'nordicski' || sportType === 'crosscountryskiing' || sportType === 'rollerski') {
+    return {
+      label: sportType === 'rollerski' ? 'Roller Ski' : 'Nordic Ski',
+      family: 'ski',
+      reason: 'Strava marked the session as cross-country or Nordic skiing.',
+    };
+  }
+
+  if (sportType === 'backcountryski' || sportType === 'alpineski') {
+    return {
+      label: sportType === 'alpineski' ? 'Alpine Ski' : 'Backcountry Ski',
+      family: 'ski',
+      reason: 'Strava marked the session as alpine or backcountry skiing.',
+    };
+  }
+
+  if (sportType === 'snowboard') {
+    return {
+      label: 'Snowboard',
+      family: 'ski',
+      reason: 'Strava marked the session as snowboarding.',
+    };
+  }
+
+  if (sportType === 'biathlon') {
+    return {
+      label: 'Biathlon',
+      family: 'ski',
+      reason: 'Strava marked the session as biathlon.',
+    };
+  }
+
+  // ── Team Sports ───────────────────────────────────────────────────────────
+  if (sportType === 'soccer' || sportType === 'football') {
+    return {
+      label: 'Soccer',
+      family: 'team',
+      reason: 'Strava marked the session as soccer.',
+    };
+  }
+
+  if (sportType === 'lacrosse') {
+    return {
+      label: 'Lacrosse',
+      family: 'team',
+      reason: 'Strava marked the session as lacrosse.',
+    };
+  }
+
+  if (sportType === 'basketball') {
+    return {
+      label: 'Basketball',
+      family: 'team',
+      reason: 'Strava marked the session as basketball.',
+    };
+  }
+
+  if (sportType === 'volleyball') {
+    return {
+      label: 'Volleyball',
+      family: 'team',
+      reason: 'Strava marked the session as volleyball.',
+    };
+  }
+
+  // ── Racket / Court Sports ─────────────────────────────────────────────────
+  if (includesAny(sportType, ['tennis', 'badminton', 'pickleball', 'squash', 'racquetball', 'tableten', 'tabletennis'])) {
+    return {
+      label: 'Racket Sport',
+      family: 'court',
+      reason: 'Strava marked the session as a racket sport.',
+    };
+  }
+
+  // ── Climbing ──────────────────────────────────────────────────────────────
+  if (sportType === 'rockclimbing') {
+    return {
+      label: 'Rock Climbing',
+      family: 'climb',
+      reason: 'Strava marked the session as rock climbing.',
+    };
+  }
+
+  // ── Strength & Conditioning ───────────────────────────────────────────────
+  if (sportType === 'weighttraining' || sportType === 'crossfit' || includesAny(sportType, ['hiit', 'highintensity'])) {
+    return {
+      label: sportType === 'crossfit' ? 'CrossFit' : 'Strength Work',
+      family: 'strength',
+      reason: 'Strava marked the session as strength or conditioning work.',
+    };
+  }
+
+  if (sportType === 'yoga' || sportType === 'pilates') {
+    return {
+      label: sportType === 'yoga' ? 'Yoga' : 'Pilates',
+      family: 'strength',
+      reason: 'Strava marked the session as flexibility or mobility work.',
+    };
+  }
+
+  if (sportType === 'elliptical' || sportType === 'stairstepper') {
+    return {
+      label: sportType === 'elliptical' ? 'Elliptical' : 'Stair Stepper',
+      family: 'bike',
+      reason: 'Strava marked the session as cardio machine work.',
+    };
+  }
+
+  // ── Water Sports ──────────────────────────────────────────────────────────
+  if (includesAny(sportType, ['surf', 'kite', 'windsurf', 'sail'])) {
+    return {
+      label: 'Water Sport',
+      family: 'other',
+      reason: 'Strava marked the session as a water sport.',
+    };
+  }
+
+  // ── Golf ──────────────────────────────────────────────────────────────────
+  if (sportType === 'golf') {
+    return {
+      label: 'Golf',
+      family: 'other',
+      reason: 'Strava marked the session as golf.',
     };
   }
 
@@ -147,6 +352,57 @@ export function classifyActivity(activity, settings = {}) {
       label: 'Easy / Aerobic',
       reason: 'Bike session without intensity signals.',
     };
+  }
+
+  if (activityType.family === 'swim') {
+    if (includesAny(text, ['interval', 'set', 'repeat', 'sprint', 'race pace']) || avgHr >= hrZone4Min) {
+      return { label: 'Swim Intervals', reason: 'Swim session with interval language or high HR.' };
+    }
+    if (distanceMiles >= 1.5 || movingHours >= 1.5) {
+      return { label: 'Long Swim', reason: 'Swim session distance or duration reads like an endurance swim.' };
+    }
+    return { label: 'Easy Swim', reason: 'Swim session without strong intensity signals.' };
+  }
+
+  if (activityType.family === 'row') {
+    if (includesAny(text, ['interval', 'piece', 'sprint', '2k', '500', 'race']) || avgHr >= hrZone4Min) {
+      return { label: 'Row Intervals', reason: 'Row session with race-pace or interval language or high HR.' };
+    }
+    if (movingHours >= 1.5) {
+      return { label: 'Long Row', reason: 'Row session duration reads like an endurance piece.' };
+    }
+    return { label: 'Easy Row', reason: 'Row session without strong intensity signals.' };
+  }
+
+  if (activityType.family === 'skate') {
+    if (includesAny(text, ['interval', 'sprint', 'race', 'speed', 'time trial']) || avgHr >= hrZone4Min) {
+      return { label: 'Skate Intervals', reason: 'Skate session with speed or interval language or high HR.' };
+    }
+    if (distanceMiles >= 10 || movingHours >= 1.5) {
+      return { label: 'Long Skate', reason: 'Skate session distance or duration reads like an endurance session.' };
+    }
+    return { label: 'Easy Skate', reason: 'Skate session without strong intensity signals.' };
+  }
+
+  if (activityType.family === 'ski') {
+    if (includesAny(text, ['interval', 'sprint', 'race', 'race pace', 'v2', 'skate ski']) || avgHr >= hrZone4Min) {
+      return { label: 'Ski Intervals', reason: 'Ski session with race-pace or interval language or high HR.' };
+    }
+    if (movingHours >= 2 || distanceMiles >= 10) {
+      return { label: 'Long Ski', reason: 'Ski session duration or distance reads like an endurance outing.' };
+    }
+    return { label: 'Easy Ski', reason: 'Ski session without strong intensity signals.' };
+  }
+
+  if (activityType.family === 'team') {
+    if (includesAny(text, ['game', 'match', 'scrimmage', 'tournament'])) {
+      return { label: 'Game / Match', reason: 'Session language indicates a competitive game or match.' };
+    }
+    return { label: 'Team Practice', reason: 'Team sport session without game language.' };
+  }
+
+  if (activityType.family === 'strength') {
+    return { label: activityType.label, reason: 'Strength or conditioning session.' };
   }
 
   if (
@@ -494,6 +750,12 @@ export function buildWeeklyMetrics(activities = []) {
         count: 0,
         runHours: 0,
         bikeHours: 0,
+        swimHours: 0,
+        rowHours: 0,
+        skateHours: 0,
+        skiHours: 0,
+        teamHours: 0,
+        strengthHours: 0,
         otherHours: 0,
       });
     }
@@ -508,6 +770,12 @@ export function buildWeeklyMetrics(activities = []) {
     const type = classifyActivityType(activity);
     if (type.family === 'run') bucket.runHours += hours;
     else if (type.family === 'bike') bucket.bikeHours += hours;
+    else if (type.family === 'swim') bucket.swimHours += hours;
+    else if (type.family === 'row') bucket.rowHours += hours;
+    else if (type.family === 'skate') bucket.skateHours += hours;
+    else if (type.family === 'ski') bucket.skiHours += hours;
+    else if (type.family === 'team') bucket.teamHours += hours;
+    else if (type.family === 'strength') bucket.strengthHours += hours;
     else bucket.otherHours += hours;
   });
 
@@ -525,7 +793,11 @@ export function buildTrainingComparisonCards(activities = [], interventions = []
   const mileageDelta = lastFourMileage - priorFourMileage;
 
   const crossTrainingShare = average(
-    recentWeeks.map((week) => (week.hours > 0 ? ((week.bikeHours + week.otherHours) / week.hours) * 100 : 0))
+    recentWeeks.map((week) => {
+      if (!week.hours) return 0;
+      const nonRunHours = week.hours - (week.runHours || 0);
+      return (nonRunHours / week.hours) * 100;
+    })
   );
   const peakWeek = recentWeeks.reduce(
     (best, week) => (week.mileage > (best?.mileage || 0) ? week : best),
@@ -581,17 +853,19 @@ export function buildModalitySplitCards(activities = []) {
     (accumulator, activity) => {
       const type = classifyActivityType(activity);
       const hours = secondsToHours(activity.moving_time);
-
-      if (type.family === 'run') accumulator.run += hours;
-      else if (type.family === 'bike') accumulator.bike += hours;
-      else accumulator.other += hours;
-
+      accumulator[type.family] = (accumulator[type.family] || 0) + hours;
       return accumulator;
     },
-    { run: 0, bike: 0, other: 0 }
+    {}
   );
 
-  const total = grouped.run + grouped.bike + grouped.other;
+  const total = Object.values(grouped).reduce((sum, h) => sum + h, 0);
+
+  const familyLabels = { run: 'Run', bike: 'Bike', swim: 'Swim', row: 'Row', skate: 'Skate', ski: 'Ski', team: 'Team', strength: 'Strength', hike: 'Hike', other: 'Other' };
+  const activeFamilies = Object.entries(grouped)
+    .filter(([, h]) => h > 0)
+    .sort((a, b) => b[1] - a[1]);
+
   const longestRun = recent
     .filter((activity) => classifyActivityType(activity).family === 'run')
     .reduce((best, activity) => {
@@ -599,13 +873,16 @@ export function buildModalitySplitCards(activities = []) {
       return miles > (best?.miles || 0) ? { miles, date: activity.start_date.slice(0, 10) } : best;
     }, null);
 
+  const mixDescription = activeFamilies.length > 0
+    ? activeFamilies.map(([fam, h]) => `${(h / total * 100).toFixed(0)}% ${familyLabels[fam] || fam}`).join(', ')
+    : null;
+
   return [
     {
-      title: 'Run / Bike Mix',
-      body:
-        total > 0
-          ? `Recent training time is ${(grouped.run / total * 100).toFixed(0)}% run, ${(grouped.bike / total * 100).toFixed(0)}% bike, and ${(grouped.other / total * 100).toFixed(0)}% other.`
-          : 'Modality mix will appear once recent sessions are available.',
+      title: 'Activity Mix',
+      body: mixDescription
+        ? `Recent training time breaks down as: ${mixDescription}.`
+        : 'Modality mix will appear once recent sessions are available.',
     },
     {
       title: 'Longest Run Marker',
@@ -772,6 +1049,12 @@ export function buildWeeklyTableRows(activities = [], interventions = []) {
     interventions: interventionsByWeek[week.key]?.length || 0,
     runShare: week.hours > 0 ? (week.runHours / week.hours) * 100 : 0,
     bikeShare: week.hours > 0 ? (week.bikeHours / week.hours) * 100 : 0,
+    swimShare: week.hours > 0 ? (week.swimHours / week.hours) * 100 : 0,
+    rowShare: week.hours > 0 ? (week.rowHours / week.hours) * 100 : 0,
+    skateShare: week.hours > 0 ? (week.skateHours / week.hours) * 100 : 0,
+    skiShare: week.hours > 0 ? (week.skiHours / week.hours) * 100 : 0,
+    teamShare: week.hours > 0 ? (week.teamHours / week.hours) * 100 : 0,
+    strengthShare: week.hours > 0 ? (week.strengthHours / week.hours) * 100 : 0,
   }));
 }
 

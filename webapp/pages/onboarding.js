@@ -2,15 +2,34 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
 import RaceSearchInput from '../components/RaceSearchInput';
 
-const sportOptions = [
-  'Ultrarunner',
-  'Trail Runner',
-  'Marathoner',
-  'Half Marathoner',
-  'Road Racer (5K-10K)',
-  'Gravel Cyclist',
-  'Long-Course Triathlete',
+export const SPORT_GROUPS = [
+  {
+    label: 'Running',
+    sports: ['Ultrarunner', 'Trail Runner', 'Marathoner', 'Half Marathoner', 'Road Racer (5K-10K)'],
+  },
+  {
+    label: 'Cycling',
+    sports: ['Gravel Cyclist', 'Road Cyclist', 'Mountain Biker'],
+  },
+  {
+    label: 'Multi-Sport',
+    sports: ['Long-Course Triathlete', 'Short-Course Triathlete'],
+  },
+  {
+    label: 'Aquatic',
+    sports: ['Open-Water Swimmer', 'Pool Swimmer', 'Rower', 'Paddler (Kayak / Canoe)'],
+  },
+  {
+    label: 'Winter / Ice',
+    sports: ['Speed Skater', 'Cross-Country Skier', 'Biathlete'],
+  },
+  {
+    label: 'Team Sports',
+    sports: ['Soccer Player', 'Lacrosse Player'],
+  },
 ];
+
+const sportOptions = SPORT_GROUPS.flatMap((g) => g.sports);
 
 const yearsOptions = ['1', '2-3', '4-6', '7+'];
 const hoursOptions = ['<8', '8-12', '12-16', '16-20', '20+'];
@@ -249,29 +268,36 @@ export default function OnboardingPage() {
         </div>
 
         <div className="space-y-5 rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-          <div className="grid gap-3 sm:grid-cols-2">
-            {sportOptions.map((sport) => {
-              const active = form.primary_sports.includes(sport);
-              return (
-                <button
-                  key={sport}
-                  type="button"
-                  onClick={() =>
-                    setForm((current) => ({
-                      ...current,
-                      primary_sports: active
-                        ? current.primary_sports.filter((item) => item !== sport)
-                        : [...current.primary_sports, sport],
-                    }))
-                  }
-                  className={`rounded-[24px] border px-4 py-4 text-left transition ${
-                    active ? 'border-ink bg-panel text-paper' : 'border-ink/10 bg-paper text-ink hover:bg-[#efe7dc]'
-                  }`}
-                >
-                  <p className="text-base font-semibold">{sport}</p>
-                </button>
-              );
-            })}
+          <div className="space-y-5">
+            {SPORT_GROUPS.map((group) => (
+              <div key={group.label}>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-ink/40">{group.label}</p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {group.sports.map((sport) => {
+                    const active = form.primary_sports.includes(sport);
+                    return (
+                      <button
+                        key={sport}
+                        type="button"
+                        onClick={() =>
+                          setForm((current) => ({
+                            ...current,
+                            primary_sports: active
+                              ? current.primary_sports.filter((item) => item !== sport)
+                              : [...current.primary_sports, sport],
+                          }))
+                        }
+                        className={`rounded-[24px] border px-4 py-3 text-left transition ${
+                          active ? 'border-ink bg-panel text-paper' : 'border-ink/10 bg-paper text-ink hover:bg-[#efe7dc]'
+                        }`}
+                      >
+                        <p className="text-sm font-semibold">{sport}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
 
           <div className="grid gap-4 md:grid-cols-3">
