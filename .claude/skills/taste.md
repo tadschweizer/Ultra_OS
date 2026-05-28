@@ -1,3 +1,7 @@
+---
+description: Apply the tasteskill Anti-Slop Frontend design system to landing pages, portfolios, and redesigns. Sets design dials (VARIANCE, MOTION, DENSITY), enforces typography, layout, color, motion, and accessibility rules, and runs a pre-flight checklist before shipping.
+---
+
 # tasteskill: Anti-Slop Frontend Skill
 
 > Landing pages, portfolios, and redesigns. Not dashboards, not data tables, not multi-step product UI.
