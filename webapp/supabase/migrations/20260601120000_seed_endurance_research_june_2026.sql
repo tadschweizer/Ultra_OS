@@ -428,7 +428,7 @@ values
     'https://pubmed.ncbi.nlm.nih.gov/42044038/',
     array['Recovery', 'Training Methodology'],
     'Low testosterone in physically stressed populations, including endurance athletes, is most commonly a centrally mediated, reversible adaptation rather than true gonadal dysfunction. Severe energy deficit, sleep disruption, and sustained psychological stress suppress the hypothalamic-pituitary axis, while the testes themselves remain responsive. Critically, energetic sufficiency, not exercise modality, is the principal determinant of testosterone levels. When energy balance and recovery are restored, testosterone normalizes.',
-    'If your testosterone is low during heavy training, the first intervention should be improving energy availability, sleep quality, and psychological recovery rather than seeking hormone replacement. The suppression is almost certainly a reversible adaptation to energy deficit and stress, not permanent damage. Ensure caloric intake matches training demands before investigating other causes.',
+    'If your testosterone is low during heavy training, seek clinical evaluation to rule out conditions unrelated to training while simultaneously optimizing energy availability, sleep quality, and psychological recovery. In many endurance athletes the suppression reflects a reversible adaptation to energy deficit and stress rather than permanent damage, but only a clinician can distinguish functional suppression from pathological causes.',
     'Published in JCEM, this reframes the testosterone conversation away from clinical hypogonadism and toward functional energy management. Directly relevant to the relative energy deficiency in sport (REDs) framework that many endurance athletes unknowingly experience.',
     4,
     4,
