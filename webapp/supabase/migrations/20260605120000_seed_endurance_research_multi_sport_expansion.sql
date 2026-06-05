@@ -13,6 +13,13 @@ insert into public.research_library_entries (
   ultra_score,
   gravel_score,
   triathlon_score,
+  running_score,
+  cycling_score,
+  swimming_score,
+  rowing_score,
+  ski_score,
+  skating_score,
+  team_sport_score,
   published
 )
 values
@@ -29,9 +36,8 @@ values
     'Researchers developed a real-time performance prediction model for marathon and ultra-trail races using data from 947 runners. The model uses variables recorded during the first third of the race — weighted time, pacing variability, and checkpoint percentile rank — to predict total race time with strong accuracy (R² > 0.95). Unlike lab-based models, this approach works entirely in the field and requires no prior testing.',
     'Use early race splits and pacing consistency as your primary feedback tools during trail events. If your pacing variability is high in the first third, your finish time will suffer. Practice holding even effort across terrain changes in training to improve your race-day predictability.',
     'A genuinely practical model that turns checkpoint data into actionable mid-race strategy. The emphasis on pacing variability rather than absolute pace is the key insight — it validates what experienced trail runners know intuitively: consistency over terrain wins races.',
-    5,
-    2,
-    3,
+    5, 2, 3,
+    5, 2, 0, 0, 0, 0, 0,
     true
   ),
   -- ===== CYCLING PERFORMANCE =====
@@ -47,9 +53,8 @@ values
     'This comprehensive UCI-backed review summarizes the main factors behind cycling performance across all modalities — from track sprints to three-week Grand Tours. It covers the physiological and energetic demands of different race types, physical characteristics of elite cyclists, their training regimens, and how nutrition interacts with all of these. The review emphasizes moving toward individual optimization based on power-duration profiles and body composition rather than one-size-fits-all approaches.',
     'Build your nutrition periodization around your specific race demands. A one-day gravel event and a multi-stage tour require fundamentally different fueling strategies. Use your power-duration curve to identify your rider typology, then tailor both training and nutrition to that profile rather than copying generic plans.',
     'An authoritative reference from the UCI itself, co-authored by Seiler and Mujika. The push toward individualized typologies over generic training plans is the real headline. Essential reading for any serious cyclist or coach.',
-    3,
-    5,
-    4,
+    3, 5, 4,
+    2, 5, 0, 0, 0, 0, 0,
     true
   ),
   (
@@ -64,9 +69,8 @@ values
     'Researchers established normative record power profile values for elite Under-23 cyclists from major 2025 races and quantified how fatigue degrades power across different durations. Short-duration power (5 seconds) dropped by up to 54% after heavy accumulated work, while longer-duration power (20 minutes) declined only about 14%. The study frames durability — the ability to maintain output after accumulated fatigue — as a key performance differentiator at the developmental level.',
     'Train durability specifically: do your high-intensity intervals after accumulated volume rather than fresh. If your 5-second and 30-second power drops dramatically after 2-3 hours of riding, that is a bigger limiter than your fresh numbers suggest. Use these benchmarks to evaluate your own fatigue resistance.',
     'One of the first studies to quantify the durability gap between fresh and fatigued power in a large elite sample. The normative data is immediately useful for benchmarking, and the fatigue-dependent power curves should change how athletes and coaches interpret training data.',
-    2,
-    5,
-    4,
+    2, 5, 4,
+    1, 5, 0, 0, 0, 0, 0,
     true
   ),
   (
@@ -81,9 +85,8 @@ values
     'Eighteen trained cyclists performed two 3-hour moderate-intensity sessions — one continuous and one with an all-out sprint effort inserted at the midpoint. The interspersed sprint did not alter metabolism, fat oxidation, perceived exertion, or post-session exercise capacity beyond what the long ride itself produced. Recovery was identical 48 hours later in both conditions.',
     'You can include short, high-intensity efforts during long endurance rides without undermining the aerobic goals of the session. There is no physiological reason to strictly avoid sprints or hard surges during base-building or endurance-focused training rides.',
     'This directly challenges the common coaching dogma that any high-intensity work "contaminates" an easy endurance session. The data gives a green light to mixed-intensity long rides, which is how most real-world cycling actually works.',
-    3,
-    5,
-    4,
+    3, 5, 4,
+    2, 5, 0, 0, 0, 0, 0,
     true
   ),
   -- ===== MARATHON / TRAINING METHODOLOGY =====
@@ -99,9 +102,8 @@ values
     'In a 16-week randomized trial of 120 recreational marathon runners, polarized training produced 30% greater marathon time improvements than pyramidal training despite less total volume. However, the most striking finding was the individual variability: only about one-third of athletes responded best to polarized training, another third to pyramidal, 19% responded to both, and 18% were non-responders. Training experience was the strongest predictor of which method worked — newer runners favored pyramidal, experienced runners favored polarized.',
     'If you have been running for years and mostly train in the moderate zone, switching to a polarized approach (more easy, more hard, less medium) is likely to unlock new gains. If you are newer to marathons, a traditional pyramidal buildup with gradually increasing intensity may serve you better. Do not assume one method is universally superior.',
     'The biggest takeaway is not that polarized beats pyramidal on average — it is that individual response varies enormously. The machine learning angle is secondary to the practical insight: match your training distribution to your experience level and track your response honestly.',
-    5,
-    3,
-    4,
+    5, 3, 4,
+    5, 3, 0, 0, 2, 0, 0,
     true
   ),
   (
@@ -116,9 +118,8 @@ values
     'This review examines the three dominant training intensity distribution models — pyramidal, threshold, and polarized — and maps how each shifts across preparation phases. Each model has distinct strengths: pyramidal builds aerobic base during general preparation, threshold training sharpens race-specific fitness, and polarized training protects against overtraining while maintaining high-end capacity. The key insight is that phased integration of multiple models may be more effective than rigid adherence to any single approach.',
     'Do not marry one training model year-round. Use a pyramidal distribution in your early base phase, introduce threshold blocks during specific preparation, and shift toward polarized as you approach competition. The model should serve the phase, not the other way around.',
     'An excellent synthesis that moves past the polarized-vs-pyramidal debate. The periodization angle — matching distribution to training phase rather than arguing which is universally best — reflects how elite programs actually operate.',
-    4,
-    5,
-    5,
+    4, 5, 5,
+    4, 5, 3, 4, 4, 3, 2,
     true
   ),
   -- ===== PACING STRATEGIES =====
@@ -134,9 +135,8 @@ values
     'This network meta-analysis of 24 studies and 302 athletes found no consistent performance advantage of any imposed pacing strategy (fast-start, even, slow-start) over self-selected pacing in endurance time trials. The one exception: prolonged slow starts were associated with impaired performance. Self-pacing appears to be a flexible and context-adaptive strategy that works across sports and conditions.',
     'Trust your self-selected pacing in races rather than forcing a rigid template. The evidence shows that your brain integrates terrain, conditions, and effort level effectively on its own. The one clear takeaway: avoid starting too conservatively for too long, as extended slow starts consistently hurt finishing times.',
     'Co-authored by Carl Foster, one of the pioneers of pacing research. The finding that self-pacing is generally as good as or better than imposed strategies validates athlete intuition and argues against overly prescriptive race plans.',
-    5,
-    4,
-    5,
+    5, 4, 5,
+    5, 4, 3, 3, 3, 3, 0,
     true
   ),
   -- ===== ALTITUDE TRAINING =====
@@ -152,9 +152,8 @@ values
     'Thirteen elite rowers completed an 18-day normobaric live high-train low protocol. The hypoxic group showed elevated EPO levels, increased reticulocyte counts by day 6, and significantly higher hematocrit by day 18. However, the study also found transient inflammatory responses (elevated CRP) and subtle immune modulation, suggesting altitude exposure adds physiological stress that needs to be managed alongside training load.',
     'An 18-day altitude block can trigger meaningful erythropoietic adaptations, but monitor your inflammatory markers and immune function during the camp. The reticulocyte response starts within the first week, which means shorter camps may still produce early hematological signals even if full adaptation takes longer.',
     'One of the few altitude studies specifically in rowers, and the longitudinal blood sampling at multiple time points makes it more useful than simple pre/post designs. The inflammatory findings are a practical reminder that altitude is not free — it adds load.',
-    3,
-    3,
-    4,
+    3, 3, 4,
+    3, 3, 2, 5, 3, 0, 0,
     true
   ),
   (
@@ -169,9 +168,8 @@ values
     'This perspective article reconceptualizes the vectors of performance improvement from altitude training beyond just hemoglobin mass. The authors map contemporary strategies — live high-train high, live high-train low, and intermittent hypoxic exposure — alongside their respective physiological mechanisms. Key lessons from 25 years of research include the importance of hypoxic dose, exposure timing, and the large inter-individual variability in response.',
     'Do not judge your altitude camp solely by hemoglobin mass changes. The performance benefits extend to ventilatory efficiency, muscle buffering, and economy improvements that standard blood tests may not capture. Plan your altitude dose based on evidence-informed guidelines for severity and duration rather than simply going as high as possible for as long as possible.',
     'A timely synthesis from two of the leading altitude physiology researchers. The framework approach — mapping strategies to mechanisms to practical recommendations — makes this immediately useful for coaches planning altitude blocks.',
-    4,
-    4,
-    5,
+    4, 4, 5,
+    4, 4, 3, 4, 4, 3, 2,
     true
   ),
   (
@@ -186,9 +184,8 @@ values
     'Fifteen highly trained athletes from the German Athletics Federation completed a 21-day live high-train low altitude camp. VO2max improved by an average of 3.1%, but individual responses ranged from -1.7 to +4.5 mL/kg/min. The key discovery: baseline blood biomarkers — particularly monocyte percentage above 10% and neutrophil percentage above 50% — predicted who would respond best. High responders had lower neutrophil-to-lymphocyte ratios (below 1.5) and higher hematocrit (above 42.5%).',
     'Get a baseline blood panel before your altitude camp. If your neutrophil-to-lymphocyte ratio is elevated or your hematocrit is low, you may respond poorly to altitude training — and might benefit more from addressing those underlying issues first. This is one of the first practical screening tools for altitude camp readiness.',
     'A genuinely novel contribution: predictive biomarkers for altitude responders. The practical implication — that a simple blood test could predict whether your altitude camp will work — has major implications for how teams allocate expensive altitude resources.',
-    4,
-    4,
-    5,
+    4, 4, 5,
+    4, 4, 3, 3, 4, 3, 0,
     true
   ),
   -- ===== HEAT + ALTITUDE IN CYCLING =====
@@ -204,9 +201,8 @@ values
     'Twelve elite cyclists completed an in-season 21-day live-high-train-high altitude camp at 3000 m immediately after national championships. Total hemoglobin mass increased by 3.5%, but decayed back to baseline within 10 days of returning to sea level. In a subset of athletes, the hemoglobin mass gain was comparable to a 5-week off-season heat acclimation protocol. Critically, exercise performance and VO2max were not improved when tested 2-3 or 10 days after the altitude camp.',
     'Time your return from altitude carefully. A 3.5% hemoglobin mass boost is meaningful, but if it decays within 10 days, your race needs to fall in a narrow post-camp window. Also consider heat acclimation as an alternative or complement — it produced similar hemoglobin gains over a longer off-season block without the logistical cost of altitude.',
     'The rapid hemoglobin mass decay is the headline finding. Many athletes assume altitude gains persist for weeks, but this data from genuinely elite cyclists shows the window is tighter than expected. The heat-vs-altitude comparison is a practical bonus.',
-    3,
-    5,
-    4,
+    3, 5, 4,
+    3, 5, 0, 0, 0, 0, 0,
     true
   ),
   -- ===== NUTRITION / FUELING =====
@@ -222,9 +218,8 @@ values
     'Twelve trained cyclists ingested 90 g/hr of carbohydrate in three different patterns during 180-minute preloads — increasing, decreasing, or constant — followed by performance tests. Carbohydrate distribution had no effect on performance. However, a decreasing pattern (more carbs early, less later) supported higher carbohydrate oxidation rates and better gut comfort later in exercise, while an increasing pattern caused more nausea and stomach fullness toward the end.',
     'If you tolerate 90 g/hr well, the distribution within the ride does not meaningfully affect performance. But if GI distress is your limiter, front-loading your carbohydrate intake and tapering it slightly later may reduce nausea and cramping in the final hours. Even intake remains the simplest default strategy.',
     'A practical answer to a common athlete question: does it matter when during a ride you take your carbs? The performance answer is no, but the GI comfort answer leans toward front-loading. Useful nuance for athletes pushing high carbohydrate intake rates.',
-    3,
-    5,
-    5,
+    3, 5, 5,
+    3, 5, 2, 2, 2, 0, 0,
     true
   ),
   (
@@ -239,9 +234,8 @@ values
     'Twelve trained male cyclists ingested 90 g/hr of carbohydrate as either honey or a traditional sports nutrition product during 3 hours of steady-state cycling followed by a capacity test. There was no difference in carbohydrate or fat oxidation rates, gastrointestinal symptoms, or time to fatigue between conditions. Honey produced metabolically equivalent fueling to commercial sports products.',
     'Honey is a viable whole-food alternative to commercial gels and drinks for endurance fueling at 90 g/hr. If you prefer natural fuel sources or want variety in your nutrition plan, honey delivers the same metabolic and performance outcomes without a GI penalty. Just account for the fructose-to-glucose ratio when calculating your intake.',
     'A well-controlled crossover study that gives honey a genuine evidence base as race fuel. The 90 g/hr rate matches current best-practice recommendations, so this is not a low-dose test. Good news for athletes seeking alternatives to processed sports nutrition.',
-    4,
-    5,
-    5,
+    4, 5, 5,
+    4, 5, 2, 2, 2, 0, 0,
     true
   ),
   -- ===== RECOVERY / SLEEP =====
@@ -257,9 +251,8 @@ values
     'Twenty endurance cyclists (10 female, 10 male) underwent five different 24-hour energy availability conditions in a randomized design. Exercise-induced low energy availability extended total sleep time by 53-61 minutes compared to rest conditions, while diet-induced low energy availability reduced overnight heart rate without changing sleep duration. Importantly, the responses did not differ between sexes, challenging assumptions about sex-specific vulnerability to energy restriction.',
     'After a big training day that creates an energy deficit, expect to sleep longer — and that is likely a useful recovery signal, not a problem. If you are restricting calories through diet rather than exercise, monitor your overnight heart rate as a sign of metabolic stress. Both types of low energy availability affect recovery, but through different pathways.',
     'A Louise Burke-led study that elegantly separates the effects of exercise-induced vs. diet-induced energy deficits on recovery markers. The finding that sex does not modify the response is important for coaching female and male athletes similarly in this context.',
-    4,
-    5,
-    5,
+    4, 5, 5,
+    4, 5, 3, 3, 3, 3, 2,
     true
   ),
   -- ===== FEMALE ATHLETES / PHYSIOLOGY =====
@@ -275,9 +268,8 @@ values
     'Thirty endurance-trained athletes (15 female, 15 male) completed maximal metabolic steady state estimation at four different hormonal profiles across the menstrual cycle. The key finding: fluctuations in estradiol, progesterone, and testosterone did not change the heavy-to-severe exercise domain boundary. When normalized to lean body mass, there was no sex difference in the power at maximal metabolic steady state either.',
     'Female athletes do not need to adjust their threshold training zones based on menstrual cycle phase. The work rate that separates sustainable from unsustainable effort remains stable across hormonal fluctuations. Train your threshold sessions confidently regardless of cycle timing.',
     'An important paper that should reduce anxiety about menstrual cycle-based training modifications. The direct hormone measurement approach — rather than relying on cycle phase alone — makes this more rigorous than most prior work in this space.',
-    4,
-    4,
-    5,
+    4, 4, 5,
+    4, 4, 3, 3, 3, 3, 2,
     true
   ),
   -- ===== MENTAL PERFORMANCE =====
@@ -293,9 +285,8 @@ values
     'In the largest study of its kind (117 participants), 45 minutes of demanding cognitive work before a 20-minute cycling time trial impaired both reaction time and physical output. Participants covered less distance, pedaled at lower cadence, and reported higher perceived exertion and fatigue throughout the time trial after the cognitive task compared to watching a documentary.',
     'Avoid demanding cognitive work — complex problem-solving, stressful meetings, or intensive screen time — in the hours before key training sessions or races. If your work schedule requires it, build in a mental buffer period. On race day, minimize decision-making and cognitive load in the hours leading up to your start.',
     'The sample size (n=117) gives this much more statistical power than prior mental fatigue studies, which typically used 10-20 participants. The effect is real and practically meaningful, especially for age-group athletes juggling work and training.',
-    4,
-    4,
-    4,
+    4, 4, 4,
+    4, 4, 3, 3, 3, 3, 3,
     true
   ),
   -- ===== CROSS-COUNTRY SKIING =====
@@ -311,9 +302,8 @@ values
     'Ten well-trained cross-country skiers completed a novel two-week dynamic HIIT protocol featuring flexible "two times up to ten minutes" intervals. Maximal speed at VO2max increased by a striking 32.9% while VO2max itself remained stable, indicating improved metabolic efficiency rather than increased aerobic ceiling. Time to reach a respiratory exchange ratio of 1.0 also improved across sessions, and body weight decreased modestly.',
     'Short, intense HIIT blocks of just two weeks can meaningfully improve your speed at VO2max without changing VO2max itself — meaning you become more efficient at using the engine you already have. Consider using brief HIIT micro-blocks as a taper or pre-competition sharpening tool rather than always building longer blocks.',
     'The flexible interval design — "up to ten minutes" rather than rigid prescriptions — is interesting and reflects real-world coaching. The efficiency gains without VO2max changes suggest a neuromuscular or metabolic efficiency adaptation, which has broader implications for any endurance sport.',
-    3,
-    4,
-    4,
+    3, 4, 4,
+    2, 2, 0, 0, 5, 2, 0,
     true
   ),
   -- ===== BIATHLON / TRAINING LOAD =====
@@ -329,9 +319,8 @@ values
     'Researchers compared annual training data from Korean national team and university biathlon athletes using GPS and heart rate monitors over three years. National team athletes trained 812 hours annually vs. 606 for university athletes and spent proportionally more time at moderate and high intensities. The most revealing gap: during high-intensity sessions, national team athletes did 78.5% on skis while university athletes relied on running for 53.6% of their hard training.',
     'As you develop from amateur to elite levels, total volume matters, but training specificity at high intensity matters more. If your key race demands are sport-specific (skiing, cycling, swimming), ensure your hard sessions happen in that modality rather than defaulting to running because it is convenient. Sport-specific high-intensity volume is what separates developmental from elite athletes.',
     'The sport-specificity finding is the gem. University athletes substituted running for skiing during hard sessions, likely due to access constraints, but the performance gap suggests this substitution has a real cost. Applicable to any multi-modal endurance sport.',
-    3,
-    3,
-    4,
+    3, 3, 4,
+    3, 2, 0, 0, 5, 2, 0,
     true
   ),
   -- ===== ULTRA-TRIATHLON =====
@@ -347,9 +336,8 @@ values
     'Analysis of 35 finishers (11 women, 24 men) at the 2024 Quintuple Iron Ultra-Triathlon World Championship revealed that women outperformed men in the swim and bike legs, while men were faster in running and overall. Both sexes showed consistent pacing in cycling, but women exhibited greater variability in running, possibly due to more frequent breaks. The finding that women outperformed men in two of three disciplines challenges traditional ultra-endurance assumptions.',
     'In ultra-distance multi-sport events, female athletes should not assume male pacing templates apply. Women may have a genuine advantage in the swim and bike segments of extreme ultras. For both sexes, running consistency is the biggest pacing challenge at Quintuple Iron distance — train your ability to maintain running structure even when fatigued from the preceding disciplines.',
     'At five times Ironman distance, this is about as extreme as organized endurance racing gets. The female advantage in swimming and cycling, in the context of a World Championship field, adds to the growing evidence that women may have physiological advantages at the longest distances.',
-    5,
-    4,
-    5,
+    5, 4, 5,
+    5, 4, 4, 0, 0, 0, 0,
     true
   ),
   -- ===== SWIMMING / SUPPLEMENTATION =====
@@ -365,9 +353,8 @@ values
     'Thirty trained male swimmers were randomly assigned to upper-body plyometric training with β-alanine, plyometrics with placebo, or control for eight weeks. Both plyometric groups improved medicine ball throw, push-up endurance, bench press, swim ergometer power, and 50-200m freestyle times compared to baseline. β-alanine supplementation further amplified these improvements and promoted a more favorable testosterone-to-cortisol ratio and immunoglobulin A response.',
     'Add upper-body plyometric work to your swim training program — medicine ball throws and explosive push-ups can transfer to improved pool performance across sprint and middle distances. If you race events with significant anaerobic demands (50-200m or triathlon swim starts), β-alanine supplementation may provide an additional edge on top of the strength training gains.',
     'The combination of plyometrics and β-alanine is the novel angle. Most swim strength research focuses on traditional resistance training; the plyometric approach is more swimming-specific in its explosive demands. The hormonal and immune data add context beyond just performance numbers.',
-    2,
-    2,
-    4,
+    2, 2, 4,
+    0, 0, 5, 2, 0, 0, 0,
     true
   )
 on conflict (pubmed_id) do nothing;
