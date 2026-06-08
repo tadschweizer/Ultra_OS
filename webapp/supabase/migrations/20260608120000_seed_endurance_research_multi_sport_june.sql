@@ -23,6 +23,13 @@ insert into public.research_library_entries (
   ultra_score,
   gravel_score,
   triathlon_score,
+  running_score,
+  cycling_score,
+  swimming_score,
+  rowing_score,
+  skating_score,
+  ski_score,
+  team_sport_score,
   published
 )
 values
@@ -39,9 +46,8 @@ values
     'This case study tracked Kilian Jornet during the 2025 Western States 100-mile race where he finished third in 14:19:22. Total energy expenditure was 16,104 kcal measured via doubly labeled water. He consumed 6,720 kcal including approximately 86 grams of carbohydrate per hour, drank 12.5 liters of fluid, and lost 4.3 percent of body mass. Peak GI temperature reached 39.4 degrees Celsius. Renal biomarkers showed transient kidney stress that resolved post-race. Pacing analysis showed exceptional fatigue resistance with only a 15 percent speed decline.',
     'This defines the upper limits of sustainable fueling in 100-mile racing: approximately 86 g/h of carbohydrate and 0.87 L/h of fluid intake at elite pace. Athletes preparing for 100-mile events should progressively train fueling rates toward these benchmarks. Renal biomarker monitoring post-race is warranted after extreme efforts.',
     'The first comprehensive in-race assessment of energy expenditure, nutrition, thermoregulation, and renal function in a world-class ultra athlete. The doubly labeled water measurement of 18.8 kcal/min energy expenditure is the highest ever reported in ultra-marathon running.',
-    5,
-    2,
-    3,
+    5, 2, 3,
+    5, 2, 0, 0, 0, 0, 0,
     true
   ),
   -- 2. Thermoregulation and hydration in 160-km ultra in tropical environment
@@ -57,9 +63,8 @@ values
     'Eighty runners were monitored during a 160-km tropical ultra-race with 9,400 meters of elevation gain using ingestible core temperature capsules. Mean core temperature was 37.9 degrees with peaks reaching 39.96 degrees. Faster runners had higher core temperatures. Mean body mass loss was 4.8 percent with 31 percent of runners losing more than 6 percent, yet body mass loss showed no correlation with core temperature or performance. Key predictors of core temperature were BMI, age, speed, air temperature, humidity, and elevation changes.',
     'Substantial body mass loss during ultra-endurance running may be a normal physiological adaptation rather than a performance limiter. Do not force-hydrate to prevent all mass loss. Individualized hydration strategies based on real-world field data are more effective than blanket volume prescriptions.',
     'Large field study with ingestible temperature pills in a real race. The finding that body mass loss did not predict hyperthermia or performance challenges decades of rigid hydration dogma.',
-    5,
-    3,
-    3,
+    5, 3, 3,
+    5, 2, 0, 0, 0, 0, 0,
     true
   ),
   -- 3. CGM and glycaemic index in ultra-endurance athletes
@@ -75,9 +80,8 @@ values
     'Nine ultra-endurance athletes completed a crossover trial with 28-day low-glycaemic-index or high-glycaemic-index carbohydrate diets monitored via continuous glucose monitoring. The low-GI diet reduced glucose variability and time spent below target glycaemic range without affecting endurance capacity. During exercise, the low-GI arm using isomaltulose (Palatinose) showed reduced carbohydrate oxidation compared to maltodextrin, suggesting greater reliance on endogenous fuel sources.',
     'A 28-day low-GI carbohydrate diet with isomaltulose-based fueling improves glycaemic stability and reduces hypoglycaemic episodes compared to high-GI approaches, with no endurance penalty. Consider isomaltulose as a steady-state fuel source for training blocks, especially for athletes prone to glucose swings.',
     'First CGM-based study comparing chronic GI manipulation in ultra athletes with a long 28-day dietary control period. Practical implications for daily nutrition periodization.',
-    5,
-    4,
-    4,
+    5, 4, 4,
+    5, 3, 0, 0, 0, 0, 0,
     true
   ),
   -- 4. Hydration strategies in ultra-endurance running: programmed vs thirst-driven
@@ -93,9 +97,8 @@ values
     'This review examines programmed fluid intake versus thirst-driven fluid intake in ultra-endurance running. Lab studies support programmed intake for preserving plasma volume and reducing cardiovascular strain, but real-world ultra events show that thirst-driven intake is safe and effective for experienced athletes. Neither strategy alone is universally superior, and the authors propose a hybrid model integrating individual sweat testing, environmental awareness, and internal cues.',
     'Do not rigidly follow one hydration philosophy. A hybrid approach that combines sweat rate testing, environmental monitoring, and responsiveness to thirst cues is the most practical and effective strategy for ultra-endurance events. Athletes with high sweat rates or impaired thirst perception may still benefit from structured intake targets.',
     'Timely synthesis of the programmed vs ad libitum hydration debate. The hybrid recommendation is the most reasonable position for ultra coaching.',
-    5,
-    3,
-    3,
+    5, 3, 3,
+    5, 2, 0, 0, 0, 0, 0,
     true
   ),
   -- 5. Low carbohydrate availability impairs cycling power in females
@@ -111,9 +114,8 @@ values
     'Nine well-trained female cyclists performed incremental and all-out tests after either high or low carbohydrate availability. Low carbohydrate reduced power output at the first ventilatory threshold by 19 watts and impaired gross cycling efficiency, likely due to increased recruitment of higher-threshold motor units to compensate for glycogen-depleted muscle fibers. Critical power from the all-out test was not affected.',
     'Carbohydrate availability directly affects the power output at which female cyclists cross from moderate to heavy intensity domains. Starting a race or key session with depleted glycogen shifts the threshold downward, forcing athletes into harder physiological territory at the same watts. Ensure adequate carb availability before threshold-dependent efforts.',
     'Directly relevant to the concept of durability. Shows that fuel status modulates the exercise intensity domains, not just performance at exhaustion. Important data for female cyclists specifically.',
-    3,
-    5,
-    4,
+    3, 5, 4,
+    2, 5, 0, 0, 0, 0, 0,
     true
   ),
   -- 6. Ketone monoester reduces exogenous CHO oxidation in cyclists
@@ -129,9 +131,8 @@ values
     'Eight trained cyclists ingested either placebo, 120 g/h CHO alone, or 120 g/h CHO plus a 75-gram ketone monoester during 3 hours of cycling below lactate threshold. Adding ketone monoester to high-dose carbohydrate reduced blood glucose, lowered exogenous CHO oxidation from 1.50 to 1.35 g/min, and decreased oxidation efficiency from 75 to 67 percent. Exercise capacity was similar between CHO and CHO plus ketone conditions, both far exceeding placebo.',
     'Co-ingesting ketone monoester with 120 g/h of carbohydrate does not enhance performance and actually reduces how much of that ingested carb you burn. If you are already fueling at 120 g/h with glucose-fructose blends, adding ketones is unlikely to help and may reduce the value of your carb intake. Save the expense.',
     'From the Morton lab at Liverpool John Moores. First study to use isotope tracers to quantify how ketones interfere with exogenous CHO oxidation at the new benchmark rate of 120 g/h. A clear negative finding with real practical implications.',
-    3,
-    5,
-    4,
+    3, 5, 4,
+    2, 5, 0, 0, 0, 0, 0,
     true
   ),
   -- 7. Record power profile of male U23 cyclists
@@ -147,9 +148,8 @@ values
     'Power output data from 90 elite under-23 cyclists racing Giro Next Gen, Tour de l''Avenir, and other major 2025 races were analyzed. Fresh-condition relative mean maximal power ranged from 16.0 W/kg at 5 seconds to 5.5 W/kg at 20 minutes. Fatigue-induced declines were greatest at short durations, with 5-second power dropping 54 percent after 60 kJ/kg of total work. Supra-critical-power work carried a higher performance decrement per unit of energy than total work.',
     'These benchmarks define what it takes to race at the top U23 level. For talent identification, compare athlete power profiles not just in fresh state but after accumulated work. Durability, the ability to produce power after fatigue, is a distinct performance marker that should be tested and trained.',
     'First normative record power profile for U23 professional cycling. The fatigue-adjusted benchmarks make this a practical reference for development coaches tracking athletes approaching WorldTour level.',
-    2,
-    5,
-    3,
+    2, 5, 3,
+    0, 5, 0, 0, 0, 0, 0,
     true
   ),
   -- 8. Blood flow restriction HIIT in well-trained cyclists
@@ -165,9 +165,8 @@ values
     'Seventeen well-trained cyclists with average VO2max of 67 ml/kg/min completed five high-intensity interval sessions over 6 days, either with or without blood flow restriction thigh cuffs. The BFR group trained at 42 percent lower power output but matched heart rate and RPE. Both groups improved 5-minute maximal power by approximately 4 percent, with no differences in performance gains. BFR preserved type 2 muscle fiber area better than standard HIIT.',
     'Blood flow restriction during interval training allows well-trained cyclists to achieve comparable performance gains at substantially lower power outputs. This could be valuable during periods requiring reduced mechanical stress, such as after injury, during travel, or in de-load weeks, while still driving physiological adaptation.',
     'From a strong Norwegian group at the School of Sport Sciences. Practically relevant for competitive cyclists who need to manage mechanical training load without sacrificing fitness.',
-    2,
-    5,
-    4,
+    2, 5, 4,
+    2, 5, 0, 0, 0, 0, 0,
     true
   ),
   -- 9. WorldTour professional cyclist training characteristics
@@ -183,9 +182,8 @@ values
     'Training data from 16 female and 16 male WorldTour cyclists were analyzed across the 10 weeks preceding competition season. Both sexes trained a similar number of sessions per week, but males trained more hours. Over 90 percent of all cyclists followed a pyramidal training intensity distribution. Female cyclists spent less absolute and relative time at low intensity and more time at higher intensities. Despite these differences, relative training load measures like TSS and TRIMP were similar between sexes.',
     'At the WorldTour level, both men and women follow a pyramidal intensity distribution dominated by low-intensity volume. Female WorldTour cyclists compensate for lower training volumes with relatively higher intensity. Coaches should not assume female programs should mirror male programs in volume; the relative load balance matters more than absolute hours.',
     'Rare side-by-side comparison of male and female WorldTour training. The finding that women achieve similar relative training loads through higher intensity rather than higher volume is important for program design.',
-    2,
-    5,
-    3,
+    2, 5, 3,
+    0, 5, 0, 0, 0, 0, 0,
     true
   ),
   -- 10. Durability and substrate utilization in youth triathletes
@@ -201,9 +199,8 @@ values
     'Nineteen junior squad triathletes with a mean VO2peak of 61.4 ml/kg/min ran before and after exhaustive cycling. Despite trivial changes in oxygen cost of running, a pronounced metabolic shift from carbohydrate to fat oxidation occurred during the fatigued run. VO2peak, change in fat oxidation, and oxygen cost of running together explained 88 percent of fatigued running performance in a regression model.',
     'For triathletes, the ability to oxidize fat during the run leg after hard cycling is a major predictor of brick-run performance, not just running economy alone. Training sessions that practice running after glycogen-depleting cycling, and nutrition strategies that improve fat oxidation capacity, are critical for triathlon durability.',
     'Elegant data from junior triathletes showing that the metabolic shift during the bike-to-run transition explains most of the performance variance. Directly actionable for triathlon training and nutrition periodization.',
-    3,
-    3,
-    5,
+    3, 3, 5,
+    4, 3, 2, 0, 0, 0, 0,
     true
   ),
   -- 11. Psychophysiological pacing in Olympic winter endurance sports
@@ -219,9 +216,8 @@ values
     'This review synthesizes how the physiological engine, psychological operator, and environmental demands interact to shape pacing behavior in Olympic winter endurance sports like cross-country skiing, biathlon, and speed skating. The affordance competition hypothesis is proposed as a unifying framework for pacing as continuous decision-making. The review provides practical recommendations for athletes preparing for the Milano-Cortina 2026 Winter Olympics, advocating a phased training approach integrating physiological and psychological development within ecologically valid environments.',
     'Pacing is not purely a physiological problem. Athletes and coaches should train decision-making in race-realistic environments that combine physical stress with tactical choices and head-to-head pressure. Cognitive-perceptual skills are trainable and should be periodized alongside physical development.',
     'A conceptual review with genuine practical value. The affordance competition framework applies beyond winter sports to any head-to-head endurance competition including gravel racing and cross-country running.',
-    3,
-    4,
-    4,
+    3, 4, 4,
+    2, 2, 0, 0, 3, 5, 0,
     true
   ),
   -- 12. Exercise-mode variation in world-class cross-country skiers
@@ -237,9 +233,8 @@ values
     'Training data from 17 world-class cross-country skiers were analyzed for exercise-mode periodization. Mean weekly mode monotony was 48 percent during general preparation and 55 percent during competition. Mode monotony correlated negatively with training load, meaning higher training loads used more varied modes. Intensive sessions in the same exercise mode were typically separated by 14 or more days during general preparation, but during competition, intensive sessions in the same mode often occurred on consecutive days.',
     'World-class endurance athletes rarely exceed 50 percent of training in any single mode. When you increase training load, increase mode variety. Keep intensive sessions in the same mode well-spaced during base building but accept back-to-back loading during race periods. This principle applies broadly to any multi-mode endurance athlete.',
     'Novel insight into how the best in the world manage daily training variety. The negative correlation between mode monotony and training load is a practical finding coaches can implement immediately.',
-    3,
-    4,
-    5,
+    3, 4, 5,
+    3, 3, 0, 0, 0, 5, 0,
     true
   ),
   -- 13. Day-to-day periodization in world-class XC skiers
@@ -255,9 +250,8 @@ values
     'Detailed day-to-day training analysis of 17 world-class cross-country skiers showed a clear sequential pattern: alternating high-volume days, elevated intensity every 3-4 days, and reduced load or rest every 8-9 days. Only 5 percent of training days combined both high volume and high intensity. During competition, training distribution shifted toward more very-low and low-volume days with less high-volume work. Acute-to-chronic work ratios stayed between 0.75 and 1.25 on 69 percent of days.',
     'Structure training in waves: high volume and high intensity should rarely overlap on the same day. Plan intensive sessions every 3-4 days and full recovery days every 8-9 days. This rhythm keeps the acute-to-chronic work ratio in the safe sweet spot while still delivering progressive overload.',
     'Companion paper to the mode-variation study from the same Norwegian group. Together they provide a complete picture of how world-class endurance athletes structure their training day by day.',
-    3,
-    4,
-    5,
+    3, 4, 5,
+    3, 3, 0, 0, 0, 5, 0,
     true
   ),
   -- 14. Making of a biathlete: 2 decades of training data
@@ -273,9 +267,8 @@ values
     'Twenty years of self-documented training data from 18 elite biathletes including junior, World, and Olympic champions were analyzed. Male biathletes increased total training volume by 34 percent from junior to senior level, while females did not increase total volume. Endurance training volume increased by 35 and 23 percent in men and women. The transition to senior level was marked by increasing the proportion of low-intensity training, reducing moderate intensity, and maintaining high intensity.',
     'The path from junior to senior elite involves increasing endurance volume primarily through more low-intensity work, not more hard sessions. Moderate-intensity training should be reduced, not increased, when transitioning to the senior level. These principles from biathlon likely apply across all endurance sports.',
     'Exceptional longitudinal dataset spanning two decades of champion-level development. The sex-specific differences in training volume progression are important for coaches working with female endurance athletes.',
-    3,
-    3,
-    4,
+    3, 3, 4,
+    2, 0, 0, 0, 0, 5, 0,
     true
   ),
   -- 15. Live high-train low in elite rowers: hematological adaptations
@@ -291,9 +284,8 @@ values
     'Thirteen national-level male rowers completed an 18-day live-high-train-low protocol using normobaric hypoxic rooms while training at sea level. EPO levels were higher in the hypoxic group after 18 days. Reticulocyte counts increased by day 6 and remained elevated, indicating an early erythropoietic response. Hematocrit was significantly higher by day 18. CRP levels increased transiently, suggesting a modest inflammatory response. White blood cell modulation was also observed.',
     'An 18-day normobaric LHTL camp is long enough to see early hematological adaptations in elite rowers. The reticulocyte response starts within 6 days. However, the inflammatory response means LHTL represents an additional physiological stressor that must be monitored alongside training load.',
     'Practical altitude camp data from elite rowers with multiple blood sampling timepoints. The 6-day reticulocyte response timeline helps coaches plan the timing of altitude exposure relative to competition.',
-    3,
-    3,
-    4,
+    3, 3, 4,
+    2, 2, 0, 5, 0, 0, 0,
     true
   ),
   -- 16. From underperformance to Olympic finals: sculler case study
@@ -309,9 +301,8 @@ values
     'A world-class single sculler suffering from a 5-7 percent drop in power output, severe fatigue, and emotional changes following illness, environmental stress, and extensive travel underwent a 22-week recovery program. Training frequency progressed slowly from 6 to 17 sessions per week. Volume remained low at approximately 14 hours per week with 95 percent below lactate threshold and only 5 percent high-intensity work introduced in the final 9 weeks. The athlete successfully recovered and reached the Paris 2024 Olympic final, finishing ninth.',
     'Recovery from overreaching requires patience: 95 percent low intensity for the majority of the comeback, with HIIT reintroduced only after 13 weeks. Direct coaching supervision, continuous program adjustment, and attention to nutrition, sleep, and psychological confidence were as important as the training itself. This template applies to any overtrained endurance athlete.',
     'From Inigo Mujika, one of the foremost authorities on tapering and peaking. A masterclass in managing overreaching recovery that led directly to Olympic qualification. Applicable across all endurance sports.',
-    4,
-    4,
-    5,
+    4, 4, 5,
+    2, 2, 0, 5, 0, 0, 0,
     true
   ),
   -- 17. Ischemic preconditioning before endurance training improves performance
@@ -327,9 +318,8 @@ values
     'Sixteen male distance runners completed 8 weeks of training with 5 sessions per week including 2 interval and 3 continuous sessions. The ischemic preconditioning group underwent 3 x 5-minute blood flow occlusion at 250 mmHg in each leg before interval training. Both groups improved VO2max, but the ischemic preconditioning group improved more. The IPC group also showed faster 5 x 1000-meter field test times and greater increases in blood volume and plasma volume compared to controls.',
     'Applying ischemic preconditioning before interval sessions may amplify the training stimulus. The protocol is simple: 3 rounds of 5-minute total occlusion per leg before hard sessions over 8 weeks. The gains appear driven by hematological adaptations including increased blood and plasma volume.',
     'Novel training method with a straightforward protocol. The hematological mechanism is interesting because it suggests IPC before training may mimic some effects of altitude exposure. Needs replication but worth monitoring.',
-    4,
-    4,
-    4,
+    4, 4, 4,
+    5, 3, 0, 2, 0, 2, 0,
     true
   ),
   -- 18. VO2peak vs lactate threshold percentage in endurance performance
@@ -345,9 +335,8 @@ values
     'A total of 292 endurance athletes from running, cycling, and cross-country skiing were divided into elite, national, and regional performance levels. Lactate threshold expressed as a percentage of VO2peak did not differ between performance levels at approximately 79-80 percent across all groups. In contrast, VO2peak differed significantly between levels at 71.1, 65.5, and 58.1 ml/kg/min for elite, national, and regional athletes respectively.',
     'The common coaching belief that lactate threshold percentage differentiates elite from non-elite endurance athletes is not supported by this large dataset. VO2peak remains the primary discriminator of performance level. Focus on developing maximal aerobic power rather than obsessing over threshold percentages.',
     'Challenges a widely held assumption in endurance coaching. The sample of 292 athletes across 3 sports and 3 performance levels makes this one of the most robust examinations of this question to date.',
-    4,
-    5,
-    5,
+    4, 5, 5,
+    5, 5, 0, 3, 0, 5, 0,
     true
   ),
   -- 19. Passive sauna as systemic training in elite trail runners
@@ -363,9 +352,8 @@ values
     'Twelve professional trail runners were tested at baseline, after dry sauna exposure at 80-90 degrees Celsius, and after a maximal aerobic test. Sauna produced cardiovascular and metabolic responses similar in direction to exercise but at much lower magnitude. Glucose and HDL levels were elevated after both sauna and exercise. Athletes who mobilized more substrates during sauna performed the exercise test faster. Individual variability suggested some athletes are sauna responders and others are not.',
     'Passive sauna use may serve as a low-cost complement to training for promoting metabolic flexibility and cardiovascular conditioning. Athletes who respond well to sauna with greater substrate mobilization tend to perform better aerobically. Consider using individual sauna responses to personalize heat-exposure protocols.',
     'Preliminary but intriguing data linking sauna metabolic responses to endurance performance. The concept of sauna responders versus non-responders adds nuance to the blanket recommendation of heat exposure for all athletes.',
-    4,
-    4,
-    4,
+    4, 4, 4,
+    4, 3, 0, 0, 0, 2, 0,
     true
   ),
   -- 20. Iron deficiency and supplementation in female athletes: systematic review
@@ -381,9 +369,8 @@ values
     'This systematic review of 23 studies found that up to 60 percent of female athletes experience iron deficiency. Iron deficiency negatively affects endurance performance by 3-4 percent. Oral supplementation with 100 mg/day of elemental iron for up to 56 days improved endurance performance by 2-20 percent in iron-deficient athletes. Maximal aerobic capacity improved by 6-15 percent following supplementation. Iron-deficient non-anemic athletes with low ferritin may already have reduced VO2max.',
     'Screen all female endurance athletes for iron status regularly. If serum ferritin is below 40 micrograms per liter, supplementation with approximately 100 mg/day of elemental iron can meaningfully improve endurance performance within 2 months. Do not wait for full-blown anemia to act on iron deficiency.',
     'Comprehensive systematic review across 16 sports. The 3-4 percent endurance decrement from iron deficiency and 2-20 percent improvement from supplementation represent some of the largest effect sizes available from a single nutritional intervention.',
-    5,
-    5,
-    5,
+    5, 5, 5,
+    5, 4, 3, 3, 2, 3, 2,
     true
   )
 on conflict (pubmed_id) do update
@@ -401,5 +388,12 @@ set
   ultra_score           = excluded.ultra_score,
   gravel_score          = excluded.gravel_score,
   triathlon_score       = excluded.triathlon_score,
+  running_score         = excluded.running_score,
+  cycling_score         = excluded.cycling_score,
+  swimming_score        = excluded.swimming_score,
+  rowing_score          = excluded.rowing_score,
+  skating_score         = excluded.skating_score,
+  ski_score             = excluded.ski_score,
+  team_sport_score      = excluded.team_sport_score,
   published             = excluded.published,
   updated_at            = now();
