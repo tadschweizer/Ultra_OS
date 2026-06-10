@@ -80,28 +80,49 @@ export default async function handler(req, res) {
     const stripe = getStripeClient();
     const siteUrl = getRequestOrigin(req);
 
-    const session = await stripe.checkout.sessions.create({
+    const metadata = {
+      athlete_id: athlete.id,
+      subscription_tier: plan.tier,
+      billing_plan: plan.id,
+    };
+
+    const buildSessionParams = (useStoredCustomer) => ({
       mode: 'subscription',
       success_url: `${siteUrl}/account?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${siteUrl}/pricing?checkout=cancelled`,
       line_items: [{ price: priceId, quantity: 1 }],
-      customer: athlete.stripe_customer_id || undefined,
-      customer_email: athlete.stripe_customer_id ? undefined : athlete.email || undefined,
+      customer: useStoredCustomer ? athlete.stripe_customer_id : undefined,
+      customer_email: useStoredCustomer ? undefined : athlete.email || undefined,
       allow_promotion_codes: true,
       client_reference_id: athlete.id,
-      metadata: {
-        athlete_id: athlete.id,
-        subscription_tier: plan.tier,
-        billing_plan: plan.id,
-      },
-      subscription_data: {
-        metadata: {
-          athlete_id: athlete.id,
-          subscription_tier: plan.tier,
-          billing_plan: plan.id,
-        },
-      },
+      metadata,
+      subscription_data: { metadata },
     });
+
+    let session;
+    try {
+      session = await stripe.checkout.sessions.create(
+        buildSessionParams(Boolean(athlete.stripe_customer_id))
+      );
+    } catch (error) {
+      // A stored Stripe customer id can become stale when the Stripe account or
+      // mode changes (e.g. a fresh sandbox), causing a "No such customer" error.
+      // In that case, retry without the customer so checkout still works and let
+      // the webhook reconcile the customer id afterwards.
+      const isMissingCustomer =
+        athlete.stripe_customer_id &&
+        error?.code === 'resource_missing' &&
+        error?.param === 'customer';
+
+      if (!isMissingCustomer) {
+        throw error;
+      }
+
+      console.warn(
+        `[billing/checkout] stale stripe_customer_id for athlete ${athlete.id}; retrying without it`
+      );
+      session = await stripe.checkout.sessions.create(buildSessionParams(false));
+    }
 
     appendSetCookie(
       res,
@@ -131,6 +152,8 @@ export default async function handler(req, res) {
     res.redirect(303, session.url);
   } catch (error) {
     console.error('[billing/checkout] failed:', error);
-    res.status(500).json({ error: 'Could not start checkout session.' });
+    const detail =
+      error?.raw?.message || error?.message || 'Could not start checkout session.';
+    res.status(500).json({ error: 'Could not start checkout session.', detail });
   }
 }
