@@ -566,6 +566,7 @@ export default function Dashboard() {
   const [currentRace, setCurrentRace] = useState(null);
   const [protocolSummary, setProtocolSummary] = useState(null);
   const [sharedDocs, setSharedDocs] = useState([]);
+  const [coachConnections, setCoachConnections] = useState([]);
   const [heatmapDay, setHeatmapDay] = useState(null);
   const [loadMetrics, setLoadMetrics] = useState(null);
   const [loadStatus, setLoadStatus] = useState(null);
@@ -583,6 +584,7 @@ export default function Dashboard() {
           fetchWithTimeout('/api/interventions'),
           fetchWithTimeout('/api/current-protocol-assignment'),
           fetchWithTimeout('/api/athlete/shared-docs'),
+          fetchWithTimeout('/api/coach-connection'),
         ];
 
         const meRes = await mePromise;
@@ -597,7 +599,7 @@ export default function Dashboard() {
         setLoadMetrics(me.load_metrics || null);
         setLoadStatus(me.load_status || null);
 
-        const [settingsResult, actResult, interventionsResult, protocolResult, docsResult] = await Promise.allSettled(dataPromises);
+        const [settingsResult, actResult, interventionsResult, protocolResult, docsResult, coachResult] = await Promise.allSettled(dataPromises);
 
         if (settingsResult.status === 'fulfilled' && settingsResult.value.ok) {
           const settingsData = await settingsResult.value.json();
@@ -633,6 +635,11 @@ export default function Dashboard() {
         if (docsResult.status === 'fulfilled' && docsResult.value.ok) {
           const docsData = await docsResult.value.json();
           setSharedDocs(docsData.docs || []);
+        }
+
+        if (coachResult.status === 'fulfilled' && coachResult.value.ok) {
+          const coachData = await coachResult.value.json();
+          setCoachConnections(coachData.connections || []);
         }
       } catch (err) {
         console.error(err);
@@ -831,10 +838,76 @@ export default function Dashboard() {
         <section className="mb-8 rounded-[30px] border border-ink/10 bg-white p-6 shadow-warm">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="ui-eyebrow">Coach Resources</p>
-              <p className="mt-2 text-sm text-ink/65">Warmups, strength protocols, links, and general guidance from your coach.</p>
+              <p className="ui-eyebrow">From Your Coach</p>
+              <p className="mt-2 text-sm text-ink/65">
+                {coachConnections.length
+                  ? `Coached by ${coachConnections.map((c) => c.coach?.display_name).filter(Boolean).join(', ') || 'your coach'} — here is what's assigned and what to do today.`
+                  : 'Self-coached for now. Connect a coach with their code from onboarding or Settings, and assignments will land here.'}
+              </p>
             </div>
+            {coachConnections.length ? (
+              <a href="/messages" className="shrink-0 rounded-full border border-ink/15 px-4 py-2 text-xs font-semibold text-ink/75 transition hover:bg-paper">
+                Coach feedback →
+              </a>
+            ) : null}
           </div>
+
+          {coachConnections.length || protocolSummary?.activeAssignment ? (
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <div className="rounded-[24px] border border-accent/20 bg-accent/5 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">Assigned protocol</p>
+                {protocolSummary?.activeAssignment ? (
+                  <>
+                    <p className="mt-2 text-sm font-semibold text-ink">{protocolSummary.activeAssignment.intervention_type}</p>
+                    <p className="mt-1 text-xs text-ink/60">{protocolSummary.protocolStatus}</p>
+                    {protocolSummary.activeAssignment.planned_sessions ? (
+                      <div className="mt-3">
+                        <div className="h-1.5 overflow-hidden rounded-full bg-ink/8">
+                          <div
+                            className="h-full rounded-full bg-accent"
+                            style={{ width: `${Math.min(100, Math.round(((protocolSummary.activeAssignment.completion_count || 0) / protocolSummary.activeAssignment.planned_sessions) * 100))}%` }}
+                          />
+                        </div>
+                        <p className="mt-1.5 text-xs text-ink/55">
+                          {protocolSummary.activeAssignment.completion_count || 0} of {protocolSummary.activeAssignment.planned_sessions} sessions logged
+                        </p>
+                      </div>
+                    ) : null}
+                    {protocolSummary.activeAssignment.note ? (
+                      <p className="mt-3 rounded-[14px] bg-white/70 p-3 text-xs leading-5 text-ink/70">
+                        <span className="font-semibold">Coach note:</span> {protocolSummary.activeAssignment.note}
+                      </p>
+                    ) : null}
+                  </>
+                ) : (
+                  <p className="mt-2 text-sm text-ink/60">No active protocol assignment. Your coach will assign one — or keep logging your own work.</p>
+                )}
+              </div>
+              <div className="rounded-[24px] border border-ink/10 bg-paper p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink/45">Do today</p>
+                <div className="mt-2 space-y-2">
+                  <a href="/log-intervention" className="flex items-center justify-between rounded-[14px] border border-ink/8 bg-white px-3 py-2.5 text-sm font-semibold text-ink transition hover:border-ink/20">
+                    <span>{protocolSummary?.activeAssignment ? `Log a ${protocolSummary.activeAssignment.intervention_type} session` : 'Log an intervention'}</span>
+                    <span className="text-ink/40">→</span>
+                  </a>
+                  <a href="/history" className="flex items-center justify-between rounded-[14px] border border-ink/8 bg-white px-3 py-2.5 text-sm font-semibold text-ink transition hover:border-ink/20">
+                    <span>Check in after training</span>
+                    <span className="text-ink/40">→</span>
+                  </a>
+                  <a href="/messages" className="flex items-center justify-between rounded-[14px] border border-ink/8 bg-white px-3 py-2.5 text-sm font-semibold text-ink transition hover:border-ink/20">
+                    <span>Read coach feedback</span>
+                    <span className="text-ink/40">→</span>
+                  </a>
+                </div>
+                {protocolSummary?.daysUntilRace != null && protocolSummary.daysUntilRace >= 0 ? (
+                  <p className="mt-3 text-xs text-ink/55">
+                    {protocolSummary.daysUntilRace} days to race{protocolSummary.phase ? ` · ${protocolSummary.phase} phase` : ''}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+
           {sharedDocs.length === 0 ? (
             <div className="mt-4 rounded-[24px] bg-paper p-4 text-sm text-ink/70">
               Your coach has not shared any central docs yet.

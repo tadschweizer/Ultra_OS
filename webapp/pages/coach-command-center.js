@@ -487,6 +487,60 @@ export default function CoachCommandCenter() {
     [relationships]
   );
 
+  // The six questions a coach asks every morning, each answered with a
+  // bucket of athletes derived from data already loaded for the triage feed.
+  const dailyBoard = useMemo(() => {
+    const active = relationships.filter((r) => r.status === 'active');
+    const daysToRace = (rel) => {
+      if (!rel.nextRace?.event_date) return null;
+      const diff = Math.ceil((new Date(rel.nextRace.event_date) - Date.now()) / 86400000);
+      return diff >= 0 ? diff : null;
+    };
+    const hasActiveProtocol = (rel) =>
+      protocols.some((p) => p.athlete_id === rel.athlete_id && ['assigned', 'in_progress'].includes(p.status));
+    return [
+      {
+        key: 'attention',
+        question: 'Who needs attention?',
+        hint: 'Red readiness status',
+        athletes: active.filter((r) => r.alertLevel === 'red'),
+      },
+      {
+        key: 'racing',
+        question: 'Who races soon?',
+        hint: 'Race within 14 days',
+        athletes: active.filter((r) => {
+          const d = daysToRace(r);
+          return d !== null && d <= 14;
+        }),
+      },
+      {
+        key: 'missing-data',
+        question: 'Who is missing data?',
+        hint: 'No log in 5+ days',
+        athletes: active.filter((r) => r.daysSinceLog === null || r.daysSinceLog >= 5),
+      },
+      {
+        key: 'off-protocol',
+        question: 'Who is off-protocol?',
+        hint: 'Behind on logs or compliance',
+        athletes: active.filter((r) => r.missedProtocolLogs > 0 || r.protocolComplianceGap > 15),
+      },
+      {
+        key: 'needs-message',
+        question: 'Who needs a message?',
+        hint: 'No coach touchpoint in 3+ days',
+        athletes: active.filter((r) => r.communicationSlaHours === null || r.communicationSlaHours > 72),
+      },
+      {
+        key: 'protocol-actions',
+        question: 'What protocol actions are needed?',
+        hint: 'No active protocol assigned',
+        athletes: active.filter((r) => !hasActiveProtocol(r)),
+      },
+    ];
+  }, [relationships, protocols]);
+
   // ── Actions ───────────────────────────────────────────────────────────────
   const handleAddNote = useCallback(async (payload) => {
     const res = await fetch('/api/coach/notes', {
@@ -828,6 +882,59 @@ export default function CoachCommandCenter() {
                 />
               ) : (
                 <>
+                  {/* Daily questions board */}
+                  <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm uppercase tracking-[0.25em] text-accent">Today&apos;s coaching questions</p>
+                      <span className="rounded-full bg-paper px-3 py-1 text-xs text-ink/60">
+                        {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}
+                      </span>
+                    </div>
+                    <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {dailyBoard.map((bucket) => (
+                        <div
+                          key={bucket.key}
+                          className={`rounded-2xl border p-4 ${
+                            bucket.athletes.length
+                              ? 'border-accent/25 bg-accent/5'
+                              : 'border-ink/8 bg-paper'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-sm font-semibold text-ink">{bucket.question}</p>
+                            <span
+                              className={`rounded-full px-2.5 py-0.5 font-mono text-xs font-semibold ${
+                                bucket.athletes.length ? 'bg-accent/15 text-accent' : 'bg-ink/6 text-ink/45'
+                              }`}
+                            >
+                              {bucket.athletes.length}
+                            </span>
+                          </div>
+                          <p className="mt-1 text-xs text-ink/50">{bucket.hint}</p>
+                          {bucket.athletes.length ? (
+                            <div className="mt-3 flex flex-wrap gap-1.5">
+                              {bucket.athletes.slice(0, 3).map((rel) => (
+                                <button
+                                  key={rel.id}
+                                  type="button"
+                                  onClick={() => setOpenAthleteId(rel.athlete_id)}
+                                  className="rounded-full border border-ink/10 bg-white px-2.5 py-1 text-xs font-semibold text-ink/75 transition hover:border-ink/30"
+                                >
+                                  {rel.athlete?.name || 'Athlete'}
+                                </button>
+                              ))}
+                              {bucket.athletes.length > 3 ? (
+                                <span className="px-1 py-1 text-xs text-ink/45">+{bucket.athletes.length - 3} more</span>
+                              ) : null}
+                            </div>
+                          ) : (
+                            <p className="mt-3 text-xs text-ink/45">All clear.</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
                   {/* Triage feed */}
                   <div className="rounded-[30px] bg-[linear-gradient(135deg,#f7f2ea_0%,#ebe1d4_55%,#dcc9b0_100%)] p-6">
                     <div className="flex items-center justify-between">
