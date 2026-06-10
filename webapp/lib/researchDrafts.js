@@ -7,9 +7,16 @@ function joinTags(tags = []) {
 
 function sportRead(form = {}) {
   const scores = [
-    { label: 'runners from the mile through marathon+ events', score: Number(form.ultra_score || 0) },
-    { label: 'gravel athletes', score: Number(form.gravel_score || 0) },
-    { label: 'triathletes', score: Number(form.triathlon_score || 0) },
+    { label: 'ultrarunners and trail runners',     score: Number(form.ultra_score     || 0) },
+    { label: 'gravel cyclists',                    score: Number(form.gravel_score    || 0) },
+    { label: 'triathletes',                        score: Number(form.triathlon_score || 0) },
+    { label: 'road runners',                       score: Number(form.running_score   || 0) },
+    { label: 'road and criterium cyclists',        score: Number(form.cycling_score   || 0) },
+    { label: 'pool and open-water swimmers',       score: Number(form.swimming_score  || 0) },
+    { label: 'rowers and paddlers',                score: Number(form.rowing_score    || 0) },
+    { label: 'speed skaters and inline skaters',   score: Number(form.skating_score   || 0) },
+    { label: 'cross-country skiers and biathletes',score: Number(form.ski_score       || 0) },
+    { label: 'team sport athletes',                score: Number(form.team_sport_score|| 0) },
   ]
     .filter((item) => item.score >= 4)
     .map((item) => item.label);

@@ -46,6 +46,13 @@ const emptyForm = {
   ultra_score: 0,
   gravel_score: 0,
   triathlon_score: 0,
+  running_score: 0,
+  cycling_score: 0,
+  swimming_score: 0,
+  rowing_score: 0,
+  skating_score: 0,
+  ski_score: 0,
+  team_sport_score: 0,
   published: false,
 };
 
@@ -67,9 +74,16 @@ function normalizeEntryToForm(entry) {
     plain_english_summary: entry.plain_english_summary || '',
     practical_takeaway: entry.practical_takeaway || '',
     commentary: entry.commentary || '',
-    ultra_score: entry.ultra_score ?? 0,
-    gravel_score: entry.gravel_score ?? 0,
-    triathlon_score: entry.triathlon_score ?? 0,
+    ultra_score:      entry.ultra_score      ?? 0,
+    gravel_score:     entry.gravel_score     ?? 0,
+    triathlon_score:  entry.triathlon_score  ?? 0,
+    running_score:    entry.running_score    ?? 0,
+    cycling_score:    entry.cycling_score    ?? 0,
+    swimming_score:   entry.swimming_score   ?? 0,
+    rowing_score:     entry.rowing_score     ?? 0,
+    skating_score:    entry.skating_score    ?? 0,
+    ski_score:        entry.ski_score        ?? 0,
+    team_sport_score: entry.team_sport_score ?? 0,
     published: Boolean(entry.published),
   };
 }
@@ -373,18 +387,33 @@ export default function ContentAdmin() {
                 <label className="mb-1 block text-sm font-semibold text-ink">Commentary</label>
                 <textarea value={form.commentary} onChange={(event) => setFormValue('commentary', event.target.value)} rows={3} className={fieldClassName()} />
               </div>
-              <div className="grid gap-4 sm:grid-cols-3 md:col-span-2">
-                <div>
-                  <label className="mb-1 block text-sm font-semibold text-ink">Running Score</label>
-                  <input type="number" min="0" max="5" value={form.ultra_score} onChange={(event) => setFormValue('ultra_score', event.target.value)} className={fieldClassName()} />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-semibold text-ink">Gravel Score</label>
-                  <input type="number" min="0" max="5" value={form.gravel_score} onChange={(event) => setFormValue('gravel_score', event.target.value)} className={fieldClassName()} />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-semibold text-ink">Triathlon Score</label>
-                  <input type="number" min="0" max="5" value={form.triathlon_score} onChange={(event) => setFormValue('triathlon_score', event.target.value)} className={fieldClassName()} />
+              <div className="md:col-span-2">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-ink/50">Sport Relevance Scores (0 – 5)</p>
+                <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-5">
+                  {[
+                    { field: 'ultra_score',      label: 'Ultra / Trail' },
+                    { field: 'running_score',    label: 'Road Running' },
+                    { field: 'gravel_score',     label: 'Gravel' },
+                    { field: 'cycling_score',    label: 'Road Cycling' },
+                    { field: 'triathlon_score',  label: 'Triathlon' },
+                    { field: 'swimming_score',   label: 'Swimming' },
+                    { field: 'rowing_score',     label: 'Rowing / Paddle' },
+                    { field: 'skating_score',    label: 'Speed Skating' },
+                    { field: 'ski_score',        label: 'Nordic / Biathlon' },
+                    { field: 'team_sport_score', label: 'Team Sports' },
+                  ].map(({ field, label }) => (
+                    <div key={field}>
+                      <label className="mb-1 block text-xs font-semibold text-ink">{label}</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="5"
+                        value={form[field]}
+                        onChange={(event) => setFormValue(field, event.target.value)}
+                        className={fieldClassName()}
+                      />
+                    </div>
+                  ))}
                 </div>
               </div>
               <label className="flex items-center gap-3 text-sm font-semibold text-ink md:col-span-2">
