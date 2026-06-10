@@ -33,8 +33,9 @@ export function getBillingPriceId(planId) {
   const plan = getBillingPlan(planId);
   if (!plan) return null;
   for (const envKey of plan.envKeys || []) {
-    if (process.env[envKey]) {
-      return process.env[envKey];
+    const value = process.env[envKey];
+    if (value && value.trim()) {
+      return value.trim();
     }
   }
   return null;
@@ -42,7 +43,7 @@ export function getBillingPriceId(planId) {
 
 export function getTierFromPriceId(priceId) {
   const match = Object.values(BILLING_PLANS).find((plan) =>
-    (plan.envKeys || []).some((envKey) => process.env[envKey] === priceId)
+    (plan.envKeys || []).some((envKey) => (process.env[envKey] || '').trim() === priceId)
   );
   return match?.tier || 'free';
 }
