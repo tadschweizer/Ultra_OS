@@ -158,28 +158,28 @@ export default function Home() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_88%_12%,rgba(16,185,129,0.16),transparent_30%),linear-gradient(135deg,rgba(196,136,42,0.08),rgba(16,185,129,0.05))]" />
           <div className="relative grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-center xl:grid-cols-[minmax(0,1fr)_360px]">
             <div className="min-w-0">
-              <p className="ui-eyebrow" style={{ fontSize: 11 }}>Performance Intelligence · Endurance Athletes</p>
+              <p className="ui-eyebrow" style={{ fontSize: 11 }}>Performance Intelligence · Coaches & Endurance Athletes</p>
               <h1
                 className="font-display mt-5 max-w-[760px] font-semibold text-ink"
                 style={{ fontSize: 'clamp(40px, 6vw, 72px)', lineHeight: 1.03 }}
               >
-                The protocols behind your race-day outcomes.
+                The intelligence layer between coach and athlete.
               </h1>
               <p className="mt-6 max-w-2xl text-base leading-[1.8] text-ink/70 md:text-lg">
-                Threshold tracks heat blocks, gut training, sleep, bicarb, cold immersion, and other interventions so you can see what actually moved training quality and race performance.
+                Coaches manage athletes and protocols with real analytics — readiness, compliance, and race-prep risk across the whole roster. Athletes log the heat blocks, gut training, sleep, and fueling work that makes that coaching smarter.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <a
-                  href={startHref}
+                  href={athleteId ? '/coach-command-center' : '/signup?role=coach'}
                   className="rounded-full bg-ink px-7 py-3.5 text-sm font-semibold text-paper shadow-[0_4px_20px_rgba(19,24,22,0.18)] transition hover:opacity-85"
                 >
-                  Start free — log your first intervention →
+                  I coach athletes — set up my roster →
                 </a>
                 <a
-                  href="/guide"
+                  href={startHref}
                   className="rounded-full border border-ink/15 bg-white px-7 py-3.5 text-sm font-semibold text-ink transition hover:bg-surface-light"
                 >
-                  How it works
+                  I&apos;m an athlete — start logging
                 </a>
               </div>
               <p className="mt-5 text-xs text-ink/45">Free to start · No credit card required · Email, Google, or Strava</p>
@@ -219,6 +219,46 @@ export default function Home() {
                 {p.label}
               </span>
             ))}
+          </div>
+        </section>
+
+        {/* ── Two sides, one system ──────────────────────────────────── */}
+        <section className="mt-16 grid gap-6 lg:grid-cols-2">
+          <div className="rounded-[32px] border border-accent/20 bg-[linear-gradient(135deg,#fffbf0_0%,#fdf3d7_100%)] p-8 shadow-[0_8px_24px_rgba(19,24,22,0.06)]">
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-accent">Coaches</p>
+            <h3 className="mt-4 text-2xl font-semibold leading-snug text-ink">Run your roster from one command center.</h3>
+            <p className="mt-4 text-sm leading-7 text-ink/60">
+              Every morning, Threshold answers the questions that actually drive a coaching day — before you open a single message thread.
+            </p>
+            <div className="mt-6 space-y-2">
+              {['Who needs attention today?', 'Who races soon — and are they ready?', 'Who is off-protocol or missing data?', 'Which protocols need action?'].map((q) => (
+                <div key={q} className="flex items-start gap-3 text-sm font-semibold text-ink/75">
+                  <span className="mt-0.5 text-base text-emerald-500">✓</span>
+                  <span>{q}</span>
+                </div>
+              ))}
+            </div>
+            <a href="/signup?role=coach" className="mt-6 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-paper transition hover:opacity-85">
+              Set up your roster →
+            </a>
+          </div>
+          <div className="rounded-[32px] border border-ink/10 bg-white p-8 shadow-[0_8px_24px_rgba(19,24,22,0.05)]">
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-ink/35">Athletes</p>
+            <h3 className="mt-4 text-2xl font-semibold leading-snug text-ink">Log the work. Your coaching gets sharper.</h3>
+            <p className="mt-4 text-sm leading-7 text-ink/60">
+              Every intervention you log — a sauna session, a gut-training run, a bicarb trial — becomes a signal your coach can act on. Self-coached? The same correlations coach you directly.
+            </p>
+            <div className="mt-6 space-y-2">
+              {['See what your coach assigned and what to do today', 'Report sessions in 30 seconds, not a spreadsheet', 'Get feedback tied to your actual data'].map((q) => (
+                <div key={q} className="flex items-start gap-3 text-sm font-semibold text-ink/75">
+                  <span className="mt-0.5 text-base text-emerald-500">✓</span>
+                  <span>{q}</span>
+                </div>
+              ))}
+            </div>
+            <a href="/signup" className="mt-6 inline-flex items-center gap-2 rounded-full border border-ink/15 bg-paper px-5 py-3 text-sm font-semibold text-ink transition hover:bg-ink hover:text-paper">
+              Start logging →
+            </a>
           </div>
         </section>
 
@@ -295,17 +335,20 @@ export default function Home() {
 
 
         <section className="mt-16 rounded-[32px] border border-ink/10 bg-white p-8 md:p-10">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-accent">For coaches</p>
-          <h2 className="mt-3 text-3xl font-semibold text-ink">Built to support your coaching workflow, not replace your planning stack overnight.</h2>
-          <p className="mt-4 max-w-3xl text-sm leading-7 text-ink/65">Threshold is an intervention intelligence layer alongside your existing workflow. Use it to track protocol compliance, race-readiness risk, and how athletes respond after each intervention block.</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-accent">The Coach Command Center</p>
+          <h2 className="mt-3 text-3xl font-semibold text-ink">A daily operating dashboard for your coaching business.</h2>
+          <p className="mt-4 max-w-3xl text-sm leading-7 text-ink/65">Threshold works alongside your existing planning stack. While TrainingPeaks holds the plan, Threshold tells you how each athlete is actually responding — protocol compliance, readiness risk, and race prep across the whole roster.</p>
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             {[
-              'Assign protocol templates to athletes or groups in minutes.',
-              'Triage athletes who need attention first using readiness status and confidence.',
-              'See intervention-response patterns without digging through message threads.',
-              'Use flat coach pricing instead of per-athlete billing surprises.'
+              'Triage feed sorts your roster by who needs attention first — readiness, missed logs, compliance gaps.',
+              'Assign protocol templates to athletes or whole training groups in minutes.',
+              'See who has a race coming, who is missing data, and who needs a message — before they tell you.',
+              'Flat coach pricing: your monthly cost does not scale with roster size.'
             ].map((item) => <div key={item} className="rounded-2xl border border-ink/10 bg-paper p-4 text-sm text-ink/75">{item}</div>)}
           </div>
+          <a href="/pricing" className="mt-6 inline-flex items-center gap-2 rounded-full border border-ink/15 bg-paper px-5 py-3 text-sm font-semibold text-ink transition hover:bg-ink hover:text-paper">
+            See coach plans →
+          </a>
         </section>
 
         {/* ── How it works ──────────────────────────────────────────── */}
@@ -411,20 +454,28 @@ export default function Home() {
             className="overflow-hidden rounded-[40px] px-8 py-16 text-center md:px-16 md:py-20"
             style={{ background: 'linear-gradient(135deg, #1c1a17 0%, #302b25 42%, #7d684d 100%)', color: 'var(--color-text-on-dark)' }}
           >
-            <p className="ui-eyebrow" style={{ color: 'var(--color-accent-amber-light)' }}>TrainingPeaks logs your workouts.</p>
+            <p className="ui-eyebrow" style={{ color: 'var(--color-accent-amber-light)' }}>TrainingPeaks logs the workouts.</p>
             <h2
               className="font-display mx-auto mt-4 max-w-2xl font-semibold leading-snug"
               style={{ fontSize: 'clamp(32px, 4vw, 48px)', color: 'var(--color-text-on-dark)' }}
             >
-              Threshold tells you what&apos;s actually working.
+              Threshold tells you — and your coach — what&apos;s actually working.
             </h2>
-            <a
-              href={loginHref}
-              className="mt-8 inline-flex rounded-full px-8 py-4 text-base font-semibold text-white transition hover:opacity-90"
-              style={{ background: 'var(--color-accent-amber)', boxShadow: '0 6px 20px rgba(196,136,42,0.30)' }}
-            >
-              Your next PR is already in your data →
-            </a>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+              <a
+                href={athleteId ? '/coach-command-center' : '/signup?role=coach'}
+                className="inline-flex rounded-full px-8 py-4 text-base font-semibold text-white transition hover:opacity-90"
+                style={{ background: 'var(--color-accent-amber)', boxShadow: '0 6px 20px rgba(196,136,42,0.30)' }}
+              >
+                Start coaching with data →
+              </a>
+              <a
+                href={startHref}
+                className="inline-flex rounded-full border border-white/25 px-8 py-4 text-base font-semibold text-white transition hover:bg-white/10"
+              >
+                Start as an athlete
+              </a>
+            </div>
             <p className="mt-5 text-xs" style={{ color: 'var(--color-text-muted-on-dark)' }}>Free to start · No credit card</p>
           </div>
         </section>

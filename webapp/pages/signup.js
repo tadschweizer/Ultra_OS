@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
 import { createClient } from '@supabase/supabase-js';
 import NavMenu from '../components/NavMenu';
 
@@ -9,13 +10,53 @@ function getSupabaseClient() {
   );
 }
 
+const ROLE_OPTIONS = [
+  {
+    id: 'coach',
+    label: "I'm a coach",
+    description: 'Manage athletes, assign protocols, and run your roster from the Command Center.',
+  },
+  {
+    id: 'athlete-with-coach',
+    label: "I'm an athlete joining a coach",
+    description: 'Connect to your coach with their coach code so they see what you log.',
+  },
+  {
+    id: 'individual',
+    label: "I'm an individual athlete",
+    description: 'Self-coached. Log interventions and learn from your own data.',
+  },
+];
+
+export const SIGNUP_ROLE_STORAGE_KEY = 'threshold_signup_role';
+
 export default function SignupPage() {
+  const router = useRouter();
+  const [role, setRole] = useState('individual');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    const queryRole = typeof router.query.role === 'string' ? router.query.role : '';
+    if (ROLE_OPTIONS.some((option) => option.id === queryRole)) {
+      selectRole(queryRole);
+    }
+  }, [router.query.role]);
+
+  function selectRole(nextRole) {
+    setRole(nextRole);
+    try {
+      // Persisted so the onboarding flow can recover the choice after an
+      // OAuth redirect, where query params are lost.
+      window.localStorage.setItem(SIGNUP_ROLE_STORAGE_KEY, nextRole);
+    } catch {
+      // Ignore storage failures; email signup still carries role in the URL.
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -69,7 +110,9 @@ export default function SignupPage() {
         setLoading(false);
         return;
       }
-      window.location.href = data.onboardingComplete ? '/dashboard' : '/onboarding';
+      window.location.href = data.onboardingComplete
+        ? '/dashboard'
+        : `/onboarding?role=${encodeURIComponent(role)}`;
     } catch {
       setError('Something went wrong. Please try again.');
       setLoading(false);
@@ -122,10 +165,36 @@ export default function SignupPage() {
             Already have an account? <a href="/login" className="font-semibold text-accent hover:underline">Log in</a>
           </p>
 
-          <div className="mt-6 rounded-[14px] border border-accent/20 bg-accent/8 px-4 py-3">
+          <div className="mt-6">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-ink/50">How will you use Threshold?</p>
+            <div className="space-y-2">
+              {ROLE_OPTIONS.map((option) => {
+                const active = role === option.id;
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => selectRole(option.id)}
+                    className={`w-full rounded-[14px] border px-4 py-3 text-left transition ${
+                      active
+                        ? 'border-accent bg-accent/8 ring-2 ring-accent/20'
+                        : 'border-ink/12 bg-paper hover:border-ink/25'
+                    }`}
+                  >
+                    <p className={`text-sm font-semibold ${active ? 'text-accent' : 'text-ink'}`}>{option.label}</p>
+                    <p className="mt-0.5 text-xs leading-5 text-ink/55">{option.description}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mt-5 rounded-[14px] border border-accent/20 bg-accent/8 px-4 py-3">
             <p className="text-xs font-semibold text-accent">Free tier includes</p>
             <p className="mt-1 text-xs leading-5 text-ink/65">
-              Research library · 15 intervention logs · 3 check-ins/week · 1 race profile. No credit card required.
+              {role === 'coach'
+                ? 'Explore the Coach Command Center free, then activate the Coach plan when your roster is ready. No credit card required.'
+                : 'Research library · 15 intervention logs · 3 check-ins/week · 1 race profile. No credit card required.'}
             </p>
           </div>
 

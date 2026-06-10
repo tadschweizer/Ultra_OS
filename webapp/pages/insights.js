@@ -40,6 +40,7 @@ function buildInterventionInsights(interventions = [], settings = {}, currentRac
       body: `Across ${gutSessions.length} logged gut training sessions, your carb tolerance has moved ${trend}. ${avgGI ? `Average GI response: ${avgGI}/10.` : ''} Keep incrementing ~5g/hr per session to close the gap to your race target.`,
       action: { label: 'Log a gut training session', href: '/log-intervention' },
       confidence: gutSessions.length >= 5 ? 'high' : 'moderate',
+      decision: gutSessions.length < 4 ? 'insufficient' : last >= first && (!avgGI || parseFloat(avgGI) <= 5) ? 'keep' : 'adjust',
       dataPoints: gutSessions.length,
     });
   }
@@ -74,6 +75,7 @@ function buildInterventionInsights(interventions = [], settings = {}, currentRac
       body: `${allTimeCount} heat sessions logged all-time, ${sessionCount} in the last 21 days. ${blockComplete ? 'A complete heat block is likely underway — plasma volume expansion is in progress.' : `${Math.max(0, 10 - sessionCount)} more sessions to complete a full block.`}${avgResponse ? ` Average physiological response: ${avgResponse}/10.` : ''}`,
       action: blockComplete ? null : { label: 'Log a heat session', href: '/log-intervention' },
       confidence: heatSessions.length >= 8 ? 'high' : 'moderate',
+      decision: blockComplete ? 'keep' : 'watch',
       dataPoints: heatSessions.length,
     });
   }
@@ -110,6 +112,7 @@ function buildInterventionInsights(interventions = [], settings = {}, currentRac
         body: `Across ${bicarbSessions.length} trials, your best combo (feel ≥7, GI ≤5) is ${bestTrial.dose || '0.3g/kg'}${bestTrial.timing ? `, ${bestTrial.timing} min before effort` : ''}${bestTrial.delivery ? `, ${bestTrial.delivery}` : ''}. Average across all trials: feel ${avgFeel}/10, GI ${avgGI}/10.`,
         action: null,
         confidence: bicarbSessions.length >= 6 ? 'high' : 'moderate',
+        decision: 'keep',
         dataPoints: bicarbSessions.length,
       });
     } else {
@@ -120,6 +123,7 @@ function buildInterventionInsights(interventions = [], settings = {}, currentRac
         body: `${bicarbSessions.length} bicarb trials logged. Average feel: ${avgFeel}/10, GI response: ${avgGI}/10. No trial yet has hit ≥7 feel + ≤5 GI simultaneously — keep experimenting with dose, timing, and delivery format.`,
         action: { label: 'Log a bicarb trial', href: '/log-intervention' },
         confidence: 'low',
+        decision: 'adjust',
         dataPoints: bicarbSessions.length,
       });
     }
@@ -148,6 +152,7 @@ function buildInterventionInsights(interventions = [], settings = {}, currentRac
         body: `Prep status: ${readyItems.join(' · ')}. ${daysLeft <= 14 ? 'Final two weeks — stop structured gut training and heat sessions 5 days out. Focus on recovery and sleep.' : 'Continue building your prep blocks.'}`,
         action: { label: 'Open Race Blueprint', href: '/race-plan' },
         confidence: 'high',
+        decision: heatReady && gutReady && bicarbReady ? 'keep' : 'watch',
         dataPoints: interventions.length,
       });
     }
@@ -171,11 +176,33 @@ function buildInterventionInsights(interventions = [], settings = {}, currentRac
       body: `${sleepLogs.length} sleep entries logged. ${shortPct}% of nights are below your ${typicalSleep}hr baseline. ${shortPct >= 40 ? 'Consistent sleep debt signals are present — prioritize sleep extension before high-load weeks.' : 'Sleep quality appears generally adequate.'}`,
       action: shortPct >= 40 ? { label: 'Log a sleep entry', href: '/log-intervention' } : null,
       confidence: sleepLogs.length >= 10 ? 'high' : 'moderate',
+      decision: shortPct >= 40 ? 'ask' : 'keep',
       dataPoints: sleepLogs.length,
     });
   }
 
   return cards;
+}
+
+// ─── Coaching call badge ──────────────────────────────────────────────────────
+// Each insight resolves to one of five coaching decisions so a coach (or a
+// self-coached athlete) can act on the card without re-interpreting the data.
+const COACHING_CALLS = {
+  keep: { label: 'Keep this protocol', cls: 'bg-emerald-50 text-emerald-700 border border-emerald-200' },
+  adjust: { label: 'Adjust this protocol', cls: 'bg-amber-50 text-amber-800 border border-amber-200' },
+  watch: { label: 'Watch this pattern', cls: 'bg-blue-50 text-blue-800 border border-blue-200' },
+  ask: { label: 'Ask about this pattern', cls: 'bg-purple-50 text-purple-800 border border-purple-200' },
+  insufficient: { label: 'Not enough data yet', cls: 'bg-ink/6 text-ink/55 border border-ink/10' },
+};
+
+function CoachingCallBadge({ decision }) {
+  const call = COACHING_CALLS[decision];
+  if (!call) return null;
+  return (
+    <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${call.cls}`}>
+      {call.label}
+    </span>
+  );
 }
 
 // ─── Confidence badge ─────────────────────────────────────────────────────────
@@ -322,6 +349,9 @@ export default function InsightsPage() {
           <h1 className="font-display mt-4 text-5xl leading-tight md:text-7xl">
             {athlete ? `${athlete.name}'s insights` : 'Insights'}
           </h1>
+          <p className="mt-5 max-w-2xl text-base leading-8 text-ink/70">
+            Each card carries a coaching call — keep the protocol, adjust it, watch the pattern, or gather more data — so you and your coach decide from the same read.
+          </p>
           {currentRace ? (
             <div className="mt-5 flex flex-wrap gap-3 text-sm text-ink/75">
               <span className="rounded-full bg-white/60 px-4 py-2 font-semibold text-ink">{currentRace.name}</span>
@@ -353,6 +383,7 @@ export default function InsightsPage() {
                 <article key={card.id} className="flex flex-col rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
                   <div className="flex flex-wrap items-center gap-2">
                     <CategoryChip category={card.category} />
+                    <CoachingCallBadge decision={card.decision} />
                     <ConfidenceBadge level={card.confidence} />
                     {card.dataPoints ? (
                       <span className="ml-auto text-xs text-ink/35">{card.dataPoints} data point{card.dataPoints !== 1 ? 's' : ''}</span>

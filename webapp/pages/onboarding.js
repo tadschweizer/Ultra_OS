@@ -29,30 +29,62 @@ export const SPORT_GROUPS = [
   },
 ];
 
-const sportOptions = SPORT_GROUPS.flatMap((g) => g.sports);
-
 const yearsOptions = ['1', '2-3', '4-6', '7+'];
 const hoursOptions = ['<8', '8-12', '12-16', '16-20', '20+'];
-const stepLabels = ['Your Race', 'Your Sport', 'Connect Data'];
+
+const SIGNUP_ROLE_STORAGE_KEY = 'threshold_signup_role';
+
+const ROLE_OPTIONS = [
+  {
+    id: 'coach',
+    title: "I'm a coach",
+    body: 'Set up your roster, get your coach code, and run your athletes from the Command Center.',
+  },
+  {
+    id: 'athlete-with-coach',
+    title: "I'm an athlete joining a coach",
+    body: 'Connect with your coach code so everything you log reaches your coach.',
+  },
+  {
+    id: 'individual',
+    title: "I'm an individual athlete",
+    body: 'Self-coached. Threshold correlates your own data and coaches you directly.',
+  },
+];
+
+const STEP_LABELS = {
+  path: 'Your Path',
+  'coach-setup': 'Coach Setup',
+  'coach-code': 'Your Coach',
+  race: 'Your Race',
+  sport: 'Your Sport',
+  strava: 'Connect Data',
+};
+
+function stepsForRole(role) {
+  if (role === 'coach') return ['path', 'coach-setup'];
+  if (role === 'athlete-with-coach') return ['path', 'coach-code', 'race', 'sport', 'strava'];
+  return ['path', 'race', 'sport', 'strava'];
+}
 
 function fieldClassName() {
   return 'w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-ink';
 }
 
-function StepIndicator({ step }) {
+function StepIndicator({ steps, stepIndex }) {
   return (
     <div className="flex flex-wrap items-center gap-3">
       <span className="rounded-full bg-panel px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-paper">
-        Step {step} of 3
+        Step {stepIndex + 1} of {steps.length}
       </span>
-      {stepLabels.map((label, index) => (
+      {steps.map((key, index) => (
         <span
-          key={label}
+          key={key}
           className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] ${
-            index + 1 === step ? 'bg-white text-ink' : 'bg-white/50 text-ink/52'
+            index === stepIndex ? 'bg-white text-ink' : 'bg-white/50 text-ink/52'
           }`}
         >
-          {label}
+          {STEP_LABELS[key]}
         </span>
       ))}
     </div>
@@ -61,12 +93,20 @@ function StepIndicator({ step }) {
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const [step, setStep] = useState(1);
+  const [role, setRole] = useState('individual');
+  const [roleInitialized, setRoleInitialized] = useState(false);
+  const [stepIndex, setStepIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [raceSearchQuery, setRaceSearchQuery] = useState('');
   const [manualRace, setManualRace] = useState(false);
   const [stravaName, setStravaName] = useState('');
+  const [coachProfile, setCoachProfile] = useState(null);
+  const [coachCodeCopied, setCoachCodeCopied] = useState(false);
+  const [coachCodeInput, setCoachCodeInput] = useState('');
+  const [coachConnection, setCoachConnection] = useState(null);
+  const [coachCodeError, setCoachCodeError] = useState('');
+  const [connectingCoach, setConnectingCoach] = useState(false);
   const [form, setForm] = useState({
     target_race_id: '',
     target_race: null,
@@ -75,6 +115,27 @@ export default function OnboardingPage() {
     weekly_training_hours_band: '',
     home_elevation_ft: '',
   });
+
+  const steps = useMemo(() => stepsForRole(role), [role]);
+  const currentStep = steps[Math.min(stepIndex, steps.length - 1)];
+
+  useEffect(() => {
+    if (!router.isReady || roleInitialized) return;
+    let initialRole = typeof router.query.role === 'string' ? router.query.role : '';
+    if (!ROLE_OPTIONS.some((option) => option.id === initialRole)) {
+      try {
+        initialRole = window.localStorage.getItem(SIGNUP_ROLE_STORAGE_KEY) || '';
+      } catch {
+        initialRole = '';
+      }
+    }
+    if (ROLE_OPTIONS.some((option) => option.id === initialRole)) {
+      setRole(initialRole);
+      // The path was already chosen at signup — drop straight into setup.
+      setStepIndex(1);
+    }
+    setRoleInitialized(true);
+  }, [router.isReady, router.query.role, roleInitialized]);
 
   useEffect(() => {
     async function loadOnboarding() {
@@ -113,6 +174,20 @@ export default function OnboardingPage() {
   }, [router.query.name]);
 
   useEffect(() => {
+    if (role !== 'coach' || coachProfile) return;
+    let cancelled = false;
+    fetch('/api/coach-profile')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data?.profile) setCoachProfile(data.profile);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [role, coachProfile]);
+
+  useEffect(() => {
     if (!navigator.geolocation || form.home_elevation_ft) return;
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -127,8 +202,202 @@ export default function OnboardingPage() {
     );
   }, [form.home_elevation_ft]);
 
-  const slides = useMemo(
-    () => [
+  function pickRole(nextRole) {
+    setRole(nextRole);
+    try {
+      window.localStorage.setItem(SIGNUP_ROLE_STORAGE_KEY, nextRole);
+    } catch {
+      // Storage is best-effort; the choice still lives in component state.
+    }
+  }
+
+  async function connectCoach() {
+    const code = coachCodeInput.trim().toUpperCase();
+    if (!code) {
+      setCoachCodeError('Enter the coach code your coach shared with you.');
+      return;
+    }
+    setConnectingCoach(true);
+    setCoachCodeError('');
+    try {
+      const res = await fetch('/api/coach-connection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ coach_code: code }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCoachCodeError(data.error || 'Could not connect to that coach code.');
+        return;
+      }
+      setCoachConnection(data.connection);
+    } catch {
+      setCoachCodeError('Something went wrong. Please try again.');
+    } finally {
+      setConnectingCoach(false);
+    }
+  }
+
+  async function copyCoachCode() {
+    if (!coachProfile?.coach_code) return;
+    try {
+      await navigator.clipboard.writeText(coachProfile.coach_code);
+      setCoachCodeCopied(true);
+      setTimeout(() => setCoachCodeCopied(false), 2000);
+    } catch {
+      // Clipboard unavailable; the code is visible on screen regardless.
+    }
+  }
+
+  const slideMap = {
+    path: (
+      <section key="path" className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr]">
+        <div>
+          <p className="text-sm uppercase tracking-[0.35em] text-accent">Welcome to Threshold</p>
+          <h1 className="font-display mt-4 text-5xl leading-tight md:text-7xl">How will you use Threshold?</h1>
+          <p className="mt-6 max-w-2xl text-base leading-8 text-ink/76">
+            Coaches run their roster from the Command Center. Athletes log the data that makes coaching smarter — with or without a coach attached.
+          </p>
+        </div>
+
+        <div className="space-y-3 rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+          {ROLE_OPTIONS.map((option) => {
+            const active = role === option.id;
+            return (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => pickRole(option.id)}
+                className={`w-full rounded-[24px] border px-5 py-4 text-left transition ${
+                  active ? 'border-ink bg-panel text-paper' : 'border-ink/10 bg-paper text-ink hover:bg-[#efe7dc]'
+                }`}
+              >
+                <p className="text-base font-semibold">{option.title}</p>
+                <p className={`mt-1 text-sm ${active ? 'text-paper/75' : 'text-ink/60'}`}>{option.body}</p>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+    ),
+    'coach-setup': (
+      <section key="coach-setup" className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr]">
+        <div>
+          <p className="text-sm uppercase tracking-[0.35em] text-accent">Coach setup</p>
+          <h1 className="font-display mt-4 text-5xl leading-tight md:text-7xl">Your roster starts with one code.</h1>
+          <p className="mt-6 max-w-2xl text-base leading-8 text-ink/76">
+            Share your coach code with athletes. When they sign up and enter it, they land on your roster — and everything they log starts feeding your Command Center.
+          </p>
+        </div>
+
+        <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+          <p className="text-xs uppercase tracking-[0.22em] text-accent">Your coach code</p>
+          {coachProfile ? (
+            <div className="mt-3 flex items-center gap-3">
+              <p className="rounded-[18px] bg-paper px-5 py-3 font-mono text-2xl font-semibold tracking-[0.2em] text-ink">
+                {coachProfile.coach_code}
+              </p>
+              <button
+                type="button"
+                onClick={copyCoachCode}
+                className="rounded-full border border-ink/10 px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-paper"
+              >
+                {coachCodeCopied ? 'Copied ✓' : 'Copy'}
+              </button>
+            </div>
+          ) : (
+            <p className="mt-3 text-sm text-ink/60">Generating your coach code…</p>
+          )}
+
+          <div className="mt-5 space-y-2.5">
+            {[
+              'Send the code to your athletes — they enter it during signup.',
+              'Assign protocols to athletes or whole groups from the Command Center.',
+              'Triage who needs attention, who races soon, and who is off-protocol.',
+            ].map((item) => (
+              <div key={item} className="flex items-start gap-3 text-sm text-ink/70">
+                <span className="mt-0.5 text-emerald-500">✓</span>
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 space-y-3">
+            <button
+              type="button"
+              onClick={() => completeOnboarding()}
+              disabled={saving}
+              className="inline-flex w-full items-center justify-center rounded-full bg-panel px-6 py-3 text-sm font-semibold text-paper disabled:opacity-50"
+            >
+              Open your Command Center →
+            </button>
+            <a href="/pricing" className="block text-center text-sm font-semibold text-accent hover:underline">
+              See Coach plan pricing
+            </a>
+          </div>
+        </div>
+      </section>
+    ),
+    'coach-code': (
+      <section key="coach-code" className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr]">
+        <div>
+          <p className="text-sm uppercase tracking-[0.35em] text-accent">Your coach</p>
+          <h1 className="font-display mt-4 text-5xl leading-tight md:text-7xl">Connect to your coach.</h1>
+          <p className="mt-6 max-w-2xl text-base leading-8 text-ink/76">
+            Enter the coach code your coach shared with you. Once connected, your logs, check-ins, and race prep show up on their dashboard automatically.
+          </p>
+        </div>
+
+        <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+          {coachConnection ? (
+            <div className="rounded-[24px] bg-paper p-5">
+              <p className="text-sm uppercase tracking-[0.22em] text-accent">Connected</p>
+              <p className="mt-3 text-xl font-semibold text-ink">
+                {coachConnection.coach?.display_name || 'Your coach'}
+              </p>
+              <p className="mt-2 text-sm text-ink/68">
+                You&apos;re on the roster. Continue to set up your race and training profile.
+              </p>
+            </div>
+          ) : (
+            <>
+              <label className="mb-2 block text-sm font-semibold text-ink">Coach code</label>
+              <input
+                type="text"
+                value={coachCodeInput}
+                onChange={(event) => setCoachCodeInput(event.target.value)}
+                placeholder="e.g. COACH-A1B2"
+                className={`${fieldClassName()} font-mono uppercase tracking-[0.12em]`}
+              />
+              {coachCodeError ? (
+                <p className="mt-3 rounded-[14px] border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
+                  {coachCodeError}
+                </p>
+              ) : null}
+              <button
+                type="button"
+                onClick={connectCoach}
+                disabled={connectingCoach}
+                className="mt-4 inline-flex w-full items-center justify-center rounded-full bg-panel px-6 py-3 text-sm font-semibold text-paper disabled:opacity-50"
+              >
+                {connectingCoach ? 'Connecting…' : 'Connect to coach'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setStepIndex((current) => current + 1)}
+                className="mt-3 w-full rounded-full border border-ink/10 bg-paper px-6 py-3 text-sm font-semibold text-ink transition hover:bg-white"
+              >
+                I&apos;ll connect later
+              </button>
+              <p className="mt-3 text-center text-xs text-ink/40">
+                No code yet? Ask your coach, or connect any time from Settings.
+              </p>
+            </>
+          )}
+        </div>
+      </section>
+    ),
+    race: (
       <section key="race" className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr]">
         <div>
           <p className="text-sm uppercase tracking-[0.35em] text-accent">Your next target</p>
@@ -180,7 +449,7 @@ export default function OnboardingPage() {
               type="button"
               onClick={() => {
                 setForm((current) => ({ ...current, target_race_id: '', target_race: null }));
-                setStep(2);
+                setStepIndex((current) => current + 1);
               }}
               className="text-sm font-semibold text-ink/62"
             >
@@ -257,7 +526,9 @@ export default function OnboardingPage() {
             </div>
           ) : null}
         </div>
-      </section>,
+      </section>
+    ),
+    sport: (
       <section key="sport" className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr]">
         <div>
           <p className="text-sm uppercase tracking-[0.35em] text-accent">Your background</p>
@@ -336,7 +607,9 @@ export default function OnboardingPage() {
             />
           </div>
         </div>
-      </section>,
+      </section>
+    ),
+    strava: (
       <section key="strava" className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr]">
         <div>
           <p className="text-sm uppercase tracking-[0.35em] text-accent">Training context</p>
@@ -361,7 +634,7 @@ export default function OnboardingPage() {
             <a href="/api/strava/login" className="inline-flex w-full items-center justify-center rounded-full bg-panel px-6 py-3 text-sm font-semibold text-paper">
               Connect Strava
             </a>
-<button
+            <button
               type="button"
               onClick={() => completeOnboarding()}
               className="w-full rounded-full border border-ink/10 bg-paper px-6 py-3 text-sm font-semibold text-ink transition hover:bg-white"
@@ -371,10 +644,9 @@ export default function OnboardingPage() {
             <p className="text-center text-xs text-ink/40">You can connect or manually log activities any time from Connections.</p>
           </div>
         </div>
-      </section>,
-    ],
-    [raceSearchQuery, form, manualRace, router.query.strava, stravaName]
-  );
+      </section>
+    ),
+  };
 
   async function saveProgress(onboardingComplete = false) {
     setSaving(true);
@@ -401,7 +673,7 @@ export default function OnboardingPage() {
       return;
     }
     await saveProgress(false);
-    setStep(2);
+    setStepIndex((current) => current + 1);
   }
 
   async function nextFromSport() {
@@ -409,26 +681,26 @@ export default function OnboardingPage() {
       return;
     }
     await saveProgress(false);
-    setStep(3);
+    setStepIndex((current) => current + 1);
   }
 
   async function completeOnboarding() {
     const ok = await saveProgress(true);
     if (ok) {
-      router.push('/dashboard?welcome=1');
+      router.push(role === 'coach' ? '/coach-command-center' : '/dashboard?welcome=1');
     }
   }
 
   useEffect(() => {
-    if (router.query.strava === 'connected' && !loading) {
+    if (router.query.strava === 'connected' && !loading && roleInitialized) {
       const timeoutId = setTimeout(() => {
         completeOnboarding();
       }, 1200);
       return () => clearTimeout(timeoutId);
     }
-  }, [router.query.strava, loading]);
+  }, [router.query.strava, loading, roleInitialized]);
 
-  if (loading) {
+  if (loading || !roleInitialized) {
     return <div className="flex min-h-screen items-center justify-center bg-paper text-ink">Loading...</div>;
   }
 
@@ -438,17 +710,17 @@ export default function OnboardingPage() {
         <section className="overflow-hidden rounded-[42px] border border-ink/10 bg-[linear-gradient(135deg,#f7f2ea_0%,#ebe1d4_55%,#dcc9b0_100%)] p-6 md:p-10">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <p className="text-xs uppercase tracking-[0.35em] text-accent">Threshold onboarding</p>
-            <StepIndicator step={step} />
+            <StepIndicator steps={steps} stepIndex={stepIndex} />
           </div>
 
           <div className="mt-10 overflow-hidden">
             <div
               className="flex transition-transform duration-500 ease-out"
-              style={{ transform: `translateX(-${(step - 1) * 100}%)` }}
+              style={{ transform: `translateX(-${stepIndex * 100}%)` }}
             >
-              {slides.map((slide, index) => (
-                <div key={index} className="w-full shrink-0 pr-4">
-                  {slide}
+              {steps.map((key) => (
+                <div key={key} className="w-full shrink-0 pr-4">
+                  {slideMap[key]}
                 </div>
               ))}
             </div>
@@ -457,18 +729,36 @@ export default function OnboardingPage() {
           <div className="mt-8 flex items-center justify-between">
             <button
               type="button"
-              onClick={() => setStep((current) => Math.max(1, current - 1))}
-              className={`rounded-full border border-ink/10 px-5 py-3 text-sm font-semibold text-ink ${step === 1 ? 'invisible' : ''}`}
+              onClick={() => setStepIndex((current) => Math.max(0, current - 1))}
+              className={`rounded-full border border-ink/10 px-5 py-3 text-sm font-semibold text-ink ${stepIndex === 0 ? 'invisible' : ''}`}
             >
               Back
             </button>
 
-            {step === 1 ? (
+            {currentStep === 'path' ? (
+              <button
+                type="button"
+                onClick={() => setStepIndex(1)}
+                className="rounded-full bg-panel px-6 py-3 text-sm font-semibold text-paper"
+              >
+                Continue
+              </button>
+            ) : null}
+            {currentStep === 'coach-code' && coachConnection ? (
+              <button
+                type="button"
+                onClick={() => setStepIndex((current) => current + 1)}
+                className="rounded-full bg-panel px-6 py-3 text-sm font-semibold text-paper"
+              >
+                Continue
+              </button>
+            ) : null}
+            {currentStep === 'race' ? (
               <button type="button" onClick={nextFromRace} disabled={saving} className="rounded-full bg-panel px-6 py-3 text-sm font-semibold text-paper">
                 Continue
               </button>
             ) : null}
-            {step === 2 ? (
+            {currentStep === 'sport' ? (
               <button type="button" onClick={nextFromSport} disabled={saving} className="rounded-full bg-panel px-6 py-3 text-sm font-semibold text-paper">
                 Continue
               </button>

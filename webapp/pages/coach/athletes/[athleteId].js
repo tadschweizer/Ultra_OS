@@ -13,6 +13,7 @@ export default function CoachAthleteDetail() {
   const router = useRouter();
   const { athleteId } = router.query;
   const [data, setData] = useState(null);
+  const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -28,6 +29,13 @@ export default function CoachAthleteDetail() {
       })
       .catch(() => setError('Could not load athlete report. Please refresh and try again.'))
       .finally(() => setLoading(false));
+
+    fetch(`/api/coach/messages?athlete_id=${athleteId}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((payload) => {
+        if (payload?.messages) setMessages(payload.messages.slice(-3));
+      })
+      .catch(() => {});
   }, [athleteId]);
 
   const confidenceClass = useMemo(() => {
@@ -57,6 +65,20 @@ export default function CoachAthleteDetail() {
             <span className={`text-sm font-semibold uppercase ${confidenceClass}`}>Confidence: {readiness.confidence || 'low'}</span>
           </div>
           <p className="mt-3 text-sm text-ink/80">Suggested next action: {readiness.suggestedAction || data.suggestedAction}</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <a
+              href={`/messages?athlete_id=${athleteId}`}
+              className="rounded-full bg-panel px-4 py-2 text-xs font-semibold text-paper transition hover:opacity-85"
+            >
+              Message athlete →
+            </a>
+            <a
+              href="/coach-command-center"
+              className="rounded-full border border-ink/15 px-4 py-2 text-xs font-semibold text-ink/75 transition hover:bg-paper"
+            >
+              Assign protocol / add note
+            </a>
+          </div>
         </section>
 
         <section className="mt-6 rounded-3xl border border-ink/10 bg-white p-5 sm:p-6">
@@ -78,6 +100,61 @@ export default function CoachAthleteDetail() {
               <h3 className="font-semibold">Recent workout + check-in signals</h3>
               {(readiness.signals || []).length ? readiness.signals.map((s, idx) => <p key={`${s}-${idx}`} className="mt-2 text-sm">• {s}</p>) : <p className="mt-2 text-sm text-ink/60">No recent signal data available.</p>}
             </section>
+          </div>
+        </section>
+
+        <section className="mt-6 grid gap-4 md:grid-cols-2">
+          <div className="rounded-3xl border border-ink/10 bg-white p-5 sm:p-6">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-xl font-semibold">Coach notes</h2>
+              <span className="rounded-full bg-paper px-3 py-1 text-xs text-ink/55">{(data.coachNotes || []).length} recent</span>
+            </div>
+            {(data.coachNotes || []).length ? (
+              <div className="mt-4 space-y-3">
+                {data.coachNotes.slice(0, 5).map((note) => (
+                  <article key={note.id} className={`rounded-2xl border p-3 ${note.is_pinned ? 'border-accent/30 bg-accent/5' : 'border-ink/10 bg-paper'}`}>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="rounded-full bg-white px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink/55">
+                        {note.note_type}{note.is_pinned ? ' · pinned' : ''}
+                      </span>
+                      <span className="text-xs text-ink/40">{note.created_at ? new Date(note.created_at).toLocaleDateString() : ''}</span>
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-ink/80">{note.content}</p>
+                    {note.share_with_athlete ? (
+                      <p className="mt-1.5 text-[11px] text-ink/45">
+                        Shared with athlete{note.athlete_read_at ? ' · read' : ' · unread'}
+                      </p>
+                    ) : null}
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-ink/60">No notes yet. Add observations from the Command Center drawer so decisions have a paper trail.</p>
+            )}
+          </div>
+
+          <div className="rounded-3xl border border-ink/10 bg-white p-5 sm:p-6">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-xl font-semibold">Recent messages</h2>
+              <a href={`/messages?athlete_id=${athleteId}`} className="text-xs font-semibold text-accent hover:underline">
+                Open conversation →
+              </a>
+            </div>
+            {messages.length ? (
+              <div className="mt-4 space-y-3">
+                {messages.map((m) => (
+                  <article key={m.id} className={`rounded-2xl border p-3 ${m.sender_role === 'coach' ? 'border-accent/20 bg-accent/5' : 'border-ink/10 bg-paper'}`}>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="rounded-full bg-white px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink/55">{m.sender_role}</span>
+                      <span className="text-xs text-ink/40">{m.created_at ? new Date(m.created_at).toLocaleDateString() : ''}</span>
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-ink/80">{m.message_body}</p>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-ink/60">No messages yet. A check-in tied to the suggested action above is a good first touch.</p>
+            )}
           </div>
         </section>
       </div>
