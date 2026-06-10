@@ -8,3 +8,7 @@ webapp/.wrangler/
 webapp/supabase/.temp/
 
 .vercel
+webapp/public/sw.js
+webapp/public/sw.js.map
+webapp/public/swe-worker-*
+webapp/public/workbox-*
