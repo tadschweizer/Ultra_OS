@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
 import EmptyStateCard from '../components/EmptyStateCard';
+import { fetchMe } from '../lib/meClient';
 
 const sources = [
   {
@@ -105,10 +106,8 @@ export default function Connections() {
 
   useEffect(() => {
     async function loadAthlete() {
-      const res = await fetch('/api/me');
-      if (!res.ok) return;
-      const data = await res.json();
-      setAthlete(data.athlete || null);
+      const data = await fetchMe();
+      setAthlete(data?.athlete || null);
     }
 
     if (athleteId) {

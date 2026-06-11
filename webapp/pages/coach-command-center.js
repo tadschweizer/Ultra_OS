@@ -159,6 +159,12 @@ function AthleteDrawer({ athlete, relationship, protocols, notes, docs = [], onC
           <div>
             <p className="font-semibold text-ink">{athlete?.name || 'Athlete'}</p>
             <p className="text-xs text-ink/55">{athlete?.email || ''}</p>
+            <a
+              href={`/coach/training-calendar?athlete=${relationship.athlete_id}`}
+              className="mt-1 inline-block text-xs font-semibold text-accent underline-offset-2 hover:underline"
+            >
+              Open training calendar →
+            </a>
           </div>
           <button onClick={onClose} className="rounded-full border border-ink/10 px-4 py-2 text-sm text-ink/70 hover:bg-ink/5">Close</button>
         </div>
@@ -362,7 +368,7 @@ function AthleteDrawer({ athlete, relationship, protocols, notes, docs = [], onC
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function CoachCommandCenter() {
-  const { coachFeatures } = usePlan();
+  const { coachFeatures, planReady } = usePlan();
 
   // Data state
   const [profile, setProfile] = useState(null);
@@ -704,6 +710,17 @@ export default function CoachCommandCenter() {
   const navLinks = appMenuLinks;
 
   // ── Render ─────────────────────────────────────────────────────────────────
+  // Wait until the real plan is known before choosing between the upgrade
+  // wall and the command center — paying coaches should never see a locked
+  // state while entitlements load.
+  if (!planReady) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-paper">
+        <p className="text-sm text-ink/55">Loading Coach Command Center…</p>
+      </main>
+    );
+  }
+
   if (!coachFeatures) {
     return (
       <main className="min-h-screen bg-paper px-4 py-6 text-ink">
@@ -777,7 +794,13 @@ export default function CoachCommandCenter() {
             <NavMenu label="Navigation" links={navLinks} primaryLink={{ href: '/dashboard', label: 'Home', variant: 'secondary' }} />
           </div>
 
-          <DashboardTabs activeHref="/coach-command-center" tabs={[{ href: '/coach-command-center', label: 'Coach Command Center' }]} />
+          <DashboardTabs
+            activeHref="/coach-command-center"
+            tabs={[
+              { href: '/coach-command-center', label: 'Coach Command Center' },
+              { href: '/coach/training-calendar', label: 'Training Calendar' },
+            ]}
+          />
 
           {/* Hero */}
           <section className="overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(140deg,#1b2421_0%,#26332f_42%,#857056_100%)] p-6 text-white md:p-10">

@@ -1,5 +1,9 @@
 import { getAthleteByCookie, getSupabaseAdminClient } from '../../../lib/authServer';
-import { getBillingPlan, getBillingPriceId } from '../../../lib/billingPlans';
+import {
+  getBillingPlan,
+  getBillingPriceId,
+  isEntitledSubscriptionStatus,
+} from '../../../lib/billingPlans';
 import { getStripeClient } from '../../../lib/stripeServer';
 import cookie from 'cookie';
 import crypto from 'crypto';
@@ -85,6 +89,48 @@ export default async function handler(req, res) {
       subscription_tier: plan.tier,
       billing_plan: plan.id,
     };
+
+    // If the athlete already has a live subscription, never create a second
+    // one (that would double-bill). Switch the existing subscription to the
+    // requested price in place, with proration handled by Stripe.
+    if (athlete.stripe_subscription_id) {
+      let existing = null;
+      try {
+        existing = await stripe.subscriptions.retrieve(athlete.stripe_subscription_id, {
+          expand: ['items.data.price'],
+        });
+      } catch (error) {
+        if (error?.code !== 'resource_missing') throw error;
+      }
+
+      if (existing && isEntitledSubscriptionStatus(existing.status)) {
+        const currentItem = existing.items?.data?.[0];
+        if (currentItem?.price?.id === priceId) {
+          // Already on this plan — send them to the portal to manage it.
+          res.redirect(303, `${siteUrl}/api/billing/portal`);
+          return;
+        }
+
+        const updated = await stripe.subscriptions.update(existing.id, {
+          items: [{ id: currentItem.id, price: priceId }],
+          proration_behavior: 'always_invoice',
+          cancel_at_period_end: false,
+          metadata,
+        });
+
+        await getSupabaseAdminClient()
+          .from('athletes')
+          .update({
+            subscription_tier: plan.tier,
+            stripe_price_id: priceId,
+            stripe_subscription_status: updated.status,
+          })
+          .eq('id', athlete.id);
+
+        res.redirect(303, `${siteUrl}/account?checkout=updated&plan=${encodeURIComponent(plan.id)}`);
+        return;
+      }
+    }
 
     const buildSessionParams = (useStoredCustomer) => ({
       mode: 'subscription',

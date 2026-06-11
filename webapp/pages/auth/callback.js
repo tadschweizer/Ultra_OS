@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { getAccessTokenFromCallbackUrl } from '../../lib/auth/oauth.js';
+import { clearMe } from '../../lib/meClient';
 
 function getSupabaseClient() {
   return createClient(
@@ -71,6 +72,7 @@ export default function AuthCallbackPage() {
 
       const data = await response.json();
       setStatus('Signed in. Redirecting...');
+      clearMe();
       window.location.href = data.onboardingComplete ? '/dashboard' : '/onboarding';
     }
 

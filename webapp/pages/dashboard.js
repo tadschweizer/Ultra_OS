@@ -18,6 +18,7 @@ import {
   sortActivitiesMostRecentFirst,
 } from '../lib/activityInsights';
 import { getLoadMetrics } from '../lib/trainingLoad';
+import { fetchMe, getCachedMe } from '../lib/meClient';
 import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
 import EmptyStateCard from '../components/EmptyStateCard';
@@ -554,11 +555,13 @@ function HeatmapModal({ day, onClose }) {
 export default function Dashboard() {
   const router = useRouter();
   const isFirstLogin = router.query.welcome === '1';
-  const [loading, setLoading] = useState(true);
-  const [athlete, setAthlete] = useState(null);
+  // The session profile is usually already cached by OnboardingGate, so the
+  // dashboard frame can paint immediately instead of waiting on /api/me.
+  const [loading, setLoading] = useState(() => !getCachedMe()?.athlete);
+  const [athlete, setAthlete] = useState(() => getCachedMe()?.athlete || null);
   const [activities, setActivities] = useState([]);
   const [interventions, setInterventions] = useState([]);
-  const [interventionCount, setInterventionCount] = useState(0);
+  const [interventionCount, setInterventionCount] = useState(() => getCachedMe()?.interventionCount || 0);
   const [sessionLoad, setSessionLoad] = useState({ daily: 0, rollingWeekly: 0 });
   const [settings, setSettings] = useState(null);
   const [timeframe, setTimeframe] = useState(30);
@@ -568,87 +571,84 @@ export default function Dashboard() {
   const [sharedDocs, setSharedDocs] = useState([]);
   const [coachConnections, setCoachConnections] = useState([]);
   const [heatmapDay, setHeatmapDay] = useState(null);
-  const [loadMetrics, setLoadMetrics] = useState(null);
-  const [loadStatus, setLoadStatus] = useState(null);
+  const [loadMetrics, setLoadMetrics] = useState(() => getCachedMe()?.load_metrics || null);
+  const [loadStatus, setLoadStatus] = useState(() => getCachedMe()?.load_status || null);
   const [raceForm, setRaceForm] = useState(emptyRaceForm);
   const [raceSaving, setRaceSaving] = useState(false);
   const [raceStatus, setRaceStatus] = useState('');
 
   useEffect(() => {
-    async function fetchData() {
-      try {
-        const mePromise = fetchWithTimeout('/api/me');
-        const dataPromises = [
-          fetchWithTimeout('/api/settings'),
-          fetchWithTimeout('/api/activities'),
-          fetchWithTimeout('/api/interventions'),
-          fetchWithTimeout('/api/current-protocol-assignment'),
-          fetchWithTimeout('/api/athlete/shared-docs'),
-          fetchWithTimeout('/api/coach-connection'),
-        ];
+    let cancelled = false;
 
-        const meRes = await mePromise;
-        if (!meRes.ok) {
+    // Helper: fire a fetch and hydrate its section as soon as it lands, so
+    // one slow endpoint (e.g. the live Strava sync) never blocks the rest of
+    // the dashboard from painting.
+    function hydrate(resource, onData) {
+      fetchWithTimeout(resource)
+        .then(async (res) => {
+          if (cancelled || !res.ok) return;
+          const data = await res.json();
+          if (!cancelled) onData(data);
+        })
+        .catch((err) => console.warn(`[dashboard] ${resource} failed:`, err));
+    }
+
+    // Session profile — shared cache, dedupes with OnboardingGate's request.
+    fetchMe()
+      .then((me) => {
+        if (cancelled) return;
+        if (!me) {
           router.replace(`/login?next=${encodeURIComponent(router.asPath || '/dashboard')}`);
           return;
         }
-
-        const me = await meRes.json();
         setAthlete(me.athlete);
         setInterventionCount(me.interventionCount);
-        setLoadMetrics(me.load_metrics || null);
-        setLoadStatus(me.load_status || null);
-
-        const [settingsResult, actResult, interventionsResult, protocolResult, docsResult, coachResult] = await Promise.allSettled(dataPromises);
-
-        if (settingsResult.status === 'fulfilled' && settingsResult.value.ok) {
-          const settingsData = await settingsResult.value.json();
-          setSettings({ ...settingsData.settings, supplements: settingsData.supplements || [] });
-        }
-
-        if (actResult.status === 'fulfilled' && actResult.value.ok) {
-          const actData = await actResult.value.json();
-          const nextActivities = sortActivitiesMostRecentFirst(actData.activities);
-          setActivities(nextActivities);
-          const computedLoad = getLoadMetrics(nextActivities);
-          setLoadMetrics({
-            acute: computedLoad.acute.toFixed(1),
-            chronic: computedLoad.chronic.toFixed(1),
-            form: computedLoad.form.toFixed(1),
-            explainability: 'Calculated from your synced activities using rolling 7-day (acute) and 42-day (chronic) training load.',
-          });
-          setLoadStatus({ label: computedLoad.status.label });
-        }
-
-        if (interventionsResult.status === 'fulfilled' && interventionsResult.value.ok) {
-          const interventionData = await interventionsResult.value.json();
-          setInterventions(interventionData.interventions || []);
-          setSessionLoad(interventionData.sessionLoad || { daily: 0, rollingWeekly: 0 });
-        }
-
-        if (protocolResult.status === 'fulfilled' && protocolResult.value.ok) {
-          const protocolData = await protocolResult.value.json();
-          setProtocolSummary(protocolData);
-          setCurrentRace(protocolData.currentRace || null);
-        }
-
-        if (docsResult.status === 'fulfilled' && docsResult.value.ok) {
-          const docsData = await docsResult.value.json();
-          setSharedDocs(docsData.docs || []);
-        }
-
-        if (coachResult.status === 'fulfilled' && coachResult.value.ok) {
-          const coachData = await coachResult.value.json();
-          setCoachConnections(coachData.connections || []);
-        }
-      } catch (err) {
-        console.error(err);
-      } finally {
+        setLoadMetrics((current) => current || me.load_metrics || null);
+        setLoadStatus((current) => current || me.load_status || null);
         setLoading(false);
-      }
-    }
+      })
+      .catch(() => {
+        if (!cancelled) setLoading(false);
+      });
 
-    fetchData();
+    hydrate('/api/settings', (settingsData) => {
+      setSettings({ ...settingsData.settings, supplements: settingsData.supplements || [] });
+    });
+
+    hydrate('/api/activities', (actData) => {
+      const nextActivities = sortActivitiesMostRecentFirst(actData.activities);
+      setActivities(nextActivities);
+      const computedLoad = getLoadMetrics(nextActivities);
+      setLoadMetrics({
+        acute: computedLoad.acute.toFixed(1),
+        chronic: computedLoad.chronic.toFixed(1),
+        form: computedLoad.form.toFixed(1),
+        explainability: 'Calculated from your synced activities using rolling 7-day (acute) and 42-day (chronic) training load.',
+      });
+      setLoadStatus({ label: computedLoad.status.label });
+    });
+
+    hydrate('/api/interventions', (interventionData) => {
+      setInterventions(interventionData.interventions || []);
+      setSessionLoad(interventionData.sessionLoad || { daily: 0, rollingWeekly: 0 });
+    });
+
+    hydrate('/api/current-protocol-assignment', (protocolData) => {
+      setProtocolSummary(protocolData);
+      setCurrentRace(protocolData.currentRace || null);
+    });
+
+    hydrate('/api/athlete/shared-docs', (docsData) => {
+      setSharedDocs(docsData.docs || []);
+    });
+
+    hydrate('/api/coach-connection', (coachData) => {
+      setCoachConnections(coachData.connections || []);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   function handleRaceFormChange(event) {

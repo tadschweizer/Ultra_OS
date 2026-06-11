@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import NavMenu from '../components/NavMenu';
+import { clearMe } from '../lib/meClient';
 
 function getSupabaseClient() {
   return createClient(
@@ -74,6 +75,7 @@ export default function LoginPage() {
         return;
       }
 
+      clearMe();
       window.location.href = data.onboardingComplete ? '/dashboard' : '/onboarding';
     } catch {
       setError('Something went wrong. Please try again.');

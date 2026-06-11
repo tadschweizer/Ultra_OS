@@ -2,8 +2,7 @@ import DashboardTabs from '../components/DashboardTabs';
 import NavMenu from '../components/NavMenu';
 import EmptyStateCard from '../components/EmptyStateCard';
 import UpgradePrompt from '../components/UpgradePrompt';
-import { usePlan } from '../lib/planUtils';
-import { useEffect, useState } from 'react';
+import { useMe, usePlan } from '../lib/planUtils';
 
 const inputVariables = ['Heat acclimation sessions', 'Gut training sessions', 'Sleep hours', 'Sleep quality', 'Daily carbs', 'Training load'];
 const outcomeVariables = ['Race GI distress score', 'Race performance rating', 'Next-day perceived exertion', 'Next-day HRV', 'Next-day soreness', 'Race finish time'];
@@ -16,9 +15,9 @@ const chartPoints = [
 ];
 
 export default function ExplorerPage() {
-  const { explorerUnlocked, coachFeatures } = usePlan();
-  const [loading, setLoading] = useState(true);
-  const [interventionCount, setInterventionCount] = useState(0);
+  const { explorerUnlocked, coachFeatures, planReady } = usePlan();
+  const { me, loading } = useMe();
+  const interventionCount = me?.interventionCount || 0;
   const navLinks = [
     { href: '/dashboard', label: 'Threshold Home' },
     { href: '/guide', label: 'Guide' },
@@ -26,26 +25,9 @@ export default function ExplorerPage() {
     { href: '/insights', label: 'Insights' },
   ];
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const res = await fetch('/api/me');
-        if (!res.ok) return;
-        const data = await res.json();
-        setInterventionCount(data.interventionCount || 0);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    if (explorerUnlocked) {
-      load();
-    } else {
-      setLoading(false);
-    }
-  }, [explorerUnlocked]);
-
   const showExplorerEmptyState = explorerUnlocked && !loading && interventionCount < 10;
+  // Don't flash the locked overlay while the plan is still loading.
+  const showLockedState = planReady && !explorerUnlocked;
 
   return (
     <main className="min-h-screen bg-paper px-4 py-6 text-ink">
@@ -70,7 +52,13 @@ export default function ExplorerPage() {
           <h1 className="font-display mt-4 text-5xl leading-tight md:text-7xl">Explorer</h1>
         </section>
 
-        {!explorerUnlocked ? (
+        {!planReady ? (
+          <section className="mt-12">
+            <div className="rounded-[30px] border border-ink/10 bg-white p-8 text-center text-sm text-ink/55">
+              Loading Explorer…
+            </div>
+          </section>
+        ) : showLockedState ? (
           <section className="mt-12">
             {/* Show the real UI, blurred + overlaid, so athletes can see exactly what they're unlocking */}
             <div className="relative">

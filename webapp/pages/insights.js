@@ -5,6 +5,7 @@ import BlurredInsightPreview from '../components/BlurredInsightPreview';
 import { sortActivitiesMostRecentFirst } from '../lib/activityInsights';
 import { deriveRaceType } from '../lib/raceTypes';
 import { canAccessFullInsights } from '../lib/subscriptionTiers';
+import { fetchMe } from '../lib/meClient';
 import { buildTrainingResponseCorrelations, buildCheckInTimeSeries, buildCheckInSummary } from '../lib/trainingInsights';
 
 const MIN_GROUP_SIZE = 3; // mirrors trainingInsights.js threshold for UI messaging
@@ -248,28 +249,32 @@ export default function InsightsPage() {
   useEffect(() => {
     async function load() {
       try {
-        const meRes = await fetch('/api/me');
-        if (meRes.ok) {
-          const me = await meRes.json();
+        // All four sources are independent — load them in parallel instead of
+        // serially so the page paints as fast as the slowest call, not the sum.
+        const [me, settingsRes, activitiesRes, interventionsRes] = await Promise.all([
+          fetchMe().catch(() => null),
+          fetch('/api/settings').catch(() => null),
+          fetch('/api/activities').catch(() => null),
+          fetch('/api/interventions').catch(() => null),
+        ]);
+
+        if (me?.athlete) {
           setAthlete(me.athlete);
           setInterventionCount(me.interventionCount || 0);
           setInsightsAllowed(canAccessFullInsights(me.athlete).allowed);
         }
 
-        const settingsRes = await fetch('/api/settings');
-        if (settingsRes.ok) {
+        if (settingsRes?.ok) {
           const data = await settingsRes.json();
           setSettings({ ...data.settings, supplements: data.supplements || [] });
         }
 
-        const activitiesRes = await fetch('/api/activities');
-        if (activitiesRes.ok) {
+        if (activitiesRes?.ok) {
           const data = await activitiesRes.json();
           setActivities(sortActivitiesMostRecentFirst(data.activities || []));
         }
 
-        const interventionsRes = await fetch('/api/interventions');
-        if (interventionsRes.ok) {
+        if (interventionsRes?.ok) {
           const data = await interventionsRes.json();
           setInterventions(data.interventions || []);
         }
