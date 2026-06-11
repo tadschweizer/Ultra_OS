@@ -37,12 +37,17 @@ const WORKOUT_COLUMNS = `
   athlete_rpe, athlete_comment, coach_feedback, library_workout_id, created_at, updated_at
 `;
 
-async function getCoachProfileFor(admin, sessionAthleteId, targetAthleteId) {
+async function getOwnCoachProfile(admin, sessionAthleteId) {
   const { data: profile } = await admin
     .from('coach_profiles')
     .select('id')
     .eq('athlete_id', sessionAthleteId)
     .maybeSingle();
+  return profile || null;
+}
+
+async function getCoachProfileFor(admin, sessionAthleteId, targetAthleteId) {
+  const profile = await getOwnCoachProfile(admin, sessionAthleteId);
   if (!profile) return null;
 
   const { data: relationship } = await admin
@@ -233,24 +238,35 @@ export default async function handler(req, res) {
       };
 
       if (body.library_workout_id) {
+        // Library workouts are private to the coach who created them — scope
+        // the lookup to the requester's own coach profile so knowing a UUID
+        // is never enough to clone another coach's template.
+        const requesterProfile = coachProfile || await getOwnCoachProfile(admin, sessionAthleteId);
+        if (!requesterProfile) {
+          res.status(403).json({ error: 'Workout library is available to coach accounts.' });
+          return;
+        }
         const { data: libraryWorkout } = await admin
           .from('workout_library')
           .select('*')
           .eq('id', body.library_workout_id)
+          .eq('coach_id', requesterProfile.id)
           .maybeSingle();
-        if (libraryWorkout) {
-          payload = {
-            ...payload,
-            sport: libraryWorkout.sport,
-            title: libraryWorkout.name,
-            description: libraryWorkout.description,
-            structure: libraryWorkout.structure,
-            planned_duration_min: libraryWorkout.planned_duration_min,
-            planned_distance_km: libraryWorkout.planned_distance_km,
-            planned_tss: libraryWorkout.planned_tss,
-            library_workout_id: libraryWorkout.id,
-          };
+        if (!libraryWorkout) {
+          res.status(404).json({ error: 'Library workout not found.' });
+          return;
         }
+        payload = {
+          ...payload,
+          sport: libraryWorkout.sport,
+          title: libraryWorkout.name,
+          description: libraryWorkout.description,
+          structure: libraryWorkout.structure,
+          planned_duration_min: libraryWorkout.planned_duration_min,
+          planned_distance_km: libraryWorkout.planned_distance_km,
+          planned_tss: libraryWorkout.planned_tss,
+          library_workout_id: libraryWorkout.id,
+        };
       }
 
       PLANNING_FIELDS.forEach((field) => {
@@ -309,7 +325,14 @@ export default async function handler(req, res) {
           res.status(403).json({ error: 'Not allowed to edit this workout.' });
           return;
         }
-        allowedFields = [...PLANNING_FIELDS, 'status', 'coach_feedback'];
+        if (existing.coach_id === profile.id) {
+          // The assigning coach owns the plan.
+          allowedFields = [...PLANNING_FIELDS, 'status', 'coach_feedback'];
+        } else {
+          // Another active coach (or a self-planned workout): feedback only —
+          // never another coach's planning fields.
+          allowedFields = ['coach_feedback'];
+        }
       }
 
       const updates = {};
@@ -371,9 +394,10 @@ export default async function handler(req, res) {
 
       const isSelfPlanned = existing.athlete_id === sessionAthleteId && !existing.coach_id;
       let allowed = isSelfPlanned;
-      if (!allowed) {
+      if (!allowed && existing.coach_id) {
+        // Only the coach who assigned the workout may delete it.
         const profile = await getCoachProfileFor(admin, sessionAthleteId, existing.athlete_id);
-        allowed = Boolean(profile);
+        allowed = Boolean(profile && existing.coach_id === profile.id);
       }
       if (!allowed) {
         res.status(403).json({ error: 'Not allowed to delete this workout.' });
