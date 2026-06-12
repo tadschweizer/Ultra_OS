@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+import { fetchMe } from '../lib/meClient';
 
 // Items already covered by the bottom nav — skip in the sheet to avoid redundancy
 const BOTTOM_NAV_HREFS = new Set(['/dashboard', '/log-intervention', '/history', '/content', '/settings']);
@@ -61,10 +62,9 @@ export default function NavMenu({ primaryLink = null }) {
     setMounted(true);
   }, []);
 
-  // Fetch admin status once on mount
+  // Resolve admin status from the shared session cache (no extra round-trip)
   useEffect(() => {
-    fetch('/api/me')
-      .then((r) => r.ok ? r.json() : null)
+    fetchMe()
       .then((data) => { if (data?.athlete?.is_admin) setIsAdmin(true); })
       .catch(() => {});
   }, []);

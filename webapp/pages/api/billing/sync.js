@@ -1,20 +1,16 @@
 import { getAthleteByCookie, getSupabaseAdminClient } from '../../../lib/authServer';
 import { setAthleteCookie } from '../../../lib/auth/sessionCookies.js';
-import { getTierFromPriceId } from '../../../lib/billingPlans';
+import { getTierFromSubscription, isEntitledSubscriptionStatus } from '../../../lib/billingPlans';
 import { getStripeClient } from '../../../lib/stripeServer';
 import cookie from 'cookie';
 import crypto from 'crypto';
-
-function isActiveSubscriptionStatus(status) {
-  return status === 'active' || status === 'trialing' || status === 'past_due';
-}
 
 async function writeSubscriptionToAthlete({ athleteId, customerId, subscription }) {
   const admin = getSupabaseAdminClient();
   const primaryItem = subscription?.items?.data?.[0];
   const priceId = primaryItem?.price?.id || null;
-  const tier = getTierFromPriceId(priceId);
-  const isPaid = isActiveSubscriptionStatus(subscription?.status);
+  const tier = getTierFromSubscription(subscription);
+  const isPaid = isEntitledSubscriptionStatus(subscription?.status);
 
   const updates = {
     stripe_customer_id: customerId || null,
@@ -69,7 +65,7 @@ async function findLatestRelevantSubscription(stripe, customerId) {
     limit: 10,
   });
 
-  return subscriptions.data.find((subscription) => isActiveSubscriptionStatus(subscription.status))
+  return subscriptions.data.find((subscription) => isEntitledSubscriptionStatus(subscription.status))
     || subscriptions.data[0]
     || null;
 }

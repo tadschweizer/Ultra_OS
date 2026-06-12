@@ -1,4 +1,4 @@
-import { getTierFromPriceId } from '../../../lib/billingPlans';
+import { getTierFromSubscription, isEntitledSubscriptionStatus } from '../../../lib/billingPlans';
 import { getStripeClient } from '../../../lib/stripeServer';
 import { getSupabaseAdminClient } from '../../../lib/authServer';
 
@@ -23,15 +23,14 @@ async function upsertSubscriptionFromObject(subscription, fallbackAthleteId = nu
 
   const primaryItem = subscription.items?.data?.[0];
   const priceId = primaryItem?.price?.id || null;
-  const subscriptionTier = subscription.metadata?.subscription_tier || getTierFromPriceId(priceId);
+  const subscriptionTier = getTierFromSubscription(subscription);
+  const entitled = isEntitledSubscriptionStatus(subscription.status);
 
   await admin
     .from('athletes')
     .update({
-      subscription_tier: subscription.status === 'active' || subscription.status === 'trialing'
-        ? subscriptionTier
-        : 'free',
-      subscription_activated_at: subscription.status === 'active' || subscription.status === 'trialing'
+      subscription_tier: entitled ? subscriptionTier : 'free',
+      subscription_activated_at: entitled
         ? new Date(subscription.created * 1000).toISOString()
         : null,
       stripe_customer_id: subscription.customer || null,
@@ -90,6 +89,22 @@ export default async function handler(req, res) {
       case 'customer.subscription.updated':
       case 'customer.subscription.deleted': {
         await upsertSubscriptionFromObject(event.data.object);
+        break;
+      }
+      case 'invoice.payment_failed': {
+        // Keep the stored subscription status fresh so the account page can
+        // surface the failed payment; entitlement is handled by the matching
+        // customer.subscription.updated event (past_due gets a grace period).
+        const invoice = event.data.object;
+        const subscriptionId = typeof invoice.subscription === 'string'
+          ? invoice.subscription
+          : invoice.subscription?.id || null;
+        if (subscriptionId) {
+          const subscription = await getStripeClient().subscriptions.retrieve(subscriptionId, {
+            expand: ['items.data.price'],
+          });
+          await upsertSubscriptionFromObject(subscription);
+        }
         break;
       }
       default:

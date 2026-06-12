@@ -3,6 +3,7 @@ import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
 import { createClient } from '@supabase/supabase-js';
 import { usePlan } from '../lib/planUtils';
+import { clearMe } from '../lib/meClient';
 
 function getSupabaseClient() {
   return createClient(
@@ -46,7 +47,12 @@ export default function AccountPage() {
     const sessionId = params.get('session_id');
     const pendingCheckoutSession = document.cookie.match(/pending_checkout_session_id=([^;]+)/)?.[1];
 
-    if (checkoutStatus === 'success' && sessionId) {
+    if (checkoutStatus === 'updated') {
+      // Plan was switched in place on an existing subscription.
+      clearMe();
+      setBillingMessage('Your plan has been updated.');
+      syncBilling(null, { userVisible: false });
+    } else if (checkoutStatus === 'success' && sessionId) {
       syncBilling(sessionId, { userVisible: true });
     } else if (pendingCheckoutSession) {
       syncBilling(null, { userVisible: false });
@@ -92,6 +98,7 @@ export default function AccountPage() {
     }
 
     await fetch('/api/auth/logout', { method: 'POST' });
+    clearMe();
     window.location.href = '/';
   }
 
@@ -116,6 +123,8 @@ export default function AccountPage() {
       }
 
       if (data.synced) {
+        // Drop the cached profile so every page sees the new tier immediately.
+        clearMe();
         setBillingMessage('Your subscription is now synced. Reloading account details...');
         window.location.href = '/account?billing=updated';
         return;

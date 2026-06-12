@@ -17,6 +17,8 @@ export default function MyApp({ Component, pageProps }) {
   const pageTitleMap = {
     '/': 'Threshold',
     '/dashboard': 'Dashboard',
+    '/calendar': 'Training Calendar',
+    '/coach/training-calendar': 'Coach Training Calendar',
     '/log-intervention': 'Log Intervention',
     '/history': 'Intervention History',
     '/insights': 'Insights',

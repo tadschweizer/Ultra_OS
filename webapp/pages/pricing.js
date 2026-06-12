@@ -226,6 +226,25 @@ export default function PricingPage() {
           })}
         </section>
 
+        {/* ── Research Feed add-on ─────────────────────────────────── */}
+        <section className="mx-auto mt-4 max-w-4xl">
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-[24px] border border-ink/10 bg-white px-7 py-5 shadow-[0_8px_24px_rgba(19,24,22,0.05)]">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-ink/40">Research Feed</p>
+              <p className="mt-1 text-sm text-ink/65">
+                Just want the curated endurance research digest? Get the standalone feed for{' '}
+                <span className="font-mono font-semibold text-ink">$7/mo</span>.
+              </p>
+            </div>
+            <a
+              href="/api/billing/checkout?plan=research_monthly"
+              className="rounded-full border border-ink/15 bg-paper px-5 py-2.5 text-sm font-semibold text-ink transition hover:bg-ink hover:text-paper"
+            >
+              Start Research Feed →
+            </a>
+          </div>
+        </section>
+
         {/* ── Feature comparison ───────────────────────────────────── */}
         <section className="mt-10">
           <div className="rounded-[28px] border border-ink/10 bg-white p-8 shadow-[0_8px_24px_rgba(19,24,22,0.05)]">

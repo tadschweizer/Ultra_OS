@@ -3,6 +3,7 @@ import NavMenu from '../components/NavMenu';
 import UpgradePrompt from '../components/UpgradePrompt';
 import RaceSearchInput from '../components/RaceSearchInput';
 import { canAccessRaceBlueprint } from '../lib/subscriptionTiers';
+import { fetchMe } from '../lib/meClient';
 
 const SPORT_TO_RACE_TYPE = {
   'Ultrarunning': '50K+',
@@ -280,8 +281,7 @@ export default function RacePlanPage() {
       })
       .catch(() => setSettingsLoaded(true));
 
-    fetch('/api/me')
-      .then((r) => r.ok ? r.json() : null)
+    fetchMe()
       .then((data) => {
         if (!data?.athlete) {
           setBlueprintAllowed(false);
