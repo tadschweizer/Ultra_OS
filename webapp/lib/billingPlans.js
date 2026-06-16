@@ -38,23 +38,31 @@ export function getBillingPlan(planId) {
   return BILLING_PLANS[planId] || null;
 }
 
+export function normalizeStripePriceId(priceId) {
+  return typeof priceId === 'string' ? priceId.trim() : priceId;
+}
+
 export function getBillingPriceId(planId) {
   const plan = getBillingPlan(planId);
   if (!plan) return null;
   for (const envKey of plan.envKeys || []) {
-    if (process.env[envKey]) {
-      return process.env[envKey];
+    const priceId = normalizeStripePriceId(process.env[envKey]);
+    if (priceId) {
+      return priceId;
     }
   }
   return null;
 }
 
 export function getTierFromPriceId(priceId) {
-  if (!priceId) return 'free';
+  const normalizedPriceId = normalizeStripePriceId(priceId);
+  if (!normalizedPriceId) return 'free';
   const match = Object.values(BILLING_PLANS).find(
     (plan) =>
-      (plan.envKeys || []).some((envKey) => process.env[envKey] === priceId) ||
-      (plan.legacyPriceIds || []).includes(priceId)
+      (plan.envKeys || []).some(
+        (envKey) => normalizeStripePriceId(process.env[envKey]) === normalizedPriceId
+      ) ||
+      (plan.legacyPriceIds || []).includes(normalizedPriceId)
   );
   return match?.tier || 'free';
 }
