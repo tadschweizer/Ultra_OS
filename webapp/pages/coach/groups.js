@@ -5,11 +5,14 @@ import { appMenuLinks } from '../../lib/siteNavigation';
 export default function CoachGroupsPage() {
   const [groups, setGroups] = useState([]);
   const [templates, setTemplates] = useState([]);
+  const [libraryWorkouts, setLibraryWorkouts] = useState([]);
   const [name, setName] = useState('');
   const [desc, setDesc] = useState('');
   const [templateId, setTemplateId] = useState('');
   const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
   const [endDate, setEndDate] = useState('');
+  const [libraryWorkoutId, setLibraryWorkoutId] = useState('');
+  const [workoutDate, setWorkoutDate] = useState(new Date().toISOString().slice(0, 10));
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
 
@@ -17,15 +20,20 @@ export default function CoachGroupsPage() {
     setLoading(true);
     setMessage('');
     try {
-      const [groupsRes, templatesRes] = await Promise.all([
+      const [groupsRes, templatesRes, libraryRes] = await Promise.all([
         fetch('/api/coach/groups'),
         fetch('/api/coach/templates'),
+        fetch('/api/workout-library'),
       ]);
       const groupsData = await groupsRes.json();
       setGroups(groupsData.groups || []);
       if (templatesRes.ok) {
         const templatesData = await templatesRes.json();
         setTemplates([...(templatesData.templates || []), ...(templatesData.sharedTemplates || [])]);
+      }
+      if (libraryRes.ok) {
+        const libraryData = await libraryRes.json();
+        setLibraryWorkouts(libraryData.workouts || []);
       }
     } catch {
       setMessage('Could not load coach groups right now.');
@@ -44,6 +52,36 @@ export default function CoachGroupsPage() {
     setDesc('');
     setMessage('Group created.');
     load();
+  }
+
+
+
+  async function assignWorkoutGroup(group) {
+    const members = group.coach_group_members || [];
+    if (!members.length) {
+      setMessage(`${group.name} has no athletes yet — add athletes from the Command Center roster first.`);
+      return;
+    }
+    if (!libraryWorkoutId) {
+      setMessage('Pick a library workout before assigning training to a group.');
+      return;
+    }
+    setMessage(`Assigning workout to ${group.name}…`);
+    let created = 0;
+    for (const member of members) {
+      const res = await fetch('/api/planned-workouts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          athlete_id: member.athlete_id,
+          library_workout_id: libraryWorkoutId,
+          workout_date: workoutDate,
+        }),
+      });
+      if (res.ok) created += 1;
+    }
+    const workoutName = libraryWorkouts.find((workout) => workout.id === libraryWorkoutId)?.name || 'workout';
+    setMessage(`Assigned "${workoutName}" to ${created}/${members.length} athlete${members.length === 1 ? '' : 's'} in ${group.name}.`);
   }
 
   async function assignGroup(group) {
@@ -71,7 +109,7 @@ export default function CoachGroupsPage() {
       </div>
 
       <p className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm leading-6 text-ink/65">
-        Group similar athletes — same race block, same protocol phase — and assign protocols to everyone at once. One assignment, the whole group tracked.
+        Group similar athletes — same race block, same protocol phase — and assign protocols or calendar workouts to everyone at once. One assignment, the whole group tracked.
       </p>
 
       {message ? <p className="rounded-xl border border-ink/10 bg-white px-4 py-2 text-sm">{message}</p> : null}
@@ -110,6 +148,29 @@ export default function CoachGroupsPage() {
         <p className="text-xs text-ink/45">Pick a template and dates, then use “Assign to group” on any group below.</p>
       </div>
 
+
+      <div className="rounded-2xl border border-ink/10 bg-white p-4 space-y-3">
+        <p className="text-sm font-semibold">Assign a workout to a group calendar</p>
+        {libraryWorkouts.length ? (
+          <select value={libraryWorkoutId} onChange={(e) => setLibraryWorkoutId(e.target.value)} className="w-full rounded border px-3 py-2 text-sm">
+            <option value="">Select a library workout…</option>
+            {libraryWorkouts.map((workout) => (
+              <option key={workout.id} value={workout.id}>
+                {workout.name}{workout.sport ? ` · ${workout.sport}` : ''}{workout.planned_duration_min ? ` · ${Math.round(workout.planned_duration_min)}m` : ''}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <p className="rounded-xl border border-ink/8 bg-paper px-3 py-2 text-sm text-ink/60">
+            No library workouts yet. Save a workout to the library from the <a href="/coach/training-calendar" className="font-semibold text-accent hover:underline">Training Calendar</a>, then assign it to a group here.
+          </p>
+        )}
+        <label className="text-xs text-ink/50">Workout date
+          <input type="date" value={workoutDate} onChange={(e) => setWorkoutDate(e.target.value)} className="mt-1 w-full rounded border px-3 py-2 text-sm text-ink" />
+        </label>
+        <p className="text-xs text-ink/45">Pick a saved workout and date, then use “Assign workout” on any group below.</p>
+      </div>
+
       {loading ? <p className="text-sm text-ink/60">Loading groups…</p> : null}
       {!loading && groups.length === 0 ? (
         <section className="rounded-2xl border border-ink/10 bg-white p-6 text-center">
@@ -128,7 +189,10 @@ export default function CoachGroupsPage() {
                 <h2 className="font-semibold">{g.name}</h2>
                 <p className="text-sm text-ink/60">{g.description || 'No description yet'}</p>
               </div>
-              <button disabled={!templateId} onClick={() => assignGroup(g)} className="rounded-full border px-3 py-1 text-sm disabled:opacity-50">Assign to group</button>
+              <div className="flex flex-wrap gap-2">
+                <button disabled={!templateId} onClick={() => assignGroup(g)} className="rounded-full border px-3 py-1 text-sm disabled:opacity-50">Assign protocol</button>
+                <button disabled={!libraryWorkoutId} onClick={() => assignWorkoutGroup(g)} className="rounded-full border border-accent/30 px-3 py-1 text-sm font-semibold text-accent disabled:opacity-50">Assign workout</button>
+              </div>
             </div>
             <p className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-ink/40">
               {members.length} athlete{members.length === 1 ? '' : 's'}
