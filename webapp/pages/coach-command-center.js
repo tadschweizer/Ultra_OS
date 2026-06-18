@@ -36,6 +36,29 @@ function alertBadge(level) {
   return 'bg-category-sleep/55 text-ink';
 }
 
+
+function messageHref(athleteId, templateKey = 'general_checkin', messageBody = '') {
+  const params = new URLSearchParams({ athlete_id: athleteId, template_key: templateKey });
+  if (messageBody) params.set('message_body', messageBody);
+  return `/messages?${params.toString()}`;
+}
+
+function suggestedTemplateForRelationship(rel) {
+  if (rel.nextRace?.event_date) {
+    const daysToRace = Math.ceil((new Date(rel.nextRace.event_date) - Date.now()) / 86400000);
+    if (daysToRace >= 0 && daysToRace <= 14) return 'race_week_checkin';
+  }
+  if (rel.missedProtocolLogs > 0 || rel.protocolComplianceGap > 15) return 'missed_protocol_reminder';
+  return 'general_checkin';
+}
+
+function suggestedMessageForRelationship(rel) {
+  const athleteName = rel.athlete?.name || 'there';
+  const reason = rel.flagReasons?.[0] || 'I wanted to check in on how the week is going.';
+  const action = rel.flagSuggestion || 'Send me a quick update when you can.';
+  return `Hi ${athleteName}, quick check-in: ${reason} ${action}`;
+}
+
 function daysLabel(n) {
   if (n === null || n === undefined) return '—';
   if (n === 0) return 'today';
@@ -981,13 +1004,22 @@ export default function CoachCommandCenter() {
                             <div className="flex items-start justify-between gap-3">
                               <div>
                                 <p className="text-sm font-semibold text-ink">{rel.athlete?.name || 'Athlete'}</p>
-                                <a
-                                  href={`/coach/athletes/${rel.athlete_id}`}
-                                  className="mt-1 inline-block text-xs font-semibold text-panel underline-offset-2 hover:underline"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  Open detail file →
-                                </a>
+                                <div className="mt-1 flex flex-wrap gap-2">
+                                  <a
+                                    href={`/coach/athletes/${rel.athlete_id}`}
+                                    className="inline-block text-xs font-semibold text-panel underline-offset-2 hover:underline"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    Open detail file →
+                                  </a>
+                                  <a
+                                    href={messageHref(rel.athlete_id, suggestedTemplateForRelationship(rel), suggestedMessageForRelationship(rel))}
+                                    className="inline-block text-xs font-semibold text-accent underline-offset-2 hover:underline"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    Message athlete →
+                                  </a>
+                                </div>
                                 <p className="mt-1 text-xs text-ink/60">
                                   Last logged {daysLabel(rel.daysSinceLog)} · {rel.nextRace ? `${rel.nextRace.name} ${raceDaysLabel(rel.nextRace.event_date)}` : 'No upcoming race'}
                                 </p>
@@ -1011,6 +1043,13 @@ export default function CoachCommandCenter() {
                               </p>
                             )}
                             <div className="mt-3 flex gap-2">
+                              <a
+                                href={messageHref(rel.athlete_id, suggestedTemplateForRelationship(rel), suggestedMessageForRelationship(rel))}
+                                onClick={(e) => e.stopPropagation()}
+                                className="rounded-full border border-accent/30 px-3 py-1 text-xs font-semibold text-accent hover:bg-accent/5"
+                              >
+                                Send nudge
+                              </a>
                               <button
                                 onClick={(e) => { e.stopPropagation(); if (window.confirm(`Remove ${rel.athlete?.name || 'this athlete'} from your roster?`)) handleRemoveAthlete(rel.id); }}
                                 className="rounded-full border border-red-200 px-3 py-1 text-xs text-red-600 hover:bg-red-50"

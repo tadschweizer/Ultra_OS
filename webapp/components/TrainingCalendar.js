@@ -47,7 +47,7 @@ const COMPLIANCE_DOT = {
   none: 'bg-ink/15',
 };
 
-const emptyStep = { type: 'work', repeat: 1, duration_min: 10, distance_km: '', intensity: 'z2', notes: '' };
+const emptyStep = { type: 'work', repeat: 1, duration_min: 10, distance_km: '', intensity: 'z2', target_type: 'open', target_min: '', target_max: '', target_units: '', notes: '' };
 
 const emptyForm = {
   id: null,
@@ -55,6 +55,11 @@ const emptyForm = {
   sport: 'run',
   workout_date: toDateKey(new Date()),
   description: '',
+  objective: '',
+  coach_instructions: '',
+  target_metric: 'duration',
+  planned_if: '',
+  visibility: 'athlete_visible',
   planned_duration_min: '',
   planned_distance_km: '',
   structure: [],
@@ -64,7 +69,7 @@ const emptyForm = {
 
 function StepRow({ step, onChange, onRemove }) {
   return (
-    <div className="grid grid-cols-2 gap-2 rounded-2xl border border-ink/10 bg-paper p-3 sm:grid-cols-[1fr_64px_88px_1fr_auto]">
+    <div className="grid grid-cols-2 gap-2 rounded-2xl border border-ink/10 bg-paper p-3 sm:grid-cols-[1fr_64px_88px_1fr_1fr_80px_auto]">
       <select
         value={step.type}
         onChange={(e) => onChange({ ...step, type: e.target.value })}
@@ -97,6 +102,23 @@ function StepRow({ step, onChange, onRemove }) {
       >
         {INTENSITY_ZONES.map((z) => <option key={z.id} value={z.id}>{z.label}</option>)}
       </select>
+      <select
+        value={step.target_type || 'open'}
+        onChange={(e) => onChange({ ...step, target_type: e.target.value })}
+        className="rounded-xl border border-ink/10 bg-white px-2 py-1.5 text-xs text-ink"
+      >
+        <option value="open">Open target</option>
+        <option value="pace">Pace</option>
+        <option value="heart_rate">Heart rate</option>
+        <option value="power">Power</option>
+        <option value="rpe">RPE</option>
+      </select>
+      <input
+        value={step.target_min || ''}
+        onChange={(e) => onChange({ ...step, target_min: e.target.value })}
+        placeholder="Min"
+        className="rounded-xl border border-ink/10 bg-white px-2 py-1.5 text-xs text-ink"
+      />
       <button
         type="button"
         onClick={onRemove}
@@ -108,7 +130,7 @@ function StepRow({ step, onChange, onRemove }) {
         value={step.notes || ''}
         onChange={(e) => onChange({ ...step, notes: e.target.value })}
         placeholder="Step notes (e.g. 4×8min @ threshold, 2min jog recovery)"
-        className="col-span-2 rounded-xl border border-ink/10 bg-white px-2 py-1.5 text-xs text-ink sm:col-span-5"
+        className="col-span-2 rounded-xl border border-ink/10 bg-white px-2 py-1.5 text-xs text-ink sm:col-span-7"
       />
     </div>
   );
@@ -142,6 +164,7 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose 
       planned_duration_min: form.planned_duration_min === '' ? null : Number(form.planned_duration_min),
       planned_distance_km: form.planned_distance_km === '' ? null : Number(form.planned_distance_km),
       planned_tss: tssEstimate,
+      planned_if: form.planned_if === '' ? null : Number(form.planned_if),
     });
     setSaving(false);
     if (ok) onClose();
@@ -194,6 +217,60 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose 
             onChange={(e) => setField('description', e.target.value)}
             className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink disabled:opacity-60"
           />
+
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <input
+              disabled={!canEditPlan}
+              placeholder="Workout objective / purpose"
+              value={form.objective || ''}
+              onChange={(e) => setField('objective', e.target.value)}
+              className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink disabled:opacity-60"
+            />
+            <input
+              disabled={!canEditPlan}
+              placeholder="Coach instructions (separate from description)"
+              value={form.coach_instructions || ''}
+              onChange={(e) => setField('coach_instructions', e.target.value)}
+              className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink disabled:opacity-60"
+            />
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            <select
+              disabled={!canEditPlan}
+              value={form.target_metric || 'duration'}
+              onChange={(e) => setField('target_metric', e.target.value)}
+              className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink disabled:opacity-60"
+            >
+              <option value="duration">Primary target: duration</option>
+              <option value="distance">Primary target: distance</option>
+              <option value="tss">Primary target: TSS</option>
+              <option value="pace">Primary target: pace</option>
+              <option value="heart_rate">Primary target: heart rate</option>
+              <option value="power">Primary target: power</option>
+              <option value="rpe">Primary target: RPE</option>
+            </select>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              disabled={!canEditPlan}
+              placeholder="Planned IF"
+              value={form.planned_if || ''}
+              onChange={(e) => setField('planned_if', e.target.value)}
+              className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink disabled:opacity-60"
+            />
+            <select
+              disabled={!canEditPlan}
+              value={form.visibility || 'athlete_visible'}
+              onChange={(e) => setField('visibility', e.target.value)}
+              className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink disabled:opacity-60"
+            >
+              <option value="athlete_visible">Visible to athlete</option>
+              <option value="coach_private">Coach private draft</option>
+            </select>
+          </div>
 
           <div className="grid gap-3 sm:grid-cols-3">
             <div>
@@ -295,6 +372,33 @@ function WorkoutDetail({ workout, role, onUpdate, onEdit, onDelete, onClose }) {
   });
   const [feedback, setFeedback] = useState(workout.coach_feedback || '');
   const [busy, setBusy] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [commentBody, setCommentBody] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    fetch(`/api/workout-comments?workout_id=${workout.id}`)
+      .then((r) => (r.ok ? r.json() : { comments: [] }))
+      .then((d) => { if (active) setComments(d.comments || []); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [workout.id]);
+
+  async function sendComment() {
+    if (!commentBody.trim()) return;
+    setBusy(true);
+    const res = await fetch('/api/workout-comments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ planned_workout_id: workout.id, body: commentBody }),
+    });
+    if (res.ok) {
+      const d = await res.json();
+      setComments((prev) => [...prev, d.comment]);
+      setCommentBody('');
+    }
+    setBusy(false);
+  }
 
   async function submit(updates) {
     setBusy(true);
@@ -322,8 +426,13 @@ function WorkoutDetail({ workout, role, onUpdate, onEdit, onDelete, onClose }) {
           <button onClick={onClose} className="rounded-full border border-ink/10 px-4 py-1.5 text-sm text-ink/70 hover:bg-ink/5">Close</button>
         </div>
 
-        {workout.description && (
-          <p className="mt-4 whitespace-pre-wrap rounded-2xl border border-ink/10 bg-white p-4 text-sm leading-6 text-ink/80">{workout.description}</p>
+        {(workout.objective || workout.description || workout.coach_instructions) && (
+          <div className="mt-4 space-y-2 rounded-2xl border border-ink/10 bg-white p-4 text-sm leading-6 text-ink/80">
+            {workout.objective && <p><span className="font-semibold">Objective:</span> {workout.objective}</p>}
+            {workout.description && <p className="whitespace-pre-wrap">{workout.description}</p>}
+            {workout.coach_instructions && <p><span className="font-semibold">Coach instructions:</span> {workout.coach_instructions}</p>}
+            {(workout.target_metric || workout.planned_if) && <p className="text-xs text-ink/55">Primary target: {workout.target_metric || 'duration'}{workout.planned_if ? ` · IF ${workout.planned_if}` : ''}</p>}
+          </div>
         )}
 
         {Array.isArray(workout.structure) && workout.structure.length > 0 && (
@@ -340,6 +449,7 @@ function WorkoutDetail({ workout, role, onUpdate, onEdit, onDelete, onClose }) {
                     {step.duration_min ? `${step.duration_min}min` : ''}
                     {step.distance_km ? ` ${step.distance_km}km` : ''}
                     {' '}@ {INTENSITY_ZONES.find((z) => z.id === step.intensity)?.label || step.intensity}
+                    {step.target_type && step.target_type !== 'open' ? ` · ${step.target_type}${step.target_min ? ` ${step.target_min}` : ''}${step.target_max ? `–${step.target_max}` : ''}${step.target_units ? ` ${step.target_units}` : ''}` : ''}
                   </span>
                   {step.notes && <span className="text-ink/50">— {step.notes}</span>}
                 </div>
@@ -480,8 +590,37 @@ function WorkoutDetail({ workout, role, onUpdate, onEdit, onDelete, onClose }) {
           </div>
         )}
 
+
+        <div className="mt-4 rounded-2xl border border-ink/10 bg-white p-4">
+          <p className="text-xs uppercase tracking-[0.22em] text-ink/55">Workout discussion</p>
+          <div className="mt-3 space-y-2">
+            {!comments.length && <p className="text-sm text-ink/50">No comments yet.</p>}
+            {comments.map((comment) => (
+              <div key={comment.id} className="rounded-xl bg-paper p-3 text-sm text-ink/75">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-ink/45">{comment.sender_role}</p>
+                <p className="mt-1 whitespace-pre-wrap">{comment.body}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 flex gap-2">
+            <input
+              value={commentBody}
+              onChange={(e) => setCommentBody(e.target.value)}
+              placeholder="Add a workout comment…"
+              className="flex-1 rounded-xl border border-ink/10 bg-paper px-3 py-2 text-sm text-ink"
+            />
+            <button disabled={busy || !commentBody.trim()} onClick={sendComment} className="rounded-full bg-panel px-4 py-2 text-sm font-semibold text-paper disabled:opacity-60">Send</button>
+          </div>
+        </div>
+
         {/* Edit / delete */}
         <div className="mt-5 flex items-center justify-between border-t border-ink/8 pt-4">
+          <a
+            href={`/api/workout-export?id=${workout.id}`}
+            className="rounded-full border border-ink/10 px-4 py-2 text-sm font-semibold text-ink/70 hover:bg-ink/5"
+          >
+            Export JSON
+          </a>
           {(role === 'coach' || !workout.coach_id) ? (
             <button onClick={() => onEdit(workout)} className="rounded-full border border-ink/10 px-4 py-2 text-sm font-semibold text-ink/70 hover:bg-ink/5">
               Edit workout
@@ -672,6 +811,11 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
               sport: w.sport,
               workout_date: w.workout_date,
               description: w.description || '',
+              objective: w.objective || '',
+              coach_instructions: w.coach_instructions || '',
+              target_metric: w.target_metric || 'duration',
+              planned_if: w.planned_if ?? '',
+              visibility: w.visibility || 'athlete_visible',
               planned_duration_min: w.planned_duration_min ?? '',
               planned_distance_km: w.planned_distance_km ?? '',
               structure: Array.isArray(w.structure) ? w.structure : [],

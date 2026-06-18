@@ -12,45 +12,184 @@ const MESSAGE_TEMPLATES = {
   general_checkin: 'General check-in: how are you feeling this week and where do you need support?'
 };
 
+function latestByAthlete(messages = []) {
+  const map = new Map();
+  messages.forEach((message) => {
+    const current = map.get(message.athlete_id);
+    if (!current || new Date(message.created_at) > new Date(current.created_at)) {
+      map.set(message.athlete_id, message);
+    }
+  });
+  return map;
+}
+
+async function getCoachProfile(actorId) {
+  const { data } = await supabase.from('coach_profiles').select('id').eq('athlete_id', actorId).maybeSingle();
+  return data || null;
+}
+
+async function getActiveCoachRelationship(actorId) {
+  const { data } = await supabase
+    .from('coach_athlete_relationships')
+    .select('coach_id')
+    .eq('athlete_id', actorId)
+    .eq('status', 'active')
+    .limit(1);
+  return data?.[0] || null;
+}
+
+async function buildCoachConversations(coachId) {
+  const { data: relationships, error: relationshipError } = await supabase
+    .from('coach_athlete_relationships')
+    .select('athlete_id, status, group_name, created_at')
+    .eq('coach_id', coachId)
+    .eq('status', 'active')
+    .order('created_at', { ascending: true });
+  if (relationshipError) throw relationshipError;
+
+  const athleteIds = (relationships || []).map((rel) => rel.athlete_id);
+  if (!athleteIds.length) return [];
+
+  const { data: athletes, error: athleteError } = await supabase
+    .from('athletes')
+    .select('id, name, email')
+    .in('id', athleteIds);
+  if (athleteError) throw athleteError;
+
+  const { data: messages, error: messageError } = await supabase
+    .from('coach_messages')
+    .select('*')
+    .eq('coach_id', coachId)
+    .in('athlete_id', athleteIds)
+    .order('created_at', { ascending: false });
+  if (messageError) throw messageError;
+
+  const latest = latestByAthlete(messages || []);
+  return (relationships || []).map((rel) => {
+    const lastMessage = latest.get(rel.athlete_id) || null;
+    return {
+      athlete_id: rel.athlete_id,
+      athlete: (athletes || []).find((athlete) => athlete.id === rel.athlete_id) || null,
+      group_name: rel.group_name || null,
+      last_message: lastMessage,
+      unread_count: (messages || []).filter((m) => m.athlete_id === rel.athlete_id && m.sender_role === 'athlete' && !m.read_at).length,
+    };
+  }).sort((a, b) => new Date(b.last_message?.created_at || 0) - new Date(a.last_message?.created_at || 0));
+}
+
+async function buildAthleteConversation(actorId, coachId) {
+  const { data: coach } = await supabase
+    .from('coach_profiles')
+    .select('id, display_name')
+    .eq('id', coachId)
+    .maybeSingle();
+  const { data: messages, error } = await supabase
+    .from('coach_messages')
+    .select('*')
+    .eq('coach_id', coachId)
+    .eq('athlete_id', actorId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return [{
+    athlete_id: actorId,
+    athlete: { id: actorId, name: coach?.display_name || 'Coach' },
+    group_name: null,
+    last_message: messages?.[0] || null,
+    unread_count: (messages || []).filter((m) => m.sender_role === 'coach' && !m.read_at).length,
+  }];
+}
+
 export default async function handler(req, res) {
   const actorId = getAthleteId(req);
   if (!actorId) return res.status(401).json({ error: 'Not authenticated' });
 
-  if (req.method === 'GET') {
-    const athleteId = req.query.athlete_id || actorId;
-    const { data: cp } = await supabase.from('coach_profiles').select('id').eq('athlete_id', actorId).maybeSingle();
-    let query = supabase.from('coach_messages').select('*').order('created_at', { ascending: true });
-    if (cp?.id) query = query.eq('coach_id', cp.id).eq('athlete_id', athleteId);
-    else {
-      const { data: rel } = await supabase.from('coach_athlete_relationships').select('coach_id').eq('athlete_id', actorId).eq('status', 'active').limit(1);
-      const coachId = rel?.[0]?.coach_id;
-      if (!coachId) return res.status(200).json({ messages: [], templates: MESSAGE_TEMPLATES });
-      query = query.eq('coach_id', coachId).eq('athlete_id', actorId);
-    }
-    const { data, error } = await query;
-    if (error) return res.status(500).json({ error: error.message });
-    return res.status(200).json({ messages: data || [], templates: MESSAGE_TEMPLATES });
-  }
+  try {
+    if (req.method === 'GET') {
+      const requestedAthleteId = req.query.athlete_id || '';
+      const coachProfile = await getCoachProfile(actorId);
 
-  if (req.method === 'POST') {
-    const body = req.body || {};
-    const { data: coachProfile } = await supabase.from('coach_profiles').select('id').eq('athlete_id', actorId).maybeSingle();
-    if (coachProfile?.id) {
-      if (!body.athlete_id) return res.status(400).json({ error: 'athlete_id is required' });
-      const text = (body.message_body || MESSAGE_TEMPLATES[body.template_key] || '').trim();
-      if (!text) return res.status(400).json({ error: 'message_body is required' });
-      const { data, error } = await supabase.from('coach_messages').insert({ coach_id: coachProfile.id, athlete_id: body.athlete_id, sender_role: 'coach', message_body: text, message_template_key: body.template_key || null }).select('*').single();
+      if (coachProfile?.id) {
+        if (!requestedAthleteId) {
+          const conversations = await buildCoachConversations(coachProfile.id);
+          return res.status(200).json({ messages: [], conversations, templates: MESSAGE_TEMPLATES, role: 'coach' });
+        }
+
+        const { data: relationship } = await supabase
+          .from('coach_athlete_relationships')
+          .select('id')
+          .eq('coach_id', coachProfile.id)
+          .eq('athlete_id', requestedAthleteId)
+          .eq('status', 'active')
+          .maybeSingle();
+        if (!relationship) return res.status(403).json({ error: 'No active coaching relationship with this athlete.' });
+
+        const { data, error } = await supabase
+          .from('coach_messages')
+          .select('*')
+          .eq('coach_id', coachProfile.id)
+          .eq('athlete_id', requestedAthleteId)
+          .order('created_at', { ascending: true });
+        if (error) return res.status(500).json({ error: error.message });
+        const conversations = await buildCoachConversations(coachProfile.id);
+        return res.status(200).json({ messages: data || [], conversations, templates: MESSAGE_TEMPLATES, role: 'coach' });
+      }
+
+      const rel = await getActiveCoachRelationship(actorId);
+      if (!rel?.coach_id) return res.status(200).json({ messages: [], conversations: [], templates: MESSAGE_TEMPLATES, role: 'athlete' });
+
+      const { data, error } = await supabase
+        .from('coach_messages')
+        .select('*')
+        .eq('coach_id', rel.coach_id)
+        .eq('athlete_id', actorId)
+        .order('created_at', { ascending: true });
       if (error) return res.status(500).json({ error: error.message });
+      const conversations = await buildAthleteConversation(actorId, rel.coach_id);
+      return res.status(200).json({ messages: data || [], conversations, templates: MESSAGE_TEMPLATES, role: 'athlete' });
+    }
+
+    if (req.method === 'POST') {
+      const body = req.body || {};
+      const coachProfile = await getCoachProfile(actorId);
+      if (coachProfile?.id) {
+        if (!body.athlete_id) return res.status(400).json({ error: 'athlete_id is required' });
+        const { data: relationship } = await supabase
+          .from('coach_athlete_relationships')
+          .select('id')
+          .eq('coach_id', coachProfile.id)
+          .eq('athlete_id', body.athlete_id)
+          .eq('status', 'active')
+          .maybeSingle();
+        if (!relationship) return res.status(403).json({ error: 'No active coaching relationship with this athlete.' });
+
+        const text = (body.message_body || MESSAGE_TEMPLATES[body.template_key] || '').trim();
+        if (!text) return res.status(400).json({ error: 'message_body is required' });
+        const { data, error } = await supabase.from('coach_messages').insert({ coach_id: coachProfile.id, athlete_id: body.athlete_id, sender_role: 'coach', message_body: text, message_template_key: body.template_key || null }).select('*').single();
+        if (error) return res.status(500).json({ error: error.message });
+        return res.status(200).json({ message: data });
+      }
+
+      const rel = await getActiveCoachRelationship(actorId);
+      const coachId = rel?.coach_id;
+      if (!coachId) return res.status(403).json({ error: 'No active coach relationship' });
+      if (!body.message_body?.trim()) return res.status(400).json({ error: 'message_body is required' });
+      const text = body.message_body.trim();
+      const { data, error } = await supabase.from('coach_messages').insert({ coach_id: coachId, athlete_id: actorId, sender_role: 'athlete', message_body: text }).select('*').single();
+      if (error) return res.status(500).json({ error: error.message });
+      await supabase.from('coach_notifications').insert({
+        coach_id: coachId,
+        athlete_id: actorId,
+        notification_type: 'athlete_message',
+        title: 'New athlete message',
+        body: text.slice(0, 240),
+        entity_type: 'coach_message',
+        entity_id: data.id,
+      });
       return res.status(200).json({ message: data });
     }
-    const { data: rel } = await supabase.from('coach_athlete_relationships').select('coach_id').eq('athlete_id', actorId).eq('status', 'active').limit(1);
-    const coachId = rel?.[0]?.coach_id;
-    if (!coachId) return res.status(403).json({ error: 'No active coach relationship' });
-    if (!body.message_body?.trim()) return res.status(400).json({ error: 'message_body is required' });
-    const { data, error } = await supabase.from('coach_messages').insert({ coach_id: coachId, athlete_id: actorId, sender_role: 'athlete', message_body: body.message_body.trim() }).select('*').single();
-    if (error) return res.status(500).json({ error: error.message });
-    return res.status(200).json({ message: data });
-  }
 
-  res.status(405).end();
+    res.status(405).end();
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 }
