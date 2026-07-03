@@ -45,9 +45,9 @@ export default function MyApp({ Component, pageProps }) {
         <title>{title}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#EAE4DA" />
-        <meta name="description" content="Performance intelligence for athletes who go long." />
-        <meta property="og:title" content={title} />
-        <meta property="og:description" content="Performance intelligence for athletes who go long." />
+        <meta key="description" name="description" content="The operating layer for serious coaching businesses — roster management, structured protocols, athlete check-ins, and race prep in one professional home." />
+        <meta key="og-title" property="og:title" content={title} />
+        <meta key="og-description" property="og:description" content="The operating layer for serious coaching businesses — roster management, structured protocols, athlete check-ins, and race prep in one professional home." />
         <meta property="og:image" content="/og-image.svg" />
         <meta property="og:type" content="website" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
