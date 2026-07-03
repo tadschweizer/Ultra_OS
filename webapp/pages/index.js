@@ -24,6 +24,11 @@ const ICON_PATHS = {
   book: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z',
   calendar: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z',
   message: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z',
+  trend: 'M23 6l-9.5 9.5-5-5L1 18M17 6h6v6',
+  eye: 'M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
+  battery: 'M17 6H3a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zM23 13v-2M6 10v4M10 10v4',
+  alert: 'M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01',
+  layers: 'M12 2 2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5',
 };
 
 function Icon({ name, className = 'h-5 w-5' }) {
@@ -43,18 +48,20 @@ function Icon({ name, className = 'h-5 w-5' }) {
   );
 }
 
-function CheckMark() {
+/* ── Sparkline (marketing illustration, 2px line + end dot) ──────── */
+function Sparkline({ points, stroke, width = 92, height = 26 }) {
+  const min = Math.min(...points);
+  const max = Math.max(...points);
+  const step = width / (points.length - 1);
+  const y = (v) => height - 3 - (((v - min) / (max - min)) * (height - 6));
+  const d = points
+    .map((p, i) => `${i === 0 ? 'M' : 'L'}${(i * step).toFixed(1)},${y(p).toFixed(1)}`)
+    .join(' ');
+  const last = points[points.length - 1];
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="mt-1 h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden="true">
-      <path d="M20 6 9 17l-5-5" />
-    </svg>
-  );
-}
-
-function CrossMark() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="mt-1 h-3.5 w-3.5 shrink-0 text-ink/30" aria-hidden="true">
-      <path d="M18 6 6 18M6 6l12 12" />
+    <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height} aria-hidden="true" className="shrink-0">
+      <path d={d} fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={width} cy={y(last)} r="2.5" fill={stroke} />
     </svg>
   );
 }
@@ -63,153 +70,182 @@ function CrossMark() {
 
 const painPoints = [
   {
-    title: 'Referrals are a pipeline you can’t see',
-    body: 'Word-of-mouth built your roster, but it arrives on its own schedule. Some seasons you turn athletes away; others you quietly wonder where the next inquiry is coming from.',
+    title: 'Review happens athlete by athlete',
+    body: 'Open a file, scan the charts, reconstruct the story, move to the next one. With ten athletes that ritual eats a morning. With thirty, something gets skimmed — and the athlete who needed attention is usually the one you skimmed.',
   },
   {
-    title: 'Athletes judge the operation before the coaching',
-    body: 'A serious athlete decides whether you look professional long before they experience how good you actually are. Scattered systems undersell the coaching behind them.',
+    title: 'The charts don’t say what changed',
+    body: 'Pace, power, HR, load — the numbers are all there, but the interpretation is all on you. Spotting that an athlete’s response quietly shifted two weeks ago means holding thirty baselines in your head.',
   },
   {
-    title: 'The admin lives in six places',
-    body: 'Plans in one app, check-ins over text, protocols in a spreadsheet, race notes in your head. Every athlete you add multiplies the tabs — and the chances something slips.',
+    title: 'Subjective and objective live in different places',
+    body: 'The training log says the workout was completed. The athlete’s text says their legs are dead. Connecting how athletes feel to what the data shows still happens manually — in your memory, across two apps.',
   },
   {
-    title: 'Your hours go to chasing, not coaching',
-    body: '“How did the heat block go?” “Did you do the gut session?” The follow-up messages that hold your coaching together are exactly the hours nobody pays you for.',
+    title: 'Early signals get found late',
+    body: 'A fading athlete looks fine right up until the workout quality drops. By the time a problem is obvious on a chart, it’s already expensive. The signal was there earlier — someone just had to be looking.',
   },
 ];
 
-const shifts = [
-  { from: 'Spreadsheets, DMs, and memory', to: 'One roster with a real system of record' },
-  { from: '“Trust me, it works”', to: 'Feedback backed by each athlete’s own data' },
-  { from: 'Onboarding over group text', to: 'A professional invite and first-week flow' },
-  { from: 'Guessing who needs attention', to: 'A daily triage that surfaces it for you' },
-  { from: 'Pricing anxiety as the roster grows', to: 'One flat rate at any roster size' },
+const comparisons = [
+  { log: 'What was planned and what was completed', threshold: 'What actually changed, and for whom' },
+  { log: 'Athlete-by-athlete file review', threshold: 'Roster-level priorities every morning' },
+  { log: 'Raw charts you interpret yourself', threshold: 'Highlighted changes with the context attached' },
+  { log: 'Workout data on one side, athlete texts on the other', threshold: 'Check-ins and training data read together' },
+  { log: 'Data display', threshold: 'Decision support' },
+  { log: 'A review routine you build and maintain', threshold: 'A prioritized coach workflow, built in' },
+];
+
+const dashboardModules = [
+  {
+    icon: 'eye',
+    title: 'Roster health at a glance',
+    body: 'Who’s progressing, who’s off-protocol, who’s missing data, who races soon — before you open a single athlete file.',
+  },
+  {
+    icon: 'alert',
+    title: 'A needs-review queue with reasons',
+    body: 'Athletes surface with the why attached: a check-in trend change, missed protocol days, a gap in the data. Not just a name — a starting point.',
+  },
+  {
+    icon: 'pulse',
+    title: 'Check-ins read against the training',
+    body: 'Athletes report legs feel, energy, and RPE in about 30 seconds. Threshold compares every check-in against the interventions of the prior 48 hours and surfaces what’s actually moving training quality — per athlete.',
+  },
+  {
+    icon: 'clipboard',
+    title: 'Compliance without chasing',
+    body: 'Assign structured protocols — heat, gut, sleep, fueling — to an athlete or a whole group, then watch execution patterns instead of sending “did you do it?” texts.',
+  },
+  {
+    icon: 'flag',
+    title: 'Race prep risk across the roster',
+    body: 'Race blueprints sequence fueling, hydration, and pre-race protocols from each athlete’s own logged baseline — and show you where prep is on track or slipping.',
+  },
+  {
+    icon: 'message',
+    title: 'Notes and messaging next to the data',
+    body: 'Coach notes, shared resources, and athlete messages live beside the numbers they’re about, so the conversation and the evidence stay in one place.',
+  },
 ];
 
 const pillars = [
   {
-    icon: 'roster',
-    label: 'Coach Command Center',
-    headline: 'Run the whole roster from one morning view',
-    body: 'Threshold opens on the questions that actually drive a coaching day: who needs attention, who races soon, who is off-protocol, who is missing data. Triage first, then coach — instead of scrolling message threads to reconstruct the picture.',
+    icon: 'trend',
+    title: 'Load and response',
+    body: 'Not just how much work was done — how each athlete is absorbing it, and when the relationship between the two shifts.',
   },
   {
-    icon: 'clipboard',
-    label: 'Protocol Assignments',
-    headline: 'Assign real protocols, not vague advice',
-    body: 'Heat blocks, gut training, sodium bicarbonate, sleep extension — assign structured protocols to a single athlete or a whole training group, then watch compliance without asking. Your expertise, delivered like a professional service.',
+    icon: 'battery',
+    title: 'Fatigue and readiness signals',
+    body: 'Check-in trends read against training load, flagged as trend changes and review suggestions — early enough to matter, never dressed up as certainty.',
+  },
+  {
+    icon: 'calendar',
+    title: 'Consistency and compliance',
+    body: 'Missed-session patterns and protocol execution across the roster, so inconsistency shows up as a pattern instead of an anecdote.',
   },
   {
     icon: 'pulse',
-    label: 'Athlete Check-ins & Correlations',
-    headline: 'Give feedback their own data backs up',
-    body: 'Athletes report each session in about 30 seconds — legs feel, energy, RPE. Threshold compares every check-in against the interventions from the prior 48 hours and surfaces what’s actually moving training quality, per athlete.',
+    title: 'Subjective feedback trends',
+    body: 'Legs feel, energy, and RPE tracked over time and correlated with what the athlete actually did — the half of the picture most platforms leave in your text messages.',
   },
   {
     icon: 'flag',
-    label: 'Race Prep Oversight',
-    headline: 'Walk every athlete to the start line prepared',
-    body: 'Race blueprints sequence fueling, hydration, and pre-race protocols from the athlete’s own logged baseline. You see race-prep risk across the roster, and the post-race debrief closes the loop for next season.',
-  },
-];
-
-const supportingPillars = [
-  {
-    icon: 'calendar',
-    label: 'Training Calendar',
-    body: 'A weekly calendar for planned work and group workout assignments — alongside the protocol layer, not a replacement for your planning stack.',
+    title: 'Race readiness',
+    body: 'Prep protocols, fueling rehearsals, and taper context tied to a date on the calendar — with roster-level visibility into who’s on track.',
   },
   {
-    icon: 'book',
-    label: 'Research Library',
-    body: '72 peer-reviewed papers across 19 topics, written in plain English. Point an athlete at the evidence behind your call instead of “because I said so.”',
+    icon: 'alert',
+    title: 'Risk signals',
+    body: 'Rising-fatigue patterns, under-recovery reports, and plateau risk surfaced as signals for your judgment — “review suggested,” not a verdict.',
+  },
+  {
+    icon: 'layers',
+    title: 'Performance progression',
+    body: 'Whether each athlete is improving, flat, or declining against their own history — not against a population average that doesn’t coach them.',
   },
   {
     icon: 'message',
-    label: 'Notes & Messaging',
-    body: 'Coach notes, shared resources, and athlete messaging live next to the data they’re about — not in a separate app with no context.',
+    title: 'Coach-athlete communication',
+    body: 'Turn what the data shows into language athletes understand, so the why behind an adjustment lands as clearly as the adjustment itself.',
   },
 ];
 
-const forWho = [
-  'Coaches whose service should look as professional as their coaching already is',
-  'Coaches good at the craft who need better systems around it',
-  'Coaches who want to attract committed athletes, not tire-kickers',
-  'Coaches moving from side-project coaching to a real business',
-  'Coaches tired of patching together spreadsheets, DMs, and five apps',
+const fasterAnswers = [
+  'Which athletes need a check-in today',
+  'Who is absorbing training well',
+  'Who is trending toward overload',
+  'Who is missing key sessions — and whether it’s a pattern',
+  'Who is improving despite lower volume',
+  'Who is hitting workouts but reporting poor recovery',
+  'Who needs a plan adjustment before race week',
+  'Where performance is improving, flat, or declining',
 ];
 
-const notForWho = [
-  'Coaches looking for a shortcut instead of a system',
-  'Coaches who won’t put structure behind their protocols',
-  'Coaches who want automation to replace the actual coaching',
-];
-
-const differentiators = [
-  {
-    title: 'Built around your credibility, not just software',
-    body: 'Everything an athlete touches — the invite, the assigned protocol, the data-backed feedback — makes your coaching look like the professional service it is. The product is your operation, seen from the athlete’s side.',
-  },
-  {
-    title: 'It works alongside your planning stack',
-    body: 'Threshold doesn’t ask you to abandon TrainingPeaks or Strava. Plans and workouts stay where they are; Threshold owns the layer they miss — protocols, responses, readiness, and race prep.',
-  },
-  {
-    title: 'Flat pricing that respects growth',
-    body: 'One rate whether you coach 5 athletes or 50. Your software bill shouldn’t punish you for doing the thing you set out to do. Athletes join your roster free.',
-  },
-  {
-    title: 'Evidence over hype',
-    body: 'No “10x your roster overnight.” A peer-reviewed research library, per-athlete correlations, and honest numbers. If a claim isn’t in the data, it isn’t on the page.',
-  },
-];
-
-const steps = [
+const workflow = [
   {
     step: '01',
-    title: 'Set up your roster',
-    body: 'Create your coach account and invite athletes. They join free, connect Strava or log manually, and land in a clean first-week flow — no onboarding-by-group-text.',
+    title: 'Open Threshold',
+    body: 'One morning view of the whole roster — not thirty tabs.',
   },
   {
     step: '02',
-    title: 'Assign the work',
-    body: 'Put structured protocols on each athlete or training group — heat, gut, sleep, fueling. Athletes see exactly what to do today; you see who’s doing it.',
+    title: 'See the priorities',
+    body: 'The review queue is already ordered: who needs attention, who races soon, who went quiet.',
   },
   {
     step: '03',
-    title: 'Coach with the data',
-    body: 'Check-ins flow in after every session. Correlations surface per athlete. Your feedback stops being opinion and starts being their own numbers, read by an expert.',
+    title: 'Review with the reason attached',
+    body: 'Every flag carries its why — the trend change, the missed protocol days, the check-in pattern — so review starts at the signal, not at a blank chart.',
+  },
+  {
+    step: '04',
+    title: 'Adjust and communicate',
+    body: 'Change the plan, assign a protocol, or send feedback the athlete’s own data backs up.',
+  },
+  {
+    step: '05',
+    title: 'Watch the response',
+    body: 'The next check-ins show whether the adjustment landed — closing the loop most coaching stacks leave open.',
   },
 ];
 
-/* ── Hero roster panel (stylized product illustration) ───────────── */
-function RosterPanel() {
-  const rows = [
+/* ── Hero dashboard panel (stylized product illustration) ────────── */
+function CommandCenterPanel() {
+  const tiles = [
+    { label: 'Athletes', value: '12' },
+    { label: 'Need review', value: '3', accent: true },
+    { label: 'Race ≤ 21d', value: '2' },
+    { label: 'Check-ins wk', value: '87%' },
+  ];
+  const queue = [
+    {
+      initials: 'SH',
+      name: 'S. Hartley',
+      chip: 'Review suggested',
+      chipTone: 'warn',
+      detail: 'Legs feel down 4 check-ins in a row while load held steady',
+      spark: [72, 70, 66, 58, 52, 44],
+      sparkStroke: '#f87171',
+    },
     {
       initials: 'MO',
       name: 'M. Okafor',
       chip: 'Races in 12 days',
       chipTone: 'amber',
-      detail: 'Race prep on track',
-      pct: 92,
-    },
-    {
-      initials: 'SH',
-      name: 'S. Hartley',
-      chip: 'Needs attention',
-      chipTone: 'warn',
-      detail: 'Heat block · day 4 missed',
-      pct: 41,
+      detail: 'Race prep on track · fueling rehearsal logged Tuesday',
+      spark: [40, 46, 44, 55, 62, 68],
+      sparkStroke: '#e0a13a',
     },
     {
       initials: 'JR',
       name: 'J. Ruiz',
-      chip: '+1.4 legs feel',
+      chip: 'Adapting well',
       chipTone: 'positive',
-      detail: 'Foam rolling correlation · 3 check-ins this week',
-      pct: 78,
+      detail: 'Energy trending up at reduced volume · 5 check-ins this week',
+      spark: [38, 45, 52, 50, 61, 74],
+      sparkStroke: '#34d399',
     },
   ];
   const chipStyles = {
@@ -218,14 +254,22 @@ function RosterPanel() {
     positive: 'bg-emerald-400/15 text-emerald-300',
   };
   return (
-    <div className="rounded-[22px] bg-panel p-6 text-white shadow-panel" aria-label="Illustration of the Coach Command Center roster triage">
+    <div className="rounded-[22px] bg-panel p-6 text-white shadow-panel" aria-label="Illustration of the Threshold coach dashboard: roster tiles, review queue with trend lines, and race countdown">
       <div className="flex items-center justify-between">
         <p className="ui-eyebrow" style={{ color: 'var(--color-accent-amber-light)' }}>Coach Command Center</p>
-        <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-white/40">This morning</span>
+        <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-white/40">Tue · 6:42 AM</span>
       </div>
-      <p className="mt-2 text-[15px] font-semibold leading-snug">Roster triage — who needs you today</p>
-      <div className="mt-4 space-y-4">
-        {rows.map((row) => (
+      <div className="mt-4 grid grid-cols-4 gap-2">
+        {tiles.map((t) => (
+          <div key={t.label} className="rounded-xl border border-white/10 bg-white/5 px-2.5 py-2.5 text-center">
+            <p className={`font-mono text-lg font-semibold leading-none ${t.accent ? 'text-amber-light' : 'text-white/90'}`}>{t.value}</p>
+            <p className="mt-1.5 font-mono text-[8.5px] uppercase tracking-[0.08em] text-white/40">{t.label}</p>
+          </div>
+        ))}
+      </div>
+      <p className="mt-5 text-[13px] font-semibold text-white/85">Review queue — highest signal first</p>
+      <div className="mt-3 space-y-4">
+        {queue.map((row) => (
           <div key={row.name}>
             <div className="flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2.5">
@@ -234,16 +278,16 @@ function RosterPanel() {
               </div>
               <span className={`shrink-0 rounded-full px-2.5 py-1 font-mono text-[10px] font-semibold ${chipStyles[row.chipTone]}`}>{row.chip}</span>
             </div>
-            <p className="mt-1.5 pl-[38px] text-xs text-white/50">{row.detail}</p>
-            <div className="ml-[38px] mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
-              <div className="h-full rounded-full" style={{ width: `${row.pct}%`, background: 'var(--color-positive)' }} />
+            <div className="mt-1.5 flex items-end justify-between gap-3 pl-[38px]">
+              <p className="min-w-0 text-xs leading-5 text-white/50">{row.detail}</p>
+              <Sparkline points={row.spark} stroke={row.sparkStroke} />
             </div>
           </div>
         ))}
       </div>
       <div className="mt-5 flex items-center justify-between border-t border-white/10 pt-4 text-xs text-white/45">
-        <span>12 athletes · 2 need attention</span>
-        <span className="font-mono text-[10px] uppercase tracking-[0.12em]">Flat rate</span>
+        <span>Next race: M. Okafor · 12 days</span>
+        <span className="font-mono text-[10px] uppercase tracking-[0.12em]">9 athletes steady</span>
       </div>
     </div>
   );
@@ -295,17 +339,17 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-paper text-ink">
       <Head>
-        <title>Threshold — The operating layer for serious coaching businesses</title>
+        <title>Threshold — Coaching intelligence for endurance coaches</title>
         <meta
           key="description"
           name="description"
-          content="Threshold helps endurance coaches run a professional coaching business — roster triage, protocol assignments, athlete check-ins, and race prep in one place. Flat pricing, any roster size."
+          content="Threshold is the coaching analytics platform above your training log: roster-level athlete monitoring, check-in and training-load trends, protocol compliance, and race-prep oversight — so endurance coaches see what changed, who needs attention, and why."
         />
-        <meta key="og-title" property="og:title" content="Threshold — The operating layer for serious coaching businesses" />
+        <meta key="og-title" property="og:title" content="Threshold — Coaching intelligence for endurance coaches" />
         <meta
           key="og-description"
           property="og:description"
-          content="One professional home for your coaching: roster oversight, structured protocols, data-backed athlete feedback, and race prep. Athletes join free."
+          content="Turn athlete data into coaching decisions. Roster-level analytics, signal detection, and a prioritized coach workflow for endurance coaches."
         />
       </Head>
 
@@ -338,39 +382,39 @@ export default function Home() {
         {/* ── Hero ───────────────────────────────────────────────────── */}
         <section className="relative mt-6 overflow-hidden rounded-[28px] border border-ink/10 bg-white p-6 shadow-warm md:p-10 lg:p-14">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_88%_12%,rgba(16,185,129,0.14),transparent_30%),linear-gradient(135deg,rgba(201,131,29,0.08),rgba(23,50,71,0.04))]" />
-          <div className="relative grid gap-10 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-center xl:grid-cols-[minmax(0,1fr)_380px]">
+          <div className="relative grid gap-10 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-center xl:grid-cols-[minmax(0,1fr)_400px]">
             <div className="min-w-0">
-              <p className="ui-eyebrow" style={{ fontSize: 11 }}>For endurance coaches · The operating layer for your coaching business</p>
+              <p className="ui-eyebrow" style={{ fontSize: 11 }}>Coaching intelligence for endurance coaches</p>
               <h1
                 className="font-display mt-5 max-w-[780px] font-semibold text-ink"
                 style={{ fontSize: 'clamp(38px, 5.6vw, 68px)', lineHeight: 1.05 }}
               >
-                Build a coaching business that looks as good as your coaching.
+                Turn athlete data into coaching decisions.
               </h1>
               <p className="mt-6 max-w-2xl text-base leading-[1.8] text-ink/70 md:text-lg">
-                You’re already great at making athletes faster. Threshold handles what surrounds that — one
-                professional home for your roster, protocols, athlete check-ins, and race prep — so every
-                athlete experiences a serious operation instead of scattered spreadsheets and DMs.
+                Your athletes generate more data than you have time to review. Threshold reads across
+                your whole roster and surfaces what changed, who needs attention, and why it matters —
+                so your hours go to coaching, not to clicking through charts athlete by athlete.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <a
                   href={coachHref}
                   className="rounded-full bg-ink px-7 py-3.5 text-sm font-semibold text-paper shadow-[0_4px_20px_rgba(19,24,22,0.18)] transition hover:opacity-85"
                 >
-                  Set up your roster — free
+                  Get early access — free
                 </a>
                 <a
                   href="/guide"
                   className="rounded-full border border-ink/15 bg-white px-7 py-3.5 text-sm font-semibold text-ink transition hover:bg-surface-light"
                 >
-                  See how it works
+                  See the platform
                 </a>
               </div>
-              <p className="mt-5 text-xs text-ink/45">Free to start · No credit card · Flat coach pricing at any roster size</p>
+              <p className="mt-5 text-xs text-ink/45">Free to start · No credit card · Flat pricing at any roster size</p>
             </div>
 
             <div className="min-w-0">
-              <RosterPanel />
+              <CommandCenterPanel />
             </div>
           </div>
         </section>
@@ -379,10 +423,12 @@ export default function Home() {
         <section className="mt-20">
           <p className="ui-eyebrow">The problem</p>
           <h2 className="font-display mt-3 max-w-3xl text-3xl font-semibold text-ink md:text-4xl" style={{ letterSpacing: '-0.01em' }}>
-            Good coaching alone doesn’t grow a coaching business.
+            Training data is everywhere. Coaching insight is not.
           </h2>
           <p className="mt-4 max-w-2xl text-sm leading-7 text-ink/60 md:text-base">
-            Most coaches don’t have a coaching problem. They have an operation problem — and athletes can tell.
+            Serious coaches don’t lack data — between the training log, the wearables, the spreadsheets,
+            and the athlete texts, there’s too much of it. What’s missing is prioritization: knowing what
+            changed, and which of it deserves your attention first.
           </p>
           <div className="mt-8 grid gap-5 md:grid-cols-2">
             {painPoints.map((p) => (
@@ -394,119 +440,162 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ── Transformation ────────────────────────────────────────── */}
+        {/* ── Beyond training platforms ─────────────────────────────── */}
         <section className="mt-20">
           <div className="rounded-[32px] border border-accent/20 bg-[linear-gradient(135deg,#fffbf0_0%,#fdf3d7_100%)] p-8 shadow-[0_8px_32px_rgba(201,131,29,0.10)] md:p-12">
-            <p className="ui-eyebrow">The shift</p>
+            <p className="ui-eyebrow">Beyond the training log</p>
             <h2 className="font-display mt-3 max-w-2xl text-3xl font-semibold text-ink md:text-4xl" style={{ letterSpacing: '-0.01em' }}>
-              The threshold worth crossing.
+              Your training log is doing its job. Threshold is the layer above it.
             </h2>
-            <div className="mt-8 space-y-0 divide-y divide-accent/15">
-              {shifts.map((s) => (
-                <div key={s.to} className="grid gap-1.5 py-4 md:grid-cols-[minmax(0,1fr)_28px_minmax(0,1fr)] md:items-center md:gap-4">
-                  <p className="text-sm text-ink/45 md:text-right">{s.from}</p>
-                  <span className="hidden text-center font-mono text-accent md:block" aria-hidden="true">→</span>
-                  <p className="text-sm font-semibold text-ink">{s.to}</p>
-                </div>
-              ))}
+            <p className="mt-4 max-w-2xl text-sm leading-7 text-ink/65 md:text-base">
+              Platforms like TrainingPeaks are strong at planning and logging training — keep using them.
+              Threshold sits on top of that work and does the part they leave to you: interpreting the
+              data, prioritizing the roster, and turning what changed into what to do next.
+            </p>
+            <div className="mt-8 overflow-hidden rounded-[20px] border border-accent/15 bg-white/60">
+              <div className="hidden grid-cols-[minmax(0,1fr)_28px_minmax(0,1fr)] gap-4 border-b border-accent/15 bg-white/50 px-6 py-3 md:grid">
+                <p className="text-right font-mono text-[10px] uppercase tracking-[0.2em] text-ink/40">The training log answers</p>
+                <span aria-hidden="true" />
+                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent">Threshold answers</p>
+              </div>
+              <div className="divide-y divide-accent/10 px-6">
+                {comparisons.map((c) => (
+                  <div key={c.threshold} className="grid gap-1.5 py-4 md:grid-cols-[minmax(0,1fr)_28px_minmax(0,1fr)] md:items-center md:gap-4">
+                    <p className="text-sm text-ink/45 md:text-right">{c.log}</p>
+                    <span className="hidden text-center font-mono text-accent md:block" aria-hidden="true">→</span>
+                    <p className="text-sm font-semibold text-ink">{c.threshold}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="mt-8 flex flex-wrap items-center gap-4">
+              <a href={coachHref} className="ui-button-primary">Get early access</a>
+              <p className="text-xs text-ink/50">Works alongside your planning stack — nothing to migrate.</p>
             </div>
           </div>
         </section>
 
-        {/* ── What Threshold does ───────────────────────────────────── */}
+        {/* ── Coach dashboard ───────────────────────────────────────── */}
         <section className="mt-20">
-          <p className="ui-eyebrow">What Threshold does</p>
-          <h2 className="font-display mt-3 max-w-3xl text-3xl font-semibold text-ink md:text-4xl" style={{ letterSpacing: '-0.01em' }}>
-            The professional layer between your expertise and your athletes.
-          </h2>
-          <div className="mt-8 grid gap-5 md:grid-cols-2">
-            {pillars.map((f) => (
-              <div key={f.label} className="flex flex-col rounded-[28px] border border-ink/10 bg-white p-8 shadow-[0_8px_24px_rgba(19,24,22,0.05)]">
-                <div className="flex items-center gap-3">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent">
-                    <Icon name={f.icon} />
-                  </span>
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-ink/40">{f.label}</p>
-                </div>
-                <h3 className="mt-5 text-xl font-semibold leading-snug text-ink md:text-2xl">{f.headline}</h3>
-                <p className="mt-3 text-sm leading-7 text-ink/60">{f.body}</p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-5 grid gap-5 md:grid-cols-3">
-            {supportingPillars.map((f) => (
-              <div key={f.label} className="rounded-[24px] border border-ink/10 bg-surface-light p-6">
-                <div className="flex items-center gap-2.5 text-ink/50">
-                  <Icon name={f.icon} className="h-[18px] w-[18px]" />
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em]">{f.label}</p>
-                </div>
-                <p className="mt-3 text-sm leading-6 text-ink/65">{f.body}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ── Who it's for ──────────────────────────────────────────── */}
-        <section className="mt-20 grid gap-6 lg:grid-cols-2">
-          <div className="rounded-[28px] border border-ink/10 bg-white p-8 shadow-[0_8px_24px_rgba(19,24,22,0.05)]">
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-accent">Threshold is for</p>
-            <div className="mt-6 space-y-4">
-              {forWho.map((item) => (
-                <div key={item} className="flex items-start gap-3 text-sm leading-6 text-ink/75">
-                  <CheckMark />
-                  <span>{item}</span>
+          <div className="rounded-[32px] bg-panel p-8 text-white md:p-12">
+            <p className="ui-eyebrow" style={{ color: 'var(--color-accent-amber-light)' }}>The coach dashboard</p>
+            <h2 className="font-display mt-3 max-w-2xl text-3xl font-semibold leading-snug md:text-4xl" style={{ letterSpacing: '-0.01em' }}>
+              One morning view of the whole roster.
+            </h2>
+            <p className="mt-4 max-w-2xl text-sm leading-7 text-white/60">
+              The Coach Command Center opens on the questions that actually drive a coaching day —
+              who needs attention, who races soon, who is off-protocol, who went quiet — with the
+              reason for every flag attached. Triage first, then coach.
+            </p>
+            <div className="mt-10 grid gap-x-8 gap-y-7 md:grid-cols-2 lg:grid-cols-3">
+              {dashboardModules.map((m) => (
+                <div key={m.title}>
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10 text-amber-light">
+                      <Icon name={m.icon} className="h-[18px] w-[18px]" />
+                    </span>
+                    <h3 className="text-[15px] font-semibold leading-snug text-white/90">{m.title}</h3>
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-white/55">{m.body}</p>
                 </div>
               ))}
             </div>
-          </div>
-          <div className="rounded-[28px] border border-ink/10 bg-surface-light p-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-ink/35">It’s not for</p>
-            <div className="mt-6 space-y-4">
-              {notForWho.map((item) => (
-                <div key={item} className="flex items-start gap-3 text-sm leading-6 text-ink/55">
-                  <CrossMark />
-                  <span>{item}</span>
-                </div>
-              ))}
-            </div>
-            <p className="mt-8 border-t border-ink/10 pt-6 text-sm leading-7 text-ink/60">
-              Threshold makes a serious coaching practice easier to run and easier to trust. It doesn’t
-              replace the judgment, relationships, or work that make coaching worth paying for.
+            <p className="mt-10 border-t border-white/10 pt-6 text-xs leading-6 text-white/40">
+              Signals are decision support, not verdicts. Threshold flags trend changes and suggests
+              review — the read on the athlete, and the call, stay yours.
             </p>
           </div>
         </section>
 
-        {/* ── Differentiation ───────────────────────────────────────── */}
+        {/* ── Analytics pillars ─────────────────────────────────────── */}
         <section className="mt-20">
-          <p className="ui-eyebrow">Why Threshold</p>
+          <p className="ui-eyebrow">The analytics</p>
           <h2 className="font-display mt-3 max-w-3xl text-3xl font-semibold text-ink md:text-4xl" style={{ letterSpacing: '-0.01em' }}>
-            Coaching software is everywhere. A credibility layer isn’t.
+            Eight ways of seeing an athlete, one platform.
           </h2>
-          <div className="mt-8 grid gap-5 md:grid-cols-2">
-            {differentiators.map((d, i) => (
-              <div key={d.title} className="rounded-[24px] border border-ink/10 bg-white p-7 shadow-[0_8px_24px_rgba(19,24,22,0.05)]">
-                <p className="font-mono text-sm font-semibold text-accent">{String(i + 1).padStart(2, '0')}</p>
-                <h3 className="mt-3 text-lg font-semibold leading-snug text-ink">{d.title}</h3>
-                <p className="mt-3 text-sm leading-7 text-ink/60">{d.body}</p>
+          <p className="mt-4 max-w-2xl text-sm leading-7 text-ink/60 md:text-base">
+            Threshold’s analytics are being built pillar by pillar with working coaches. Check-in trends,
+            intervention correlations, protocol compliance, and race-prep oversight are live today; deeper
+            load-response and durability analytics are the roadmap — built in the open, not promised as magic.
+          </p>
+          <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {pillars.map((p) => (
+              <div key={p.title} className="rounded-[20px] border border-ink/10 bg-white p-6 shadow-[0_8px_24px_rgba(19,24,22,0.05)]">
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/10 text-accent">
+                  <Icon name={p.icon} className="h-[18px] w-[18px]" />
+                </span>
+                <h3 className="mt-4 text-[15px] font-semibold leading-snug text-ink">{p.title}</h3>
+                <p className="mt-2 text-[13px] leading-6 text-ink/60">{p.body}</p>
               </div>
             ))}
           </div>
         </section>
 
-        {/* ── Trust / numbers ───────────────────────────────────────── */}
+        {/* ── What coaches can see faster ───────────────────────────── */}
+        <section className="mt-20">
+          <div className="rounded-[32px] border border-ink/10 bg-white p-8 shadow-[0_8px_24px_rgba(19,24,22,0.05)] md:p-12">
+            <div className="grid gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start">
+              <div>
+                <p className="ui-eyebrow">The payoff</p>
+                <h2 className="font-display mt-3 text-3xl font-semibold text-ink md:text-4xl" style={{ letterSpacing: '-0.01em' }}>
+                  Answers in minutes that used to take a morning.
+                </h2>
+                <p className="mt-4 text-sm leading-7 text-ink/60">
+                  Roster review stops being an excavation. These are the questions Threshold is built
+                  to answer before your coffee is done:
+                </p>
+                <a href={coachHref} className="ui-button-primary mt-7">Review your roster faster</a>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {fasterAnswers.map((item) => (
+                  <div key={item} className="flex items-start gap-3 rounded-2xl border border-ink/8 bg-surface-light px-4 py-3.5 text-sm leading-6 text-ink/75">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="mt-1 h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden="true">
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Workflow ──────────────────────────────────────────────── */}
+        <section className="mt-20">
+          <p className="ui-eyebrow">A coach’s day with Threshold</p>
+          <h2 className="font-display mt-3 max-w-3xl text-3xl font-semibold text-ink md:text-4xl" style={{ letterSpacing: '-0.01em' }}>
+            From open tab to informed decision in five steps.
+          </h2>
+          <div className="mt-8 grid gap-5 md:grid-cols-3 lg:grid-cols-5">
+            {workflow.map((item) => (
+              <div key={item.step} className="ui-card">
+                <p className="font-mono text-[28px] font-semibold" style={{ color: 'var(--color-accent-amber)', lineHeight: 1 }}>{item.step}</p>
+                <p className="mt-4 text-base font-semibold leading-snug text-ink">{item.title}</p>
+                <p className="mt-2 text-[13px] leading-6 text-ink/60">{item.body}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Trust / credibility ───────────────────────────────────── */}
         <section className="mt-20">
           <div className="rounded-[32px] bg-panel p-8 text-white md:p-12">
             <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center">
               <div>
                 <p className="ui-eyebrow" style={{ color: 'var(--color-accent-amber-light)' }}>Grounded, not hyped</p>
                 <h2 className="font-display mt-3 text-3xl font-semibold leading-snug" style={{ letterSpacing: '-0.01em' }}>
-                  We publish what’s real. Nothing else.
+                  Built for endurance coaches. Honest about what’s built.
                 </h2>
                 <p className="mt-4 text-sm leading-7 text-white/60">
-                  Threshold is early, and we’d rather say so than manufacture social proof. Coach case
-                  studies and athlete outcomes will appear here as the first cohort earns them. What you
-                  can verify today: the research library, the pricing, and the product itself — free to try
-                  before you commit anything.
+                  Threshold is designed around real coaching workflows — roster triage, athlete
+                  check-ins, structured protocols, race prep — and it’s early. We’d rather say so
+                  than manufacture social proof. Coach case studies will appear here as the first
+                  cohort earns them. What you can verify today: the research library, the pricing,
+                  and the product itself — free to try before you commit anything.
+                </p>
+                <p className="mt-4 text-sm leading-7 text-white/60">
+                  And one principle that won’t change: Threshold informs your judgment. It doesn’t
+                  replace it.
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -526,32 +615,15 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ── How it works ──────────────────────────────────────────── */}
-        <section className="mt-20">
-          <p className="ui-eyebrow">How it works</p>
-          <h2 className="font-display mt-3 text-3xl font-semibold text-ink md:text-4xl" style={{ letterSpacing: '-0.01em' }}>
-            From scattered to professional in three steps.
-          </h2>
-          <div className="mt-8 grid gap-5 md:grid-cols-3">
-            {steps.map((item) => (
-              <div key={item.step} className="ui-card">
-                <p className="font-mono text-[32px] font-semibold" style={{ color: 'var(--color-accent-amber)', lineHeight: 1 }}>{item.step}</p>
-                <p className="mt-4 text-lg font-semibold text-ink">{item.title}</p>
-                <p className="mt-2 text-sm leading-[1.65] text-ink/60">{item.body}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
         {/* ── Athlete strip (secondary audience) ────────────────────── */}
         <section className="mt-12">
           <div className="flex flex-col items-start justify-between gap-5 rounded-[28px] border border-ink/10 bg-white p-8 shadow-[0_8px_24px_rgba(19,24,22,0.05)] md:flex-row md:items-center">
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.25em] text-ink/35">Self-coached?</p>
-              <h3 className="mt-2 text-xl font-semibold text-ink">Threshold works without a coach, too.</h3>
+              <h3 className="mt-2 text-xl font-semibold text-ink">The same analytics, pointed at your own training.</h3>
               <p className="mt-2 max-w-xl text-sm leading-6 text-ink/60">
-                Log interventions, check in after sessions, and let the correlations coach you — the same
-                engine, pointed at your own training.
+                Log interventions, check in after sessions, and see what actually moves your training
+                quality — the engine coaches use, on a roster of one.
               </p>
             </div>
             <a
@@ -569,16 +641,16 @@ export default function Home() {
             className="overflow-hidden rounded-[40px] px-8 py-16 text-center md:px-16 md:py-20"
             style={{ background: 'linear-gradient(135deg, #1c1a17 0%, #302b25 42%, #7d684d 100%)', color: 'var(--color-text-on-dark)' }}
           >
-            <p className="ui-eyebrow" style={{ color: 'var(--color-accent-amber-light)' }}>Free to start · Flat coach pricing</p>
+            <p className="ui-eyebrow" style={{ color: 'var(--color-accent-amber-light)' }}>Early access · Free to start · Flat coach pricing</p>
             <h2
               className="font-display mx-auto mt-4 max-w-2xl font-semibold leading-snug"
               style={{ fontSize: 'clamp(32px, 4vw, 48px)', color: 'var(--color-text-on-dark)' }}
             >
-              Your coaching already earns their trust. Give it an operation that keeps it.
+              See the signal before it becomes a problem.
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-sm leading-7" style={{ color: 'var(--color-text-muted-on-dark)' }}>
-              Set up your roster in an afternoon. Your athletes join free — and from their first invite,
-              your coaching looks like the business it deserves to be.
+              Set up your roster in an afternoon. Athletes join free, check-ins start flowing, and
+              your morning review gets shorter — and sharper — from the first week.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <a
@@ -586,7 +658,7 @@ export default function Home() {
                 className="inline-flex rounded-full px-8 py-4 text-base font-semibold text-white transition hover:opacity-90"
                 style={{ background: 'var(--color-accent-amber)', boxShadow: '0 6px 20px rgba(196,136,42,0.30)' }}
               >
-                Set up your roster →
+                Get early access →
               </a>
               <a
                 href="/pricing"

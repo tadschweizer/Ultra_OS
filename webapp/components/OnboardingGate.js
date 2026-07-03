@@ -3,9 +3,15 @@ import { useRouter } from 'next/router';
 import { protectedRoutes } from '../lib/siteNavigation';
 import { fetchMe, getCachedMe } from '../lib/meClient';
 
+function isGatedPath(path) {
+  return protectedRoutes.includes(path) || path.startsWith('/interventions/') || path.startsWith('/coach/') || path === '/onboarding';
+}
+
 export default function OnboardingGate({ children }) {
   const router = useRouter();
-  const [status, setStatus] = useState('loading');
+  // Public routes render immediately (and prerender with real content + meta
+  // tags for SEO); only protected routes and onboarding wait on the session.
+  const [status, setStatus] = useState(() => (isGatedPath(router.pathname) ? 'loading' : 'ready'));
 
   useEffect(() => {
     let cancelled = false;
