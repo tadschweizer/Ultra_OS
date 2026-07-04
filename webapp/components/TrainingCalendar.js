@@ -892,7 +892,7 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
   const didInitialScroll = useRef(false);
   const prependHeightRef = useRef(null);
   const extendingRef = useRef(false);
-  const openedFromQuery = useRef(false);
+  const lastOpenedFromQuery = useRef(null);
 
   const rangeStart = toDateKey(addDays(anchorMonday, -pastWeeks * 7));
   const rangeEnd = toDateKey(addDays(anchorMonday, futureWeeks * 7 + 6));
@@ -943,11 +943,14 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
   }, [role]);
 
   // Deep link: /calendar?workout=<id> opens the workout detail once loaded.
+  // Tracks the last id opened this way so navigating to a different workout
+  // on the already-mounted calendar re-opens the panel, while closing the
+  // panel doesn't immediately re-trigger for the same id.
   useEffect(() => {
-    if (openedFromQuery.current || !router.isReady) return;
+    if (!router.isReady) return;
     const target = typeof router.query.workout === 'string' ? router.query.workout : '';
-    if (target && workouts.some((w) => w.id === target)) {
-      openedFromQuery.current = true;
+    if (target && target !== lastOpenedFromQuery.current && workouts.some((w) => w.id === target)) {
+      lastOpenedFromQuery.current = target;
       setDetailId(target);
     }
   }, [router.isReady, router.query.workout, workouts]);

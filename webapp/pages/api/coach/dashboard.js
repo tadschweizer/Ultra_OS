@@ -78,7 +78,7 @@ export default async function handler(req, res) {
           .gte('inserted_at', new Date(Date.now() - 42 * 86400000).toISOString()),
         supabase
           .from('activities')
-          .select('athlete_id, start_date, moving_time, perceived_exertion')
+          .select('*')
           .in('athlete_id', athleteIds)
           .gte('start_date', new Date(Date.now() - 42 * 86400000).toISOString()),
       ]);

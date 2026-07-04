@@ -41,14 +41,13 @@ export default async function handler(req, res) {
         ? req.query.athlete_id
         : sessionAthleteId;
 
-      let isCoachView = false;
+      let coachProfile = null;
       if (targetAthleteId !== sessionAthleteId) {
-        const profile = await getCoachProfileFor(admin, sessionAthleteId, targetAthleteId);
-        if (!profile) {
+        coachProfile = await getCoachProfileFor(admin, sessionAthleteId, targetAthleteId);
+        if (!coachProfile) {
           res.status(403).json({ error: 'No active coaching relationship with this athlete.' });
           return;
         }
-        isCoachView = true;
       }
 
       let query = admin
@@ -58,8 +57,13 @@ export default async function handler(req, res) {
         .order('note_date', { ascending: true });
       if (typeof req.query.start === 'string' && req.query.start) query = query.gte('note_date', req.query.start);
       if (typeof req.query.end === 'string' && req.query.end) query = query.lte('note_date', req.query.end);
-      // Athletes never see a coach's private drafts on their own calendar.
-      if (!isCoachView) query = query.eq('visibility', 'athlete_visible');
+      // Private drafts stay private: athletes never see them, and a coach only
+      // sees their own — never another coach's drafts on a shared athlete.
+      if (coachProfile) {
+        query = query.or(`visibility.eq.athlete_visible,and(visibility.eq.coach_private,coach_id.eq.${coachProfile.id})`);
+      } else {
+        query = query.eq('visibility', 'athlete_visible');
+      }
 
       const { data, error } = await query;
       if (error) {

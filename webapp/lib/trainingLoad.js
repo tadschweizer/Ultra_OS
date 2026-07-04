@@ -49,7 +49,10 @@ export function computeActivityTrimp(activity, settings = {}) {
   if (avgHr > restingHr && maxHr > restingHr) {
     hrReserve = Math.min(1, (avgHr - restingHr) / (maxHr - restingHr));
   } else {
-    hrReserve = 0.5; // no HR data — assume steady aerobic work
+    // No HR data: perceived exertion (RPE 1–10) separates hard sessions from
+    // easy ones; otherwise assume steady aerobic work.
+    const rpe = Number(activity?.perceived_exertion) || 0;
+    hrReserve = rpe > 0 ? Math.min(0.95, Math.max(0.3, rpe / 10)) : 0.5;
   }
 
   return minutes * hrReserve * 0.64 * Math.exp(1.92 * hrReserve);

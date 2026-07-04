@@ -63,6 +63,14 @@ test('TRIMP scales with intensity and duration', () => {
   assert.ok(computeActivityTrimp(run({ minutes: 60, avgHr: null }), settings) > 0, 'no-HR sessions still score');
 });
 
+test('perceived exertion separates intensity when HR is missing', () => {
+  const hard = computeActivityTrimp({ moving_time: 3600, perceived_exertion: 9 }, {});
+  const easy = computeActivityTrimp({ moving_time: 3600, perceived_exertion: 3 }, {});
+  const unknown = computeActivityTrimp({ moving_time: 3600 }, {});
+  assert.ok(hard > easy, 'RPE 9 must score more load than RPE 3 at equal duration');
+  assert.ok(unknown > 0, 'sessions with neither HR nor RPE still score');
+});
+
 test('EWMA converges toward a constant load and weights recency', () => {
   const steady = ewmaSeries(Array(84).fill(100), 7);
   assert.ok(Math.abs(steady[steady.length - 1] - 100) < 1, 'ATL converges to steady daily load');
