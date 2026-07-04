@@ -1,6 +1,7 @@
 import { useRouter } from 'next/router';
 import DesktopSidebar from './DesktopSidebar';
 import MobileBottomNav from './MobileBottomNav';
+import MessageCenter from './MessageCenter';
 import RaceCountdownBanner from './RaceCountdownBanner';
 import { appShellExcludedRoutes } from '../lib/siteNavigation';
 
@@ -21,6 +22,7 @@ export default function AppShell({ children }) {
         </div>
         {children}
       </div>
+      <MessageCenter />
       <MobileBottomNav />
     </>
   );
