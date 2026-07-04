@@ -296,58 +296,129 @@ export function classifyActivityType(activity = {}) {
   };
 }
 
+/**
+ * Resolves usable HR intensity thresholds from athlete settings.
+ *
+ * Explicit zone boundaries win. When only max HR (and optionally resting HR)
+ * is known, thresholds are derived with the Karvonen heart-rate-reserve
+ * method. When nothing is configured, every threshold is null — HR-based
+ * classification rules must then be skipped entirely instead of comparing
+ * against 0, which previously made every session with a heart rate read as
+ * "Intervals".
+ */
+function resolveHrThresholds(settings = {}) {
+  const explicit = {
+    zone2Max: Number(settings?.hr_zone_2_max) || null,
+    zone3Min: Number(settings?.hr_zone_3_min) || null,
+    zone4Min: Number(settings?.hr_zone_4_min) || null,
+  };
+  if (explicit.zone2Max || explicit.zone3Min || explicit.zone4Min) return explicit;
+
+  const maxHr = Number(settings?.max_hr) || null;
+  if (!maxHr) return { zone2Max: null, zone3Min: null, zone4Min: null };
+
+  const restingHr = Number(settings?.resting_hr) || null;
+  if (restingHr && restingHr < maxHr) {
+    const reserve = maxHr - restingHr;
+    return {
+      zone2Max: Math.round(restingHr + reserve * 0.7),
+      zone3Min: Math.round(restingHr + reserve * 0.7),
+      zone4Min: Math.round(restingHr + reserve * 0.87),
+    };
+  }
+  return {
+    zone2Max: Math.round(maxHr * 0.75),
+    zone3Min: Math.round(maxHr * 0.75),
+    zone4Min: Math.round(maxHr * 0.89),
+  };
+}
+
+// Word-boundary matching so short keywords never fire on substrings
+// ("set" inside "sunset", "race" inside "bracelet").
+function mentionsAny(text, words) {
+  return words.some((word) => new RegExp(`(^|[^a-z0-9])${word}([^a-z0-9]|$)`, 'i').test(text));
+}
+
 export function classifyActivity(activity, settings = {}) {
   const activityType = classifyActivityType(activity);
   const text = `${activity?.name || ''} ${activity?.description || ''}`.toLowerCase();
-  const avgHr = activity?.average_heartrate || 0;
+  const avgHr = Number(activity?.average_heartrate) || 0;
   const movingHours = secondsToHours(activity?.moving_time);
   const distanceMiles = metersToMiles(activity?.distance);
   const elevationFeet = metersToFeet(activity?.total_elevation_gain);
 
-  const hrZone2Max = settings?.hr_zone_2_max || 0;
-  const hrZone3Min = settings?.hr_zone_3_min || 0;
-  const hrZone4Min = settings?.hr_zone_4_min || 0;
+  const { zone2Max, zone3Min, zone4Min } = resolveHrThresholds(settings);
+  // HR signals only count when thresholds are actually configured/derived.
+  const hrIsHighIntensity = Boolean(zone4Min && avgHr >= zone4Min);
+  const hrIsThreshold = Boolean(zone3Min && zone4Min && avgHr >= zone3Min && avgHr < zone4Min);
+  const hrIsEasy = Boolean(zone2Max && avgHr > 0 && avgHr <= zone2Max);
+
+  const intervalWords = ['interval', 'intervals', 'repeats', 'reps', 'vo2', 'vo2max', 'track', 'fartlek', 'over-under', 'over-unders', 'speedwork', 'speed work'];
+  const thresholdWords = ['threshold', 'tempo', 'sweet spot', 'cruise', 'lt', 'lactate'];
+  const hillWords = ['hill', 'hills', 'strides', 'hill repeats', 'vert'];
 
   if (activityType.family === 'run') {
+    // Explicit intensity language wins over distance heuristics.
+    if (mentionsAny(text, intervalWords) || hrIsHighIntensity) {
+      return {
+        label: 'Intervals',
+        reason: mentionsAny(text, intervalWords)
+          ? 'Run with interval/repeat language in the title or description.'
+          : 'Run with average HR at or above your configured zone 4 floor.',
+      };
+    }
+    if (mentionsAny(text, thresholdWords) || (hrIsThreshold && movingHours >= 0.5)) {
+      return {
+        label: 'Threshold',
+        reason: 'Run with tempo/threshold language or sustained HR in your zone 3 band.',
+      };
+    }
+
     const longRunDistance = activityType.label === 'Trail Run' ? 18 : 13;
     const longRunHours = activityType.label === 'Trail Run' ? 2.75 : 2;
-
     if (distanceMiles >= longRunDistance || movingHours >= longRunHours) {
       return {
         label: 'Long Run',
         reason: 'Run modality plus duration or distance signals a long run.',
       };
     }
+    if (mentionsAny(text, hillWords) || (elevationFeet >= 1500 && distanceMiles > 0)) {
+      return {
+        label: 'Hill Session',
+        reason: 'Hill/stride language or materially elevated vertical gain.',
+      };
+    }
+    if (hrIsEasy) {
+      return {
+        label: 'Easy / Aerobic',
+        reason: 'Average HR sits inside your lower aerobic zones.',
+      };
+    }
+    return {
+      label: 'Easy / Aerobic',
+      reason: 'Run without intensity signals — treated as aerobic mileage. Configure HR zones in Athlete Settings for sharper detection.',
+    };
   }
 
   if (activityType.family === 'bike') {
-    if (
-      includesAny(text, ['interval', 'repeat', 'vo2', 'over-under']) ||
-      avgHr >= hrZone4Min
-    ) {
+    if (mentionsAny(text, intervalWords) || hrIsHighIntensity) {
       return {
         label: 'Intervals',
-        reason: 'Bike session with repeat language or high average HR.',
+        reason: 'Bike session with repeat language or HR at/above your zone 4 floor.',
       };
     }
-
-    if (
-      includesAny(text, ['threshold', 'tempo', 'sweet spot']) ||
-      (avgHr >= hrZone3Min && avgHr < hrZone4Min && movingHours >= 0.5)
-    ) {
+    if (mentionsAny(text, thresholdWords) || (hrIsThreshold && movingHours >= 0.5)) {
       return {
         label: 'Threshold',
         reason: 'Bike session with threshold language or sustained mid-high HR.',
       };
     }
-
     if (distanceMiles >= 40 || movingHours >= 2.5) {
       return {
         label: 'Long Ride',
         reason: 'Bike session duration or distance reads like an endurance ride.',
       };
     }
-
     return {
       label: 'Easy / Aerobic',
       reason: 'Bike session without intensity signals.',
@@ -355,7 +426,7 @@ export function classifyActivity(activity, settings = {}) {
   }
 
   if (activityType.family === 'swim') {
-    if (includesAny(text, ['interval', 'set', 'repeat', 'sprint', 'race pace']) || avgHr >= hrZone4Min) {
+    if (mentionsAny(text, [...intervalWords, 'sets', 'sprint', 'race pace']) || hrIsHighIntensity) {
       return { label: 'Swim Intervals', reason: 'Swim session with interval language or high HR.' };
     }
     if (distanceMiles >= 1.5 || movingHours >= 1.5) {
@@ -365,7 +436,7 @@ export function classifyActivity(activity, settings = {}) {
   }
 
   if (activityType.family === 'row') {
-    if (includesAny(text, ['interval', 'piece', 'sprint', '2k', '500', 'race']) || avgHr >= hrZone4Min) {
+    if (mentionsAny(text, [...intervalWords, 'piece', 'pieces', 'sprint', '2k', '500m', 'race']) || hrIsHighIntensity) {
       return { label: 'Row Intervals', reason: 'Row session with race-pace or interval language or high HR.' };
     }
     if (movingHours >= 1.5) {
@@ -375,7 +446,7 @@ export function classifyActivity(activity, settings = {}) {
   }
 
   if (activityType.family === 'skate') {
-    if (includesAny(text, ['interval', 'sprint', 'race', 'speed', 'time trial']) || avgHr >= hrZone4Min) {
+    if (mentionsAny(text, [...intervalWords, 'sprint', 'race', 'time trial']) || hrIsHighIntensity) {
       return { label: 'Skate Intervals', reason: 'Skate session with speed or interval language or high HR.' };
     }
     if (distanceMiles >= 10 || movingHours >= 1.5) {
@@ -385,7 +456,7 @@ export function classifyActivity(activity, settings = {}) {
   }
 
   if (activityType.family === 'ski') {
-    if (includesAny(text, ['interval', 'sprint', 'race', 'race pace', 'v2', 'skate ski']) || avgHr >= hrZone4Min) {
+    if (mentionsAny(text, [...intervalWords, 'sprint', 'race', 'race pace', 'v2']) || hrIsHighIntensity) {
       return { label: 'Ski Intervals', reason: 'Ski session with race-pace or interval language or high HR.' };
     }
     if (movingHours >= 2 || distanceMiles >= 10) {
@@ -395,7 +466,7 @@ export function classifyActivity(activity, settings = {}) {
   }
 
   if (activityType.family === 'team') {
-    if (includesAny(text, ['game', 'match', 'scrimmage', 'tournament'])) {
+    if (mentionsAny(text, ['game', 'match', 'scrimmage', 'tournament'])) {
       return { label: 'Game / Match', reason: 'Session language indicates a competitive game or match.' };
     }
     return { label: 'Team Practice', reason: 'Team sport session without game language.' };
@@ -405,50 +476,40 @@ export function classifyActivity(activity, settings = {}) {
     return { label: activityType.label, reason: 'Strength or conditioning session.' };
   }
 
-  if (
-    includesAny(text, ['threshold', 'tempo', 'cruise']) ||
-    (avgHr >= hrZone3Min && avgHr < hrZone4Min && movingHours >= 0.5)
-  ) {
+  // Generic fallback for hike / other families.
+  if (mentionsAny(text, thresholdWords) || (hrIsThreshold && movingHours >= 0.5)) {
     return {
       label: 'Threshold',
       reason: 'Tempo/threshold language or sustained HR in your middle-high zones.',
     };
   }
-
-  if (
-    includesAny(text, ['interval', 'repeat', 'repetition', 'track', 'vo2']) ||
-    avgHr >= hrZone4Min
-  ) {
+  if (mentionsAny(text, intervalWords) || hrIsHighIntensity) {
     return {
       label: 'Intervals',
       reason: 'Intervals/repeats language or average HR in your high-intensity zone.',
     };
   }
-
-  if (includesAny(text, ['hill', 'stride', 'climb']) || elevationFeet >= 1500) {
+  if (mentionsAny(text, [...hillWords, 'climb']) || elevationFeet >= 1500) {
     return {
       label: 'Hill Session',
       reason: 'Detected hill/stride language or materially elevated vertical gain.',
     };
   }
-
   if (distanceMiles >= 13 || movingHours >= 2) {
     return {
-      label: 'Long Run',
+      label: 'Long Session',
       reason: 'Duration or distance reads like a long aerobic session.',
     };
   }
-
-  if (avgHr > 0 && avgHr <= hrZone2Max) {
+  if (hrIsEasy) {
     return {
       label: 'Easy / Aerobic',
       reason: 'Average HR sits inside your lower aerobic range.',
     };
   }
-
   return {
     label: 'General Endurance',
-    reason: 'No stronger signal yet. Future versions can add workout-description parsing from linked platforms.',
+    reason: 'No stronger signal yet. Configure HR zones in Athlete Settings to sharpen workout detection.',
   };
 }
 

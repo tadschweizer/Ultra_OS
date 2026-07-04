@@ -61,7 +61,7 @@ export default async function handler(req, res) {
         supabase.from('coach_notes').select('athlete_id, created_at').eq('coach_id', profile.id).in('athlete_id', athleteIds).order('created_at', { ascending: false }),
         supabase.from('daily_checkins').select('athlete_id, created_at, readiness_score').in('athlete_id', athleteIds).order('created_at', { ascending: false }),
         supabase.from('interventions').select('athlete_id, date, inserted_at, dose_duration, subjective_feel').in('athlete_id', athleteIds).gte('inserted_at', new Date(Date.now() - 42 * 86400000).toISOString()),
-        supabase.from('activities').select('athlete_id, start_date, moving_time, perceived_exertion').in('athlete_id', athleteIds).gte('start_date', new Date(Date.now() - 42 * 86400000).toISOString()),
+        supabase.from('activities').select('*').in('athlete_id', athleteIds).gte('start_date', new Date(Date.now() - 42 * 86400000).toISOString()),
       ]);
 
       const athletes = athleteRes.data || [];

@@ -73,7 +73,7 @@ export default async function handler(req, res) {
       .gte('inserted_at', new Date(Date.now() - 42 * 86400000).toISOString()),
     admin
       .from('activities')
-      .select('start_date, moving_time, perceived_exertion')
+      .select('*')
       .eq('athlete_id', athleteId)
       .gte('start_date', new Date(Date.now() - 42 * 86400000).toISOString()),
   ]);

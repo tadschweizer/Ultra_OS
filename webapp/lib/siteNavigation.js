@@ -16,8 +16,10 @@ export const sidebarSections = [
   {
     title: 'Platform',
     items: [
+      { href: '/messages', label: 'Messages' },
       { href: '/connections', label: 'Connections' },
       { href: '/coach-command-center', label: 'Coach Command Center' },
+      { href: '/coach/tools', label: 'Coach Tools' },
       { href: '/content', label: 'Research' },
     ],
   },
@@ -58,6 +60,8 @@ export const protectedRoutes = [
   '/dashboard',
   '/calendar',
   '/coach/training-calendar',
+  '/coach/tools',
+  '/messages',
   '/races',
   '/race-plan',
   '/race-outcome',

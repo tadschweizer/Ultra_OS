@@ -623,7 +623,7 @@ export default function Dashboard() {
         acute: computedLoad.acute.toFixed(1),
         chronic: computedLoad.chronic.toFixed(1),
         form: computedLoad.form.toFixed(1),
-        explainability: 'Calculated from your synced activities using rolling 7-day (acute) and 42-day (chronic) training load.',
+        explainability: 'Calculated from your synced activities using exponentially-weighted 7-day fatigue (ATL) and 42-day fitness (CTL).',
       });
       setLoadStatus({ label: computedLoad.status.label });
     });

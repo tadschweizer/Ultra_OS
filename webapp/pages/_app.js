@@ -19,6 +19,8 @@ export default function MyApp({ Component, pageProps }) {
     '/dashboard': 'Dashboard',
     '/calendar': 'Training Calendar',
     '/coach/training-calendar': 'Coach Training Calendar',
+    '/coach/tools': 'Coach Tools',
+    '/messages': 'Messages',
     '/log-intervention': 'Log Intervention',
     '/history': 'Intervention History',
     '/insights': 'Insights',

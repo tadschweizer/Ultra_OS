@@ -1,14 +1,20 @@
-const DAY_MS = 86400000;
+import { computeActivityTrimp, ewmaSeries } from './trainingLoad';
+
+/**
+ * Server-side load rollup for /api/me. Shares the TRIMP + EWMA model with
+ * lib/trainingLoad so the dashboard, calendar header, and progress page all
+ * report the same fitness/fatigue/form numbers.
+ *
+ * Synced activities are the primary signal. Logged interventions (sauna,
+ * fueling, recovery protocols) are NOT training stress, so they only fill in
+ * as a rough fallback when an athlete has no synced activities at all.
+ */
 
 function toDateOnly(dateLike) {
   const date = new Date(dateLike);
   if (Number.isNaN(date.getTime())) return null;
   date.setHours(0, 0, 0, 0);
   return date;
-}
-
-function daysBetween(start, end) {
-  return Math.round((end.getTime() - start.getTime()) / DAY_MS);
 }
 
 function parseMinutes(value) {
@@ -20,13 +26,7 @@ function parseMinutes(value) {
 function interventionLoadScore(item) {
   const duration = parseMinutes(item?.dose_duration);
   const intensity = Number.isFinite(item?.subjective_feel) ? item.subjective_feel : 5;
-  return duration * Math.max(1, intensity);
-}
-
-function activityLoadScore(item) {
-  const movingTimeMinutes = Number(item?.moving_time || 0) / 60;
-  const intensity = Number.isFinite(item?.perceived_exertion) ? item.perceived_exertion : 5;
-  return movingTimeMinutes * Math.max(1, intensity);
+  return duration * Math.max(1, intensity) / 6; // scale toward TRIMP range
 }
 
 export function buildDailyLoadSeries({ interventions = [], activities = [], lookbackDays = 42, now = new Date() } = {}) {
@@ -45,38 +45,34 @@ export function buildDailyLoadSeries({ interventions = [], activities = [], look
 
   const pointMap = new Map(points.map((point) => [point.key, point]));
 
-  interventions.forEach((item) => {
-    const date = toDateOnly(item.date || item.inserted_at);
-    if (!date) return;
-    const key = date.toISOString().slice(0, 10);
-    if (!pointMap.has(key)) return;
-    pointMap.get(key).load += interventionLoadScore(item);
-  });
+  const hasActivities = (activities || []).some((item) => Number(item?.moving_time) > 0);
 
-  activities.forEach((item) => {
+  (activities || []).forEach((item) => {
     const date = toDateOnly(item.start_date || item.start_time || item.date);
     if (!date) return;
     const key = date.toISOString().slice(0, 10);
     if (!pointMap.has(key)) return;
-    pointMap.get(key).load += activityLoadScore(item);
+    pointMap.get(key).load += computeActivityTrimp(item);
   });
+
+  if (!hasActivities) {
+    (interventions || []).forEach((item) => {
+      const date = toDateOnly(item.date || item.inserted_at);
+      if (!date) return;
+      const key = date.toISOString().slice(0, 10);
+      if (!pointMap.has(key)) return;
+      pointMap.get(key).load += interventionLoadScore(item);
+    });
+  }
 
   return points;
 }
 
-function rollingAverage(points, windowDays) {
-  return points.map((point, idx) => {
-    const start = Math.max(0, idx - windowDays + 1);
-    const slice = points.slice(start, idx + 1);
-    const total = slice.reduce((sum, entry) => sum + entry.load, 0);
-    return total / Math.max(slice.length, 1);
-  });
-}
-
 export function buildLoadMetrics(payload = {}) {
   const daily = buildDailyLoadSeries(payload);
-  const acuteSeries = rollingAverage(daily, 7);
-  const chronicSeries = rollingAverage(daily, 28);
+  const loads = daily.map((point) => point.load);
+  const acuteSeries = ewmaSeries(loads, 7);
+  const chronicSeries = ewmaSeries(loads, 42);
   const latestIndex = daily.length - 1;
   const acute = acuteSeries[latestIndex] || 0;
   const chronic = chronicSeries[latestIndex] || 0;
@@ -92,14 +88,15 @@ export function buildLoadMetrics(payload = {}) {
       acute: Number((acuteSeries[idx] || 0).toFixed(1)),
       chronic: Number((chronicSeries[idx] || 0).toFixed(1)),
     })),
-    explainability: 'Based on your logged duration × intensity, plus synced activities when available',
+    explainability: 'Exponentially-weighted training load from synced activities (7-day fatigue vs 42-day fitness).',
   };
 }
 
 export function buildLoadStatus(metrics) {
   if (!metrics) return { label: 'Unknown', tone: 'neutral' };
-  if (metrics.form < -15) return { label: 'High strain', tone: 'red' };
-  if (metrics.form < -5) return { label: 'Building', tone: 'yellow' };
-  if (metrics.form > 20) return { label: 'Detraining risk', tone: 'yellow' };
+  if (metrics.form < -30) return { label: 'High strain', tone: 'red' };
+  if (metrics.form < -10) return { label: 'Productive build', tone: 'green' };
+  if (metrics.form > 15) return { label: 'Detraining risk', tone: 'yellow' };
+  if (metrics.form > 5) return { label: 'Fresh', tone: 'green' };
   return { label: 'Balanced', tone: 'green' };
 }
