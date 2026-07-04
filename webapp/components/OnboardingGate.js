@@ -3,9 +3,15 @@ import { useRouter } from 'next/router';
 import { protectedRoutes } from '../lib/siteNavigation';
 import { fetchMe, getCachedMe } from '../lib/meClient';
 
+// Explicit whitelist: only these routes render immediately (and prerender
+// with real content + meta tags for SEO). Everything else — protected pages,
+// admin pages, onboarding — starts on the loading shell until the session
+// check in the effect below resolves.
+const publicPrerenderRoutes = ['/', '/guide', '/pricing', '/content', '/login', '/signup'];
+
 export default function OnboardingGate({ children }) {
   const router = useRouter();
-  const [status, setStatus] = useState('loading');
+  const [status, setStatus] = useState(() => (publicPrerenderRoutes.includes(router.pathname) ? 'ready' : 'loading'));
 
   useEffect(() => {
     let cancelled = false;
