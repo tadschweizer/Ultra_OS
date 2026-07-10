@@ -2,6 +2,11 @@
 
 **Priority: 1 of 10. Ship before any other work and before sharing the app with anyone.**
 
+> **Status: IMPLEMENTED in this PR.** Deviations from the plan as written, adopted from code review:
+> - No legacy unsigned-cookie compatibility window (the review correctly noted it would keep the impersonation hole open) — existing sessions are invalidated and users simply log in again.
+> - The signing secret falls back to `SUPABASE_SERVICE_ROLE_KEY` when `SESSION_COOKIE_SECRET` is unset, so existing deploys are secure with zero new configuration.
+> - `pages/api/strava/callback.js` set its own unsigned, non-httpOnly cookie and was migrated too (the review caught that the original plan wrongly excluded it).
+
 ## Goal
 
 Today the entire auth system is a plaintext cookie: `athlete_id=<uuid>`, set with `httpOnly: false` and no signature (`webapp/lib/auth/sessionCookies.js`). Every API route trusts it blindly and then queries Supabase **with the service-role key**, which bypasses RLS. Coach endpoints (e.g. `pages/api/coach/dashboard.js`, `coach-roster.js`) return athlete UUIDs in their JSON responses, so **any coach can copy an athlete's UUID into their own cookie and fully impersonate that athlete** — read, write, and delete their data. Same for anyone who ever sees a UUID in a log, a shared screenshot, or a Sentry event.
@@ -44,7 +49,7 @@ Fix: make the cookie value a signed token `<athleteId>.<hmac>` using an HMAC-SHA
    ```
 3. Change `setAthleteCookie(res, athleteId)` to store `sign(athleteId)` and set `httpOnly: true`.
 4. Change `getAthleteIdFromRequest(req)` to run `verify()` and return the verified athlete id or `null`. Also validate the extracted id with `isValidAthleteId` from `contracts.js` before returning.
-5. **Backwards-compat window (one release):** if `verify()` fails but the raw cookie value passes `isValidAthleteId` (a bare legacy UUID), treat it as valid **only if** env var `ALLOW_LEGACY_SESSION_COOKIE=true`, and re-issue a signed cookie is NOT possible from a read helper — instead just accept it. Set that env var in production for ~2 weeks (cookie maxAge is 30 days, but most active users log in more often), then remove it. If you prefer to just force re-login, skip this step entirely — that is also acceptable.
+5. **No backwards-compat window.** Accepting bare legacy UUIDs — even behind an env flag — would keep the impersonation hole open for the whole window, since an attacker can present a bare UUID exactly like a legacy user. Force re-login: unsigned cookies simply verify to `null` and the user signs in again.
 6. Update `pricing.js` and `connections.js`: replace the `document.cookie` regex with the athlete id from `fetchMe()` in `lib/meClient.js` (it already caches `/api/me`). Search each file for every use of the variable that held the cookie match and update all of them.
 7. Update `signup.js` and `login.js`: replace the two `document.cookie = 'athlete_id=; Max-Age=0...'` lines with `await fetch('/api/auth/logout', { method: 'POST' })` (check `logout.js` for its accepted method first and match it).
 8. Run `npm run test:auth:full` in `webapp/`. Fix any failures. Add new tests (see acceptance criteria).

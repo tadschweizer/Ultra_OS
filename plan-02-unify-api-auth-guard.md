@@ -2,6 +2,8 @@
 
 **Priority: 2 of 10. Land in the same deploy as plan-01 (plan-01 changes the cookie format; routes that parse the cookie by hand will break until they use the shared reader).**
 
+> **Status: IMPLEMENTED in this PR** (mechanical migration + admin dedup + regression test). One correction from code review: `pages/api/strava/callback.js` was NOT safe to exclude — it issued its own unsigned `httpOnly:false` athlete cookie and now signs it. The deeper coach-authorization audit (step 3) was spot-checked but deserves a dedicated pass.
+
 ## Goal
 
 ~30 API routes each do their own `cookie.parse(req.headers.cookie || '').athlete_id` instead of using `getAthleteIdFromRequest` / `getAthleteByCookie` from `webapp/lib/auth/sessionCookies.js` and `webapp/lib/authServer.js`. This is exactly the drift `docs-auth-stability.md` rule 2 forbids ("Never inline auth validation logic into feature pages"). Consolidate every route onto one helper so the signature verification from plan-01 applies everywhere, and audit every route that accepts an `athlete_id` from the client (query/body) to confirm it checks authorization.
@@ -45,8 +47,10 @@ pages/api/workout-library.js
 Do NOT touch (they auth differently, by design):
 - `pages/api/billing/webhook.js` (Stripe signature)
 - `pages/api/webhooks/coros/activities.js` (webhook secret)
-- `pages/api/auth/*` (they CREATE the session), `pages/api/strava/callback.js` and other OAuth callbacks (they set the cookie via `setAthleteCookie`)
-- `pages/api/health.js`, `pages/api/set-invite-cookie.js`, `pages/api/research-library/pubmed-search.js` if it's public
+- `pages/api/auth/*` (they CREATE the session via `setAthleteCookie`)
+- `pages/api/health.js`, `pages/api/set-invite-cookie.js`
+
+DO touch `pages/api/strava/callback.js` (review finding): it both READS the athlete cookie (account-linking path — must use the verified reader) and WRITES its own unsigned `httpOnly:false` cookie (must issue the signed, httpOnly value).
 
 ## Steps in order
 

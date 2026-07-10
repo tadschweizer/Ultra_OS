@@ -1,5 +1,5 @@
-import cookie from 'cookie';
 import { supabase } from '../../../lib/supabaseClient';
+import { getAthleteIdFromRequest } from '../../../lib/auth/sessionCookies.js';
 
 function buildRaceReadiness({ upcomingRace, activeProtocols, compliance, activities, checkins, interventions }) {
   const daysUntilRace = upcomingRace?.event_date ? Math.ceil((new Date(upcomingRace.event_date) - new Date()) / 86400000) : null;
@@ -63,9 +63,8 @@ function buildRaceReadiness({ upcomingRace, activeProtocols, compliance, activit
   };
 }
 
-
 function getAthleteId(req) {
-  return cookie.parse(req.headers.cookie || '').athlete_id;
+  return getAthleteIdFromRequest(req);
 }
 
 export default async function handler(req, res) {

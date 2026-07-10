@@ -4,6 +4,7 @@ import { supabase } from '../../../lib/supabaseClient';
 import cookie from 'cookie';
 import { normalizeSubscriptionTier } from '../../../lib/subscriptionTiers';
 import { getStravaRedirectUri } from '../../../lib/auth/oauth.js';
+import { getAthleteIdFromRequest, signAthleteId } from '../../../lib/auth/sessionCookies.js';
 
 function getAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -38,7 +39,7 @@ export default async function handler(req, res) {
     const tokenData = await exchangeToken(code, clientId, clientSecret, redirectUri);
     const { access_token, refresh_token, expires_at, athlete } = tokenData;
     const athleteName = [athlete.firstname, athlete.lastname].filter(Boolean).join(' ').trim();
-    const existingAthleteId = cookies.athlete_id;
+    const existingAthleteId = getAthleteIdFromRequest(req);
     let savedAthlete;
 
     if (existingAthleteId) {
@@ -128,9 +129,9 @@ export default async function handler(req, res) {
 
     // Set athlete_id cookie + clear the pending invite token cookie
     const setCookies = [
-      cookie.serialize('athlete_id', athleteId, {
+      cookie.serialize('athlete_id', signAthleteId(athleteId), {
         ...cookieOptions,
-        httpOnly: false,
+        httpOnly: true,
         maxAge: 60 * 60 * 24 * 30, // 30 days
       }),
       cookie.serialize('pending_invite_token', '', {

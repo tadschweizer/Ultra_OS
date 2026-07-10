@@ -1,9 +1,9 @@
-import cookie from 'cookie';
 import { supabase } from '../../../lib/supabaseClient';
 import { generateCoachCode } from '../../../lib/coachProtocols';
+import { getAthleteIdFromRequest } from '../../../lib/auth/sessionCookies.js';
 
 function getAthleteId(req) {
-  return cookie.parse(req.headers.cookie || '').athlete_id;
+  return getAthleteIdFromRequest(req);
 }
 
 async function ensureCoachProfile(athleteId) {

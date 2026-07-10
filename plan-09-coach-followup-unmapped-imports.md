@@ -32,7 +32,17 @@ When an import finishes with `needs_manual_mapping_count > 0`, the coach should 
 
 ## Edge cases a weaker model would miss
 
-- **Idempotency**: double-clicking the button must not send two messages — the 409 guard on `followup_sent_at` plus disabling the button on first click. The DB update and message insert aren't transactional through supabase-js; write `followup_sent_at` optimistically BEFORE inserting the message is wrong (message may fail) — instead insert the message first, then update the job; if the update fails after message insert, log it and still return success (worst case: a duplicate is possible only if the update failed, which is rare and visible in logs).
+- **Idempotency must be atomic** (review finding): a read-then-check guard still double-sends under concurrent requests — both read `followup_sent_at` as null, both insert. Claim the job FIRST with an atomic conditional update and only send if you won the claim:
+  ```js
+  const { data: claimed } = await admin
+    .from('trainingpeaks_import_jobs')
+    .update({ followup_sent_at: new Date().toISOString() })
+    .eq('id', jobId)
+    .is('followup_sent_at', null)
+    .select('id');
+  if (!claimed?.length) return res.status(409).json({ error: 'Follow-up already sent.' });
+  ```
+  Then insert the message and write `followup_message_id`. If the message insert fails after the claim, clear `followup_sent_at` back to null in a catch block so the coach can retry (failure to roll back leaves a visible "sent" state with no message — log it loudly).
 - A re-import creates a NEW job row with null `followup_sent_at` — that's correct behavior (new mapping gaps deserve a new follow-up), but the UI must show the state of the LATEST job only (plan-05 already reduces to latest).
 - Athlete self-imports have `coach_id = null` on the job — the roster check (step 3b) is what authorizes, not the job's `coach_id`. Don't filter by `job.coach_id === coachProfile.id`.
 - The message must appear in the ATHLETE's message center — verify sender/recipient column semantics from the real messages table (grep the migration `20260501110000_add_coach_groups_and_messages.sql`); getting sender_role backwards makes the coach message themselves.

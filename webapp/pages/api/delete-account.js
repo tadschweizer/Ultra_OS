@@ -1,5 +1,5 @@
 import { supabase } from '../../lib/supabaseClient';
-import cookie from 'cookie';
+import { clearAthleteCookie, getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
 
 /**
  * DELETE /api/delete-account
@@ -15,8 +15,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const cookies = cookie.parse(req.headers.cookie || '');
-  const athleteId = cookies.athlete_id;
+  const athleteId = getAthleteIdFromRequest(req);
   if (!athleteId) {
     return res.status(401).json({ error: 'Not authenticated' });
   }
@@ -54,16 +53,7 @@ export default async function handler(req, res) {
   }
 
   // Clear the session cookie
-  res.setHeader(
-    'Set-Cookie',
-    cookie.serialize('athlete_id', '', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 0,
-    })
-  );
+  clearAthleteCookie(res);
 
   return res.status(200).json({ success: true });
 }

@@ -1,5 +1,5 @@
-import cookie from 'cookie';
 import { supabase } from '../../../lib/supabaseClient';
+import { getAthleteIdFromRequest } from '../../../lib/auth/sessionCookies.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -8,8 +8,7 @@ export default async function handler(req, res) {
     return;
   }
 
-  const cookies = cookie.parse(req.headers.cookie || '');
-  const athleteId = cookies.athlete_id;
+  const athleteId = getAthleteIdFromRequest(req);
 
   if (!athleteId) {
     res.status(401).json({ error: 'Not authenticated' });

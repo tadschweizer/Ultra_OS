@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import cookie from 'cookie';
+import { requireAdminAthleteId } from '../../../lib/auth/requireAthlete.js';
 
 /**
  * GET /api/admin/athletes
@@ -17,20 +17,9 @@ function getAdminClient() {
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
-  const cookies = cookie.parse(req.headers.cookie || '');
-  const athleteId = cookies.athlete_id;
-  if (!athleteId) return res.status(401).json({ error: 'Not authenticated' });
-
   const supabase = getAdminClient();
-
-  // Check admin
-  const { data: me } = await supabase
-    .from('athletes')
-    .select('is_admin')
-    .eq('id', athleteId)
-    .single();
-
-  if (!me?.is_admin) return res.status(403).json({ error: 'Admin only' });
+  const athleteId = await requireAdminAthleteId(req, res, supabase);
+  if (!athleteId) return;
 
   // Fetch all athletes
   const { data: athletes, error } = await supabase
@@ -45,15 +34,15 @@ export default async function handler(req, res) {
     athletes.map(async (a) => {
       const { count, data: latest } = await supabase
         .from('interventions')
-        .select('logged_at', { count: 'exact' })
+        .select('inserted_at', { count: 'exact' })
         .eq('athlete_id', a.id)
-        .order('logged_at', { ascending: false })
+        .order('inserted_at', { ascending: false })
         .limit(1);
 
       return {
         ...a,
         intervention_count: count || 0,
-        last_intervention_at: latest?.[0]?.logged_at || null,
+        last_intervention_at: latest?.[0]?.inserted_at || null,
       };
     })
   );

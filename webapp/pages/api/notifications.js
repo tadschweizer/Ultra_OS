@@ -1,5 +1,5 @@
-import cookie from 'cookie';
 import { supabase } from '../../lib/supabaseClient';
+import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
 
 const DEFAULT_NOTIFICATIONS = {
   coach_note_reply: true,
@@ -12,7 +12,7 @@ const DEFAULT_NOTIFICATIONS = {
 };
 
 function getAthleteId(req) {
-  return cookie.parse(req.headers.cookie || '').athlete_id;
+  return getAthleteIdFromRequest(req);
 }
 
 export default async function handler(req, res) {

@@ -2,6 +2,8 @@ import { supabase } from '../../lib/supabaseClient';
 import cookie from 'cookie';
 import { inferLegacyScores, normalizeProtocolPayload } from '../../lib/interventionCatalog';
 import { canLogCheckIn, canLogIntervention, normalizeSubscriptionTier } from '../../lib/subscriptionTiers';
+import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
+
 
 /**
  * API route to insert a new intervention into Supabase.
@@ -15,7 +17,7 @@ export default async function handler(req, res) {
     return;
   }
   const cookies = cookie.parse(req.headers.cookie || '');
-  const athleteId = cookies.athlete_id;
+  const athleteId = getAthleteIdFromRequest(req);
   if (!athleteId) {
     res.status(401).json({ error: 'Not authenticated' });
     return;

@@ -78,8 +78,8 @@ export default function SignupPage() {
 
       if (cancelled) return;
 
-      document.cookie = 'athlete_id=; Max-Age=0; Path=/; SameSite=Lax';
-      document.cookie = 'athlete_id=; Max-Age=0; Path=/; Secure; SameSite=Lax';
+      // The session cookie is httpOnly now; ask the server to clear it.
+      fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
       setChecking(false);
     }
 

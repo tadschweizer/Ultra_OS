@@ -1,7 +1,7 @@
-import cookie from 'cookie';
 import { supabase } from '../../../lib/supabaseClient';
+import { getAthleteIdFromRequest } from '../../../lib/auth/sessionCookies.js';
 
-function getAthleteId(req) { return cookie.parse(req.headers.cookie || '').athlete_id; }
+function getAthleteId(req) { return getAthleteIdFromRequest(req); }
 
 const MESSAGE_TEMPLATES = {
   missed_protocol_reminder: 'Quick check-in: I noticed a missed protocol session. Can you share what got in the way and your plan for the next session?',
