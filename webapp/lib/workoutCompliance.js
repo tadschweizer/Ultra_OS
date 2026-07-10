@@ -209,6 +209,78 @@ export function decorateWorkoutsWithCompliance(workouts = [], activities = [], {
   });
 }
 
+/**
+ * Reconciliation rollup for a date window: which planned sessions happened,
+ * which were missed, and which synced activities had no plan at all.
+ *
+ * Workouts and activities outside [start, end] (calendar-day keys) are
+ * ignored. `today` drives the planned/missed split for past days.
+ *
+ * Returns:
+ *  {
+ *    plannedCount, completedCount, missedCount, upcomingCount,
+ *    avgCompliancePct,            // mean of judgeable sessions, or null
+ *    unplannedActivities: [...],  // synced activities with no matching plan
+ *    workouts: [...],             // decorated (compliance fields attached)
+ *    days: [{ key, workouts, unplannedActivities }]  // ascending by day
+ *  }
+ */
+export function summarizeReconciliationWindow(workouts = [], activities = [], { start, end, today = new Date() } = {}) {
+  const startKey = start ? toDateKey(start) : null;
+  const endKey = end ? toDateKey(end) : null;
+  const inWindow = (key) => Boolean(key) && (!startKey || key >= startKey) && (!endKey || key <= endKey);
+
+  const windowWorkouts = workouts.filter((w) => inWindow(w?.workout_date ? toDateKey(w.workout_date) : null));
+  const windowActivities = activities.filter((a) => inWindow(a?.start_date ? toDateKey(a.start_date) : null));
+
+  const decorated = decorateWorkoutsWithCompliance(windowWorkouts, windowActivities, { today });
+
+  // Activities consumed by a plan — either auto-matched here or persisted
+  // earlier as completed_activity_id (stored as text; Strava ids are numbers).
+  const consumed = new Set();
+  decorated.forEach((w) => {
+    if (w.matched_activity?.id != null) consumed.add(String(w.matched_activity.id));
+    if (w.completed_activity_id != null) consumed.add(String(w.completed_activity_id));
+  });
+  const unplannedActivities = windowActivities.filter((a) => !consumed.has(String(a.id)));
+
+  const todayKey = toDateKey(today);
+  let completedCount = 0;
+  let missedCount = 0;
+  let upcomingCount = 0;
+  const pcts = [];
+
+  decorated.forEach((w) => {
+    if (w.status === 'completed') {
+      completedCount += 1;
+      if (Number.isFinite(w.compliance_pct)) pcts.push(w.compliance_pct);
+    } else if (w.status === 'skipped' || toDateKey(w.workout_date) < todayKey) {
+      missedCount += 1;
+    } else {
+      upcomingCount += 1;
+    }
+  });
+
+  const days = new Map();
+  const dayFor = (key) => {
+    if (!days.has(key)) days.set(key, { key, workouts: [], unplannedActivities: [] });
+    return days.get(key);
+  };
+  decorated.forEach((w) => dayFor(toDateKey(w.workout_date)).workouts.push(w));
+  unplannedActivities.forEach((a) => dayFor(toDateKey(a.start_date)).unplannedActivities.push(a));
+
+  return {
+    plannedCount: decorated.length,
+    completedCount,
+    missedCount,
+    upcomingCount,
+    avgCompliancePct: pcts.length ? Math.round(pcts.reduce((s, n) => s + n, 0) / pcts.length) : null,
+    unplannedActivities,
+    workouts: decorated,
+    days: [...days.values()].sort((a, b) => a.key.localeCompare(b.key)),
+  };
+}
+
 /** Weekly rollup of planned vs completed totals for a list of workouts. */
 export function summarizeWeek(workouts = []) {
   const summary = {

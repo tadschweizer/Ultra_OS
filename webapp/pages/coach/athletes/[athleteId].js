@@ -1,6 +1,8 @@
 import { useRouter } from 'next/router';
 import { useEffect, useMemo, useState } from 'react';
 import NavMenu from '../../../components/NavMenu';
+import { ReconciliationSummary } from '../../../components/WeeklyReconciliation';
+import { summarizeReconciliationWindow, toDateKey } from '../../../lib/workoutCompliance';
 import { appMenuLinks } from '../../../lib/siteNavigation';
 
 const statusTone = {
@@ -48,6 +50,12 @@ export default function CoachAthleteDetail() {
   if (!data?.athlete) return <main className="min-h-screen bg-paper p-6 text-ink">Athlete record not found.</main>;
 
   const readiness = data.raceReadiness || {};
+  const today = new Date();
+  const planReconciliation = summarizeReconciliationWindow(
+    data.plannedWorkouts || [],
+    data.reconciliationActivities || [],
+    { start: toDateKey(new Date(today.getTime() - 27 * 86400000)), end: toDateKey(today), today }
+  );
 
   return (
     <main className="min-h-screen bg-paper p-4 text-ink sm:p-6">
@@ -101,6 +109,10 @@ export default function CoachAthleteDetail() {
               {(readiness.signals || []).length ? readiness.signals.map((s, idx) => <p key={`${s}-${idx}`} className="mt-2 text-sm">• {s}</p>) : <p className="mt-2 text-sm text-ink/60">No recent signal data available.</p>}
             </section>
           </div>
+        </section>
+
+        <section className="mt-6">
+          <ReconciliationSummary summary={planReconciliation} title="Plan compliance — last 28 days" />
         </section>
 
         <section className="mt-6 grid gap-4 md:grid-cols-2">

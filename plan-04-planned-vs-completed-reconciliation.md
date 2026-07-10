@@ -2,6 +2,8 @@
 
 **Priority: 4 of 10. This is a ❌ row in the TrainingPeaks parity matrix (README-PLATFORM.md), and the matrix is your declared release gate: "any ❌ is prioritized before advanced differentiation work."**
 
+> **Status: IMPLEMENTED in this PR.** `summarizeReconciliationWindow` added to `lib/workoutCompliance.js` (composed from the existing matcher/decorator, +4 tests incl. the evening-timezone case); new `components/WeeklyReconciliation.js` renders the current week on `/calendar`; the coach athlete-detail API now returns 28 days of planned workouts + activities and the coach page shows the rollup. Persistence uses the pre-existing `PATCH /api/planned-workouts` (athlete completion fields) — no auto-write of matches from the read path, by design.
+
 ## Goal
 
 Athletes and coaches need a daily/weekly view answering "what was planned vs what actually happened." The building blocks already exist: `planned_workouts` has completion columns (`status`, `completed_activity_id`, `completed_duration_min`, `completed_distance_km`), and `webapp/lib/workoutCompliance.js` already exports `matchActivitiesToWorkouts`, `decorateWorkoutsWithCompliance`, `compliancePct`, `complianceStatus`, and `summarizeWeek`. What's missing is (a) a reconciliation summary surface for the athlete week, (b) the same rollup on the coach's athlete detail page, and (c) persisting a match once it's made so it isn't recomputed differently later.

@@ -2,6 +2,11 @@
 
 **Priority: 3 of 10. Required before external users (GDPR/privacy expectation already noted in NEXT_STEPS_AND_UX_REVIEW.md).**
 
+> **Status: IMPLEMENTED in this PR.** Notable discoveries during implementation:
+> - The old endpoint used the ANON Supabase client, so under RLS hardening its deletes were likely silent no-ops — it now uses the service-role admin client.
+> - Nearly every athlete table already cascades (including `coach_profiles` and all coach-owned rows through it), so the explicit work is: Stripe cancel+delete, NULLing `invites.created_by/used_by` (no ON DELETE clause — would block the row deletion), deleting SET-NULL orphans (`attachments`, `coros_activities`, `integration_interest`, prod-only `activities`), then the athletes row, then the Supabase auth user.
+> - Stripe/auth cleanup are best-effort and reported in the response (`stripe_cleanup`, `auth_cleanup`); data deletion never silently depends on them.
+
 ## Goal
 
 `webapp/pages/api/delete-account.js` deletes from only 6 tables (`interventions`, `workout_check_ins`, `athlete_settings`, `races`, `race_outcomes`, `invites`). The schema now has many more athlete-owned tables, plus a Supabase auth user (`supabase_user_id`) and a Stripe customer/subscription — none of which are cleaned up. A "deleted" athlete today still exists in Supabase Auth, keeps getting billed by Stripe, and leaves data in a dozen tables.

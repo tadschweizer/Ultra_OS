@@ -2,6 +2,8 @@
 
 Ten self-contained plans, written so a less capable model can execute each without asking questions. Each plan has: goal, exact files, step-by-step order, edge cases, and verifiable acceptance criteria.
 
+**Progress: plans 01–04 are implemented** (see the Status note at the top of each). Next up: plan-05.
+
 ## Priority order (do them in this order)
 
 | # | Plan | Why this rank |
