@@ -1,10 +1,9 @@
 import { supabase } from '../../lib/supabaseClient';
-import cookie from 'cookie';
 import { inferLegacyScores, normalizeProtocolPayload } from '../../lib/interventionCatalog';
+import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
 
 function getAthleteId(req) {
-  const cookies = cookie.parse(req.headers.cookie || '');
-  return cookies.athlete_id;
+  return getAthleteIdFromRequest(req);
 }
 
 function parseOptionalInt(value) {

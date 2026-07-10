@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import NavMenu from '../components/NavMenu';
+import { fetchMe } from '../lib/meClient';
 
 const navLinks = [
   { href: '/', label: 'Home' },
@@ -97,10 +98,15 @@ export default function PricingPage() {
   const [billingPeriod, setBillingPeriod] = useState('annual');
 
   useEffect(() => {
-    if (typeof document !== 'undefined') {
-      const match = document.cookie.match(/athlete_id=([^;]+)/);
-      if (match) setAthleteId(match[1]);
-    }
+    let cancelled = false;
+    fetchMe()
+      .then((data) => {
+        if (!cancelled && data?.athlete?.id) setAthleteId(data.athlete.id);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (

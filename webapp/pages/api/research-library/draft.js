@@ -1,9 +1,8 @@
-import cookie from 'cookie';
 import { buildResearchDraft } from '../../../lib/researchDrafts';
+import { getAthleteIdFromRequest } from '../../../lib/auth/sessionCookies.js';
 
 export default function handler(req, res) {
-  const cookies = cookie.parse(req.headers.cookie || '');
-  const athleteId = cookies.athlete_id;
+  const athleteId = getAthleteIdFromRequest(req);
 
   if (!athleteId) {
     res.status(401).json({ error: 'Not authenticated' });

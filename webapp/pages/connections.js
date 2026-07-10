@@ -96,12 +96,15 @@ export default function Connections() {
     : [{ href: '/', label: 'Landing Page', description: 'Return to the Threshold entry page.' }];
 
   useEffect(() => {
-    if (typeof document !== 'undefined') {
-      const match = document.cookie.match(/athlete_id=([^;]+)/);
-      if (match) {
-        setAthleteId(match[1]);
-      }
-    }
+    let cancelled = false;
+    fetchMe()
+      .then((data) => {
+        if (!cancelled && data?.athlete?.id) setAthleteId(data.athlete.id);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {

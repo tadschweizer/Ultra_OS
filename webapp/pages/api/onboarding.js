@@ -1,6 +1,6 @@
-import cookie from 'cookie';
 import { supabase } from '../../lib/supabaseClient';
 import { deriveRaceType } from '../../lib/raceTypes';
+import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
 
 function parseOptionalFloat(value) {
   if (value === '' || value === null || value === undefined) return null;
@@ -15,8 +15,7 @@ function parseOptionalInt(value) {
 }
 
 function getAthleteId(req) {
-  const cookies = cookie.parse(req.headers.cookie || '');
-  return cookies.athlete_id;
+  return getAthleteIdFromRequest(req);
 }
 
 async function loadCurrentTargetRace(athleteId) {

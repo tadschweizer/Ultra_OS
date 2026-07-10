@@ -1,7 +1,7 @@
-import cookie from 'cookie';
 import { supabase } from '../../../lib/supabaseClient';
 import { generateCoachCode } from '../../../lib/coachProtocols';
 import { countGroupMembers } from '../../../lib/coach/groupMembership';
+import { getAthleteIdFromRequest } from '../../../lib/auth/sessionCookies.js';
 
 async function ensureCoachProfile(athleteId) {
   const { data: athlete } = await supabase.from('athletes').select('id, name').eq('id', athleteId).single();
@@ -12,7 +12,7 @@ async function ensureCoachProfile(athleteId) {
   return data;
 }
 
-function getAthleteId(req) { return cookie.parse(req.headers.cookie || '').athlete_id; }
+function getAthleteId(req) { return getAthleteIdFromRequest(req); }
 
 export default async function handler(req, res) {
   const athleteId = getAthleteId(req);

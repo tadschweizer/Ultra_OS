@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import cookie from 'cookie';
+import { getAthleteIdFromRequest } from '../../../lib/auth/sessionCookies.js';
 
 function getAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -9,8 +9,7 @@ function getAdminClient() {
 }
 
 function requireAthlete(req, res) {
-  const cookies = cookie.parse(req.headers.cookie || '');
-  const athleteId = cookies.athlete_id;
+  const athleteId = getAthleteIdFromRequest(req);
   if (!athleteId) {
     res.status(401).json({ error: 'Not authenticated' });
     return null;

@@ -1,5 +1,5 @@
-import cookie from 'cookie';
 import { supabase } from '../../lib/supabaseClient';
+import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
 
 const ALL_SCORE_COLUMNS =
   'ultra_score, gravel_score, triathlon_score, running_score, cycling_score, swimming_score, rowing_score, skating_score, ski_score, team_sport_score';
@@ -38,8 +38,7 @@ export default async function handler(req, res) {
   // Failure is non-fatal — the page works fine without personalisation.
   let athleteSportKeys = [];
   try {
-    const cookies = cookie.parse(req.headers.cookie || '');
-    const athleteId = cookies.athlete_id;
+    const athleteId = getAthleteIdFromRequest(req);
     if (athleteId) {
       const { data: athlete } = await supabase
         .from('athletes')

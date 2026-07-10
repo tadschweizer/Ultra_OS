@@ -1,6 +1,6 @@
 import { supabase } from '../../lib/supabaseClient';
-import cookie from 'cookie';
 import { deriveRaceType } from '../../lib/raceTypes';
+import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
 
 function parseOptionalInt(value) {
   if (value === '' || value === null || value === undefined) return null;
@@ -61,8 +61,7 @@ async function contributeManualEntryToCatalog(payload) {
 }
 
 export default async function handler(req, res) {
-  const cookies = cookie.parse(req.headers.cookie || '');
-  const athleteId = cookies.athlete_id;
+  const athleteId = getAthleteIdFromRequest(req);
 
   if (!athleteId) {
     res.status(401).json({ error: 'Not authenticated' });

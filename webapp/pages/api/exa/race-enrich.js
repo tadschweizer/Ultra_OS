@@ -1,9 +1,8 @@
-import cookie from 'cookie';
 import { enrichRace } from '../../../lib/exa';
+import { getAthleteIdFromRequest } from '../../../lib/auth/sessionCookies.js';
 
 export default async function handler(req, res) {
-  const cookies = cookie.parse(req.headers.cookie || '');
-  if (!cookies.athlete_id) {
+  if (!getAthleteIdFromRequest(req)) {
     res.status(401).json({ error: 'Not authenticated' });
     return;
   }

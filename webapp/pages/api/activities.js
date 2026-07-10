@@ -2,6 +2,7 @@ import { getSupabaseAdminClient } from '../../lib/authServer';
 import { refreshToken, getRecentActivities } from '../../lib/strava';
 import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
 
+
 /**
  * API route to fetch recent Strava activities for the authenticated athlete.
  *

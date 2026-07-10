@@ -1,11 +1,12 @@
 import { getSupabaseAdminClient } from '../../lib/authServer';
-import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
+
 import {
   decorateWorkoutsWithCompliance,
   estimateTss,
   summarizeStructure,
   toDateKey,
 } from '../../lib/workoutCompliance';
+import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
 
 const PLANNING_FIELDS = [
   'workout_date',

@@ -71,7 +71,7 @@ Legend: ✅ parity-ready · 🟡 partial/in progress · ❌ missing
 | Planning | Planned workouts / protocol mapping | 🟡 | Core mapping pass exists; custom TP fields still need manual mapping support. |
 | Planning | Migration completeness visibility | ✅ | UI exists to show transferred vs manual mapping requirements. |
 | Execution Tracking | Session execution logging | ✅ | Intervention log supports per-session outcomes today. |
-| Execution Tracking | Planned vs completed reconciliation | ❌ | Build daily/weekly reconciliation views tied to mapped workout IDs. |
+| Execution Tracking | Planned vs completed reconciliation | ✅ | Weekly reconciliation on athlete calendar + 28-day rollup on coach athlete detail (`summarizeReconciliationWindow`, `WeeklyReconciliation`). |
 | Coach Reporting | Multi-athlete import health | ❌ | Add coach/admin dashboard cards for migration completion by athlete. |
 | Coach Reporting | Compliance and adherence rollups | 🟡 | Basic coach dashboard exists; adherence and completion exports not complete. |
 | Athlete Communication | Import issue prompts | 🟡 | Migration completeness UI highlights manual mapping needs; add outbound notifications. |

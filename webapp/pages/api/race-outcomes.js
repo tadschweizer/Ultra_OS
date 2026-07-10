@@ -1,5 +1,5 @@
 import { supabase } from '../../lib/supabaseClient';
-import cookie from 'cookie';
+import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
 
 function parseOptionalInt(value) {
   if (value === '' || value === null || value === undefined) return null;
@@ -14,8 +14,7 @@ function parseOptionalFloat(value) {
 }
 
 export default async function handler(req, res) {
-  const cookies = cookie.parse(req.headers.cookie || '');
-  const athleteId = cookies.athlete_id;
+  const athleteId = getAthleteIdFromRequest(req);
 
   if (!athleteId) {
     return res.status(401).json({ error: 'Not authenticated' });

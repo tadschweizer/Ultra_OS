@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
-import cookie from 'cookie';
 import crypto from 'crypto';
+import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
 
 /**
  * /api/invites
@@ -19,8 +19,7 @@ function getAdminClient() {
 }
 
 async function getAthleteId(req) {
-  const cookies = cookie.parse(req.headers.cookie || '');
-  return cookies.athlete_id || null;
+  return getAthleteIdFromRequest(req) || null;
 }
 
 async function isAdmin(athleteId) {

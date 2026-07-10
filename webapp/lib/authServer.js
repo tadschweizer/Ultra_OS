@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { normalizeSubscriptionTier } from './subscriptionTiers';
+import { normalizeSubscriptionTier } from './subscriptionTiers.js';
 import { getAthleteIdFromRequest } from './auth/sessionCookies.js';
 
 let adminClient = null;

@@ -1,5 +1,5 @@
 import { supabase } from '../../lib/supabaseClient';
-import cookie from 'cookie';
+import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
 
 // Map a race_type string + optional distance to a catalog sport_type
 function deriveSportType(raceType, distanceMiles) {
@@ -19,8 +19,7 @@ function deriveSportType(raceType, distanceMiles) {
 }
 
 export default async function handler(req, res) {
-  const cookies = cookie.parse(req.headers.cookie || '');
-  const athleteId = cookies.athlete_id;
+  const athleteId = getAthleteIdFromRequest(req);
   if (!athleteId) {
     res.status(401).json({ error: 'Not authenticated' });
     return;

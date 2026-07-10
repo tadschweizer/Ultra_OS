@@ -7,7 +7,11 @@
 - Core auth modules: `lib/auth/*`, `lib/authServer.js`
 
 ## Do-not-break checklist
-1. Keep cookie name and semantics stable (`athlete_id`).
+1. Keep cookie name stable (`athlete_id`). The value is an HMAC-signed token
+   (`<athleteId>.<signature>`, secret: `SESSION_COOKIE_SECRET` with
+   `SUPABASE_SERVICE_ROLE_KEY` fallback) and the cookie is httpOnly — never
+   read it from client-side JS (use `/api/me` via `lib/meClient.js`) and
+   never accept an unsigned value server-side.
 2. Never inline auth validation logic into feature pages; use `lib/auth/contracts.js` and `lib/auth/sessionCookies.js`.
 3. Treat auth error messages/status values as public contract for UI flows.
 4. Any auth endpoint change must run auth regression tests.

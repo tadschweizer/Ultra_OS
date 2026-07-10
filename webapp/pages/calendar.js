@@ -1,6 +1,7 @@
 import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
 import TrainingCalendar from '../components/TrainingCalendar';
+import WeeklyReconciliation from '../components/WeeklyReconciliation';
 import { useMe } from '../lib/planUtils';
 import { appMenuLinks } from '../lib/siteNavigation';
 
@@ -54,6 +55,10 @@ export default function CalendarPage() {
               )}
             </div>
           )}
+        </section>
+
+        <section className="mt-4">
+          <WeeklyReconciliation />
         </section>
 
         <section className="mt-4">

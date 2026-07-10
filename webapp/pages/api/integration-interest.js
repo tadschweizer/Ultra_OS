@@ -1,5 +1,5 @@
-import cookie from 'cookie';
 import { supabase } from '../../lib/supabaseClient';
+import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
 
 const ALLOWED_SOURCES = new Set([
   'Garmin',
@@ -35,8 +35,7 @@ export default async function handler(req, res) {
     return;
   }
 
-  const cookies = cookie.parse(req.headers.cookie || '');
-  const athleteId = cookies.athlete_id || null;
+  const athleteId = getAthleteIdFromRequest(req) || null;
 
   const { error } = await supabase
     .from('integration_interest')

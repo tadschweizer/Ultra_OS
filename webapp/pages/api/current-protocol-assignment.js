@@ -1,16 +1,16 @@
-import cookie from 'cookie';
 import { supabase } from '../../lib/supabaseClient';
 import {
+
   buildAssignmentStatusLabel,
   computePhaseFromDays,
   countAssignmentCompletions,
   getDaysUntil,
   normalizeRace,
 } from '../../lib/coachProtocols';
+import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
 
 function getAthleteId(req) {
-  const cookies = cookie.parse(req.headers.cookie || '');
-  return cookies.athlete_id;
+  return getAthleteIdFromRequest(req);
 }
 
 function selectCurrentRace(races = []) {

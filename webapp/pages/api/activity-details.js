@@ -1,6 +1,7 @@
 import { supabase } from '../../lib/supabaseClient';
 import { getActivityStreams, getDetailedActivity, refreshToken } from '../../lib/strava';
 import cookie from 'cookie';
+import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
 
 function summarizeAltitude(streamData = []) {
   if (!Array.isArray(streamData) || streamData.length === 0) {
@@ -25,8 +26,8 @@ function summarizeAltitude(streamData = []) {
   };
 }
 
-async function getAuthenticatedAthlete(cookies) {
-  const athleteId = cookies.athlete_id;
+async function getAuthenticatedAthlete(req) {
+  const athleteId = getAthleteIdFromRequest(req);
   if (!athleteId) {
     return { error: { status: 401, message: 'Not authenticated' } };
   }
@@ -71,8 +72,7 @@ async function getAuthenticatedAthlete(cookies) {
 }
 
 export default async function handler(req, res) {
-  const cookies = cookie.parse(req.headers.cookie || '');
-  const { error, accessToken } = await getAuthenticatedAthlete(cookies);
+  const { error, accessToken } = await getAuthenticatedAthlete(req);
 
   if (error) {
     res.status(error.status).json({ error: error.message });

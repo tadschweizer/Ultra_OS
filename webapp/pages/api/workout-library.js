@@ -1,6 +1,7 @@
 import { getSupabaseAdminClient } from '../../lib/authServer';
-import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
+
 import { estimateTss, summarizeStructure } from '../../lib/workoutCompliance';
+import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
 
 const LIBRARY_COLUMNS = `
   id, coach_id, name, sport, description, structure,
