@@ -1,6 +1,7 @@
 import { supabase } from '../../../lib/supabaseClient';
 import { generateCoachCode } from '../../../lib/coachProtocols';
 import { getAthleteIdFromRequest } from '../../../lib/auth/sessionCookies.js';
+import { getEffectiveAthleteIdFromRequest } from '../../../lib/auth/requireAthlete.js';
 
 const VALID_NOTE_TYPES = ['observation', 'flag', 'reminder', 'race_debrief', 'daily', 'weekly', 'timeline'];
 const VALID_EVIDENCE_TYPES = ['metric', 'workout', 'checkin', 'message', 'race', 'note'];
@@ -11,7 +12,7 @@ const QUICK_COACH_PROMPT_TEMPLATES = [
 ];
 
 function getAthleteId(req) {
-  return getAthleteIdFromRequest(req);
+  return getEffectiveAthleteIdFromRequest(req);
 }
 
 async function ensureCoachProfile(athleteId) {
@@ -63,7 +64,7 @@ function buildThreadKey({ athleteId, protocolAssignmentId, workoutId, workoutDat
 export const __testables = { normalizeEvidenceCards, buildThreadKey, VALID_EVIDENCE_TYPES };
 
 export default async function handler(req, res) {
-  const athleteId = getAthleteId(req);
+  const athleteId = await getAthleteId(req);
   if (!athleteId) { res.status(401).json({ error: 'Not authenticated' }); return; }
 
   try {

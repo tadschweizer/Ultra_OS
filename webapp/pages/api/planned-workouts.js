@@ -7,6 +7,7 @@ import {
   toDateKey,
 } from '../../lib/workoutCompliance';
 import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
+import { getEffectiveAthleteIdFromRequest } from '../../lib/auth/requireAthlete.js';
 
 const PLANNING_FIELDS = [
   'workout_date',
@@ -113,7 +114,7 @@ async function fetchActivitiesForRange(admin, athleteId, start, end) {
 }
 
 export default async function handler(req, res) {
-  const sessionAthleteId = getAthleteIdFromRequest(req);
+  const sessionAthleteId = await getEffectiveAthleteIdFromRequest(req);
   if (!sessionAthleteId) {
     res.status(401).json({ error: 'Not authenticated' });
     return;

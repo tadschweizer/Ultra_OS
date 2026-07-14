@@ -1,7 +1,8 @@
 import { supabase } from '../../../lib/supabaseClient';
 import { getAthleteIdFromRequest } from '../../../lib/auth/sessionCookies.js';
+import { getEffectiveAthleteIdFromRequest } from '../../../lib/auth/requireAthlete.js';
 
-function getAthleteId(req) { return getAthleteIdFromRequest(req); }
+function getAthleteId(req) { return getEffectiveAthleteIdFromRequest(req); }
 
 const MESSAGE_TEMPLATES = {
   missed_protocol_reminder: 'Quick check-in: I noticed a missed protocol session. Can you share what got in the way and your plan for the next session?',
@@ -100,7 +101,7 @@ async function buildAthleteConversation(actorId, coachId) {
 }
 
 export default async function handler(req, res) {
-  const actorId = getAthleteId(req);
+  const actorId = await getAthleteId(req);
   if (!actorId) return res.status(401).json({ error: 'Not authenticated' });
 
   try {

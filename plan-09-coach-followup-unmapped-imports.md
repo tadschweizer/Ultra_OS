@@ -2,6 +2,8 @@
 
 **Priority: 9 of 10. Third ❌ row in the TrainingPeaks parity matrix ("Coach-athlete follow-up workflows … tied to missing mapping rows"). Do AFTER plan-05, which builds the import-health data path this reuses.**
 
+> **Status: IMPLEMENTED.** Migration `20260713090000_import_followup_tracking.sql` adds `followup_sent_at`/`followup_message_id`; `POST /api/coach/import-followup` authorizes via the ACTIVE roster relationship (not `job.coach_id`), claims idempotency with the atomic conditional update, inserts the `coach_messages` templated message + `coach_notifications` audit row, and rolls the claim back if the message insert fails; "Send follow-up" / "Followed up Nd ago ✓" states on the import-health rows; `canSendFollowup` in `lib/importHealth.js` unit-tested per rejection reason. Parity row flipped to ✅.
+
 ## Goal
 
 When an import finishes with `needs_manual_mapping_count > 0`, the coach should get a notification and a one-click follow-up: send the athlete a pre-filled message asking them to finish mapping, and track that the follow-up happened. Reuses three existing systems: `coach_notifications` table, the message center (`pages/api/coach/messages.js`, `components/MessageCenter.js`), and the import-health card from plan-05.

@@ -1,7 +1,8 @@
 import { supabase } from '../../lib/supabaseClient';
 import { getActivityStreams, getDetailedActivity, refreshToken } from '../../lib/strava';
 import cookie from 'cookie';
-import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
+import { analyzeSteadyState } from '../../lib/streamAnalysis';
+import { getEffectiveAthleteIdFromRequest } from '../../lib/auth/requireAthlete.js';
 
 function summarizeAltitude(streamData = []) {
   if (!Array.isArray(streamData) || streamData.length === 0) {
@@ -27,7 +28,7 @@ function summarizeAltitude(streamData = []) {
 }
 
 async function getAuthenticatedAthlete(req) {
-  const athleteId = getAthleteIdFromRequest(req);
+  const athleteId = await getEffectiveAthleteIdFromRequest(req);
   if (!athleteId) {
     return { error: { status: 401, message: 'Not authenticated' } };
   }
@@ -72,7 +73,7 @@ async function getAuthenticatedAthlete(req) {
 }
 
 export default async function handler(req, res) {
-  const { error, accessToken } = await getAuthenticatedAthlete(req);
+  const { error, athlete, accessToken } = await getAuthenticatedAthlete(req);
 
   if (error) {
     res.status(error.status).json({ error: error.message });
@@ -86,12 +87,20 @@ export default async function handler(req, res) {
   }
 
   try {
-    const [activity, streams] = await Promise.all([
+    // One streams call carries all five keys — same Strava API cost as before.
+    const [activity, streams, settingsRes] = await Promise.all([
       getDetailedActivity(accessToken, activityId),
-      getActivityStreams(accessToken, activityId, ['altitude']).catch(() => ({})),
+      getActivityStreams(accessToken, activityId, ['altitude', 'heartrate', 'time', 'distance', 'velocity_smooth']).catch(() => ({})),
+      supabase.from('athlete_settings').select('hr_zone_2_max, hr_zone_3_min, hr_zone_4_min, max_hr, resting_hr').eq('athlete_id', athlete.id).maybeSingle(),
     ]);
 
     const altitudeSummary = summarizeAltitude(streams?.altitude?.data || []);
+    let analysis = null;
+    try {
+      analysis = analyzeSteadyState(streams, settingsRes?.data || {}, { sport: activity.sport_type || activity.type });
+    } catch {
+      analysis = null; // analysis is best-effort; never break the detail payload
+    }
     const response = {
       id: activity.id,
       name: activity.name,
@@ -102,6 +111,7 @@ export default async function handler(req, res) {
       elev_high_ft: activity.elev_high ? Math.round(activity.elev_high * 3.28084) : null,
       elev_low_ft: activity.elev_low ? Math.round(activity.elev_low * 3.28084) : null,
       ...altitudeSummary,
+      analysis,
     };
 
     res.status(200).json({ activity: response });

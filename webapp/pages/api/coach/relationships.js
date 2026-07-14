@@ -2,9 +2,10 @@ import { supabase } from '../../../lib/supabaseClient';
 import { generateCoachCode } from '../../../lib/coachProtocols';
 import { buildLoadMetrics, buildLoadStatus } from '../../../lib/loadRollups';
 import { getAthleteIdFromRequest } from '../../../lib/auth/sessionCookies.js';
+import { getEffectiveAthleteIdFromRequest } from '../../../lib/auth/requireAthlete.js';
 
 function getAthleteId(req) {
-  return getAthleteIdFromRequest(req);
+  return getEffectiveAthleteIdFromRequest(req);
 }
 
 async function ensureCoachProfile(athleteId) {
@@ -32,7 +33,7 @@ function daysSince(dateString) {
 }
 
 export default async function handler(req, res) {
-  const athleteId = getAthleteId(req);
+  const athleteId = await getAthleteId(req);
   if (!athleteId) { res.status(401).json({ error: 'Not authenticated' }); return; }
 
   try {

@@ -2,6 +2,7 @@ import { supabase } from '../../../lib/supabaseClient';
 import { generateCoachCode } from '../../../lib/coachProtocols';
 import { countGroupMembers } from '../../../lib/coach/groupMembership';
 import { getAthleteIdFromRequest } from '../../../lib/auth/sessionCookies.js';
+import { getEffectiveAthleteIdFromRequest } from '../../../lib/auth/requireAthlete.js';
 
 async function ensureCoachProfile(athleteId) {
   const { data: athlete } = await supabase.from('athletes').select('id, name').eq('id', athleteId).single();
@@ -12,10 +13,10 @@ async function ensureCoachProfile(athleteId) {
   return data;
 }
 
-function getAthleteId(req) { return getAthleteIdFromRequest(req); }
+function getAthleteId(req) { return getEffectiveAthleteIdFromRequest(req); }
 
 export default async function handler(req, res) {
-  const athleteId = getAthleteId(req);
+  const athleteId = await getAthleteId(req);
   if (!athleteId) return res.status(401).json({ error: 'Not authenticated' });
   const profile = await ensureCoachProfile(athleteId);
 

@@ -1,10 +1,12 @@
 import { supabase } from '../../../lib/supabaseClient';
 import { generateCoachCode } from '../../../lib/coachProtocols';
 import { buildLoadMetrics } from '../../../lib/loadRollups';
+import { latestJobPerAthlete, buildAthleteImportHealth, summarizeImportHealth } from '../../../lib/importHealth';
 import { getAthleteIdFromRequest } from '../../../lib/auth/sessionCookies.js';
+import { getEffectiveAthleteIdFromRequest } from '../../../lib/auth/requireAthlete.js';
 
 function getAthleteId(req) {
-  return getAthleteIdFromRequest(req);
+  return getEffectiveAthleteIdFromRequest(req);
 }
 
 async function ensureCoachProfile(athleteId) {
@@ -46,7 +48,7 @@ const emptySummary = {
 export default async function handler(req, res) {
   if (req.method !== 'GET') { res.status(405).end(); return; }
 
-  const athleteId = getAthleteId(req);
+  const athleteId = await getAthleteId(req);
   if (!athleteId) { res.status(401).json({ error: 'Not authenticated' }); return; }
 
   try {
@@ -69,8 +71,9 @@ export default async function handler(req, res) {
 
     const athleteIds = (activeLinks || []).map((item) => item.athlete_id);
     let loadSummary = { acute: 0, chronic: 0, form: 0 };
+    let importJobs = [];
     if (athleteIds.length) {
-      const [interventionsRes, activitiesRes] = await Promise.all([
+      const [interventionsRes, activitiesRes, importJobsRes] = await Promise.all([
         supabase
           .from('interventions')
           .select('athlete_id, date, inserted_at, dose_duration, subjective_feel')
@@ -81,7 +84,13 @@ export default async function handler(req, res) {
           .select('*')
           .in('athlete_id', athleteIds)
           .gte('start_date', new Date(Date.now() - 42 * 86400000).toISOString()),
+        supabase
+          .from('trainingpeaks_import_jobs')
+          .select('id, athlete_id, status, transferred_count, needs_manual_mapping_count, error_message, created_at, followup_sent_at')
+          .in('athlete_id', athleteIds)
+          .order('created_at', { ascending: false }),
       ]);
+      importJobs = importJobsRes.data || [];
       const metrics = athleteIds.map((athleteId) => buildLoadMetrics({
         interventions: (interventionsRes.data || []).filter((item) => item.athlete_id === athleteId),
         activities: (activitiesRes.data || []).filter((item) => item.athlete_id === athleteId),
@@ -95,7 +104,15 @@ export default async function handler(req, res) {
       };
     }
 
-    res.status(200).json({ summary, profile, loadSummary, coachKpis: kpiRes.data || null });
+    const jobsByAthlete = latestJobPerAthlete(importJobs);
+    const importHealth = {
+      summary: summarizeImportHealth(athleteIds, jobsByAthlete),
+      athletes: Object.fromEntries(
+        athleteIds.map((id) => [id, buildAthleteImportHealth(jobsByAthlete[id] || null)])
+      ),
+    };
+
+    res.status(200).json({ summary, profile, loadSummary, coachKpis: kpiRes.data || null, importHealth });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

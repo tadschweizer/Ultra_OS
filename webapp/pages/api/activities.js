@@ -1,6 +1,7 @@
 import { getSupabaseAdminClient } from '../../lib/authServer';
 import { refreshToken, getRecentActivities } from '../../lib/strava';
 import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
+import { getEffectiveAthleteIdFromRequest } from '../../lib/auth/requireAthlete.js';
 
 
 /**
@@ -10,7 +11,7 @@ import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
  * expired tokens if needed, calls the Strava API, and returns JSON.
  */
 export default async function handler(req, res) {
-  const athleteId = getAthleteIdFromRequest(req);
+  const athleteId = await getEffectiveAthleteIdFromRequest(req);
   if (!athleteId) {
     res.status(401).json({ error: 'Not authenticated' });
     return;

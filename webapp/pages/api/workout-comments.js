@@ -1,5 +1,6 @@
 import { getSupabaseAdminClient } from '../../lib/authServer';
 import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
+import { getEffectiveAthleteIdFromRequest } from '../../lib/auth/requireAthlete.js';
 
 const COMMENT_COLUMNS = 'id, planned_workout_id, athlete_id, coach_id, sender_role, body, created_at, read_at';
 
@@ -34,7 +35,7 @@ async function canAccessWorkout(admin, sessionAthleteId, workoutId) {
 }
 
 export default async function handler(req, res) {
-  const sessionAthleteId = getAthleteIdFromRequest(req);
+  const sessionAthleteId = await getEffectiveAthleteIdFromRequest(req);
   if (!sessionAthleteId) {
     res.status(401).json({ error: 'Not authenticated' });
     return;

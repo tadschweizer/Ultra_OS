@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import NavMenu from '../components/NavMenu';
+import { clearMe } from '../lib/meClient';
 
 /**
  * /admin — Admin dashboard
@@ -49,6 +50,8 @@ function typeIcon(type) {
 
 export default function AdminPage() {
   const [athletes, setAthletes] = useState([]);
+  const [dataHealth, setDataHealth] = useState(null);
+  const [viewAsError, setViewAsError] = useState('');
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notAdmin, setNotAdmin] = useState(false);
@@ -85,6 +88,7 @@ export default function AdminPage() {
         const logsData = logsRes.ok ? await logsRes.json() : { logs: [] };
         if (!rosterRes.ok) { setError(rosterData.error || 'Failed to load'); return; }
         setAthletes(rosterData.athletes || []);
+        setDataHealth(rosterData.dataHealth || null);
         setLogs(logsData.logs || []);
       } catch (_) {
         setError('Network error');
@@ -116,6 +120,23 @@ export default function AdminPage() {
       setInviteError('Network error');
     } finally {
       setInviteCreating(false);
+    }
+  }
+
+  async function startViewAs(athleteId) {
+    setViewAsError('');
+    try {
+      const res = await fetch('/api/admin/impersonate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ athleteId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setViewAsError(data.error || 'Could not start impersonation.'); return; }
+      clearMe(); // bust the /api/me cache so the banner + target profile load
+      window.location.href = '/dashboard';
+    } catch (_) {
+      setViewAsError('Network error');
     }
   }
 
@@ -182,6 +203,49 @@ export default function AdminPage() {
               <p className="text-2xl font-semibold text-ink">{totalInterventions}</p>
               <p className="mt-0.5 text-xs text-ink/45">Total logs</p>
             </div>
+          </div>
+        )}
+
+        {/* Data health */}
+        {!loading && dataHealth && (
+          <div className="mb-6 rounded-[26px] border border-ink/10 bg-white p-5 shadow-sm">
+            <p className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-accent">Data health</p>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="rounded-[18px] bg-paper px-4 py-3">
+                <p className="text-xl font-semibold text-emerald-600">{dataHealth.activeLast7d}</p>
+                <p className="mt-0.5 text-xs text-ink/45">Active last 7 days</p>
+              </div>
+              <div className="rounded-[18px] bg-paper px-4 py-3">
+                <p className="text-xl font-semibold text-red-500">{dataHealth.dormant14d}</p>
+                <p className="mt-0.5 text-xs text-ink/45">Dormant 14+ days</p>
+              </div>
+              <div className="rounded-[18px] bg-paper px-4 py-3">
+                <p className="text-xl font-semibold text-ink">
+                  {(dataHealth.checkinsPerWeek || []).join(' · ')}
+                </p>
+                <p className="mt-0.5 text-xs text-ink/45">Check-ins/week (now → 4w ago)</p>
+              </div>
+              <div className="rounded-[18px] bg-paper px-4 py-3">
+                <p className="truncate text-sm font-semibold text-ink">
+                  {(dataHealth.topInterventionTypes || []).map((t) => `${t.type} (${t.count})`).slice(0, 3).join(', ') || '—'}
+                </p>
+                <p className="mt-0.5 text-xs text-ink/45">Top logged types</p>
+              </div>
+            </div>
+            {athletes.some((a) => !a.last_intervention_at || (Date.now() - new Date(a.last_intervention_at).getTime()) >= 14 * 86400000) && (
+              <div className="mt-4">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-ink/40">Dormant athletes</p>
+                <div className="flex flex-wrap gap-2">
+                  {athletes
+                    .filter((a) => !a.last_intervention_at || (Date.now() - new Date(a.last_intervention_at).getTime()) >= 14 * 86400000)
+                    .map((a) => (
+                      <span key={a.id} className="rounded-full border border-ink/10 bg-paper px-3 py-1 text-xs text-ink/65">
+                        {a.name || a.email || 'Unnamed'} · {a.last_intervention_at ? daysAgo(a.last_intervention_at) : 'no logs'}
+                      </span>
+                    ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -275,9 +339,19 @@ export default function AdminPage() {
                     {/* Expanded row — athlete's recent logs from the feed */}
                     {expandedAthlete === athlete.id && (
                       <div className="border-t border-ink/6 bg-paper px-5 py-4">
-                        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-accent">
-                          Recent logs
-                        </p>
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
+                            Recent logs
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => startViewAs(athlete.id)}
+                            className="rounded-full bg-amber-500 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-amber-600"
+                          >
+                            View as athlete →
+                          </button>
+                        </div>
+                        {viewAsError ? <p className="mb-3 text-sm text-red-600">{viewAsError}</p> : null}
                         {logs.filter((l) => l.athlete_id === athlete.id).slice(0, 5).length === 0 ? (
                           <p className="text-sm text-ink/40">No logs yet.</p>
                         ) : (

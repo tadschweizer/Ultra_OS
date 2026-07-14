@@ -11,6 +11,12 @@ import {
   signAthleteId,
   verifySignedAthleteId,
 } from '../lib/auth/sessionCookies.js';
+import {
+  setViewAsCookie,
+  signViewAsValue,
+  verifyViewAsValue,
+} from '../lib/auth/sessionCookies.js';
+import { resolveEffectiveAthleteId } from '../lib/auth/requireAthlete.js';
 import { hasRole, requireRole } from '../lib/auth/roleGuards.js';
 import logoutHandler from '../pages/api/auth/logout.js';
 
@@ -95,13 +101,89 @@ test('logout clears cookie and returns ok', async () => {
   assert.match(String(res.getHeader('Set-Cookie')), /athlete_id=/);
 });
 
+// ─── Admin read-only impersonation (view_as) ─────────────────────────────────
+
+const ADMIN_UUID = '123e4567-e89b-12d3-a456-426614174000';
+const TARGET_UUID = '223e4567-e89b-12d3-a456-426614174000';
+
+function fakeAdminClient(isAdmin) {
+  return {
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          maybeSingle: async () => ({ data: { is_admin: isAdmin }, error: null }),
+        }),
+      }),
+    }),
+  };
+}
+
+function requestAs(realId, { method = 'GET', viewAsValue = null } = {}) {
+  const cookies = [`athlete_id=${signAthleteId(realId)}`];
+  if (viewAsValue) cookies.push(`view_as=${viewAsValue}`);
+  return { method, headers: { cookie: cookies.join('; ') } };
+}
+
+test('admin impersonation resolves the target id on GET only', async () => {
+  const viewAs = signViewAsValue(TARGET_UUID);
+
+  const get = await resolveEffectiveAthleteId(requestAs(ADMIN_UUID, { viewAsValue: viewAs }), fakeAdminClient(true));
+  assert.deepEqual(get, { athleteId: TARGET_UUID, realAthleteId: ADMIN_UUID, isImpersonating: true });
+
+  // Non-GET methods always resolve to the real athlete (middleware blocks
+  // them outright as well) — a write must never touch either account wrongly.
+  const post = await resolveEffectiveAthleteId(requestAs(ADMIN_UUID, { method: 'POST', viewAsValue: viewAs }), fakeAdminClient(true));
+  assert.deepEqual(post, { athleteId: ADMIN_UUID, realAthleteId: ADMIN_UUID, isImpersonating: false });
+});
+
+test('a forged (unsigned) view_as cookie is treated as self', async () => {
+  const resolved = await resolveEffectiveAthleteId(
+    requestAs(ADMIN_UUID, { viewAsValue: `${TARGET_UUID}:9999999999999.fake-signature` }),
+    fakeAdminClient(true)
+  );
+  assert.equal(resolved.athleteId, ADMIN_UUID);
+  assert.equal(resolved.isImpersonating, false);
+});
+
+test('a validly signed view_as cookie is ignored for non-admins (demoted admin)', async () => {
+  const viewAs = signViewAsValue(TARGET_UUID);
+  const resolved = await resolveEffectiveAthleteId(requestAs(ADMIN_UUID, { viewAsValue: viewAs }), fakeAdminClient(false));
+  assert.equal(resolved.athleteId, ADMIN_UUID);
+  assert.equal(resolved.isImpersonating, false);
+});
+
+test('view_as values expire after their signed window', () => {
+  const now = Date.now();
+  const fresh = signViewAsValue(TARGET_UUID, now + 1000);
+  assert.equal(verifyViewAsValue(fresh, now), TARGET_UUID);
+
+  const expired = signViewAsValue(TARGET_UUID, now - 1);
+  assert.equal(verifyViewAsValue(expired, now), null);
+
+  // Two hours is the ceiling the cookie is minted with.
+  const res = makeRes();
+  setViewAsCookie(res, TARGET_UUID);
+  assert.match(String(res.getHeader('Set-Cookie')), /Max-Age=7200/);
+  assert.match(String(res.getHeader('Set-Cookie')), /HttpOnly/);
+});
+
+test('tampering with the view_as payload invalidates it', () => {
+  const signed = signViewAsValue(TARGET_UUID);
+  const swapped = ADMIN_UUID + signed.slice(TARGET_UUID.length);
+  assert.equal(verifyViewAsValue(swapped), null);
+  assert.equal(verifyViewAsValue(null), null);
+  assert.equal(verifyViewAsValue('garbage'), null);
+});
+
 test('no API route reads the athlete_id cookie without signature verification', async () => {
   // Every route must go through lib/auth/sessionCookies (which verifies the
   // HMAC). Raw cookie parsing of athlete_id is only allowed in files that
   // authenticate some other way (webhooks) or manage other cookies.
   const fs = await import('node:fs');
   const path = await import('node:path');
-  const apiDir = new URL('../pages/api', import.meta.url).pathname;
+  const { fileURLToPath } = await import('node:url');
+  // fileURLToPath (not URL.pathname) so the scan also works on Windows.
+  const apiDir = fileURLToPath(new URL('../pages/api', import.meta.url));
 
   const allowRawCookieParse = new Set([
     // These parse cookies for non-session values (webhook secrets, invite

@@ -2,6 +2,8 @@
 
 **Priority: 8 of 10. The top two items on AI_ANALYSIS_ROADMAP.md. The streams plumbing already exists (`getActivityStreams` in `lib/strava.js` is already called for altitude) — this extends it to heartrate/time/distance and computes the two signature analyses.**
 
+> **Status: IMPLEMENTED.** `lib/streamAnalysis.js` (distance-split halves, stopped-sample filtering, 20–35% vs 70–85% drift windows, speed-based EF, steadiness gates: ≥40 min + speed CV ≤0.25 + window pace drift ≤10%, run-only); `/api/activity-details` requests all five streams in the same single Strava call and attaches `analysis` (null-safe); Z2 ceiling reuses `resolveHrThresholds` from `activityInsights.js` (now exported); UI panel in `ActivityContextCard` with green/amber/red decoupling tones and the Z2 clause only when configured. 10 synthetic-stream tests in `tests/stream-analysis.test.mjs`; both roadmap checkboxes ticked.
+
 ## Goal
 
 For a steady run, compute and display:

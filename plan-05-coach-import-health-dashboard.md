@@ -2,6 +2,8 @@
 
 **Priority: 5 of 10. Second ❌ row in the TrainingPeaks parity matrix ("Multi-athlete import health"), and a stated 2026-04-30 architectural decision: migration transparency before broad athlete onboarding.**
 
+> **Status: IMPLEMENTED.** `lib/importHealth.js` (latest-job reducer, status buckets incl. unknown/not-started, rollup) + 11 tests in `tests/coach-import-health.test.mjs`; roster card on the Coach Command Center triage tab (`components/ImportHealthCard.js`); per-athlete import block with history + error message on the coach athlete-detail page; both APIs extended behind the existing roster-relationship checks. Parity row flipped to ✅.
+
 ## Goal
 
 Coaches migrating a roster from TrainingPeaks need one place showing, per athlete: import status, how many items transferred, and how many need manual mapping. The data already exists in `public.trainingpeaks_import_jobs` (`athlete_id`, `coach_id`, `status`, `transferred_count`, `needs_manual_mapping_count`, `error_message`, `metadata`, timestamps) with an index on `(athlete_id, created_at DESC)`. Nothing surfaces it to coaches today.

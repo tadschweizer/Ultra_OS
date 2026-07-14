@@ -277,10 +277,49 @@ export function ActivityContextCard({
           ) : (
             <p className="text-xs text-white/60">Additional activity details are unavailable for this workout.</p>
           )}
+          {activityDetails?.analysis ? <SteadyStateAnalysis analysis={activityDetails.analysis} /> : null}
         </div>
       ) : (
         <p className="mt-4 text-sm text-white/70">{emptyCopy}</p>
       )}
+    </div>
+  );
+}
+
+function decouplingTone(pct) {
+  if (pct === null || pct === undefined) return 'text-white/70';
+  if (pct < 5) return 'text-emerald-300';
+  if (pct <= 7) return 'text-amber-300';
+  return 'text-red-300';
+}
+
+function decouplingLabel(pct) {
+  if (pct < 5) return `well within the 5% aerobic threshold`;
+  if (pct <= 7) return `near the aerobic ceiling (5–7% band)`;
+  return `above the 7% aerobic ceiling`;
+}
+
+function SteadyStateAnalysis({ analysis }) {
+  const driftSign = analysis.driftPct > 0 ? '+' : '';
+  const driftDescriptor = analysis.driftPct < 0
+    ? ' (well controlled)'
+    : analysis.similarPace
+      ? ' at steady pace'
+      : '';
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+      <p className="text-xs uppercase tracking-[0.2em] text-accent">Steady-State Analysis</p>
+      <p className={`mt-2 text-sm font-semibold ${decouplingTone(analysis.decouplingPct)}`}>
+        Aerobic decoupling: {analysis.decouplingPct}% — {decouplingLabel(analysis.decouplingPct)}.
+      </p>
+      <p className="mt-1.5 text-sm text-white/85">
+        HR drift: {driftSign}{analysis.driftPct}%{driftDescriptor} ({analysis.hr1} → {analysis.hr2} bpm).
+        {analysis.z2Ceiling
+          ? analysis.aboveZ2
+            ? ` Your logged Z2 ceiling is ${analysis.z2Ceiling} bpm — the back half ran above it; consider easing 10–15 sec/mi on aerobic days.`
+            : ` Your logged Z2 ceiling is ${analysis.z2Ceiling} bpm — this held inside it.`
+          : ''}
+      </p>
     </div>
   );
 }

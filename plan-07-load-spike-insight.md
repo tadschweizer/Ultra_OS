@@ -2,6 +2,8 @@
 
 **Priority: 7 of 10. First unbuilt item from AI_ANALYSIS_ROADMAP.md that needs NO new external APIs — it runs entirely on activity data already synced into Supabase plus the intervention log. Highest insight-value-per-effort on that roadmap.**
 
+> **Status: IMPLEMENTED.** `detectLoadSpikes` in `lib/trainingLoad.js` (Monday-start local weeks, 4-week baseline with ≥3 non-zero weeks and a 50-TRIMP floor, high/moderate/note bands, evaluates last complete week AND an already-over-threshold partial current week, `RECOVERY_INTERVENTION_TYPES` from the catalog's After-phase labels + Sleep Protocol). Card renders on `/insights` ahead of the other rule cards; 7 tests added to `tests/training-calculations.test.mjs` (TZ-stable fixtures); roadmap checkbox ticked.
+
 ## Goal
 
 Per AI_ANALYSIS_ROADMAP.md "Training Load Spike Detection": flag any week whose total load jumps >10% (roadmap threshold; use ramp bands below) over the prior 4-week average, and cross-reference whether the athlete logged recovery interventions that week. Output an insight card like:

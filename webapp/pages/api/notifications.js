@@ -1,5 +1,6 @@
 import { supabase } from '../../lib/supabaseClient';
 import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
+import { getEffectiveAthleteIdFromRequest } from '../../lib/auth/requireAthlete.js';
 
 const DEFAULT_NOTIFICATIONS = {
   coach_note_reply: true,
@@ -12,11 +13,11 @@ const DEFAULT_NOTIFICATIONS = {
 };
 
 function getAthleteId(req) {
-  return getAthleteIdFromRequest(req);
+  return getEffectiveAthleteIdFromRequest(req);
 }
 
 export default async function handler(req, res) {
-  const athleteId = getAthleteId(req);
+  const athleteId = await getAthleteId(req);
   if (!athleteId) return res.status(401).json({ error: 'Not authenticated' });
 
   if (req.method === 'GET') {

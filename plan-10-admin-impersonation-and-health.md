@@ -2,6 +2,8 @@
 
 **Priority: 10 of 10. MULTIUSER_ROADMAP Phase 3 items 11–12. This is how you verify "things look correct on their end" once the first cohort is in. Do AFTER plans 01–02 (it builds on the signed cookie and shared guards — done earlier it would widen the security hole).**
 
+> **Status: IMPLEMENTED.** `view_as` cookie is httpOnly + HMAC-signed WITH an embedded expiry (2h, enforced server-side, not just maxAge); `resolveEffectiveAthleteId` re-verifies `is_admin` on every request and only ever applies on GET; applied across 25 data-read routes (athlete + coach GETs, incl. Strava-token routes so the admin sees the target's real view). Writes during impersonation are blocked at ONE choke point — `middleware.js` 403s every non-GET `/api/*` (and `/api/billing/*` in both directions, since `portal.js` is a GET redirect) while a validly signed cookie is present; forged cookies fail verification and have zero effect; `/api/admin/impersonate` (stop) and `/api/auth/*` are exempt. `POST/DELETE /api/admin/impersonate`, amber banner via `/api/me`'s `impersonating` block (`components/ImpersonationBanner.js` in `_app`), `threshold.me.v1` cache busted on start/stop. `admin/athletes.js` N+1 replaced with exactly 2 batched queries + data-health stats (active 7d, dormant 14+, check-ins/week ×4, top-5 types, dormant list). 5 new tests in `tests/auth-regression.test.mjs` (forged cookie, demoted admin, GET-vs-POST resolution, signed expiry, tamper).
+
 ## Goal
 
 Two admin capabilities:
