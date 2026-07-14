@@ -8,7 +8,7 @@
 
 These analyses run on individual Strava/Garmin activity files and extract signals that no wearable currently surfaces in plain English.
 
-### [ ] Heart Rate Drift → Zone 2 Detection
+### [x] Heart Rate Drift → Zone 2 Detection
 **Data source:** HR time-series from a single activity (via Strava streams API or Garmin FIT file)
 **What to extract:**
 - Cardiac drift: the % increase in HR over the second half of a steady-state effort at the same pace
@@ -16,11 +16,11 @@ These analyses run on individual Strava/Garmin activity files and extract signal
 - Cross-reference with athlete's stated Z2 ceiling from settings
 **Athlete-facing output:**
 > "On your Tuesday 12-mile run your HR rose from 138 bpm (miles 3-4) to 151 bpm (miles 9-10) at the same pace. That 9.4% drift suggests you were running above your aerobic threshold for most of the back half. Your logged Z2 ceiling is 148 bpm — consider slowing 10-15 sec/mile."
-**Status:** Not built. Requires Strava Streams API endpoint (`/api/activities/{id}/streams?keys=heartrate,time,distance`).
+**Status:** Built — `computeHrDrift`/`analyzeSteadyState` in `lib/streamAnalysis.js`, streams fetched by `/api/activity-details` (single call), shown in the Linked Activity Context panel. Tests: `tests/stream-analysis.test.mjs`.
 
 ---
 
-### [ ] Decoupling Score per Workout
+### [x] Decoupling Score per Workout
 **Data source:** HR + pace streams from a single run
 **What to extract:**
 - Aerobic decoupling (Pa:HR or EF decoupling): compare Efficiency Factor in first half vs second half
@@ -29,11 +29,11 @@ These analyses run on individual Strava/Garmin activity files and extract signal
 - <5% = well within aerobic zone; >7% = aerobic ceiling exceeded
 **Athlete-facing output:**
 > "Aerobic decoupling on your Sunday long run: 4.2%. Well within the 5% threshold — this was a legitimate Zone 2 session."
-**Status:** Not built. Same stream data as HR drift.
+**Status:** Built — `computeDecoupling` in `lib/streamAnalysis.js` (speed-based EF, distance-split halves), surfaced alongside HR drift on the activity detail panel.
 
 ---
 
-### [ ] Training Load Spike Detection
+### [x] Training Load Spike Detection
 **Data source:** Weekly mileage/elevation history from activities
 **What to extract:**
 - Week-over-week % change in total load (acute vs chronic workload ratio pattern)
@@ -41,7 +41,7 @@ These analyses run on individual Strava/Garmin activity files and extract signal
 - Correlate spikes with subsequent intervention entries (did the athlete log recovery/BFR after a big week?)
 **Athlete-facing output:**
 > "Your load this week (68 miles) is 31% above your 4-week average (52 miles). That's above the recommended 10% ramp ceiling. No recovery interventions logged this week — consider logging BFR or a deliberate sleep extension entry."
-**Status:** Not built. Uses existing activity data already in Supabase.
+**Status:** Built — `detectLoadSpikes` in `lib/trainingLoad.js` (rule-based, Monday-start weeks, 4-week baseline, recovery cross-reference from `interventionCatalog` types), rendered as a card on `/insights`, covered by tests in `tests/training-calculations.test.mjs`.
 
 ---
 

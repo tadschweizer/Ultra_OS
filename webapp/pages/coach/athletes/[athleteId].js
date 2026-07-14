@@ -1,6 +1,8 @@
 import { useRouter } from 'next/router';
 import { useEffect, useMemo, useState } from 'react';
 import NavMenu from '../../../components/NavMenu';
+import { ImportStatusPill } from '../../../components/ImportHealthCard';
+import { IMPORT_STATUSES, classifyImportJob } from '../../../lib/importHealth';
 import { ReconciliationSummary } from '../../../components/WeeklyReconciliation';
 import { summarizeReconciliationWindow, toDateKey } from '../../../lib/workoutCompliance';
 import { appMenuLinks } from '../../../lib/siteNavigation';
@@ -113,6 +115,47 @@ export default function CoachAthleteDetail() {
 
         <section className="mt-6">
           <ReconciliationSummary summary={planReconciliation} title="Plan compliance — last 28 days" />
+        </section>
+
+        <section className="mt-6 rounded-3xl border border-ink/10 bg-white p-5 sm:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-xl font-semibold">TrainingPeaks import</h2>
+            {data.importHealth ? <ImportStatusPill status={data.importHealth.importStatus} /> : null}
+          </div>
+          {data.importHealth && data.importHealth.importStatus !== IMPORT_STATUSES.NOT_STARTED ? (
+            <>
+              <div className="mt-4 grid gap-4 md:grid-cols-3">
+                <Card title="Items transferred" value={String(data.importHealth.transferredCount)} />
+                <Card title="Need manual mapping" value={String(data.importHealth.needsManualMappingCount)} />
+                <Card title="Last import" value={data.importHealth.lastImportAt ? new Date(data.importHealth.lastImportAt).toLocaleDateString() : '—'} />
+              </div>
+              {data.importHealth.errorMessage ? (
+                <p className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                  Import error: {data.importHealth.errorMessage}
+                </p>
+              ) : null}
+              {data.importHealth.needsManualMappingCount > 0 ? (
+                <p className="mt-4 text-sm text-ink/65">
+                  The athlete finishes mapping on their Connections page (Migration completeness section). Use the message button above to nudge them.
+                </p>
+              ) : null}
+              {(data.importJobs || []).length > 1 ? (
+                <div className="mt-4">
+                  <p className="text-xs uppercase tracking-wide text-ink/50">Import history</p>
+                  <div className="mt-2 space-y-2">
+                    {data.importJobs.slice(1).map((job) => (
+                      <div key={job.id} className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-ink/8 bg-paper p-3 text-sm">
+                        <span className="text-ink/70">{job.created_at ? new Date(job.created_at).toLocaleDateString() : '—'} · {job.transferred_count} transferred · {job.needs_manual_mapping_count} unmapped</span>
+                        <ImportStatusPill status={classifyImportJob(job)} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <p className="mt-4 text-sm text-ink/60">No TrainingPeaks import started for this athlete yet.</p>
+          )}
         </section>
 
         <section className="mt-6 grid gap-4 md:grid-cols-2">

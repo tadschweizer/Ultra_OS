@@ -1,5 +1,6 @@
 import { getSupabaseAdminClient } from '../../lib/authServer';
 import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
+import { getEffectiveAthleteIdFromRequest } from '../../lib/auth/requireAthlete.js';
 
 const NOTE_COLUMNS = 'id, athlete_id, coach_id, note_date, title, body, visibility, note_type, created_at, updated_at';
 const NOTE_TYPES = ['general', 'day_off', 'event', 'goal'];
@@ -27,7 +28,7 @@ async function getCoachProfileFor(admin, sessionAthleteId, targetAthleteId) {
 }
 
 export default async function handler(req, res) {
-  const sessionAthleteId = getAthleteIdFromRequest(req);
+  const sessionAthleteId = await getEffectiveAthleteIdFromRequest(req);
   if (!sessionAthleteId) {
     res.status(401).json({ error: 'Not authenticated' });
     return;

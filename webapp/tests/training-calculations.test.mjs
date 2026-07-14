@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { classifyActivity } from '../lib/activityInsights.js';
-import { computeActivityTrimp, ewmaSeries, getLoadMetrics } from '../lib/trainingLoad.js';
+import { computeActivityTrimp, detectLoadSpikes, ewmaSeries, getLoadMetrics } from '../lib/trainingLoad.js';
 
 const MILE_METERS = 1609.34;
 
@@ -81,6 +81,113 @@ test('EWMA converges toward a constant load and weights recency', () => {
     spikeRecent[spikeRecent.length - 1] > spikeOld[spikeOld.length - 1],
     'recent work must count more than six-week-old work'
   );
+});
+
+// ─── detectLoadSpikes ─────────────────────────────────────────────────────────
+
+// Fixed clock: Wednesday 2026-07-08. Current week starts Mon 07-06; the last
+// complete week is 06-29..07-05; its 4-week baseline is 06-01..06-28.
+const SPIKE_TODAY = new Date('2026-07-08T15:00:00Z');
+
+// 15:00Z keeps the local calendar date identical under both UTC and
+// America/Denver, so week bucketing is TZ-stable in tests.
+function weekOfRuns(mondayDate, { runs = 3, minutes = 60, avgHr = 140 } = {}) {
+  const monday = new Date(`${mondayDate}T15:00:00Z`);
+  return Array.from({ length: runs }).map((_, i) => {
+    const d = new Date(monday.getTime() + i * 2 * 86400000);
+    return { ...run({ minutes, avgHr }), start_date: d.toISOString() };
+  });
+}
+
+const STEADY_BASELINE = [
+  ...weekOfRuns('2026-06-01'),
+  ...weekOfRuns('2026-06-08'),
+  ...weekOfRuns('2026-06-15'),
+  ...weekOfRuns('2026-06-22'),
+];
+
+test('a +35% week over a flat 4-week baseline is a high-severity spike', () => {
+  const activities = [
+    ...STEADY_BASELINE,
+    ...weekOfRuns('2026-06-29', { minutes: 81 }), // TRIMP is linear in duration → exactly +35%
+  ];
+  const spike = detectLoadSpikes(activities, {}, [], { today: SPIKE_TODAY });
+  assert.ok(spike, 'spike expected');
+  assert.equal(spike.severity, 'high');
+  assert.ok(Math.abs(spike.rampPct - 35) <= 1, `rampPct ${spike.rampPct} should be ~35`);
+  assert.equal(spike.isCurrentWeek, false);
+  assert.match(spike.narrative, /35% above/);
+});
+
+test('a +5% week produces no spike', () => {
+  const activities = [
+    ...STEADY_BASELINE,
+    ...weekOfRuns('2026-06-29', { minutes: 63 }),
+  ];
+  assert.equal(detectLoadSpikes(activities, {}, [], { today: SPIKE_TODAY }), null);
+});
+
+test('fewer than 3 non-zero baseline weeks yields no spike', () => {
+  const activities = [
+    ...weekOfRuns('2026-06-15'),
+    ...weekOfRuns('2026-06-22'),
+    ...weekOfRuns('2026-06-29', { minutes: 120 }),
+  ];
+  assert.equal(detectLoadSpikes(activities, {}, [], { today: SPIKE_TODAY }), null);
+});
+
+test('recovery interventions in the spike week are counted and named', () => {
+  const activities = [
+    ...STEADY_BASELINE,
+    ...weekOfRuns('2026-06-29', { minutes: 90 }),
+  ];
+  const interventions = [
+    { intervention_type: 'Sauna - Recovery', date: '2026-07-01' },
+    { intervention_type: 'Foam Rolling', date: '2026-07-03' },
+    { intervention_type: 'Gut Training', date: '2026-07-02' }, // not recovery
+    { intervention_type: 'Sauna - Recovery', date: '2026-06-10' }, // outside spike week
+  ];
+  const spike = detectLoadSpikes(activities, {}, interventions, { today: SPIKE_TODAY });
+  assert.ok(spike);
+  assert.equal(spike.recoveryCount, 2);
+  assert.deepEqual(spike.recoveryTypes.sort(), ['Foam Rolling', 'Sauna - Recovery']);
+  assert.match(spike.narrative, /2 recovery-focused entries/);
+});
+
+test('near-zero baseline (returning from a break) suppresses the card', () => {
+  const activities = [
+    ...weekOfRuns('2026-06-01', { runs: 1, minutes: 5 }),
+    ...weekOfRuns('2026-06-08', { runs: 1, minutes: 5 }),
+    ...weekOfRuns('2026-06-15', { runs: 1, minutes: 5 }),
+    ...weekOfRuns('2026-06-22', { runs: 1, minutes: 5 }),
+    ...weekOfRuns('2026-06-29', { minutes: 90 }),
+  ];
+  assert.equal(detectLoadSpikes(activities, {}, [], { today: SPIKE_TODAY }), null);
+});
+
+test('a partial current week already over threshold flags as this week', () => {
+  const activities = [
+    ...weekOfRuns('2026-06-08'),
+    ...weekOfRuns('2026-06-15'),
+    ...weekOfRuns('2026-06-22'),
+    ...weekOfRuns('2026-06-29'),
+    ...weekOfRuns('2026-07-06', { runs: 2, minutes: 150 }), // Mon+Wed of current week
+  ];
+  const spike = detectLoadSpikes(activities, {}, [], { today: SPIKE_TODAY });
+  assert.ok(spike);
+  assert.equal(spike.isCurrentWeek, true);
+  assert.match(spike.narrative, /this week so far/);
+});
+
+test('activities without moving_time do not poison the weekly sums', () => {
+  const activities = [
+    ...STEADY_BASELINE,
+    { sport_type: 'Run', distance: 10000, moving_time: null, start_date: '2026-06-30T15:00:00Z' },
+    ...weekOfRuns('2026-06-29', { minutes: 81 }),
+  ];
+  const spike = detectLoadSpikes(activities, {}, [], { today: SPIKE_TODAY });
+  assert.ok(spike);
+  assert.ok(Number.isFinite(spike.weekLoad));
 });
 
 test('getLoadMetrics reports negative form during a load spike', () => {

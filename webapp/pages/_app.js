@@ -2,6 +2,7 @@ import '../styles/globals.css';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import AppShell from '../components/AppShell';
+import ImpersonationBanner from '../components/ImpersonationBanner';
 import OnboardingGate from '../components/OnboardingGate';
 
 
@@ -60,6 +61,7 @@ export default function MyApp({ Component, pageProps }) {
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
       </Head>
+      <ImpersonationBanner />
       <OnboardingGate>
         <AppShell>
           <div className="ui-page">

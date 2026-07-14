@@ -24,8 +24,12 @@ const MIN_DELTA = 0.4;    // minimum score delta to surface (avoids noise)
 
 function toTimestamp(dateStr) {
   if (!dateStr) return null;
-  const ts = new Date(`${dateStr}T12:00:00`).getTime();
-  return Number.isNaN(ts) ? null : ts;
+  // Pin to UTC noon so the 48h window boundary is stable across server
+  // timezones and DST transitions (local-time parsing shifted the boundary
+  // by an hour when a DST change fell inside the window).
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dateStr));
+  if (!match) return null;
+  return Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12);
 }
 
 function mean(arr) {

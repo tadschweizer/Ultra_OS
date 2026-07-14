@@ -306,7 +306,7 @@ export function classifyActivityType(activity = {}) {
  * against 0, which previously made every session with a heart rate read as
  * "Intervals".
  */
-function resolveHrThresholds(settings = {}) {
+export function resolveHrThresholds(settings = {}) {
   const explicit = {
     zone2Max: Number(settings?.hr_zone_2_max) || null,
     zone3Min: Number(settings?.hr_zone_3_min) || null,

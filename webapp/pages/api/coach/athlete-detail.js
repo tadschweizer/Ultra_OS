@@ -1,5 +1,7 @@
 import { supabase } from '../../../lib/supabaseClient';
+import { buildAthleteImportHealth } from '../../../lib/importHealth';
 import { getAthleteIdFromRequest } from '../../../lib/auth/sessionCookies.js';
+import { getEffectiveAthleteIdFromRequest } from '../../../lib/auth/requireAthlete.js';
 
 function buildRaceReadiness({ upcomingRace, activeProtocols, compliance, activities, checkins, interventions }) {
   const daysUntilRace = upcomingRace?.event_date ? Math.ceil((new Date(upcomingRace.event_date) - new Date()) / 86400000) : null;
@@ -64,12 +66,12 @@ function buildRaceReadiness({ upcomingRace, activeProtocols, compliance, activit
 }
 
 function getAthleteId(req) {
-  return getAthleteIdFromRequest(req);
+  return getEffectiveAthleteIdFromRequest(req);
 }
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).end();
-  const authAthleteId = getAthleteId(req);
+  const authAthleteId = await getAthleteId(req);
   const athleteId = req.query.athlete_id;
   if (!authAthleteId) return res.status(401).json({ error: 'Not authenticated' });
   if (!athleteId) return res.status(400).json({ error: 'athlete_id is required' });
@@ -87,7 +89,7 @@ export default async function handler(req, res) {
 
   const reconciliationStart = new Date(Date.now() - 28 * 86400000).toISOString().slice(0, 10);
 
-  const [athleteRes, racesRes, protocolsRes, interventionsRes, activitiesRes, checkinsRes, notesRes, plannedWorkoutsRes, reconActivitiesRes] = await Promise.all([
+  const [athleteRes, racesRes, protocolsRes, interventionsRes, activitiesRes, checkinsRes, notesRes, plannedWorkoutsRes, reconActivitiesRes, importJobsRes] = await Promise.all([
     supabase.from('athletes').select('id, name, email, primary_sports').eq('id', athleteId).single(),
     supabase.from('races').select('id, name, event_date, race_type').eq('athlete_id', athleteId).gte('event_date', new Date().toISOString().slice(0, 10)).order('event_date', { ascending: true }).limit(1),
     supabase.from('coach_protocol_assignments').select('*').eq('athlete_id', athleteId).order('created_at', { ascending: false }),
@@ -97,6 +99,7 @@ export default async function handler(req, res) {
     supabase.from('coach_notes').select('*').eq('coach_id', coachProfile.id).eq('athlete_id', athleteId).order('created_at', { ascending: false }).limit(10),
     supabase.from('planned_workouts').select('*').eq('athlete_id', athleteId).gte('workout_date', reconciliationStart).order('workout_date', { ascending: true }),
     supabase.from('activities').select('*').eq('athlete_id', athleteId).gte('start_date', reconciliationStart).order('start_date', { ascending: true }),
+    supabase.from('trainingpeaks_import_jobs').select('id, status, transferred_count, needs_manual_mapping_count, error_message, created_at, updated_at, followup_sent_at').eq('athlete_id', athleteId).order('created_at', { ascending: false }).limit(5),
   ]);
 
   const protocols = protocolsRes.data || [];
@@ -124,6 +127,8 @@ export default async function handler(req, res) {
     plannedWorkouts: plannedWorkoutsRes.data || [],
     reconciliationActivities: reconActivitiesRes.data || [],
     checkins,
+    importJobs: importJobsRes.data || [],
+    importHealth: buildAthleteImportHealth((importJobsRes.data || [])[0] || null),
     coachNotes: notesRes.data || [],
     riskLevel,
     suggestedAction: riskLevel === 'red' ? 'Schedule a same-day check-in and adjust training load for the next 24-48 hours.' : riskLevel === 'yellow' ? 'Message the athlete to confirm protocol adherence and race-week constraints.' : 'Reinforce current plan and monitor for changes.',

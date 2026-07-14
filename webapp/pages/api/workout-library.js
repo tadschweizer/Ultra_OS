@@ -2,6 +2,7 @@ import { getSupabaseAdminClient } from '../../lib/authServer';
 
 import { estimateTss, summarizeStructure } from '../../lib/workoutCompliance';
 import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
+import { getEffectiveAthleteIdFromRequest } from '../../lib/auth/requireAthlete.js';
 
 const LIBRARY_COLUMNS = `
   id, coach_id, name, sport, description, structure,
@@ -51,7 +52,7 @@ function normalizePayload(body) {
 }
 
 export default async function handler(req, res) {
-  const athleteId = getAthleteIdFromRequest(req);
+  const athleteId = await getEffectiveAthleteIdFromRequest(req);
   if (!athleteId) {
     res.status(401).json({ error: 'Not authenticated' });
     return;

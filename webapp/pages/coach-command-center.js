@@ -3,6 +3,7 @@ import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
 import UpgradePrompt from '../components/UpgradePrompt';
 import EmptyStateCard from '../components/EmptyStateCard';
+import ImportHealthCard from '../components/ImportHealthCard';
 import { usePlan } from '../lib/planUtils';
 import { interventionCatalog } from '../lib/interventionCatalog';
 import { appMenuLinks } from '../lib/siteNavigation';
@@ -407,6 +408,8 @@ export default function CoachCommandCenter() {
   const [notesMap, setNotesMap] = useState({}); // keyed by athlete_id
   const [docsMap, setDocsMap] = useState({}); // keyed by athlete_id
   const [sessionLoad, setSessionLoad] = useState({ daily: 0, rollingWeekly: 0 });
+  const [importHealth, setImportHealth] = useState(null);
+  const [followupState, setFollowupState] = useState({}); // keyed by jobId: 'sending' | error string
 
   // UI state
   const [activeTab, setActiveTab] = useState('triage');
@@ -452,6 +455,7 @@ export default function CoachCommandCenter() {
           setSummary(d.summary || null);
           setCoachKpis(d.coachKpis || null);
           setSessionLoad({ daily: d.loadSummary?.acute ?? 0, rollingWeekly: d.loadSummary?.chronic ?? 0 });
+          setImportHealth(d.importHealth || null);
           setProfileForm({
             display_name: d.profile?.display_name || '',
             bio: d.profile?.bio || '',
@@ -634,6 +638,61 @@ export default function CoachCommandCenter() {
       [openAthleteId]: (m[openAthleteId] || []).filter((doc) => doc.id !== id),
     }));
   }, [openAthleteId]);
+
+  const handleSendImportFollowup = useCallback(async (athleteId, jobId) => {
+    setFollowupState((m) => ({ ...m, [jobId]: 'sending' }));
+    try {
+      const res = await fetch('/api/coach/import-followup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setFollowupState((m) => ({ ...m, [jobId]: d.error || 'Failed to send follow-up.' }));
+        return;
+      }
+      setFollowupState((m) => { const next = { ...m }; delete next[jobId]; return next; });
+      setImportHealth((prev) => {
+        if (!prev?.athletes?.[athleteId]) return prev;
+        return {
+          ...prev,
+          athletes: {
+            ...prev.athletes,
+            [athleteId]: { ...prev.athletes[athleteId], followupSentAt: d.followupSentAt || new Date().toISOString() },
+          },
+        };
+      });
+    } catch {
+      setFollowupState((m) => ({ ...m, [jobId]: 'Failed to send follow-up.' }));
+    }
+  }, []);
+
+  const renderImportFollowupAction = useCallback((rel, health) => {
+    if (!health?.jobId || !(health.needsManualMappingCount > 0) || health.importStatus !== 'needs_mapping') return null;
+    if (health.followupSentAt) {
+      const days = Math.floor((Date.now() - new Date(health.followupSentAt).getTime()) / 86400000);
+      return (
+        <span className="text-xs font-semibold text-emerald-700">
+          Followed up {days <= 0 ? 'just now' : `${days}d ago`} ✓
+        </span>
+      );
+    }
+    const state = followupState[health.jobId];
+    return (
+      <span className="flex flex-col items-end gap-1">
+        <button
+          type="button"
+          disabled={state === 'sending'}
+          onClick={() => handleSendImportFollowup(rel.athlete_id, health.jobId)}
+          className="rounded-full border border-accent/30 px-3 py-1 text-xs font-semibold text-accent hover:bg-accent/5 disabled:opacity-50"
+        >
+          {state === 'sending' ? 'Sending…' : 'Send follow-up'}
+        </button>
+        {state && state !== 'sending' ? <span className="text-xs text-red-600">{state}</span> : null}
+      </span>
+    );
+  }, [followupState, handleSendImportFollowup]);
 
   const handleRemoveAthlete = useCallback(async (relationshipId) => {
     const res = await fetch('/api/coach/relationships', {
@@ -1062,6 +1121,9 @@ export default function CoachCommandCenter() {
                       })}
                     </div>
                   </div>
+
+                  {/* Import health */}
+                  <ImportHealthCard importHealth={importHealth} relationships={relationships} renderRowAction={renderImportFollowupAction} />
 
                   {/* Load trends snapshot */}
                   <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">

@@ -7,6 +7,7 @@ import { deriveRaceType } from '../lib/raceTypes';
 import { canAccessFullInsights } from '../lib/subscriptionTiers';
 import { fetchMe } from '../lib/meClient';
 import { buildTrainingResponseCorrelations, buildCheckInTimeSeries, buildCheckInSummary } from '../lib/trainingInsights';
+import { detectLoadSpikes } from '../lib/trainingLoad';
 
 const MIN_GROUP_SIZE = 3; // mirrors trainingInsights.js threshold for UI messaging
 
@@ -303,10 +304,25 @@ export default function InsightsPage() {
     }
   }, []);
 
-  const cards = useMemo(
-    () => buildInterventionInsights(interventions, settings || {}, currentRace),
-    [interventions, settings, currentRace]
-  );
+  const loadSpikeCard = useMemo(() => {
+    const spike = detectLoadSpikes(activities, settings || {}, interventions);
+    if (!spike) return null;
+    return {
+      id: 'load-spike',
+      category: 'Training Load',
+      title: spike.isCurrentWeek ? 'Training load spike this week' : 'Training load spike last week',
+      body: spike.narrative,
+      action: spike.recoveryCount > 0 ? null : { label: 'Log a recovery entry', href: '/log-intervention' },
+      confidence: spike.severity === 'high' ? 'high' : 'moderate',
+      decision: spike.severity === 'high' ? 'adjust' : 'watch',
+      dataPoints: activities.length,
+    };
+  }, [activities, settings, interventions]);
+
+  const cards = useMemo(() => {
+    const interventionCards = buildInterventionInsights(interventions, settings || {}, currentRace);
+    return loadSpikeCard ? [loadSpikeCard, ...interventionCards] : interventionCards;
+  }, [interventions, settings, currentRace, loadSpikeCard]);
 
   const trainingCorrelationData = useMemo(
     () => buildTrainingResponseCorrelations(interventions),

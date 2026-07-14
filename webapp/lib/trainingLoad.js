@@ -123,3 +123,146 @@ export function getLoadMetrics(activities = [], settings = {}) {
 export function rollingAverageFromDailyLoad(dailyLoad = [], window = 7) {
   return ewmaSeries(dailyLoad.map((d) => d.load), window);
 }
+
+// ─── Training-load spike detection ────────────────────────────────────────────
+
+// Exact labels from lib/interventionCatalog.js that count as recovery-focused
+// entries when cross-referencing a load spike week.
+export const RECOVERY_INTERVENTION_TYPES = new Set([
+  'Sleep Protocol',
+  'Massage Gun',
+  'Normatec / Pneumatic Compression',
+  'Ice Bath / Cold Immersion',
+  'Contrast Therapy',
+  'Sauna - Recovery',
+  'Compression Garments',
+  'Elevation / Legs Up',
+  'Stretching / Mobility',
+  'Foam Rolling',
+]);
+
+const METERS_PER_MILE = 1609.34;
+const BASELINE_WEEKS = 4;
+// A near-zero baseline (returning from a break) makes ramp percentages absurd;
+// below this weekly TRIMP the athlete needs different messaging, not a spike alert.
+const MIN_BASELINE_TRIMP = 50;
+const MIN_NONZERO_BASELINE_WEEKS = 3;
+const RAMP_NOTE_PCT = 10;
+const RAMP_MODERATE_PCT = 15;
+const RAMP_HIGH_PCT = 30;
+
+/** Monday-start week key (athlete-local date) for any date-like input. */
+function mondayKey(dateLike) {
+  const d = new Date(dateLike);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return localDateKey(d);
+}
+
+function buildWeeklyBuckets(activities, settings, weekCount, today) {
+  const currentMonday = new Date(today);
+  currentMonday.setHours(0, 0, 0, 0);
+  currentMonday.setDate(currentMonday.getDate() - ((currentMonday.getDay() + 6) % 7));
+
+  const weeks = Array.from({ length: weekCount }).map((_, idx) => {
+    const start = new Date(currentMonday);
+    start.setDate(currentMonday.getDate() - (weekCount - 1 - idx) * 7);
+    return { key: localDateKey(start), trimp: 0, miles: 0 };
+  });
+  const byKey = new Map(weeks.map((w) => [w.key, w]));
+
+  activities.forEach((activity) => {
+    if (!activity?.start_date) return;
+    const trimp = computeActivityTrimp(activity, settings);
+    if (!Number.isFinite(trimp) || trimp <= 0) return;
+    const week = byKey.get(mondayKey(activity.start_date));
+    if (!week) return;
+    week.trimp += trimp;
+    week.miles += (Number(activity.distance) || 0) / METERS_PER_MILE;
+  });
+
+  return weeks;
+}
+
+function severityForRamp(rampPct) {
+  if (rampPct > RAMP_HIGH_PCT) return 'high';
+  if (rampPct > RAMP_MODERATE_PCT) return 'moderate';
+  if (rampPct > RAMP_NOTE_PCT) return 'note';
+  return null;
+}
+
+function evaluateWeek(weeks, weekIdx) {
+  if (weekIdx < BASELINE_WEEKS) return null;
+  const target = weeks[weekIdx];
+  const baselineWeeks = weeks.slice(weekIdx - BASELINE_WEEKS, weekIdx);
+  if (baselineWeeks.filter((w) => w.trimp > 0).length < MIN_NONZERO_BASELINE_WEEKS) return null;
+
+  const baselineLoad = baselineWeeks.reduce((sum, w) => sum + w.trimp, 0) / BASELINE_WEEKS;
+  if (baselineLoad < MIN_BASELINE_TRIMP) return null;
+
+  const rampPct = ((target.trimp - baselineLoad) / baselineLoad) * 100;
+  const severity = severityForRamp(rampPct);
+  if (!severity) return null;
+
+  return {
+    rampPct: Math.round(rampPct),
+    weekLoad: Math.round(target.trimp),
+    baselineLoad: Math.round(baselineLoad),
+    weekMiles: Math.round(target.miles),
+    baselineMiles: Math.round(baselineWeeks.reduce((sum, w) => sum + w.miles, 0) / BASELINE_WEEKS),
+    severity,
+    weekStart: target.key,
+  };
+}
+
+function buildSpikeNarrative(spike, recoveryCount, recoveryTypes) {
+  const weekLabel = spike.isCurrentWeek ? 'this week so far' : 'last week';
+  const volume = spike.weekMiles > 0
+    ? `${spike.weekMiles} mi`
+    : `${spike.weekLoad} TRIMP`;
+  const baselineVolume = spike.weekMiles > 0
+    ? `${spike.baselineMiles} mi`
+    : `${spike.baselineLoad} TRIMP`;
+  const recoveryClause = recoveryCount > 0
+    ? `You logged ${recoveryCount} recovery-focused ${recoveryCount === 1 ? 'entry' : 'entries'} ${spike.isCurrentWeek ? 'this week' : 'that week'} (${recoveryTypes.join(', ')}) — good.`
+    : `No recovery interventions logged ${spike.isCurrentWeek ? 'this week' : 'that week'} — consider a recovery-focused entry.`;
+
+  return `Your training load ${weekLabel} (${volume}) is ${spike.rampPct}% above your 4-week average (${baselineVolume}). That's above the recommended ~10% weekly ramp ceiling. ${recoveryClause}`;
+}
+
+/**
+ * Flag the most recent week (current-partial or last complete) whose load
+ * jumps >10% over the prior 4-week average, cross-referenced against logged
+ * recovery interventions. Pure function; returns null when no spike.
+ */
+export function detectLoadSpikes(activities = [], settings = {}, interventions = [], { today = new Date() } = {}) {
+  // Current week + 5 prior: enough history to evaluate both the current week
+  // and the last complete week against their own 4-week baselines.
+  const weeks = buildWeeklyBuckets(activities, settings, 6, today);
+
+  // A partial current week that already exceeds the threshold is a real spike
+  // and more actionable than last week's; otherwise fall back to the last
+  // complete week.
+  const currentSpike = evaluateWeek(weeks, weeks.length - 1);
+  const completeSpike = evaluateWeek(weeks, weeks.length - 2);
+  const spike = currentSpike
+    ? { ...currentSpike, isCurrentWeek: true }
+    : completeSpike
+      ? { ...completeSpike, isCurrentWeek: false }
+      : null;
+  if (!spike) return null;
+
+  const weekInterventions = interventions.filter((item) => {
+    if (!item?.date || !item?.intervention_type) return false;
+    return mondayKey(`${String(item.date).slice(0, 10)}T12:00:00`) === spike.weekStart;
+  });
+  const recoveryLogs = weekInterventions.filter((item) => RECOVERY_INTERVENTION_TYPES.has(item.intervention_type));
+  const recoveryTypes = [...new Set(recoveryLogs.map((item) => item.intervention_type))];
+
+  return {
+    ...spike,
+    recoveryCount: recoveryLogs.length,
+    recoveryTypes,
+    narrative: buildSpikeNarrative(spike, recoveryLogs.length, recoveryTypes),
+  };
+}

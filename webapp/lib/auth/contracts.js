@@ -1,4 +1,5 @@
 export const AUTH_COOKIE_NAME = 'athlete_id';
+export const VIEW_AS_COOKIE_NAME = 'view_as';
 
 export const AUTH_ERROR_MESSAGES = Object.freeze({
   INVALID_CREDENTIALS: 'Invalid email or password.',

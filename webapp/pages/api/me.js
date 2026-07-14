@@ -1,14 +1,18 @@
 import { getSupabaseAdminClient } from '../../lib/authServer';
 import { buildUsageSnapshot, getSubscriptionTierLabel, normalizeSubscriptionTier } from '../../lib/subscriptionTiers';
 import { buildLoadMetrics, buildLoadStatus } from '../../lib/loadRollups';
-import { clearAthleteCookie, getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
+import { clearAthleteCookie } from '../../lib/auth/sessionCookies.js';
+import { resolveEffectiveAthleteId } from '../../lib/auth/requireAthlete.js';
 import { isValidAthleteId } from '../../lib/auth/contracts.js';
 
 /**
  * Returns the authenticated athlete profile plus subscription tier and usage.
+ * Admin impersonation: reports the TARGET athlete's profile with an
+ * `impersonating` block so the client can show the read-only banner.
  */
 export default async function handler(req, res) {
-  const athleteId = getAthleteIdFromRequest(req);
+  const admin = getSupabaseAdminClient();
+  const { athleteId, isImpersonating } = await resolveEffectiveAthleteId(req, admin);
 
   if (!athleteId) {
     res.status(401).json({ error: 'Not authenticated' });
@@ -19,8 +23,6 @@ export default async function handler(req, res) {
     res.status(401).json({ error: 'Not authenticated' });
     return;
   }
-
-  const admin = getSupabaseAdminClient();
 
   // Fetch athlete
   const { data: athlete, error: athleteError } = await admin
@@ -95,6 +97,7 @@ export default async function handler(req, res) {
 
   res.status(200).json({
     athlete: normalizedAthlete,
+    impersonating: isImpersonating ? { athleteId: athlete.id, name: athlete.name } : null,
     interventionCount: count ?? 0,
     weeklyCheckIns: weeklyCheckIns ?? 0,
     load_metrics: loadMetrics,

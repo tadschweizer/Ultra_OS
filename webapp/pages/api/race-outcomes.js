@@ -1,5 +1,6 @@
 import { supabase } from '../../lib/supabaseClient';
 import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
+import { getEffectiveAthleteIdFromRequest } from '../../lib/auth/requireAthlete.js';
 
 function parseOptionalInt(value) {
   if (value === '' || value === null || value === undefined) return null;
@@ -14,7 +15,7 @@ function parseOptionalFloat(value) {
 }
 
 export default async function handler(req, res) {
-  const athleteId = getAthleteIdFromRequest(req);
+  const athleteId = await getEffectiveAthleteIdFromRequest(req);
 
   if (!athleteId) {
     return res.status(401).json({ error: 'Not authenticated' });

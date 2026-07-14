@@ -2,6 +2,8 @@
 
 **Priority: 6 of 10. Cheap, pure-function work that protects the core product from silent regressions before plans 07–08 build on top of it.**
 
+> **Status: IMPLEMENTED.** 15 tests in `tests/training-insights.test.mjs` covering every bullet (thresholds, deltas, group gates, 48h window incl. exact-boundary, zero-score exclusion, confidence tiers, sort order, malformed input, time series, summary trend). The `toTimestamp` timezone bug was REAL: local-noon parsing shifted the 48h boundary by 1h across DST (verified 49h gap under TZ=America/Denver for 2025-11-01→11-03); fixed with UTC-noon parsing, same API. Suite passes under TZ=UTC and TZ=America/Denver; `test:insights` script wired and file added to `test:auth:full`.
+
 ## Goal
 
 `webapp/lib/trainingInsights.js` (the correlation engine — the thing athletes pay for), `webapp/lib/insightSystemContent.js`, and the insight builders in `pages/insights.js` have no test coverage. `tests/training-calculations.test.mjs` covers only `activityInsights`/`trainingLoad`. The correlation engine is all pure functions over arrays — ideal test territory. Also fix the one real bug class visible in the code: date handling that breaks across timezones/DST.

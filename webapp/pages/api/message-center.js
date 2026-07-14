@@ -1,5 +1,6 @@
 import { getSupabaseAdminClient } from '../../lib/authServer';
 import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
+import { getEffectiveAthleteIdFromRequest } from '../../lib/auth/requireAthlete.js';
 
 /**
  * Message center summary + read-state endpoint.
@@ -173,7 +174,7 @@ async function buildAthleteSummary(admin, athleteId) {
 }
 
 export default async function handler(req, res) {
-  const sessionAthleteId = getAthleteIdFromRequest(req);
+  const sessionAthleteId = await getEffectiveAthleteIdFromRequest(req);
   if (!sessionAthleteId) {
     res.status(401).json({ error: 'Not authenticated' });
     return;

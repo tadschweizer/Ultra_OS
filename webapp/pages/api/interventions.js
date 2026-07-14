@@ -1,9 +1,10 @@
 import { supabase } from '../../lib/supabaseClient';
 import { inferLegacyScores, normalizeProtocolPayload } from '../../lib/interventionCatalog';
 import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
+import { getEffectiveAthleteIdFromRequest } from '../../lib/auth/requireAthlete.js';
 
 function getAthleteId(req) {
-  return getAthleteIdFromRequest(req);
+  return getEffectiveAthleteIdFromRequest(req);
 }
 
 function parseOptionalInt(value) {
@@ -39,7 +40,7 @@ const interventionSelect =
   'id, athlete_id, date, inserted_at, intervention_type, details, dose_duration, timing, protocol_payload, gi_response, physical_response, subjective_feel, activity_id, training_phase, target_race, target_race_date, race_id, notes, races(id, name, event_date, race_type, distance_miles, elevation_gain_ft, location, surface, notes)';
 
 export default async function handler(req, res) {
-  const athleteId = getAthleteId(req);
+  const athleteId = await getAthleteId(req);
   if (!athleteId) {
     res.status(401).json({ error: 'Not authenticated' });
     return;
