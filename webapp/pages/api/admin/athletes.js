@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { requireAdminAthleteId } from '../../../lib/auth/requireAthlete.js';
+import { partitionDemoRows } from '../../../lib/adminDemo.js';
 
 /**
  * GET /api/admin/athletes
@@ -65,7 +66,7 @@ export default async function handler(req, res) {
   const [athletesRes, interventionsRes] = await Promise.all([
     supabase
       .from('athletes')
-      .select('id, name, email, strava_id, created_at, is_admin, onboarding_complete')
+      .select('id, name, email, strava_id, created_at, is_admin, is_demo, subscription_tier, stripe_subscription_id, stripe_subscription_status, onboarding_complete')
       .order('created_at', { ascending: false }),
     supabase
       .from('interventions')
@@ -76,10 +77,23 @@ export default async function handler(req, res) {
   if (interventionsRes.error) return res.status(500).json({ error: interventionsRes.error.message });
 
   const athletes = athletesRes.data || [];
-  const health = buildDataHealth(athletes, interventionsRes.data || []);
+  // Demo sandbox accounts stay in the roster (badged client-side) but are
+  // excluded from data-health stats so they never skew real-user numbers.
+  const allInterventions = interventionsRes.data || [];
+  const { realAthletes, realInterventions } = partitionDemoRows(athletes, allInterventions);
+  const health = buildDataHealth(realAthletes, realInterventions);
+
+  // Roster rows (demo included) still show their own log counts.
+  const perAthlete = new Map();
+  for (const row of allInterventions) {
+    const stats = perAthlete.get(row.athlete_id) || { count: 0, lastAt: null };
+    stats.count += 1;
+    if (!stats.lastAt || row.inserted_at > stats.lastAt) stats.lastAt = row.inserted_at;
+    perAthlete.set(row.athlete_id, stats);
+  }
 
   const enriched = athletes.map((a) => {
-    const stats = health.perAthlete.get(a.id) || { count: 0, lastAt: null };
+    const stats = perAthlete.get(a.id) || { count: 0, lastAt: null };
     return { ...a, intervention_count: stats.count, last_intervention_at: stats.lastAt };
   });
 
