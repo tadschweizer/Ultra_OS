@@ -56,7 +56,18 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [notAdmin, setNotAdmin] = useState(false);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState('roster'); // 'roster' | 'activity' | 'invite'
+  const [activeTab, setActiveTab] = useState('roster'); // 'roster' | 'activity' | 'invite' | 'demo'
+
+  // Demo sandbox state
+  const [demoStatus, setDemoStatus] = useState(null); // { exists, accounts }
+  const [demoBusy, setDemoBusy] = useState(false);
+  const [demoCreds, setDemoCreds] = useState(null);
+  const [demoError, setDemoError] = useState('');
+  const [copiedCred, setCopiedCred] = useState('');
+
+  // Tier override state
+  const [tierSaving, setTierSaving] = useState(null);
+  const [tierError, setTierError] = useState('');
 
   // Invite state
   const [inviteEmail, setInviteEmail] = useState('');
@@ -69,19 +80,22 @@ export default function AdminPage() {
   // Expanded athlete rows
   const [expandedAthlete, setExpandedAthlete] = useState(null);
 
-  const totalInterventions = athletes.reduce((s, a) => s + a.intervention_count, 0);
-  const activeThisWeek = athletes.filter((a) => {
+  // Demo sandbox accounts are badged in the roster but excluded from stats.
+  const realAthletes = athletes.filter((a) => !a.is_demo);
+  const totalInterventions = realAthletes.reduce((s, a) => s + a.intervention_count, 0);
+  const activeThisWeek = realAthletes.filter((a) => {
     if (!a.last_intervention_at) return false;
     return (Date.now() - new Date(a.last_intervention_at).getTime()) < 7 * 24 * 60 * 60 * 1000;
   }).length;
-  const onboarded = athletes.filter((a) => a.onboarding_complete).length;
+  const onboarded = realAthletes.filter((a) => a.onboarding_complete).length;
 
   useEffect(() => {
     async function load() {
       try {
-        const [rosterRes, logsRes] = await Promise.all([
+        const [rosterRes, logsRes, demoRes] = await Promise.all([
           fetch('/api/admin/athletes'),
           fetch('/api/admin/recent-logs?limit=30'),
+          fetch('/api/admin/demo'),
         ]);
         if (rosterRes.status === 403 || rosterRes.status === 401) { setNotAdmin(true); return; }
         const rosterData = await rosterRes.json();
@@ -90,6 +104,7 @@ export default function AdminPage() {
         setAthletes(rosterData.athletes || []);
         setDataHealth(rosterData.dataHealth || null);
         setLogs(logsData.logs || []);
+        if (demoRes.ok) setDemoStatus(await demoRes.json());
       } catch (_) {
         setError('Network error');
       } finally {
@@ -138,6 +153,65 @@ export default function AdminPage() {
     } catch (_) {
       setViewAsError('Network error');
     }
+  }
+
+  async function setTier(athleteId, tier) {
+    setTierError('');
+    setTierSaving(athleteId);
+    try {
+      const res = await fetch('/api/admin/set-tier', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ athleteId, tier }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setTierError(data.error || 'Could not change tier.'); return; }
+      setAthletes((current) => current.map((a) => (a.id === athleteId ? { ...a, subscription_tier: tier } : a)));
+    } catch (_) {
+      setTierError('Network error');
+    } finally {
+      setTierSaving(null);
+    }
+  }
+
+  async function demoAction(action) {
+    // action: 'create' | 'reset' | 'delete'
+    if (action === 'delete' && !window.confirm('Delete both demo accounts and all their data?')) return;
+    if (action === 'reset' && !window.confirm('Wipe the demo accounts and recreate them with fresh data and new passwords?')) return;
+    setDemoError('');
+    setDemoBusy(true);
+    try {
+      const res = await fetch('/api/admin/demo', {
+        method: action === 'delete' ? 'DELETE' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: action === 'delete' ? undefined : JSON.stringify({ reset: action === 'reset' }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setDemoError(data.error || 'Demo action failed.'); return; }
+      setDemoCreds(action === 'delete' ? null : data.credentials || null);
+      const [statusRes, rosterRes] = await Promise.all([
+        fetch('/api/admin/demo'),
+        fetch('/api/admin/athletes'),
+      ]);
+      if (statusRes.ok) setDemoStatus(await statusRes.json());
+      if (rosterRes.ok) {
+        const rosterData = await rosterRes.json();
+        setAthletes(rosterData.athletes || []);
+        setDataHealth(rosterData.dataHealth || null);
+      }
+    } catch (_) {
+      setDemoError('Network error');
+    } finally {
+      setDemoBusy(false);
+    }
+  }
+
+  async function copyCred(label, value) {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedCred(label);
+      setTimeout(() => setCopiedCred(''), 2000);
+    } catch (_) {}
   }
 
   async function copyInviteLink() {
@@ -232,11 +306,11 @@ export default function AdminPage() {
                 <p className="mt-0.5 text-xs text-ink/45">Top logged types</p>
               </div>
             </div>
-            {athletes.some((a) => !a.last_intervention_at || (Date.now() - new Date(a.last_intervention_at).getTime()) >= 14 * 86400000) && (
+            {realAthletes.some((a) => !a.last_intervention_at || (Date.now() - new Date(a.last_intervention_at).getTime()) >= 14 * 86400000) && (
               <div className="mt-4">
                 <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-ink/40">Dormant athletes</p>
                 <div className="flex flex-wrap gap-2">
-                  {athletes
+                  {realAthletes
                     .filter((a) => !a.last_intervention_at || (Date.now() - new Date(a.last_intervention_at).getTime()) >= 14 * 86400000)
                     .map((a) => (
                       <span key={a.id} className="rounded-full border border-ink/10 bg-paper px-3 py-1 text-xs text-ink/65">
@@ -255,6 +329,7 @@ export default function AdminPage() {
             { key: 'roster', label: `Roster (${athletes.length})` },
             { key: 'activity', label: `Activity (${logs.length})` },
             { key: 'invite', label: '+ Invite' },
+            { key: 'demo', label: '🧪 Demo' },
           ].map(({ key, label }) => (
             <button
               key={key}
@@ -302,6 +377,12 @@ export default function AdminPage() {
                             {athlete.is_admin ? (
                               <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">Admin</span>
                             ) : null}
+                            {athlete.is_demo ? (
+                              <span className="ml-2 rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold text-violet-700">Demo</span>
+                            ) : null}
+                            {athlete.subscription_tier && athlete.subscription_tier !== 'free' ? (
+                              <span className="ml-2 rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-semibold capitalize text-sky-700">{athlete.subscription_tier}</span>
+                            ) : null}
                           </p>
                           <p className="mt-0.5 text-xs text-ink/40">
                             {athlete.email || 'No email'} · Joined {new Date(athlete.created_at).toLocaleDateString()}
@@ -339,19 +420,36 @@ export default function AdminPage() {
                     {/* Expanded row — athlete's recent logs from the feed */}
                     {expandedAthlete === athlete.id && (
                       <div className="border-t border-ink/6 bg-paper px-5 py-4">
-                        <div className="mb-3 flex items-center justify-between gap-3">
+                        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
                             Recent logs
                           </p>
-                          <button
-                            type="button"
-                            onClick={() => startViewAs(athlete.id)}
-                            className="rounded-full bg-amber-500 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-amber-600"
-                          >
-                            View as athlete →
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <label className="flex items-center gap-1.5 text-xs text-ink/45">
+                              Tier
+                              <select
+                                value={athlete.subscription_tier || 'free'}
+                                disabled={tierSaving === athlete.id}
+                                onChange={(e) => setTier(athlete.id, e.target.value)}
+                                className="rounded-full border border-ink/10 bg-white px-3 py-1.5 text-xs font-semibold text-ink disabled:opacity-40"
+                              >
+                                <option value="free">Free</option>
+                                <option value="research">Research</option>
+                                <option value="individual">Individual</option>
+                                <option value="coach">Coach</option>
+                              </select>
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => startViewAs(athlete.id)}
+                              className="rounded-full bg-amber-500 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-amber-600"
+                            >
+                              View as athlete →
+                            </button>
+                          </div>
                         </div>
                         {viewAsError ? <p className="mb-3 text-sm text-red-600">{viewAsError}</p> : null}
+                        {tierError ? <p className="mb-3 text-sm text-red-600">{tierError}</p> : null}
                         {logs.filter((l) => l.athlete_id === athlete.id).slice(0, 5).length === 0 ? (
                           <p className="text-sm text-ink/40">No logs yet.</p>
                         ) : (
@@ -473,6 +571,98 @@ export default function AdminPage() {
                 View all invites →
               </a>
             </div>
+          </section>
+        )}
+
+        {/* ── Demo sandbox tab ─────────────────────────────── */}
+        {activeTab === 'demo' && (
+          <section className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+            <p className="mb-1 text-base font-semibold text-ink">Demo sandbox</p>
+            <p className="mb-5 text-sm text-ink/55">
+              A linked Demo Coach + Demo Athlete pair with ~5 weeks of seeded training data.
+              Log into the coach in this window and the athlete in an incognito window to test
+              the full coach ↔ athlete loop with real writes. Demo accounts are excluded from
+              the data-health stats above.
+            </p>
+
+            {demoError ? <p className="mb-4 text-sm text-red-600">{demoError}</p> : null}
+
+            {demoStatus?.exists ? (
+              <div className="mb-5 space-y-2">
+                {(demoStatus.accounts || []).map((account) => (
+                  <div key={account.id} className="flex items-center justify-between rounded-[16px] border border-ink/10 bg-paper px-4 py-3">
+                    <div>
+                      <p className="text-sm font-semibold text-ink">{account.name}</p>
+                      <p className="text-xs text-ink/45">{account.email} · <span className="capitalize">{account.subscription_tier}</span> tier</p>
+                    </div>
+                    <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold text-violet-700">Demo</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mb-5 text-sm text-ink/45">No demo accounts yet.</p>
+            )}
+
+            <div className="flex flex-wrap gap-3">
+              {!demoStatus?.exists ? (
+                <button
+                  type="button"
+                  disabled={demoBusy}
+                  onClick={() => demoAction('create')}
+                  className="rounded-full bg-ink px-6 py-3 text-sm font-semibold text-paper disabled:opacity-40"
+                >
+                  {demoBusy ? 'Creating…' : 'Create demo pair'}
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    disabled={demoBusy}
+                    onClick={() => demoAction('reset')}
+                    className="rounded-full bg-ink px-6 py-3 text-sm font-semibold text-paper disabled:opacity-40"
+                  >
+                    {demoBusy ? 'Working…' : 'Reset demo data'}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={demoBusy}
+                    onClick={() => demoAction('delete')}
+                    className="rounded-full border border-red-200 px-6 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-40"
+                  >
+                    Delete demo accounts
+                  </button>
+                </>
+              )}
+            </div>
+
+            {demoCreds ? (
+              <div className="mt-6 rounded-[22px] bg-paper p-4">
+                <p className="mb-1 text-xs font-semibold uppercase tracking-[0.2em] text-accent">Login credentials</p>
+                <p className="mb-3 text-xs text-ink/45">
+                  Save these now — passwords are only shown once. Lost them? Reset the demo to get new ones.
+                </p>
+                {[
+                  { label: 'Coach', ...demoCreds.coach },
+                  { label: 'Athlete', ...demoCreds.athlete },
+                ].map(({ label, email, password }) => (
+                  <div key={label} className="mb-2 rounded-xl bg-white px-4 py-3 shadow-inner">
+                    <p className="mb-1 text-xs font-semibold text-ink/55">{label}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <code className="text-sm text-ink">{email}</code>
+                      <span className="text-ink/25">·</span>
+                      <code className="text-sm text-ink">{password}</code>
+                      <button
+                        type="button"
+                        onClick={() => copyCred(label, `${email} / ${password}`)}
+                        className="ml-auto rounded-full border border-ink/10 px-3 py-1 text-xs font-semibold text-ink transition hover:bg-ink/5"
+                      >
+                        {copiedCred === label ? '✓ Copied' : 'Copy'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </section>
         )}
 
