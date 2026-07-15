@@ -132,11 +132,21 @@ async function createDemoPair(supabase) {
     coach_code: generateCoachCode(DEMO_COACH_NAME),
   });
 
+  // Legacy link (coach-roster.js) AND the Command Center relationship —
+  // /api/coach/dashboard, /api/coach/relationships, /api/planned-workouts,
+  // and /api/message-center all resolve access via coach_athlete_relationships.
   await insertOrThrow(supabase, 'coach_athlete_links', {
     athlete_id: athlete.id,
     coach_id: coachProfile.id,
     role: 'primary',
     status: 'active',
+  });
+  await insertOrThrow(supabase, 'coach_athlete_relationships', {
+    athlete_id: athlete.id,
+    coach_id: coachProfile.id,
+    status: 'active',
+    accepted_at: new Date().toISOString(),
+    group_name: 'Demo Squad',
   });
 
   const seed = buildDemoSeed();
@@ -205,9 +215,11 @@ export default async function handler(req, res) {
           error: 'Demo accounts already exist. Pass { reset: true } to wipe and recreate them.',
         });
       }
-      if (existing.length > 0 || req.body?.reset) {
-        await deleteDemoPair(supabase);
-      }
+      // Always run the delete/sweep, even when no athletes rows exist: a
+      // previous create that failed between createUser and the athletes
+      // insert leaves orphan auth users that would block re-creation with
+      // "email already exists".
+      await deleteDemoPair(supabase);
       const credentials = await createDemoPair(supabase);
       console.log(`[admin/demo] ${adminId} created demo pair`);
       return res.status(200).json({ ok: true, credentials });
