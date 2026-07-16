@@ -64,6 +64,7 @@ export default function RacesPage() {
   const [form, setForm] = useState(emptyForm);
   const [searchQuery, setSearchQuery] = useState('');
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   const navLinks = [
     { href: '/dashboard', label: 'Dashboard' },
@@ -92,6 +93,7 @@ export default function RacesPage() {
       elevation_gain_ft: race.elevation_gain_ft ? String(race.elevation_gain_ft) : '',
       terrain: race.terrain || '',
     });
+    setError('');
     setShowForm(true);
   }
 
@@ -104,6 +106,7 @@ export default function RacesPage() {
     e.preventDefault();
     if (!form.name.trim()) return;
     setSaving(true);
+    setError('');
     try {
       const res = await fetch('/api/race-events', {
         method: 'POST',
@@ -113,12 +116,18 @@ export default function RacesPage() {
           distance_miles: form.distance_miles ? parseFloat(form.distance_miles) : null,
         }),
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || "Couldn't add that race. Please try again.");
+        return;
+      }
       const data = await res.json();
       setEvents((prev) => [...prev, data.event].sort(sortByDate));
       setShowForm(false);
       setForm(emptyForm);
       setSearchQuery('');
+    } catch (_) {
+      setError("Couldn't add that race. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -128,6 +137,7 @@ export default function RacesPage() {
     setShowForm(false);
     setForm(emptyForm);
     setSearchQuery('');
+    setError('');
   }
 
   async function handleSetGoal(id) {
@@ -296,6 +306,12 @@ export default function RacesPage() {
                 </div>
               </div>
 
+              {error && (
+                <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-semibold text-red-600">
+                  {error}
+                </p>
+              )}
+
               <div className="flex gap-3 pt-1">
                 <button
                   type="submit"
@@ -318,7 +334,7 @@ export default function RacesPage() {
           {!showForm && (
             <button
               type="button"
-              onClick={() => { setShowForm(true); setForm(emptyForm); }}
+              onClick={() => { setShowForm(true); setForm(emptyForm); setError(''); }}
               className="mt-4 text-sm font-semibold text-accent"
             >
               + Add manually
