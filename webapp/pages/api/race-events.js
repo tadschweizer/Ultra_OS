@@ -1,4 +1,4 @@
-import { supabase } from '../../lib/supabaseClient';
+import { getSupabaseAdminClient } from '../../lib/authServer.js';
 import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
 import { getEffectiveAthleteIdFromRequest } from '../../lib/auth/requireAthlete.js';
 
@@ -25,6 +25,13 @@ export default async function handler(req, res) {
     res.status(401).json({ error: 'Not authenticated' });
     return;
   }
+
+  // Use the service-role client for all reads/writes. The app authenticates
+  // via signed session cookies (not Supabase Auth JWTs), so the anon client's
+  // `auth.uid()` is always null and RLS policies keyed on it reject every row.
+  // Ownership is instead enforced here: every query is scoped to `athleteId`,
+  // which is resolved from the verified session cookie above.
+  const supabase = getSupabaseAdminClient();
 
   if (req.method === 'GET') {
     const { data, error } = await supabase
