@@ -63,6 +63,7 @@ export default async function handler(req, res) {
 
     const payload = {
       athlete_id: athleteId,
+      distance_unit: body.distance_unit === 'km' ? 'km' : 'mi',
       baseline_sleep_altitude_ft: parseOptionalInt(body.baseline_sleep_altitude_ft),
       baseline_training_altitude_ft: parseOptionalInt(body.baseline_training_altitude_ft),
       resting_hr: parseOptionalInt(body.resting_hr),

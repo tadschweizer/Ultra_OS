@@ -3,6 +3,7 @@ import { getSupabaseAdminClient } from '../../lib/authServer';
 import {
   decorateWorkoutsWithCompliance,
   estimateTss,
+  normalizeSport,
   summarizeStructure,
   toDateKey,
 } from '../../lib/workoutCompliance';
@@ -17,6 +18,7 @@ const PLANNING_FIELDS = [
   'structure',
   'planned_duration_min',
   'planned_distance_km',
+  'planned_distance_unit',
   'planned_tss',
   'order_index',
   'library_workout_id',
@@ -42,7 +44,7 @@ const ATHLETE_COMPLETION_FIELDS = [
 const WORKOUT_COLUMNS = `
   id, athlete_id, coach_id, workout_date, sport, title, description, structure,
   objective, coach_instructions, target_metric, planned_if, visibility, export_status, sync_provider,
-  planned_duration_min, planned_distance_km, planned_tss, order_index, status,
+  planned_duration_min, planned_distance_km, planned_distance_unit, planned_tss, order_index, status,
   completed_activity_id, completed_duration_min, completed_distance_km,
   athlete_rpe, athlete_comment, coach_feedback, library_workout_id, created_at, updated_at
 `;
@@ -91,10 +93,11 @@ function fillPlannedTotals(payload) {
 async function fetchActivitiesForRange(admin, athleteId, start, end) {
   // Synced activities live in strava_activities; some environments also have
   // a generic activities table. A failed query just means "no synced data" —
-  // manual completion still works.
+  // manual completion still works. We select * so display fields (name,
+  // sport_type, …) come through regardless of the exact table shape.
   const { data: stravaData, error: stravaError } = await admin
     .from('strava_activities')
-    .select('id, start_date, moving_time, distance')
+    .select('*')
     .eq('athlete_id', athleteId)
     .gte('start_date', `${start}T00:00:00Z`)
     .lte('start_date', `${end}T23:59:59Z`);
@@ -105,12 +108,28 @@ async function fetchActivitiesForRange(admin, athleteId, start, end) {
 
   const { data, error } = await admin
     .from('activities')
-    .select('id, start_date, moving_time')
+    .select('*')
     .eq('athlete_id', athleteId)
     .gte('start_date', `${start}T00:00:00Z`)
     .lte('start_date', `${end}T23:59:59Z`);
   if (error) return [];
   return data || [];
+}
+
+// Trims a synced activity down to what the calendar renders for a session that
+// had no matching plan.
+function toCalendarActivity(activity) {
+  const distanceM = activity.distance != null ? Number(activity.distance) : null;
+  const movingSec = activity.moving_time != null ? Number(activity.moving_time) : null;
+  return {
+    id: activity.id,
+    start_date: activity.start_date,
+    activity_date: toDateKey(activity.start_date),
+    name: activity.name || activity.activity_name || 'Synced activity',
+    sport: normalizeSport(activity.sport_type || activity.type || activity.sport) || 'other',
+    duration_min: movingSec != null ? Math.round((movingSec / 60) * 10) / 10 : null,
+    distance_km: distanceM != null ? Math.round((distanceM / 1000) * 100) / 100 : null,
+  };
 }
 
 export default async function handler(req, res) {
@@ -163,8 +182,24 @@ export default async function handler(req, res) {
         return;
       }
 
+      // Fulfill a plan from an activity up to a day off the planned date, so a
+      // long run done Sunday still completes a Saturday plan.
+      const decorated = decorateWorkoutsWithCompliance(workouts || [], activities, { toleranceDays: 1 });
+
+      // Any synced activity a plan didn't consume is shown on its own day, so
+      // past training is visible even where nothing was scheduled.
+      const consumed = new Set();
+      decorated.forEach((w) => {
+        if (w.matched_activity?.id != null) consumed.add(String(w.matched_activity.id));
+        if (w.completed_activity_id != null) consumed.add(String(w.completed_activity_id));
+      });
+      const unplannedActivities = (activities || [])
+        .filter((a) => a?.start_date && !consumed.has(String(a.id)))
+        .map(toCalendarActivity);
+
       res.status(200).json({
-        workouts: decorateWorkoutsWithCompliance(workouts || [], activities),
+        workouts: decorated,
+        activities: unplannedActivities,
         range: { start, end },
       });
       return;
@@ -223,6 +258,7 @@ export default async function handler(req, res) {
             structure: w.structure,
             planned_duration_min: w.planned_duration_min,
             planned_distance_km: w.planned_distance_km,
+            planned_distance_unit: w.planned_distance_unit,
             planned_tss: w.planned_tss,
             order_index: w.order_index,
             library_workout_id: w.library_workout_id,
@@ -274,6 +310,7 @@ export default async function handler(req, res) {
           structure: libraryWorkout.structure,
           planned_duration_min: libraryWorkout.planned_duration_min,
           planned_distance_km: libraryWorkout.planned_distance_km,
+          planned_distance_unit: libraryWorkout.planned_distance_unit || 'mi',
           planned_tss: libraryWorkout.planned_tss,
           library_workout_id: libraryWorkout.id,
         };

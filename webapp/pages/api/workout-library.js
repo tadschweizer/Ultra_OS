@@ -6,7 +6,7 @@ import { getEffectiveAthleteIdFromRequest } from '../../lib/auth/requireAthlete.
 
 const LIBRARY_COLUMNS = `
   id, coach_id, name, sport, description, structure,
-  planned_duration_min, planned_distance_km, planned_tss, tags, created_at, updated_at
+  planned_duration_min, planned_distance_km, planned_distance_unit, planned_tss, tags, created_at, updated_at
 `;
 
 async function getCoachProfile(admin, athleteId) {
@@ -23,6 +23,9 @@ function normalizePayload(body) {
   ['name', 'sport', 'description'].forEach((field) => {
     if (body[field] !== undefined) payload[field] = body[field];
   });
+  if (body.planned_distance_unit !== undefined) {
+    payload.planned_distance_unit = body.planned_distance_unit === 'km' ? 'km' : 'mi';
+  }
   if (body.structure !== undefined) {
     payload.structure = Array.isArray(body.structure) ? body.structure : [];
   }

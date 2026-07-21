@@ -70,85 +70,200 @@ const emptyForm = {
   visibility: 'athlete_visible',
   planned_duration_min: '',
   planned_distance_km: '',
+  // null → the editor falls back to the athlete's saved unit preference.
+  planned_distance_unit: null,
   structure: [],
 };
 
+// ─── Distance units ──────────────────────────────────────────────────────────
+
+const KM_PER_MILE = 1.609344;
+
+function kmToUnit(km, unit) {
+  if (km == null || km === '') return '';
+  const value = unit === 'km' ? Number(km) : Number(km) / KM_PER_MILE;
+  return String(Math.round(value * 100) / 100);
+}
+
+function unitToKm(value, unit) {
+  if (value === '' || value == null) return null;
+  const num = Number(value);
+  if (Number.isNaN(num)) return null;
+  const km = unit === 'km' ? num : num * KM_PER_MILE;
+  return Math.round(km * 100) / 100;
+}
+
+// Renders a canonical km distance in the workout's chosen unit, e.g. "6.2 mi".
+function formatDistance(km, unit = 'mi') {
+  if (km == null || km === '') return null;
+  const value = kmToUnit(km, unit);
+  return value === '' ? null : `${value} ${unit === 'km' ? 'km' : 'mi'}`;
+}
+
+// ─── Structure-step targets ──────────────────────────────────────────────────
+
+const TARGET_TYPES = [
+  { id: 'open', label: 'Open target' },
+  { id: 'pace', label: 'Pace' },
+  { id: 'heart_rate', label: 'Heart rate' },
+  { id: 'power', label: 'Power' },
+  { id: 'zone', label: 'Zone' },
+  { id: 'rpe', label: 'RPE' },
+];
+
+// The unit shown beside the target inputs. Pace tracks the athlete's distance
+// unit (min/mi vs min/km); everything else is fixed.
+function targetUnitLabel(targetType, distanceUnit = 'mi') {
+  switch (targetType) {
+    case 'pace': return distanceUnit === 'km' ? 'min/km' : 'min/mi';
+    case 'heart_rate': return 'bpm';
+    case 'power': return 'W';
+    case 'zone': return 'zone';
+    case 'rpe': return 'RPE';
+    default: return '';
+  }
+}
+
+function targetPlaceholders(targetType) {
+  switch (targetType) {
+    case 'pace': return ['6:24', '7:15'];
+    case 'heart_rate': return ['150', '160'];
+    case 'power': return ['240', '260'];
+    case 'zone': return ['2', '3'];
+    case 'rpe': return ['6', '7'];
+    default: return ['Min', 'Max'];
+  }
+}
+
 // ─── Structured workout editor ───────────────────────────────────────────────
 
-function StepRow({ step, onChange, onRemove }) {
+const stepFieldClass = 'w-full rounded-xl border border-ink/10 bg-white px-2 py-1.5 text-xs text-ink';
+const stepLabelClass = 'text-[10px] font-semibold uppercase tracking-wide text-ink/45';
+
+function StepField({ label, children }) {
   return (
-    <div className="grid grid-cols-2 gap-2 rounded-2xl border border-ink/10 bg-paper p-3 sm:grid-cols-[1fr_64px_88px_1fr_1fr_80px_auto]">
-      <select
-        value={step.type}
-        onChange={(e) => onChange({ ...step, type: e.target.value })}
-        className="rounded-xl border border-ink/10 bg-white px-2 py-1.5 text-xs text-ink"
-      >
-        {STEP_TYPES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
-      </select>
-      <input
-        type="number"
-        min="1"
-        value={step.repeat}
-        onChange={(e) => onChange({ ...step, repeat: Number(e.target.value) || 1 })}
-        title="Repeats"
-        className="rounded-xl border border-ink/10 bg-white px-2 py-1.5 text-xs text-ink"
-      />
-      <input
-        type="number"
-        min="0"
-        step="0.5"
-        value={step.duration_min}
-        onChange={(e) => onChange({ ...step, duration_min: e.target.value === '' ? '' : Number(e.target.value) })}
-        title="Minutes per repeat"
-        placeholder="min"
-        className="rounded-xl border border-ink/10 bg-white px-2 py-1.5 text-xs text-ink"
-      />
-      <select
-        value={step.intensity}
-        onChange={(e) => onChange({ ...step, intensity: e.target.value })}
-        className="rounded-xl border border-ink/10 bg-white px-2 py-1.5 text-xs text-ink"
-      >
-        {INTENSITY_ZONES.map((z) => <option key={z.id} value={z.id}>{z.label}</option>)}
-      </select>
-      <select
-        value={step.target_type || 'open'}
-        onChange={(e) => onChange({ ...step, target_type: e.target.value })}
-        className="rounded-xl border border-ink/10 bg-white px-2 py-1.5 text-xs text-ink"
-      >
-        <option value="open">Open target</option>
-        <option value="pace">Pace</option>
-        <option value="heart_rate">Heart rate</option>
-        <option value="power">Power</option>
-        <option value="rpe">RPE</option>
-      </select>
-      <input
-        value={step.target_min || ''}
-        onChange={(e) => onChange({ ...step, target_min: e.target.value })}
-        placeholder="Min"
-        className="rounded-xl border border-ink/10 bg-white px-2 py-1.5 text-xs text-ink"
-      />
-      <button
-        type="button"
-        onClick={onRemove}
-        className="rounded-xl border border-ink/10 px-2 py-1.5 text-xs text-ink/50 hover:border-rose-200 hover:text-rose-600"
-      >
-        ✕
-      </button>
+    <label className="flex min-w-0 flex-col gap-0.5">
+      <span className={stepLabelClass}>{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function StepRow({ step, onChange, onRemove, distanceUnit = 'mi' }) {
+  const targetType = step.target_type || 'open';
+  const showTarget = targetType !== 'open';
+  const unitLabel = targetUnitLabel(targetType, distanceUnit);
+  const [minPlaceholder, maxPlaceholder] = targetPlaceholders(targetType);
+
+  return (
+    <div className="space-y-2 rounded-2xl border border-ink/10 bg-paper p-3">
+      <div className="grid grid-cols-2 items-end gap-2 sm:grid-cols-[1fr_56px_72px_1fr_1fr_auto]">
+        <StepField label="Step">
+          <select
+            value={step.type}
+            onChange={(e) => onChange({ ...step, type: e.target.value })}
+            className={stepFieldClass}
+          >
+            {STEP_TYPES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+          </select>
+        </StepField>
+        <StepField label="Reps">
+          <input
+            type="number"
+            min="1"
+            value={step.repeat}
+            onChange={(e) => onChange({ ...step, repeat: Number(e.target.value) || 1 })}
+            title="Number of times this step repeats"
+            className={stepFieldClass}
+          />
+        </StepField>
+        <StepField label="Min">
+          <input
+            type="number"
+            min="0"
+            step="0.5"
+            value={step.duration_min}
+            onChange={(e) => onChange({ ...step, duration_min: e.target.value === '' ? '' : Number(e.target.value) })}
+            title="Minutes per repeat"
+            placeholder="min"
+            className={stepFieldClass}
+          />
+        </StepField>
+        <StepField label="Intensity">
+          <select
+            value={step.intensity}
+            onChange={(e) => onChange({ ...step, intensity: e.target.value })}
+            className={stepFieldClass}
+          >
+            {INTENSITY_ZONES.map((z) => <option key={z.id} value={z.id}>{z.label}</option>)}
+          </select>
+        </StepField>
+        <StepField label="Target">
+          <select
+            value={targetType}
+            onChange={(e) => onChange({ ...step, target_type: e.target.value })}
+            className={stepFieldClass}
+          >
+            {TARGET_TYPES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+          </select>
+        </StepField>
+        <button
+          type="button"
+          onClick={onRemove}
+          title="Remove step"
+          className="h-[30px] rounded-xl border border-ink/10 px-2 text-xs text-ink/50 hover:border-rose-200 hover:text-rose-600"
+        >
+          ✕
+        </button>
+      </div>
+
+      {showTarget && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl bg-white/60 px-2 py-1.5">
+          <span className={stepLabelClass}>Target</span>
+          <input
+            value={step.target_min || ''}
+            onChange={(e) => onChange({ ...step, target_min: e.target.value })}
+            placeholder={minPlaceholder}
+            className="w-20 rounded-xl border border-ink/10 bg-white px-2 py-1.5 text-xs text-ink"
+          />
+          <span className="text-xs text-ink/40">–</span>
+          <input
+            value={step.target_max || ''}
+            onChange={(e) => onChange({ ...step, target_max: e.target.value })}
+            placeholder={maxPlaceholder}
+            className="w-20 rounded-xl border border-ink/10 bg-white px-2 py-1.5 text-xs text-ink"
+          />
+          {unitLabel && <span className="text-xs font-medium text-ink/55">{unitLabel}</span>}
+          <span className="text-[10px] text-ink/40">Leave max blank for a single target.</span>
+        </div>
+      )}
+
       <input
         value={step.notes || ''}
         onChange={(e) => onChange({ ...step, notes: e.target.value })}
         placeholder="Step notes (e.g. 4×8min @ threshold, 2min jog recovery)"
-        className="col-span-2 rounded-xl border border-ink/10 bg-white px-2 py-1.5 text-xs text-ink sm:col-span-7"
+        className="w-full rounded-xl border border-ink/10 bg-white px-2 py-1.5 text-xs text-ink"
       />
     </div>
   );
 }
 
-function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose }) {
-  const [form, setForm] = useState({ ...emptyForm, ...initial });
+function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose, defaultDistanceUnit = 'mi' }) {
+  const [form, setForm] = useState(() => {
+    const base = { ...emptyForm, ...initial };
+    const unit = base.planned_distance_unit || defaultDistanceUnit || 'mi';
+    return {
+      ...base,
+      planned_distance_unit: unit,
+      // Editable value shown in the athlete's preferred unit; the canonical
+      // km value is recomputed from this on save.
+      planned_distance: kmToUnit(base.planned_distance_km, unit),
+    };
+  });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
+  const distanceUnit = form.planned_distance_unit || 'mi';
   const structureTotals = useMemo(() => summarizeStructure(form.structure), [form.structure]);
   const tssEstimate = useMemo(
     () => estimateTss(form.structure, Number(form.planned_duration_min) || structureTotals.durationMin || null),
@@ -159,6 +274,17 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose 
     setForm((f) => ({ ...f, [field]: value }));
   }
 
+  function changeDistanceUnit(nextUnit) {
+    setForm((f) => {
+      const km = unitToKm(f.planned_distance, f.planned_distance_unit || 'mi');
+      return {
+        ...f,
+        planned_distance_unit: nextUnit,
+        planned_distance: kmToUnit(km, nextUnit),
+      };
+    });
+  }
+
   function updateStep(index, step) {
     setForm((f) => ({ ...f, structure: f.structure.map((s, i) => (i === index ? step : s)) }));
   }
@@ -167,16 +293,27 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose 
     e.preventDefault();
     setSaving(true);
     setMessage('');
-    const ok = await onSave({
+    // Stamp each step's target units so the read-only detail view renders the
+    // right suffix (min/mi, bpm, W, …) without recomputing.
+    const structure = (form.structure || []).map((step) => ({
+      ...step,
+      target_units: targetUnitLabel(step.target_type || 'open', distanceUnit),
+    }));
+    const result = await onSave({
       ...form,
+      structure,
       planned_duration_min: form.planned_duration_min === '' ? null : Number(form.planned_duration_min),
-      planned_distance_km: form.planned_distance_km === '' ? null : Number(form.planned_distance_km),
+      planned_distance_km: unitToKm(form.planned_distance, distanceUnit),
+      planned_distance_unit: distanceUnit,
       planned_tss: tssEstimate,
       planned_if: form.planned_if === '' ? null : Number(form.planned_if),
     });
     setSaving(false);
-    if (ok) onClose();
-    else setMessage('Could not save workout. Please try again.');
+    if (result && result.ok) {
+      onClose();
+    } else {
+      setMessage((result && result.error) || 'Could not save workout. Please try again.');
+    }
   }
 
   return (
@@ -294,15 +431,27 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose 
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-ink/55">Planned distance (km)</label>
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <label className="block text-xs text-ink/55">Planned distance</label>
+                <select
+                  disabled={!canEditPlan}
+                  value={distanceUnit}
+                  onChange={(e) => changeDistanceUnit(e.target.value)}
+                  aria-label="Distance unit"
+                  className="rounded-lg border border-ink/10 bg-white px-1.5 py-0.5 text-xs text-ink/70 disabled:opacity-60"
+                >
+                  <option value="mi">mi</option>
+                  <option value="km">km</option>
+                </select>
+              </div>
               <input
                 type="number"
                 min="0"
                 step="0.1"
                 disabled={!canEditPlan}
-                value={form.planned_distance_km}
-                placeholder={structureTotals.distanceKm ? String(structureTotals.distanceKm) : ''}
-                onChange={(e) => setField('planned_distance_km', e.target.value)}
+                value={form.planned_distance}
+                placeholder={structureTotals.distanceKm ? kmToUnit(structureTotals.distanceKm, distanceUnit) : ''}
+                onChange={(e) => setField('planned_distance', e.target.value)}
                 className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink disabled:opacity-60"
               />
             </div>
@@ -338,6 +487,7 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose 
                 <StepRow
                   key={i}
                   step={step}
+                  distanceUnit={distanceUnit}
                   onChange={(next) => updateStep(i, next)}
                   onRemove={() => setForm((f) => ({ ...f, structure: f.structure.filter((_, j) => j !== i) }))}
                 />
@@ -353,7 +503,11 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose 
               <button
                 type="button"
                 onClick={async () => {
-                  const ok = await onSaveToLibrary(form);
+                  const ok = await onSaveToLibrary({
+                    ...form,
+                    planned_distance_km: unitToKm(form.planned_distance, distanceUnit),
+                    planned_distance_unit: distanceUnit,
+                  });
                   setMessage(ok ? 'Saved to library.' : 'Could not save to library.');
                 }}
                 className="rounded-full border border-ink/10 px-5 py-2.5 text-sm font-semibold text-ink/70 hover:bg-ink/5"
@@ -372,9 +526,11 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose 
 // ─── Completion / detail panel ───────────────────────────────────────────────
 
 function WorkoutDetail({ workout, role, onUpdate, onEdit, onDelete, onClose }) {
+  const distanceUnit = workout.planned_distance_unit || 'mi';
   const [completion, setCompletion] = useState({
     completed_duration_min: workout.completed_duration_min ?? workout.planned_duration_min ?? '',
-    completed_distance_km: workout.completed_distance_km ?? workout.planned_distance_km ?? '',
+    // Shown/entered in the workout's unit; converted to km on submit.
+    completed_distance: kmToUnit(workout.completed_distance_km ?? workout.planned_distance_km ?? '', distanceUnit),
     athlete_rpe: workout.athlete_rpe ?? '',
     athlete_comment: workout.athlete_comment ?? '',
   });
@@ -426,7 +582,7 @@ function WorkoutDetail({ workout, role, onUpdate, onEdit, onDelete, onClose }) {
             <p className="mt-1 text-xs text-ink/55">
               {[
                 fmtDuration(workout.planned_duration_min) && `Planned ${fmtDuration(workout.planned_duration_min)}`,
-                workout.planned_distance_km && `${workout.planned_distance_km} km`,
+                formatDistance(workout.planned_distance_km, workout.planned_distance_unit),
                 workout.planned_tss && `TSS ${Math.round(workout.planned_tss)}`,
               ].filter(Boolean).join(' · ') || 'No planned targets'}
             </p>
@@ -475,7 +631,7 @@ function WorkoutDetail({ workout, role, onUpdate, onEdit, onDelete, onClose }) {
           {workout.status === 'completed' ? (
             <p className="mt-2 text-sm text-ink/75">
               Completed{workout.completed_duration_min ? ` · ${fmtDuration(workout.completed_duration_min)}` : ''}
-              {workout.completed_distance_km ? ` · ${workout.completed_distance_km} km` : ''}
+              {workout.completed_distance_km ? ` · ${formatDistance(workout.completed_distance_km, workout.planned_distance_unit)}` : ''}
               {workout.compliance_pct != null ? ` · ${workout.compliance_pct}% of plan` : ''}
               {workout.athlete_rpe ? ` · RPE ${workout.athlete_rpe}` : ''}
             </p>
@@ -512,9 +668,9 @@ function WorkoutDetail({ workout, role, onUpdate, onEdit, onDelete, onClose }) {
                 type="number"
                 min="0"
                 step="0.1"
-                placeholder="Distance (km)"
-                value={completion.completed_distance_km}
-                onChange={(e) => setCompletion((c) => ({ ...c, completed_distance_km: e.target.value }))}
+                placeholder={`Distance (${distanceUnit})`}
+                value={completion.completed_distance}
+                onChange={(e) => setCompletion((c) => ({ ...c, completed_distance: e.target.value }))}
                 className="rounded-xl border border-ink/10 bg-paper px-3 py-2 text-sm text-ink"
               />
               <select
@@ -539,7 +695,7 @@ function WorkoutDetail({ workout, role, onUpdate, onEdit, onDelete, onClose }) {
                 onClick={() => submit({
                   status: 'completed',
                   completed_duration_min: completion.completed_duration_min === '' ? null : Number(completion.completed_duration_min),
-                  completed_distance_km: completion.completed_distance_km === '' ? null : Number(completion.completed_distance_km),
+                  completed_distance_km: unitToKm(completion.completed_distance, distanceUnit),
                   athlete_rpe: completion.athlete_rpe === '' ? null : Number(completion.athlete_rpe),
                   athlete_comment: completion.athlete_comment || null,
                 })}
@@ -863,7 +1019,7 @@ function EventEditor({ date, onSave, onClose }) {
 
 // ─── Main calendar ───────────────────────────────────────────────────────────
 
-const INITIAL_PAST_WEEKS = 4;
+const INITIAL_PAST_WEEKS = 12;
 const INITIAL_FUTURE_WEEKS = 16;
 const EXTEND_BY_WEEKS = 8;
 const MAX_PAST_WEEKS = 52;
@@ -877,7 +1033,9 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
   const [workouts, setWorkouts] = useState([]);
   const [notes, setNotes] = useState([]);
   const [events, setEvents] = useState([]);
+  const [activities, setActivities] = useState([]);
   const [library, setLibrary] = useState([]);
+  const [distanceUnitPref, setDistanceUnitPref] = useState('mi');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [editorInitial, setEditorInitial] = useState(null);
@@ -914,6 +1072,7 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
       }
       const workoutsData = await workoutsRes.json();
       setWorkouts(workoutsData.workouts || []);
+      setActivities(workoutsData.activities || []);
       if (notesRes?.ok) {
         const notesData = await notesRes.json();
         setNotes(notesData.notes || []);
@@ -941,6 +1100,18 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
       .then((d) => setLibrary(d.workouts || []))
       .catch(() => {});
   }, [role]);
+
+  // Distance-unit preference — new workouts default to it (per-workout choice
+  // still wins on edit).
+  useEffect(() => {
+    fetch('/api/settings')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        const unit = d?.settings?.distance_unit;
+        if (unit === 'mi' || unit === 'km') setDistanceUnitPref(unit);
+      })
+      .catch(() => {});
+  }, []);
 
   // Deep link: /calendar?workout=<id> opens the workout detail once loaded.
   // Tracks the last id opened this way so navigating to a different workout
@@ -1007,14 +1178,22 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
 
   const saveWorkout = useCallback(async (form) => {
     const isUpdate = Boolean(form.id);
-    const res = await fetch('/api/planned-workouts', {
-      method: isUpdate ? 'PATCH' : 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, athlete_id: athleteId || undefined }),
-    });
-    if (!res.ok) return false;
+    let res;
+    try {
+      res = await fetch('/api/planned-workouts', {
+        method: isUpdate ? 'PATCH' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...form, athlete_id: athleteId || undefined }),
+      });
+    } catch {
+      return { ok: false, error: 'Network error — check your connection and try again.' };
+    }
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      return { ok: false, error: data.error || `Save failed (${res.status}). Please try again.` };
+    }
     await reload();
-    return true;
+    return { ok: true };
   }, [athleteId, reload]);
 
   const updateWorkout = useCallback(async (id, updates) => {
@@ -1076,6 +1255,7 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
         structure: form.structure,
         planned_duration_min: form.planned_duration_min === '' ? null : form.planned_duration_min,
         planned_distance_km: form.planned_distance_km === '' ? null : form.planned_distance_km,
+        planned_distance_unit: form.planned_distance_unit || 'mi',
       }),
     });
     if (!res.ok) return false;
@@ -1121,11 +1301,25 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
   const workoutsByDate = useMemo(() => {
     const map = new Map();
     workouts.forEach((w) => {
-      if (!map.has(w.workout_date)) map.set(w.workout_date, []);
-      map.get(w.workout_date).push(w);
+      // Show a completed workout on the day it actually happened (from a
+      // matched activity) rather than the day it was planned for.
+      const key = w.display_date || w.workout_date;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(w);
     });
     return map;
   }, [workouts]);
+
+  const activitiesByDate = useMemo(() => {
+    const map = new Map();
+    activities.forEach((a) => {
+      const key = a.activity_date || (a.start_date ? toDateKey(a.start_date) : null);
+      if (!key) return;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(a);
+    });
+    return map;
+  }, [activities]);
 
   const notesByDate = useMemo(() => {
     const map = new Map();
@@ -1159,6 +1353,7 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
           workouts: workoutsByDate.get(key) || [],
           notes: notesByDate.get(key) || [],
           events: eventsByDate.get(key) || [],
+          activities: activitiesByDate.get(key) || [],
         };
       });
       const firstOfMonth = days.find((d) => d.date.getDate() === 1);
@@ -1172,7 +1367,7 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
         summary: summarizeWeek(days.flatMap((d) => d.workouts)),
       };
     });
-  }, [anchorMonday, pastWeeks, futureWeeks, workoutsByDate, notesByDate, eventsByDate]);
+  }, [anchorMonday, pastWeeks, futureWeeks, workoutsByDate, notesByDate, eventsByDate, activitiesByDate]);
 
   const detailWorkout = detailId ? workouts.find((w) => w.id === detailId) || null : null;
   const dayMenuDate = dayMenuKey ? new Date(`${dayMenuKey}T00:00:00`) : null;
@@ -1200,6 +1395,7 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
         <WorkoutEditor
           initial={editorInitial}
           canEditPlan
+          defaultDistanceUnit={distanceUnitPref}
           onSave={saveWorkout}
           onSaveToLibrary={role === 'coach' ? saveToLibrary : null}
           onClose={() => setEditorInitial(null)}
@@ -1225,6 +1421,7 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
               visibility: w.visibility || 'athlete_visible',
               planned_duration_min: w.planned_duration_min ?? '',
               planned_distance_km: w.planned_distance_km ?? '',
+              planned_distance_unit: w.planned_distance_unit || null,
               structure: Array.isArray(w.structure) ? w.structure : [],
             });
           }}
@@ -1390,12 +1587,31 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
                             <p className="mt-0.5 truncate text-[11px] text-ink/55">
                               {[
                                 fmtDuration(w.planned_duration_min),
-                                w.planned_distance_km ? `${w.planned_distance_km}km` : null,
+                                formatDistance(w.planned_distance_km, w.planned_distance_unit),
                                 w.planned_tss ? `TSS ${Math.round(w.planned_tss)}` : null,
                               ].filter(Boolean).join(' · ')}
                               {w.status === 'completed' && w.compliance_pct != null ? ` · ✓ ${w.compliance_pct}%` : w.status === 'skipped' ? ' · skipped' : ''}
                             </p>
                           </button>
+                        ))}
+                        {day.activities.map((activity) => (
+                          <div
+                            key={`activity-${activity.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            title="Synced activity with no planned workout"
+                            className="rounded-xl border border-sky-200 bg-sky-50/70 px-2 py-1.5"
+                          >
+                            <div className="flex items-center gap-1.5">
+                              <span className="truncate text-xs font-semibold text-ink">{SPORT_EMOJI[activity.sport] || '⚡'} {activity.name}</span>
+                            </div>
+                            <p className="mt-0.5 truncate text-[11px] text-sky-800/70">
+                              {[
+                                'Synced',
+                                fmtDuration(activity.duration_min),
+                                formatDistance(activity.distance_km, distanceUnitPref),
+                              ].filter(Boolean).join(' · ')}
+                            </p>
+                          </div>
                         ))}
                         {day.notes.map((note) => {
                           const meta = NOTE_META[note.note_type] || NOTE_META.general;
@@ -1422,7 +1638,7 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
                       {week.days[0].date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {week.days[6].date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                     </p>
                     <p><span className="font-mono font-semibold text-ink">{fmtDuration(week.summary.plannedDurationMin) || '0m'}</span> planned</p>
-                    <p><span className="font-mono font-semibold text-ink">{Math.round(week.summary.plannedDistanceKm * 10) / 10}</span> km · TSS <span className="font-mono font-semibold text-ink">{Math.round(week.summary.plannedTss)}</span></p>
+                    <p><span className="font-mono font-semibold text-ink">{kmToUnit(week.summary.plannedDistanceKm, distanceUnitPref) || 0}</span> {distanceUnitPref} · TSS <span className="font-mono font-semibold text-ink">{Math.round(week.summary.plannedTss)}</span></p>
                     <p>{week.summary.completedCount}/{week.summary.totalCount} done{week.summary.compliancePct != null ? ` · ${week.summary.compliancePct}%` : ''}</p>
                   </div>
                   {week.summary.totalCount > 0 && (
@@ -1440,7 +1656,7 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
               {/* Mobile week summary */}
               <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl bg-white/60 px-3 py-1.5 text-[11px] text-ink/60 lg:hidden">
                 <span className="font-semibold text-ink/45">{week.days[0].date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} wk</span>
-                <span>{fmtDuration(week.summary.plannedDurationMin) || '0m'} · {Math.round(week.summary.plannedDistanceKm * 10) / 10} km · TSS {Math.round(week.summary.plannedTss)}</span>
+                <span>{fmtDuration(week.summary.plannedDurationMin) || '0m'} · {kmToUnit(week.summary.plannedDistanceKm, distanceUnitPref) || 0} {distanceUnitPref} · TSS {Math.round(week.summary.plannedTss)}</span>
                 <span>{week.summary.completedCount}/{week.summary.totalCount} done</span>
               </div>
             </div>
@@ -1462,7 +1678,7 @@ function LibraryCard({ item, onApply, onDelete }) {
       <p className="mt-1 text-[11px] text-ink/55">
         {[
           fmtDuration(item.planned_duration_min),
-          item.planned_distance_km ? `${item.planned_distance_km}km` : null,
+          formatDistance(item.planned_distance_km, item.planned_distance_unit),
           item.planned_tss ? `TSS ${Math.round(item.planned_tss)}` : null,
         ].filter(Boolean).join(' · ') || 'No targets'}
       </p>
