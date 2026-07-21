@@ -35,6 +35,35 @@ function intensityFactor(intensity) {
   return INTENSITY_ZONES.find((z) => z.id === intensity)?.factor ?? 0.7;
 }
 
+// Maps a raw activity sport label (Strava-style "Run"/"VirtualRide", or one of
+// our own ids) onto our internal sport id, so a planned run only auto-fulfills
+// from a run and not from, say, a bike ride on the same day.
+const ACTIVITY_SPORT_ALIASES = {
+  run: 'run', trailrun: 'run', virtualrun: 'run', treadmill: 'run',
+  ride: 'bike', virtualride: 'bike', ebikeride: 'bike', gravelride: 'bike',
+  mountainbikeride: 'bike', bike: 'bike', cycling: 'bike',
+  swim: 'swim', openwaterswim: 'swim',
+  walk: 'hike', hike: 'hike',
+  rowing: 'row', row: 'row', kayaking: 'row',
+  nordicski: 'ski', backcountryski: 'ski', alpineski: 'ski', ski: 'ski', rollerski: 'ski',
+  weighttraining: 'strength', workout: 'strength', strengthtraining: 'strength', crossfit: 'strength',
+};
+
+export function normalizeSport(value) {
+  if (!value) return null;
+  const key = String(value).toLowerCase().replace(/[^a-z]/g, '');
+  if (!key) return null;
+  return ACTIVITY_SPORT_ALIASES[key] || key;
+}
+
+function activitySport(activity) {
+  return normalizeSport(activity?.sport_type || activity?.type || activity?.sport);
+}
+
+function dayIndex(dateLike) {
+  return Math.round(new Date(`${toDateKey(dateLike)}T00:00:00Z`).getTime() / 86400000);
+}
+
 /** Sums duration/distance across structure steps, honoring repeats. */
 export function summarizeStructure(structure = []) {
   let durationMin = 0;
@@ -128,23 +157,22 @@ export function toDateKey(date) {
 
 /**
  * Matches synced activities to planned workouts of the same athlete.
- * Strategy: same calendar day; prefer the activity whose duration is closest
- * to the plan; each activity is consumed at most once.
  *
- * Activities need: { id, start_date, moving_time (sec), distance? (m) }.
+ * Strategy: an activity within `toleranceDays` of the plan (0 = same calendar
+ * day only) fulfills it. When both the plan and the activity know their sport,
+ * they must agree, so a run plan is never fulfilled by a bike ride. Among the
+ * candidates the closest one wins — smaller date gap first, then the closest
+ * duration. Each activity is consumed at most once, and the most specific
+ * plans (longest planned duration) are matched first.
+ *
+ * Activities need: { id, start_date, moving_time (sec), distance? (m),
+ * sport_type?/type?/sport? }.
  * Returns a Map of workout id -> activity.
  */
-export function matchActivitiesToWorkouts(workouts = [], activities = []) {
+export function matchActivitiesToWorkouts(workouts = [], activities = [], { toleranceDays = 0 } = {}) {
   const matches = new Map();
   const used = new Set();
-
-  const byDay = new Map();
-  activities.forEach((activity) => {
-    if (!activity?.start_date) return;
-    const key = toDateKey(activity.start_date);
-    if (!byDay.has(key)) byDay.set(key, []);
-    byDay.get(key).push(activity);
-  });
+  const acts = activities.filter((a) => a?.start_date);
 
   // Match the most specific plans first (largest planned duration).
   const ordered = [...workouts].sort(
@@ -152,17 +180,24 @@ export function matchActivitiesToWorkouts(workouts = [], activities = []) {
   );
 
   ordered.forEach((workout) => {
-    const candidates = (byDay.get(toDateKey(workout.workout_date)) || []).filter(
-      (activity) => !used.has(activity.id)
-    );
-    if (!candidates.length) return;
-
+    const planDay = dayIndex(workout.workout_date);
+    const planSport = normalizeSport(workout.sport);
     const plannedMin = Number(workout.planned_duration_min) || 0;
-    const best = candidates.reduce((bestSoFar, activity) => {
+
+    const score = (activity) => {
+      const dayGap = Math.abs(dayIndex(activity.start_date) - planDay);
+      const durGap = Math.abs((Number(activity.moving_time) || 0) / 60 - plannedMin);
+      // Date proximity dominates; duration closeness breaks ties.
+      return dayGap * 100000 + durGap;
+    };
+
+    const best = acts.reduce((bestSoFar, activity) => {
+      if (used.has(activity.id)) return bestSoFar;
+      if (Math.abs(dayIndex(activity.start_date) - planDay) > toleranceDays) return bestSoFar;
+      const actSport = activitySport(activity);
+      if (planSport && actSport && planSport !== actSport) return bestSoFar;
       if (!bestSoFar) return activity;
-      const a = Math.abs((Number(activity.moving_time) || 0) / 60 - plannedMin);
-      const b = Math.abs((Number(bestSoFar.moving_time) || 0) / 60 - plannedMin);
-      return a < b ? activity : bestSoFar;
+      return score(activity) < score(bestSoFar) ? activity : bestSoFar;
     }, null);
 
     if (best) {
@@ -178,10 +213,11 @@ export function matchActivitiesToWorkouts(workouts = [], activities = []) {
  * Decorates planned workouts with completion data from matched activities
  * and a computed compliance percentage + status color.
  */
-export function decorateWorkoutsWithCompliance(workouts = [], activities = [], { today = new Date() } = {}) {
+export function decorateWorkoutsWithCompliance(workouts = [], activities = [], { today = new Date(), toleranceDays = 0 } = {}) {
   const matches = matchActivitiesToWorkouts(
     workouts.filter((w) => w.status !== 'skipped' && !w.completed_activity_id),
-    activities
+    activities,
+    { toleranceDays }
   );
 
   return workouts.map((workout) => {
@@ -199,6 +235,10 @@ export function decorateWorkoutsWithCompliance(workouts = [], activities = [], {
       // A matched activity implies the session happened even if the athlete
       // never pressed "complete".
       status: workout.status === 'planned' && matched ? 'completed' : workout.status,
+      // The calendar day this workout should render on: where it actually
+      // happened when an activity fulfilled it (which may differ from the
+      // planned day), otherwise the planned day.
+      display_date: matched ? toDateKey(matched.start_date) : toDateKey(workout.workout_date),
     };
     next.compliance_pct = compliancePct(next, {
       duration_min: next.completed_duration_min,

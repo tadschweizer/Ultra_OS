@@ -72,6 +72,32 @@ test('matchActivitiesToWorkouts pairs same-day activities by closest duration', 
   assert.equal(matches.get('short').id, 'a2');
 });
 
+test('matchActivitiesToWorkouts fulfills a plan a day off only within tolerance', () => {
+  const workouts = [{ id: 'sat', workout_date: '2026-06-06', sport: 'run', planned_duration_min: 120 }];
+  const activities = [{ id: 'sun', start_date: '2026-06-07T07:00:00Z', moving_time: 7000, sport_type: 'Run' }];
+  // Same-day only (default) → no match across the day boundary.
+  assert.equal(matchActivitiesToWorkouts(workouts, activities).size, 0);
+  // One-day tolerance → the Sunday run fulfills the Saturday plan.
+  assert.equal(matchActivitiesToWorkouts(workouts, activities, { toleranceDays: 1 }).get('sat').id, 'sun');
+});
+
+test('matchActivitiesToWorkouts will not fulfill a run plan with a ride', () => {
+  const workouts = [{ id: 'run', workout_date: '2026-06-08', sport: 'run', planned_duration_min: 60 }];
+  const activities = [{ id: 'ride', start_date: '2026-06-08T07:00:00Z', moving_time: 3600, sport_type: 'Ride' }];
+  assert.equal(matchActivitiesToWorkouts(workouts, activities).size, 0);
+});
+
+test('decorateWorkoutsWithCompliance exposes the day a matched workout happened', () => {
+  const today = new Date('2026-06-11T12:00:00Z');
+  const [decorated] = decorateWorkoutsWithCompliance(
+    [{ id: 'w1', workout_date: '2026-06-06', sport: 'run', planned_duration_min: 60, status: 'planned' }],
+    [{ id: 'a1', start_date: '2026-06-07T06:00:00Z', moving_time: 3600, distance: 12000, sport_type: 'Run' }],
+    { today, toleranceDays: 1 }
+  );
+  assert.equal(decorated.status, 'completed');
+  assert.equal(decorated.display_date, '2026-06-07');
+});
+
 test('decorateWorkoutsWithCompliance marks matched plans as completed with a pct', () => {
   const today = new Date('2026-06-11T12:00:00Z');
   const [decorated] = decorateWorkoutsWithCompliance(

@@ -1019,7 +1019,7 @@ function EventEditor({ date, onSave, onClose }) {
 
 // ─── Main calendar ───────────────────────────────────────────────────────────
 
-const INITIAL_PAST_WEEKS = 4;
+const INITIAL_PAST_WEEKS = 12;
 const INITIAL_FUTURE_WEEKS = 16;
 const EXTEND_BY_WEEKS = 8;
 const MAX_PAST_WEEKS = 52;
@@ -1033,6 +1033,7 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
   const [workouts, setWorkouts] = useState([]);
   const [notes, setNotes] = useState([]);
   const [events, setEvents] = useState([]);
+  const [activities, setActivities] = useState([]);
   const [library, setLibrary] = useState([]);
   const [distanceUnitPref, setDistanceUnitPref] = useState('mi');
   const [loading, setLoading] = useState(true);
@@ -1071,6 +1072,7 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
       }
       const workoutsData = await workoutsRes.json();
       setWorkouts(workoutsData.workouts || []);
+      setActivities(workoutsData.activities || []);
       if (notesRes?.ok) {
         const notesData = await notesRes.json();
         setNotes(notesData.notes || []);
@@ -1299,11 +1301,25 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
   const workoutsByDate = useMemo(() => {
     const map = new Map();
     workouts.forEach((w) => {
-      if (!map.has(w.workout_date)) map.set(w.workout_date, []);
-      map.get(w.workout_date).push(w);
+      // Show a completed workout on the day it actually happened (from a
+      // matched activity) rather than the day it was planned for.
+      const key = w.display_date || w.workout_date;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(w);
     });
     return map;
   }, [workouts]);
+
+  const activitiesByDate = useMemo(() => {
+    const map = new Map();
+    activities.forEach((a) => {
+      const key = a.activity_date || (a.start_date ? toDateKey(a.start_date) : null);
+      if (!key) return;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(a);
+    });
+    return map;
+  }, [activities]);
 
   const notesByDate = useMemo(() => {
     const map = new Map();
@@ -1337,6 +1353,7 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
           workouts: workoutsByDate.get(key) || [],
           notes: notesByDate.get(key) || [],
           events: eventsByDate.get(key) || [],
+          activities: activitiesByDate.get(key) || [],
         };
       });
       const firstOfMonth = days.find((d) => d.date.getDate() === 1);
@@ -1350,7 +1367,7 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
         summary: summarizeWeek(days.flatMap((d) => d.workouts)),
       };
     });
-  }, [anchorMonday, pastWeeks, futureWeeks, workoutsByDate, notesByDate, eventsByDate]);
+  }, [anchorMonday, pastWeeks, futureWeeks, workoutsByDate, notesByDate, eventsByDate, activitiesByDate]);
 
   const detailWorkout = detailId ? workouts.find((w) => w.id === detailId) || null : null;
   const dayMenuDate = dayMenuKey ? new Date(`${dayMenuKey}T00:00:00`) : null;
@@ -1576,6 +1593,25 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
                               {w.status === 'completed' && w.compliance_pct != null ? ` · ✓ ${w.compliance_pct}%` : w.status === 'skipped' ? ' · skipped' : ''}
                             </p>
                           </button>
+                        ))}
+                        {day.activities.map((activity) => (
+                          <div
+                            key={`activity-${activity.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            title="Synced activity with no planned workout"
+                            className="rounded-xl border border-sky-200 bg-sky-50/70 px-2 py-1.5"
+                          >
+                            <div className="flex items-center gap-1.5">
+                              <span className="truncate text-xs font-semibold text-ink">{SPORT_EMOJI[activity.sport] || '⚡'} {activity.name}</span>
+                            </div>
+                            <p className="mt-0.5 truncate text-[11px] text-sky-800/70">
+                              {[
+                                'Synced',
+                                fmtDuration(activity.duration_min),
+                                formatDistance(activity.distance_km, distanceUnitPref),
+                              ].filter(Boolean).join(' · ')}
+                            </p>
+                          </div>
                         ))}
                         {day.notes.map((note) => {
                           const meta = NOTE_META[note.note_type] || NOTE_META.general;
