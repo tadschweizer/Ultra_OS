@@ -276,6 +276,7 @@ export default async function handler(req, res) {
           structure: libraryWorkout.structure,
           planned_duration_min: libraryWorkout.planned_duration_min,
           planned_distance_km: libraryWorkout.planned_distance_km,
+          planned_distance_unit: libraryWorkout.planned_distance_unit || 'mi',
           planned_tss: libraryWorkout.planned_tss,
           library_workout_id: libraryWorkout.id,
         };
