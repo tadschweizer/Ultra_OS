@@ -3,6 +3,7 @@ import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
 
 const emptySettings = {
+  distance_unit: 'mi',
   baseline_sleep_altitude_ft: '',
   baseline_training_altitude_ft: '',
   resting_hr: '',
@@ -40,6 +41,7 @@ function toFormValues(settings) {
   if (!settings) return emptySettings;
 
   return {
+    distance_unit: settings.distance_unit === 'km' ? 'km' : 'mi',
     baseline_sleep_altitude_ft: settings.baseline_sleep_altitude_ft ?? '',
     baseline_training_altitude_ft: settings.baseline_training_altitude_ft ?? '',
     resting_hr: settings.resting_hr ?? '',
@@ -365,6 +367,18 @@ export default function Settings() {
 
         <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
           <form onSubmit={handleSubmit} className="space-y-6 rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+            <Section title="Units" body="Which distance unit you prefer. New planned workouts default to this — you can still switch units on any individual workout.">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <FieldLabel tip="used across the training calendar">Distance unit</FieldLabel>
+                  <select name="distance_unit" value={form.distance_unit} onChange={handleChange} className={fieldClassName()}>
+                    <option value="mi">Miles (mi)</option>
+                    <option value="km">Kilometers (km)</option>
+                  </select>
+                </div>
+              </div>
+            </Section>
+
             <Section title="Altitude Baselines" body="Used to contextualize altitude acclimation interventions and flag unusual training elevations.">
               <div className="grid gap-4 md:grid-cols-2">
                 <div>

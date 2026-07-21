@@ -17,6 +17,7 @@ const PLANNING_FIELDS = [
   'structure',
   'planned_duration_min',
   'planned_distance_km',
+  'planned_distance_unit',
   'planned_tss',
   'order_index',
   'library_workout_id',
@@ -42,7 +43,7 @@ const ATHLETE_COMPLETION_FIELDS = [
 const WORKOUT_COLUMNS = `
   id, athlete_id, coach_id, workout_date, sport, title, description, structure,
   objective, coach_instructions, target_metric, planned_if, visibility, export_status, sync_provider,
-  planned_duration_min, planned_distance_km, planned_tss, order_index, status,
+  planned_duration_min, planned_distance_km, planned_distance_unit, planned_tss, order_index, status,
   completed_activity_id, completed_duration_min, completed_distance_km,
   athlete_rpe, athlete_comment, coach_feedback, library_workout_id, created_at, updated_at
 `;
@@ -223,6 +224,7 @@ export default async function handler(req, res) {
             structure: w.structure,
             planned_duration_min: w.planned_duration_min,
             planned_distance_km: w.planned_distance_km,
+            planned_distance_unit: w.planned_distance_unit,
             planned_tss: w.planned_tss,
             order_index: w.order_index,
             library_workout_id: w.library_workout_id,
