@@ -94,11 +94,11 @@ export default async function handler(req, res) {
     supabase.from('races').select('id, name, event_date, race_type').eq('athlete_id', athleteId).gte('event_date', new Date().toISOString().slice(0, 10)).order('event_date', { ascending: true }).limit(1),
     supabase.from('coach_protocol_assignments').select('*').eq('athlete_id', athleteId).order('created_at', { ascending: false }),
     supabase.from('interventions').select('*').eq('athlete_id', athleteId).order('inserted_at', { ascending: false }).limit(8),
-    supabase.from('activities').select('*').eq('athlete_id', athleteId).order('start_date', { ascending: false }).limit(8),
+    supabase.from('strava_activities').select('*').eq('athlete_id', athleteId).order('start_date', { ascending: false }).limit(8),
     supabase.from('daily_checkins').select('*').eq('athlete_id', athleteId).order('created_at', { ascending: false }).limit(8),
     supabase.from('coach_notes').select('*').eq('coach_id', coachProfile.id).eq('athlete_id', athleteId).order('created_at', { ascending: false }).limit(10),
     supabase.from('planned_workouts').select('*').eq('athlete_id', athleteId).gte('workout_date', reconciliationStart).order('workout_date', { ascending: true }),
-    supabase.from('activities').select('*').eq('athlete_id', athleteId).gte('start_date', reconciliationStart).order('start_date', { ascending: true }),
+    supabase.from('strava_activities').select('*').eq('athlete_id', athleteId).gte('start_date', reconciliationStart).order('start_date', { ascending: true }),
     supabase.from('trainingpeaks_import_jobs').select('id, status, transferred_count, needs_manual_mapping_count, error_message, created_at, updated_at, followup_sent_at').eq('athlete_id', athleteId).order('created_at', { ascending: false }).limit(5),
   ]);
 

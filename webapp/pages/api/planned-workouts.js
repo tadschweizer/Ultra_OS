@@ -9,6 +9,11 @@ import {
 } from '../../lib/workoutCompliance';
 import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
 import { getEffectiveAthleteIdFromRequest } from '../../lib/auth/requireAthlete.js';
+import { syncAthleteActivities, getStoredActivities } from '../../lib/activitySync';
+
+// Matches the rolling window a routine sync pulls; older ranges need a widened
+// request so scrolling back through history fills in rather than staying blank.
+const INCREMENTAL_WINDOW_MS = 60 * 86400000;
 
 const PLANNING_FIELDS = [
   'workout_date',
@@ -90,45 +95,69 @@ function fillPlannedTotals(payload) {
   return payload;
 }
 
+/**
+ * Loads imported activities for the range, refreshing from the provider first.
+ *
+ * The sync is throttled and never throws, so this costs one upstream call at
+ * most every few minutes and always returns whatever is stored. Ranges that
+ * reach further back than the rolling window ask for a widened pull, which is
+ * how an athlete scrolling into older history fills it in.
+ */
 async function fetchActivitiesForRange(admin, athleteId, start, end) {
-  // Synced activities live in strava_activities; some environments also have
-  // a generic activities table. A failed query just means "no synced data" —
-  // manual completion still works. We select * so display fields (name,
-  // sport_type, …) come through regardless of the exact table shape.
-  const { data: stravaData, error: stravaError } = await admin
-    .from('strava_activities')
-    .select('*')
-    .eq('athlete_id', athleteId)
-    .gte('start_date', `${start}T00:00:00Z`)
-    .lte('start_date', `${end}T23:59:59Z`);
+  const rangeStartMs = new Date(`${start}T00:00:00Z`).getTime();
+  const needsHistory = Number.isFinite(rangeStartMs)
+    && rangeStartMs < Date.now() - INCREMENTAL_WINDOW_MS;
 
-  if (!stravaError && stravaData?.length) {
-    return stravaData;
-  }
-
-  const { data, error } = await admin
-    .from('activities')
-    .select('*')
-    .eq('athlete_id', athleteId)
-    .gte('start_date', `${start}T00:00:00Z`)
-    .lte('start_date', `${end}T23:59:59Z`);
-  if (error) return [];
-  return data || [];
+  await syncAthleteActivities(admin, athleteId, needsHistory ? { since: `${start}T00:00:00Z` } : {});
+  return getStoredActivities(admin, athleteId, start, end);
 }
 
-// Trims a synced activity down to what the calendar renders for a session that
-// had no matching plan.
+/**
+ * Comment counts per workout, so a calendar card can show that a conversation
+ * exists without loading the thread. A failure degrades to "no badge".
+ */
+async function fetchCommentCounts(admin, workoutIds) {
+  const counts = new Map();
+  if (!workoutIds.length) return counts;
+
+  const { data, error } = await admin
+    .from('workout_comments')
+    .select('workout_id')
+    .in('workout_id', workoutIds);
+
+  if (error) {
+    console.error('[planned-workouts] comment counts failed:', error.message);
+    return counts;
+  }
+  (data || []).forEach((row) => {
+    counts.set(row.workout_id, (counts.get(row.workout_id) || 0) + 1);
+  });
+  return counts;
+}
+
+// Trims a stored activity down to what the calendar renders for a session that
+// had no matching plan. local_date keeps an evening session on the athlete's
+// own day; legacy rows without it fall back to the UTC instant.
 function toCalendarActivity(activity) {
   const distanceM = activity.distance != null ? Number(activity.distance) : null;
   const movingSec = activity.moving_time != null ? Number(activity.moving_time) : null;
+  const elapsedSec = activity.elapsed_time != null ? Number(activity.elapsed_time) : null;
   return {
     id: activity.id,
     start_date: activity.start_date,
-    activity_date: toDateKey(activity.start_date),
-    name: activity.name || activity.activity_name || 'Synced activity',
+    activity_date: activity.local_date || toDateKey(activity.start_date),
+    name: activity.name || activity.activity_name || 'Imported activity',
     sport: normalizeSport(activity.sport_type || activity.type || activity.sport) || 'other',
     duration_min: movingSec != null ? Math.round((movingSec / 60) * 10) / 10 : null,
+    elapsed_min: elapsedSec != null ? Math.round((elapsedSec / 60) * 10) / 10 : null,
     distance_km: distanceM != null ? Math.round((distanceM / 1000) * 100) / 100 : null,
+    elevation_gain_m: activity.total_elevation_gain != null ? Math.round(Number(activity.total_elevation_gain)) : null,
+    average_heartrate: activity.average_heartrate != null ? Math.round(Number(activity.average_heartrate)) : null,
+    max_heartrate: activity.max_heartrate != null ? Math.round(Number(activity.max_heartrate)) : null,
+    kilojoules: activity.kilojoules != null ? Math.round(Number(activity.kilojoules)) : null,
+    calories: activity.calories != null ? Math.round(Number(activity.calories)) : null,
+    tss: activity.tss != null ? Math.round(Number(activity.tss)) : null,
+    source: activity.source || 'strava',
   };
 }
 
@@ -197,8 +226,10 @@ export default async function handler(req, res) {
         .filter((a) => a?.start_date && !consumed.has(String(a.id)))
         .map(toCalendarActivity);
 
+      const commentCounts = await fetchCommentCounts(admin, decorated.map((w) => w.id));
+
       res.status(200).json({
-        workouts: decorated,
+        workouts: decorated.map((w) => ({ ...w, comment_count: commentCounts.get(w.id) || 0 })),
         activities: unplannedActivities,
         range: { start, end },
       });

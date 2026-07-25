@@ -22,6 +22,8 @@ export const loadStatusConfig = {
 
 const DEFAULT_RESTING_HR = 60;
 const DEFAULT_MAX_HR = 190;
+// Assumed fraction of heart-rate reserve for a session with neither HR nor RPE.
+const DEFAULT_INTENSITY_WITHOUT_HR = 0.5;
 
 function localDateKey(date) {
   const d = new Date(date);
@@ -52,10 +54,41 @@ export function computeActivityTrimp(activity, settings = {}) {
     // No HR data: perceived exertion (RPE 1–10) separates hard sessions from
     // easy ones; otherwise assume steady aerobic work.
     const rpe = Number(activity?.perceived_exertion) || 0;
-    hrReserve = rpe > 0 ? Math.min(0.95, Math.max(0.3, rpe / 10)) : 0.5;
+    hrReserve = rpe > 0 ? Math.min(0.95, Math.max(0.3, rpe / 10)) : DEFAULT_INTENSITY_WITHOUT_HR;
   }
 
   return minutes * hrReserve * 0.64 * Math.exp(1.92 * hrReserve);
+}
+
+/**
+ * Per-activity load stored at import time, so the calendar can total a week
+ * without recomputing every session on each render.
+ *
+ * Returns the same TRIMP unit the rest of the load model uses (labelled TSS in
+ * the UI) plus the intensity factor it was derived from — the fraction of
+ * heart-rate reserve the session was held at.
+ */
+export function estimateTssFromActivity({ movingTimeSec = null, averageHeartrate = null, sportType = null } = {}, settings = {}) {
+  const minutes = (Number(movingTimeSec) || 0) / 60;
+  if (minutes <= 0) return { tss: null, intensityFactor: null };
+
+  const restingHr = Number(settings?.resting_hr) || DEFAULT_RESTING_HR;
+  const maxHr = Number(settings?.max_hr) || DEFAULT_MAX_HR;
+  const avgHr = Number(averageHeartrate) || 0;
+
+  const intensityFactor = avgHr > restingHr && maxHr > restingHr
+    ? Math.min(1, (avgHr - restingHr) / (maxHr - restingHr))
+    : DEFAULT_INTENSITY_WITHOUT_HR;
+
+  const tss = computeActivityTrimp(
+    { moving_time: Number(movingTimeSec) || 0, average_heartrate: avgHr, sport_type: sportType },
+    settings
+  );
+
+  return {
+    tss: Math.round(tss * 10) / 10,
+    intensityFactor: Math.round(intensityFactor * 1000) / 1000,
+  };
 }
 
 export function buildDailyLoad(activities = [], days = 84, settings = {}) {

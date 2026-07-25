@@ -100,6 +100,18 @@ function formatDistance(km, unit = 'mi') {
   return value === '' ? null : `${value} ${unit === 'km' ? 'km' : 'mi'}`;
 }
 
+const FEET_PER_METRE = 3.28084;
+
+/** Elevation follows the athlete's distance preference: metres for km, feet for miles. */
+function fmtElevation(metres, unit = 'mi') {
+  if (metres == null || metres === '') return null;
+  const value = Number(metres);
+  if (!Number.isFinite(value) || value <= 0) return null;
+  return unit === 'km'
+    ? `${Math.round(value).toLocaleString()} m`
+    : `${Math.round(value * FEET_PER_METRE).toLocaleString()} ft`;
+}
+
 // ─── Structure-step targets ──────────────────────────────────────────────────
 
 const TARGET_TYPES = [
@@ -1036,19 +1048,77 @@ function formatCalendarRange(startKey, endKey) {
   return `${startLabel} – ${endLabel}`;
 }
 
+function sumBy(items, pick) {
+  return items.reduce((total, item) => total + (Number(pick(item)) || 0), 0);
+}
+
+/**
+ * Weekly rollup covering both halves of the week: what was planned, and what
+ * actually happened. Actuals combine completed plans with imported activities
+ * that never had a plan, so a week of unplanned training still totals up.
+ */
 function summarizeCalendarWeek(days) {
-  const planned = summarizeWeek(days.flatMap((day) => day.workouts));
-  const importedActivities = days.flatMap((day) => day.activities);
-  const importedDurationMin = importedActivities.reduce((total, activity) => total + (Number(activity.duration_min) || 0), 0);
-  const importedDistanceKm = importedActivities.reduce((total, activity) => total + (Number(activity.distance_km) || 0), 0);
+  const workouts = days.flatMap((day) => day.workouts);
+  const planned = summarizeWeek(workouts);
+  const imported = days.flatMap((day) => day.activities);
+  const completedWorkouts = workouts.filter((w) => w.status === 'completed');
+
+  const actualDurationMin = planned.completedDurationMin + sumBy(imported, (a) => a.duration_min);
+  const actualDistanceKm = planned.completedDistanceKm + sumBy(imported, (a) => a.distance_km);
+  const actualTss = sumBy(completedWorkouts, (w) => w.completed_tss ?? w.planned_tss)
+    + sumBy(imported, (a) => a.tss);
+
+  // Per-sport actuals drive the breakdown rows in the week rail.
+  const bySport = new Map();
+  const addSport = (sport, durationMin, distanceKm) => {
+    const key = sport || 'other';
+    const current = bySport.get(key) || { sport: key, durationMin: 0, distanceKm: 0, count: 0 };
+    current.durationMin += Number(durationMin) || 0;
+    current.distanceKm += Number(distanceKm) || 0;
+    current.count += 1;
+    bySport.set(key, current);
+  };
+  completedWorkouts.forEach((w) => addSport(w.sport, w.completed_duration_min, w.completed_distance_km));
+  imported.forEach((a) => addSport(a.sport, a.duration_min, a.distance_km));
 
   return {
     ...planned,
-    completedSessionCount: planned.completedCount + importedActivities.length,
-    completedDurationWithImports: planned.completedDurationMin + importedDurationMin,
-    completedDistanceWithImports: planned.completedDistanceKm + importedDistanceKm,
-    importedActivityCount: importedActivities.length,
+    completedSessionCount: planned.completedCount + imported.length,
+    importedActivityCount: imported.length,
+    actualDurationMin,
+    actualDistanceKm,
+    actualTss,
+    elevationGainM: sumBy(imported, (a) => a.elevation_gain_m),
+    kilojoules: sumBy(imported, (a) => a.kilojoules),
+    sports: [...bySport.values()].sort((a, b) => b.durationMin - a.durationMin),
+    hasActuals: planned.completedCount + imported.length > 0,
   };
+}
+
+/** Planned-vs-actual progress bar used in the week rail. */
+function ProgressMeter({ label, actual, planned, formatValue, unit = '' }) {
+  const hasPlan = Number(planned) > 0;
+  const pct = hasPlan ? Math.min(100, Math.round((actual / planned) * 100)) : (actual > 0 ? 100 : 0);
+  const onTarget = hasPlan && pct >= 95;
+
+  return (
+    <div>
+      <div className="flex items-baseline justify-between gap-1">
+        <span className="text-[10px] uppercase tracking-wide text-ink/40">{label}</span>
+        <span className="font-mono text-[11px] font-semibold text-ink">
+          {formatValue(actual)}{unit}
+          {hasPlan && <span className="font-normal text-ink/40"> / {formatValue(planned)}{unit}</span>}
+          {onTarget && <span className="text-emerald-600"> ✓</span>}
+        </span>
+      </div>
+      <div className="mt-0.5 h-1 overflow-hidden rounded-full bg-ink/8">
+        <div
+          className={`h-full rounded-full transition-[width] ${onTarget ? 'bg-emerald-500' : 'bg-accent'}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
 }
 
 export default function TrainingCalendar({ athleteId = null, role = 'athlete' }) {
@@ -1658,39 +1728,65 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
                                 {w.status === 'completed' ? '✓ ' : ''}{SPORT_EMOJI[w.sport] || '⚡'} {w.title}
                               </span>
                             </div>
-                            <p className="mt-0.5 truncate text-[11px] text-ink/55">
-                              {w.status === 'completed'
-                                ? [
-                                  'Completed',
-                                  fmtDuration(w.completed_duration_min),
-                                  formatDistance(w.completed_distance_km, w.planned_distance_unit),
-                                  w.compliance_pct != null ? `${w.compliance_pct}% of plan` : null,
-                                ].filter(Boolean).join(' · ')
-                                : [
+                            {w.status === 'completed' ? (
+                              <>
+                                <p className="mt-0.5 truncate font-mono text-[11px] font-semibold text-emerald-800">
+                                  {[
+                                    fmtDuration(w.completed_duration_min),
+                                    formatDistance(w.completed_distance_km, w.planned_distance_unit),
+                                    w.compliance_pct != null ? `${w.compliance_pct}%` : null,
+                                  ].filter(Boolean).join(' · ')}
+                                </p>
+                                {/* Planned reference, so the actual above always has something to be judged against. */}
+                                {(w.planned_duration_min || w.planned_distance_km) && (
+                                  <p className="truncate text-[10px] text-ink/40">
+                                    P: {[
+                                      fmtDuration(w.planned_duration_min),
+                                      formatDistance(w.planned_distance_km, w.planned_distance_unit),
+                                    ].filter(Boolean).join(' · ')}
+                                  </p>
+                                )}
+                              </>
+                            ) : (
+                              <p className="mt-0.5 truncate text-[11px] text-ink/55">
+                                {[
                                   fmtDuration(w.planned_duration_min),
                                   formatDistance(w.planned_distance_km, w.planned_distance_unit),
                                   w.planned_tss ? `TSS ${Math.round(w.planned_tss)}` : null,
                                   w.status === 'skipped' ? 'Skipped' : null,
                                 ].filter(Boolean).join(' · ')}
-                            </p>
+                              </p>
+                            )}
+                            {(w.athlete_rpe != null || w.comment_count > 0) && (
+                              <p className="mt-0.5 flex items-center gap-2 text-[10px] text-ink/45">
+                                {w.athlete_rpe != null && <span title={`Perceived effort ${w.athlete_rpe}/10`}>RPE {w.athlete_rpe}</span>}
+                                {w.comment_count > 0 && <span title={`${w.comment_count} comment${w.comment_count === 1 ? '' : 's'}`}>💬 {w.comment_count}</span>}
+                              </p>
+                            )}
                           </button>
                         ))}
                         {day.activities.map((activity) => (
                           <div
                             key={`activity-${activity.id}`}
                             onClick={(e) => e.stopPropagation()}
-                            title="Synced activity with no planned workout"
+                            title="Imported activity with no planned workout"
                             className="rounded-xl border border-sky-200 bg-sky-50/70 px-2 py-1.5"
                           >
                             <div className="flex items-center gap-1.5">
                               <span className="truncate text-xs font-semibold text-ink">{SPORT_EMOJI[activity.sport] || '⚡'} {activity.name}</span>
                             </div>
-                            <p className="mt-0.5 truncate text-[11px] text-sky-800/70">
+                            <p className="mt-0.5 truncate font-mono text-[11px] font-semibold text-sky-900">
                               {[
-                                'Completed · imported',
                                 fmtDuration(activity.duration_min),
                                 formatDistance(activity.distance_km, distanceUnitPref),
+                                activity.tss ? `${activity.tss} TSS` : null,
                               ].filter(Boolean).join(' · ')}
+                            </p>
+                            <p className="truncate text-[10px] text-sky-800/60">
+                              {[
+                                fmtElevation(activity.elevation_gain_m, distanceUnitPref),
+                                activity.average_heartrate ? `${activity.average_heartrate} bpm` : null,
+                              ].filter(Boolean).join(' · ') || 'Unplanned'}
                             </p>
                           </div>
                         ))}
@@ -1714,22 +1810,61 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
 
                 {/* Week summary (TrainingPeaks-style right rail) */}
                 <div className="hidden flex-col justify-between rounded-2xl border border-ink/10 bg-white/80 p-2.5 lg:flex">
-                  <div className="space-y-1 text-[11px] leading-4 text-ink/65">
+                  <div className="space-y-2 text-[11px] leading-4 text-ink/65">
                     <p className="font-semibold text-ink/45">
                       {week.days[0].date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {week.days[6].date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                     </p>
-                    <p><span className="font-mono font-semibold text-ink">{fmtDuration(week.summary.plannedDurationMin) || '0m'}</span> planned</p>
-                    <p><span className="font-mono font-semibold text-ink">{kmToUnit(week.summary.plannedDistanceKm, distanceUnitPref) || 0}</span> {distanceUnitPref} · TSS <span className="font-mono font-semibold text-ink">{Math.round(week.summary.plannedTss)}</span></p>
-                    <p>
+
+                    <ProgressMeter
+                      label="Duration"
+                      actual={week.summary.actualDurationMin}
+                      planned={week.summary.plannedDurationMin}
+                      formatValue={(v) => fmtDuration(v) || '0m'}
+                    />
+                    <ProgressMeter
+                      label="Distance"
+                      actual={week.summary.actualDistanceKm}
+                      planned={week.summary.plannedDistanceKm}
+                      formatValue={(v) => kmToUnit(v, distanceUnitPref) || 0}
+                      unit={` ${distanceUnitPref}`}
+                    />
+                    <ProgressMeter
+                      label="TSS"
+                      actual={week.summary.actualTss}
+                      planned={week.summary.plannedTss}
+                      formatValue={(v) => Math.round(v)}
+                    />
+
+                    {(week.summary.elevationGainM > 0 || week.summary.kilojoules > 0) && (
+                      <div className="flex flex-wrap gap-x-2 gap-y-0.5 border-t border-ink/8 pt-1.5 text-[10px] text-ink/55">
+                        {week.summary.elevationGainM > 0 && (
+                          <span>El. <span className="font-mono font-semibold text-ink">{fmtElevation(week.summary.elevationGainM, distanceUnitPref)}</span></span>
+                        )}
+                        {week.summary.kilojoules > 0 && (
+                          <span>Work <span className="font-mono font-semibold text-ink">{Math.round(week.summary.kilojoules)}</span> kJ</span>
+                        )}
+                      </div>
+                    )}
+
+                    {week.summary.sports.length > 0 && (
+                      <div className="space-y-0.5 border-t border-ink/8 pt-1.5 text-[10px]">
+                        {week.summary.sports.map((sport) => (
+                          <div key={sport.sport} className="flex items-baseline justify-between gap-1">
+                            <span className="truncate text-ink/55">{SPORT_EMOJI[sport.sport] || '⚡'} {sport.count}</span>
+                            <span className="font-mono text-ink/70">
+                              {fmtDuration(sport.durationMin) || '0m'}
+                              {sport.distanceKm > 0 ? ` · ${kmToUnit(sport.distanceKm, distanceUnitPref)}${distanceUnitPref}` : ''}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <p className="border-t border-ink/8 pt-1.5 text-[10px] text-ink/50">
                       <span className="font-mono font-semibold text-ink">{week.summary.completedSessionCount}</span> completed
+                      {week.summary.totalCount > 0 ? ` of ${week.summary.totalCount} planned` : ''}
                       {week.summary.importedActivityCount ? ` · ${week.summary.importedActivityCount} imported` : ''}
                     </p>
-                    {week.summary.completedSessionCount > 0 && (
-                      <p>
-                        Actual <span className="font-mono font-semibold text-ink">{fmtDuration(week.summary.completedDurationWithImports) || '0m'}</span>
-                        {' · '}<span className="font-mono font-semibold text-ink">{kmToUnit(week.summary.completedDistanceWithImports, distanceUnitPref) || 0}</span> {distanceUnitPref}
-                      </p>
-                    )}
                   </div>
                   {week.summary.totalCount > 0 && (
                     <button
@@ -1746,7 +1881,15 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
               {/* Mobile week summary */}
               <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl bg-white/60 px-3 py-1.5 text-[11px] text-ink/60 lg:hidden">
                 <span className="font-semibold text-ink/45">{week.days[0].date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} wk</span>
-                <span>{fmtDuration(week.summary.plannedDurationMin) || '0m'} · {kmToUnit(week.summary.plannedDistanceKm, distanceUnitPref) || 0} {distanceUnitPref} · TSS {Math.round(week.summary.plannedTss)}</span>
+                <span>
+                  Planned {fmtDuration(week.summary.plannedDurationMin) || '0m'} · {kmToUnit(week.summary.plannedDistanceKm, distanceUnitPref) || 0} {distanceUnitPref} · TSS {Math.round(week.summary.plannedTss)}
+                </span>
+                {week.summary.hasActuals && (
+                  <span className="font-semibold text-ink/75">
+                    Actual {fmtDuration(week.summary.actualDurationMin) || '0m'} · {kmToUnit(week.summary.actualDistanceKm, distanceUnitPref) || 0} {distanceUnitPref} · TSS {Math.round(week.summary.actualTss)}
+                    {week.summary.elevationGainM > 0 ? ` · ${fmtElevation(week.summary.elevationGainM, distanceUnitPref)}` : ''}
+                  </span>
+                )}
                 <span>{week.summary.completedSessionCount} completed{week.summary.importedActivityCount ? ` · ${week.summary.importedActivityCount} imported` : ''}</span>
               </div>
             </div>

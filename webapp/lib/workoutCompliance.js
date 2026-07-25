@@ -156,6 +156,21 @@ export function toDateKey(date) {
 }
 
 /**
+ * The calendar day an activity belongs to, from the athlete's point of view.
+ *
+ * start_date is a UTC instant, so a 7pm session in a negative-offset timezone
+ * carries the *next* UTC date and would be attributed to the wrong day. Stored
+ * activities carry local_date (and start_date_local) for exactly this reason;
+ * start_date is the last resort, for rows imported before those existed.
+ */
+export function activityDateKey(activity) {
+  if (!activity) return null;
+  if (activity.local_date) return String(activity.local_date).slice(0, 10);
+  if (activity.start_date_local) return String(activity.start_date_local).slice(0, 10);
+  return activity.start_date ? toDateKey(activity.start_date) : null;
+}
+
+/**
  * Matches synced activities to planned workouts of the same athlete.
  *
  * Strategy: an activity within `toleranceDays` of the plan (0 = same calendar
@@ -166,13 +181,14 @@ export function toDateKey(date) {
  * plans (longest planned duration) are matched first.
  *
  * Activities need: { id, start_date, moving_time (sec), distance? (m),
- * sport_type?/type?/sport? }.
+ * sport_type?/type?/sport? }. When a local_date / start_date_local is present
+ * it wins over start_date — see activityDateKey.
  * Returns a Map of workout id -> activity.
  */
 export function matchActivitiesToWorkouts(workouts = [], activities = [], { toleranceDays = 0 } = {}) {
   const matches = new Map();
   const used = new Set();
-  const acts = activities.filter((a) => a?.start_date);
+  const acts = activities.filter((a) => activityDateKey(a));
 
   // Match the most specific plans first (largest planned duration).
   const ordered = [...workouts].sort(
@@ -185,7 +201,7 @@ export function matchActivitiesToWorkouts(workouts = [], activities = [], { tole
     const plannedMin = Number(workout.planned_duration_min) || 0;
 
     const score = (activity) => {
-      const dayGap = Math.abs(dayIndex(activity.start_date) - planDay);
+      const dayGap = Math.abs(dayIndex(activityDateKey(activity)) - planDay);
       const durGap = Math.abs((Number(activity.moving_time) || 0) / 60 - plannedMin);
       // Date proximity dominates; duration closeness breaks ties.
       return dayGap * 100000 + durGap;
@@ -193,7 +209,7 @@ export function matchActivitiesToWorkouts(workouts = [], activities = [], { tole
 
     const best = acts.reduce((bestSoFar, activity) => {
       if (used.has(activity.id)) return bestSoFar;
-      if (Math.abs(dayIndex(activity.start_date) - planDay) > toleranceDays) return bestSoFar;
+      if (Math.abs(dayIndex(activityDateKey(activity)) - planDay) > toleranceDays) return bestSoFar;
       const actSport = activitySport(activity);
       if (planSport && actSport && planSport !== actSport) return bestSoFar;
       if (!bestSoFar) return activity;
@@ -238,7 +254,7 @@ export function decorateWorkoutsWithCompliance(workouts = [], activities = [], {
       // The calendar day this workout should render on: where it actually
       // happened when an activity fulfilled it (which may differ from the
       // planned day), otherwise the planned day.
-      display_date: matched ? toDateKey(matched.start_date) : toDateKey(workout.workout_date),
+      display_date: matched ? activityDateKey(matched) : toDateKey(workout.workout_date),
     };
     next.compliance_pct = compliancePct(next, {
       duration_min: next.completed_duration_min,
@@ -271,7 +287,7 @@ export function summarizeReconciliationWindow(workouts = [], activities = [], { 
   const inWindow = (key) => Boolean(key) && (!startKey || key >= startKey) && (!endKey || key <= endKey);
 
   const windowWorkouts = workouts.filter((w) => inWindow(w?.workout_date ? toDateKey(w.workout_date) : null));
-  const windowActivities = activities.filter((a) => inWindow(a?.start_date ? toDateKey(a.start_date) : null));
+  const windowActivities = activities.filter((a) => inWindow(activityDateKey(a)));
 
   const decorated = decorateWorkoutsWithCompliance(windowWorkouts, windowActivities, { today });
 
@@ -307,7 +323,7 @@ export function summarizeReconciliationWindow(workouts = [], activities = [], { 
     return days.get(key);
   };
   decorated.forEach((w) => dayFor(toDateKey(w.workout_date)).workouts.push(w));
-  unplannedActivities.forEach((a) => dayFor(toDateKey(a.start_date)).unplannedActivities.push(a));
+  unplannedActivities.forEach((a) => dayFor(activityDateKey(a)).unplannedActivities.push(a));
 
   return {
     plannedCount: decorated.length,

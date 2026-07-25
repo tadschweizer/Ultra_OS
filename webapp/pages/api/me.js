@@ -74,7 +74,7 @@ export default async function handler(req, res) {
       .eq('athlete_id', athleteId)
       .gte('inserted_at', new Date(Date.now() - 42 * 86400000).toISOString()),
     admin
-      .from('activities')
+      .from('strava_activities')
       .select('*')
       .eq('athlete_id', athleteId)
       .gte('start_date', new Date(Date.now() - 42 * 86400000).toISOString()),
