@@ -4,8 +4,8 @@ import { useRouter } from 'next/router';
 /**
  * Global message center: a floating button (top-right on desktop, above the
  * bottom nav on mobile) with an unread badge, opening a popup that unifies
- * the two coaching channels — direct coach↔athlete messages and per-workout
- * discussions.
+ * the two coaching channels — direct coach↔athlete messages and per-session
+ * discussions, where a session is a planned workout or a completed activity.
  */
 
 const SPORT_EMOJI = {
@@ -127,16 +127,25 @@ export default function MessageCenter() {
     }
   }, [draft, thread, summary?.role]);
 
-  const openWorkoutThread = useCallback(async (workoutThread) => {
+  // A session thread hangs off either a planned workout or an imported
+  // activity, so both the mark-read call and the calendar deep link name the
+  // subject the thread actually has.
+  const openSessionThread = useCallback(async (sessionThread) => {
+    const subjectParam = sessionThread.subject_type === 'activity' ? 'activity' : 'workout';
     await fetch('/api/message-center', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'mark_read', scope: 'workout', workout_id: workoutThread.workout_id }),
+      body: JSON.stringify({
+        action: 'mark_read',
+        scope: 'workout',
+        [`${subjectParam}_id`]: sessionThread.subject_id,
+      }),
     }).catch(() => {});
     setOpen(false);
+    const deepLink = `${subjectParam}=${encodeURIComponent(sessionThread.subject_id)}`;
     const target = summary?.role === 'coach'
-      ? `/coach/training-calendar?athlete=${workoutThread.athlete_id}&workout=${workoutThread.workout_id}`
-      : `/calendar?workout=${workoutThread.workout_id}`;
+      ? `/coach/training-calendar?athlete=${encodeURIComponent(sessionThread.athlete_id)}&${deepLink}`
+      : `/calendar?${deepLink}`;
     router.push(target);
   }, [router, summary?.role]);
 
@@ -144,7 +153,7 @@ export default function MessageCenter() {
 
   const unread = summary.unread_total || 0;
   const conversations = summary.conversations || [];
-  const workoutThreads = summary.workout_threads || [];
+  const sessionThreads = summary.workout_threads || [];
   const myRole = summary.role;
 
   return (
@@ -228,7 +237,7 @@ export default function MessageCenter() {
                 <div className="flex gap-1 border-b border-ink/8 px-4 pt-2.5">
                   {[
                     { id: 'direct', label: myRole === 'coach' ? 'Athletes' : 'Coach' },
-                    { id: 'workouts', label: 'Workout threads' },
+                    { id: 'workouts', label: 'Sessions' },
                   ].map((t) => (
                     <button
                       key={t.id}
@@ -273,24 +282,30 @@ export default function MessageCenter() {
                         {myRole === 'coach' ? 'No active athletes yet.' : 'Connect with a coach to start messaging.'}
                       </p>
                     )
-                  ) : workoutThreads.length ? (
+                  ) : sessionThreads.length ? (
                     <div className="space-y-1.5">
-                      {workoutThreads.map((t) => (
+                      {sessionThreads.map((t) => (
                         <button
-                          key={t.workout_id}
-                          onClick={() => openWorkoutThread(t)}
+                          key={`${t.subject_type}:${t.subject_id}`}
+                          onClick={() => openSessionThread(t)}
                           className="flex w-full items-center gap-3 rounded-2xl border border-transparent px-3 py-2.5 text-left transition hover:border-ink/10 hover:bg-paper"
                         >
-                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-paper text-base">
+                          {/* An activity ring reads as "already done"; a plan stays neutral. */}
+                          <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-base ${t.subject_type === 'activity' ? 'bg-sky-50 ring-1 ring-sky-200' : 'bg-paper'}`}>
                             {SPORT_EMOJI[t.sport] || '⚡'}
                           </span>
                           <span className="min-w-0 flex-1">
                             <span className="flex items-center justify-between gap-2">
-                              <span className="truncate text-sm font-semibold text-ink">{t.workout_title}</span>
+                              <span className="truncate text-sm font-semibold text-ink">{t.title}</span>
                               <span className="shrink-0 text-[10px] text-ink/40">{timeAgo(t.last_comment?.created_at)}</span>
                             </span>
-                            <span className="mt-0.5 block truncate text-xs text-ink/50">
-                              {myRole === 'coach' ? `${t.name} · ` : ''}{t.workout_date || ''}{t.last_comment ? ` — ${t.last_comment.body}` : ''}
+                            <span className="mt-0.5 flex items-center gap-1.5">
+                              {t.subject_type === 'activity' && (
+                                <span className="shrink-0 rounded-full bg-sky-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-sky-700">Completed</span>
+                              )}
+                              <span className="min-w-0 truncate text-xs text-ink/50">
+                                {myRole === 'coach' ? `${t.name} · ` : ''}{t.date || ''}{t.last_comment ? ` — ${t.last_comment.body}` : ''}
+                              </span>
                             </span>
                           </span>
                           {t.unread > 0 && (
@@ -301,7 +316,7 @@ export default function MessageCenter() {
                     </div>
                   ) : (
                     <p className="mt-8 px-4 text-center text-sm text-ink/50">
-                      No workout discussions yet. Open any workout on the calendar and use its discussion box to ask about that specific session.
+                      No session discussions yet. Open any workout or completed activity on the calendar and use its discussion box to ask about that specific session.
                     </p>
                   )}
                 </div>

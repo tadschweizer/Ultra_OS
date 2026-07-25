@@ -73,3 +73,58 @@ export function attachAuthorNames(comments, { athleteNames = new Map(), coachNam
 export function collectIds(rows, key) {
   return [...new Set(rows.map((row) => row[key]).filter(Boolean))];
 }
+
+/**
+ * The stable identity of a thread's subject.
+ *
+ * The type is part of the key so a workout and an activity can never collide,
+ * and so a caller can tell from the key alone which table to resolve against.
+ *
+ * @param {'workout'|'activity'} subjectType
+ * @param {string} subjectId
+ */
+export function subjectKey(subjectType, subjectId) {
+  return `${subjectType}:${subjectId}`;
+}
+
+/**
+ * The subject a comment hangs off, read from whichever column is set.
+ *
+ * Returns null for a row with neither — the CHECK constraint forbids it, but a
+ * thread with no subject has no title, date, or destination, so it is dropped
+ * rather than rendered as a phantom.
+ *
+ * @param {{ planned_workout_id?: string|null, activity_id?: string|null }} comment
+ * @returns {{ subject_type: 'workout'|'activity', subject_id: string }|null}
+ */
+export function commentSubject(comment = {}) {
+  if (comment.planned_workout_id) {
+    return { subject_type: 'workout', subject_id: comment.planned_workout_id };
+  }
+  if (comment.activity_id) {
+    return { subject_type: 'activity', subject_id: comment.activity_id };
+  }
+  return null;
+}
+
+/**
+ * Groups comments into one thread per subject, preserving the order they
+ * arrive in — pass them newest-first and each thread reads newest-first too.
+ *
+ * @param {Array<object>} comments
+ * @returns {Array<{ key: string, subject_type: 'workout'|'activity', subject_id: string, athlete_id: string, comments: object[] }>}
+ */
+export function groupComments(comments = []) {
+  const threads = new Map();
+  comments.forEach((comment) => {
+    const subject = commentSubject(comment);
+    if (!subject) return;
+
+    const key = subjectKey(subject.subject_type, subject.subject_id);
+    if (!threads.has(key)) {
+      threads.set(key, { key, ...subject, athlete_id: comment.athlete_id, comments: [] });
+    }
+    threads.get(key).comments.push(comment);
+  });
+  return [...threads.values()];
+}
