@@ -80,7 +80,7 @@ export default async function handler(req, res) {
           .in('athlete_id', athleteIds)
           .gte('inserted_at', new Date(Date.now() - 42 * 86400000).toISOString()),
         supabase
-          .from('activities')
+          .from('strava_activities')
           .select('*')
           .in('athlete_id', athleteIds)
           .gte('start_date', new Date(Date.now() - 42 * 86400000).toISOString()),

@@ -1,14 +1,20 @@
 import { getSupabaseAdminClient } from '../../lib/authServer';
-import { refreshToken, getRecentActivities } from '../../lib/strava';
 import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
 import { getEffectiveAthleteIdFromRequest } from '../../lib/auth/requireAthlete.js';
+import { syncAthleteActivities } from '../../lib/activitySync';
 
+// Covers the full chronic-load window (6 weeks) needed for ATL/CTL/TSB.
+const DEFAULT_LOOKBACK_DAYS = 42;
+const MAX_LOOKBACK_DAYS = 730;
 
 /**
- * API route to fetch recent Strava activities for the authenticated athlete.
+ * Recent imported activities for the authenticated athlete.
  *
- * Reads the athlete_id cookie, looks up tokens in Supabase, refreshes
- * expired tokens if needed, calls the Strava API, and returns JSON.
+ * This route used to call the Strava API on every request and return the
+ * response without saving it, which is why the calendar — which reads the
+ * database — showed nothing while this endpoint showed a full week. It now
+ * refreshes the stored copy and serves from the database, so every surface
+ * reads the same rows.
  */
 export default async function handler(req, res) {
   const athleteId = await getEffectiveAthleteIdFromRequest(req);
@@ -16,56 +22,33 @@ export default async function handler(req, res) {
     res.status(401).json({ error: 'Not authenticated' });
     return;
   }
+
   const admin = getSupabaseAdminClient();
-  const { data: athlete, error } = await admin
-    .from('athletes')
+  const requestedDays = Number(req.query.days);
+  const lookbackDays = requestedDays > 0
+    ? Math.min(requestedDays, MAX_LOOKBACK_DAYS)
+    : DEFAULT_LOOKBACK_DAYS;
+  const since = new Date(Date.now() - lookbackDays * 86400000).toISOString();
+
+  // Refresh first so a just-finished session appears. A throttled or failed
+  // sync is not an error — stored activities still render.
+  const sync = await syncAthleteActivities(admin, athleteId);
+
+  const { data, error } = await admin
+    .from('strava_activities')
     .select('*')
-    .eq('id', athleteId)
-    .single();
+    .eq('athlete_id', athleteId)
+    .gte('start_date', since)
+    .order('start_date', { ascending: false });
+
   if (error) {
-    console.error(error);
-    res.status(500).json({ error: error.message });
+    console.error('[activities] read failed:', error.message);
+    res.status(500).json({ error: 'Failed to load activities' });
     return;
   }
-  if (!athlete) {
-    res.status(404).json({ error: 'Athlete not found' });
-    return;
-  }
-  let { access_token, refresh_token, token_expires_at } = athlete;
-  if (!athlete.strava_id || !access_token || !refresh_token) {
-    res.status(400).json({ error: 'Strava not connected', activities: [] });
-    return;
-  }
-  const expiresAt = token_expires_at ? new Date(token_expires_at).getTime() : 0;
-  // Refresh the token if expired
-  if (Date.now() > expiresAt) {
-    try {
-      const clientId = process.env.STRAVA_CLIENT_ID;
-      const clientSecret = process.env.STRAVA_CLIENT_SECRET;
-      const refreshed = await refreshToken(refresh_token, clientId, clientSecret);
-      access_token = refreshed.access_token;
-      refresh_token = refreshed.refresh_token;
-      token_expires_at = new Date(refreshed.expires_at * 1000).toISOString();
-      const { error: updateError } = await admin
-        .from('athletes')
-        .update({ access_token, refresh_token, token_expires_at })
-        .eq('id', athleteId);
-      if (updateError) {
-        throw updateError;
-      }
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: 'Failed to refresh Strava token' });
-      return;
-    }
-  }
-  // 42 days covers the full chronic load window (6 weeks) needed for ATL/CTL/TSB.
-  const since = Math.floor(Date.now() / 1000) - 42 * 24 * 3600;
-  try {
-    const activities = await getRecentActivities(access_token, since);
-    res.status(200).json({ activities });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to fetch activities' });
-  }
+
+  res.status(200).json({
+    activities: data || [],
+    sync: { synced: sync.synced, skipped: sync.skipped, reason: sync.reason || null },
+  });
 }
