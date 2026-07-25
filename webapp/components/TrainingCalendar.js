@@ -1019,11 +1019,37 @@ function EventEditor({ date, onSave, onClose }) {
 
 // ─── Main calendar ───────────────────────────────────────────────────────────
 
-const INITIAL_PAST_WEEKS = 12;
+// Start with a useful block of history rather than a nearly empty strip above
+// today. More history is available on demand, which keeps the first calendar
+// load quick for athletes with years of imported activities.
+const INITIAL_PAST_WEEKS = 16;
 const INITIAL_FUTURE_WEEKS = 16;
 const EXTEND_BY_WEEKS = 8;
-const MAX_PAST_WEEKS = 52;
+const MAX_PAST_WEEKS = 104;
 const MAX_FUTURE_WEEKS = 104; // plan up to two years out
+
+function formatCalendarRange(startKey, endKey) {
+  const start = new Date(`${startKey}T00:00:00`);
+  const end = new Date(`${endKey}T00:00:00`);
+  const startLabel = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const endLabel = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return `${startLabel} – ${endLabel}`;
+}
+
+function summarizeCalendarWeek(days) {
+  const planned = summarizeWeek(days.flatMap((day) => day.workouts));
+  const importedActivities = days.flatMap((day) => day.activities);
+  const importedDurationMin = importedActivities.reduce((total, activity) => total + (Number(activity.duration_min) || 0), 0);
+  const importedDistanceKm = importedActivities.reduce((total, activity) => total + (Number(activity.distance_km) || 0), 0);
+
+  return {
+    ...planned,
+    completedSessionCount: planned.completedCount + importedActivities.length,
+    completedDurationWithImports: planned.completedDurationMin + importedDurationMin,
+    completedDistanceWithImports: planned.completedDistanceKm + importedDistanceKm,
+    importedActivityCount: importedActivities.length,
+  };
+}
 
 export default function TrainingCalendar({ athleteId = null, role = 'athlete' }) {
   const router = useRouter();
@@ -1037,6 +1063,7 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
   const [library, setLibrary] = useState([]);
   const [distanceUnitPref, setDistanceUnitPref] = useState('mi');
   const [loading, setLoading] = useState(true);
+  const [loadingEarlier, setLoadingEarlier] = useState(false);
   const [error, setError] = useState('');
   const [editorInitial, setEditorInitial] = useState(null);
   const [detailId, setDetailId] = useState(null);
@@ -1085,6 +1112,7 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
       setError('Could not load the training calendar.');
     } finally {
       setLoading(false);
+      setLoadingEarlier(false);
       extendingRef.current = false;
     }
   }, [rangeStart, rangeEnd, athleteParam, role]);
@@ -1153,6 +1181,7 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
     if (container.scrollTop < 240 && pastWeeks < MAX_PAST_WEEKS) {
       extendingRef.current = true;
       prependHeightRef.current = container.scrollHeight;
+      setLoadingEarlier(true);
       setPastWeeks((p) => Math.min(MAX_PAST_WEEKS, p + EXTEND_BY_WEEKS));
       return;
     }
@@ -1164,6 +1193,15 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
       setFutureWeeks((f) => Math.min(MAX_FUTURE_WEEKS, f + EXTEND_BY_WEEKS));
     }
   }, [pastWeeks, futureWeeks]);
+
+  const loadEarlierWeeks = useCallback(() => {
+    const container = scrollRef.current;
+    if (pastWeeks >= MAX_PAST_WEEKS || extendingRef.current) return;
+    extendingRef.current = true;
+    if (container) prependHeightRef.current = container.scrollHeight;
+    setLoadingEarlier(true);
+    setPastWeeks((weeks) => Math.min(MAX_PAST_WEEKS, weeks + EXTEND_BY_WEEKS));
+  }, [pastWeeks]);
 
   const scrollToToday = useCallback(() => {
     const container = scrollRef.current;
@@ -1364,7 +1402,7 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
           ? firstOfMonth.date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
           : null,
         days,
-        summary: summarizeWeek(days.flatMap((d) => d.workouts)),
+        summary: summarizeCalendarWeek(days),
       };
     });
   }, [anchorMonday, pastWeeks, futureWeeks, workoutsByDate, notesByDate, eventsByDate, activitiesByDate]);
@@ -1463,11 +1501,25 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
       )}
 
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-ink/10 bg-white p-4">
-        <div className="flex items-center gap-2">
-          <button onClick={scrollToToday} className="rounded-full border border-ink/10 px-4 py-2 text-sm font-semibold text-ink/80 hover:bg-ink/5">Today</button>
-          <span className="ml-1 text-sm text-ink/55">
-            Scroll the calendar for past and future weeks — click any day to add workouts, notes, or events.
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-[24px] border border-ink/10 bg-white p-4">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
+          <div className="min-w-[190px]">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ink/45">Calendar range</p>
+            <p className="mt-0.5 text-sm font-semibold text-ink">{formatCalendarRange(rangeStart, rangeEnd)}</p>
+          </div>
+          <div className="flex items-center gap-2 border-l border-ink/10 pl-3">
+            <button
+              onClick={loadEarlierWeeks}
+              disabled={pastWeeks >= MAX_PAST_WEEKS || loadingEarlier}
+              className="rounded-full border border-ink/10 px-3 py-2 text-sm font-semibold text-ink/70 hover:bg-ink/5 disabled:cursor-not-allowed disabled:opacity-45"
+              title="Load eight more weeks of previous workouts"
+            >
+              {loadingEarlier ? 'Loading history…' : pastWeeks >= MAX_PAST_WEEKS ? 'History limit reached' : '← Earlier workouts'}
+            </button>
+            <button onClick={scrollToToday} className="rounded-full border border-ink/10 px-4 py-2 text-sm font-semibold text-ink/80 hover:bg-ink/5">Today</button>
+          </div>
+          <span className="w-full text-xs text-ink/55 sm:w-auto">
+            Completed sessions are green; imported activity is blue. Click a day to plan or add context.
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -1520,6 +1572,22 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
           onScroll={handleScroll}
           className="relative mt-4 h-[72vh] min-h-[520px] overflow-y-auto overscroll-contain rounded-[24px] border border-ink/10 bg-paper/70 p-3"
         >
+          <div className="-mx-1 mb-2 flex items-center justify-between gap-3 rounded-xl bg-white/60 px-3 py-2 text-xs text-ink/60">
+            <span>
+              {pastWeeks >= MAX_PAST_WEEKS
+                ? 'The calendar history limit has been reached.'
+                : `Showing ${pastWeeks} weeks before today. Load earlier workouts whenever you need them.`}
+            </span>
+            {pastWeeks < MAX_PAST_WEEKS && (
+              <button
+                onClick={loadEarlierWeeks}
+                disabled={loadingEarlier}
+                className="shrink-0 font-semibold text-accent hover:underline disabled:opacity-50"
+              >
+                {loadingEarlier ? 'Loading…' : 'Load 8 more weeks'}
+              </button>
+            )}
+          </div>
           {/* Weekday header (sticky) */}
           <div className="sticky top-0 z-20 -mx-3 -mt-3 mb-2 grid grid-cols-7 gap-2 border-b border-ink/8 bg-paper/95 px-3 pb-2 pt-3 backdrop-blur lg:grid-cols-[repeat(7,1fr)_150px]">
             {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => (
@@ -1529,7 +1597,7 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
           </div>
 
           {weeks.map((week) => (
-            <div key={week.key} ref={week.isCurrentWeek ? todayRowRef : null}>
+            <div key={week.key} data-week-key={week.key} ref={week.isCurrentWeek ? todayRowRef : null}>
               {week.monthLabel && (
                 <div className="my-3 flex items-center gap-3">
                   <span className="rounded-full bg-panel px-4 py-1.5 text-xs font-bold uppercase tracking-[0.22em] text-paper">{week.monthLabel}</span>
@@ -1577,20 +1645,33 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
                             key={w.id}
                             onClick={(e) => { e.stopPropagation(); setDetailId(w.id); }}
                             className={`block w-full rounded-xl border px-2 py-1.5 text-left transition hover:border-ink/30 ${
-                              w.status === 'completed' ? 'border-emerald-200 bg-emerald-50/60' : 'border-ink/8 bg-paper'
+                              w.status === 'completed'
+                                ? 'border-emerald-200 bg-emerald-50/75'
+                                : w.status === 'skipped'
+                                  ? 'border-rose-100 bg-rose-50/50'
+                                  : 'border-ink/8 bg-paper'
                             }`}
                           >
                             <div className="flex items-center gap-1.5">
                               <span className={`h-2 w-2 shrink-0 rounded-full ${COMPLIANCE_DOT[w.compliance_status] || COMPLIANCE_DOT.none}`} />
-                              <span className="truncate text-xs font-semibold text-ink">{SPORT_EMOJI[w.sport] || '⚡'} {w.title}</span>
+                              <span className="truncate text-xs font-semibold text-ink">
+                                {w.status === 'completed' ? '✓ ' : ''}{SPORT_EMOJI[w.sport] || '⚡'} {w.title}
+                              </span>
                             </div>
                             <p className="mt-0.5 truncate text-[11px] text-ink/55">
-                              {[
-                                fmtDuration(w.planned_duration_min),
-                                formatDistance(w.planned_distance_km, w.planned_distance_unit),
-                                w.planned_tss ? `TSS ${Math.round(w.planned_tss)}` : null,
-                              ].filter(Boolean).join(' · ')}
-                              {w.status === 'completed' && w.compliance_pct != null ? ` · ✓ ${w.compliance_pct}%` : w.status === 'skipped' ? ' · skipped' : ''}
+                              {w.status === 'completed'
+                                ? [
+                                  'Completed',
+                                  fmtDuration(w.completed_duration_min),
+                                  formatDistance(w.completed_distance_km, w.planned_distance_unit),
+                                  w.compliance_pct != null ? `${w.compliance_pct}% of plan` : null,
+                                ].filter(Boolean).join(' · ')
+                                : [
+                                  fmtDuration(w.planned_duration_min),
+                                  formatDistance(w.planned_distance_km, w.planned_distance_unit),
+                                  w.planned_tss ? `TSS ${Math.round(w.planned_tss)}` : null,
+                                  w.status === 'skipped' ? 'Skipped' : null,
+                                ].filter(Boolean).join(' · ')}
                             </p>
                           </button>
                         ))}
@@ -1606,7 +1687,7 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
                             </div>
                             <p className="mt-0.5 truncate text-[11px] text-sky-800/70">
                               {[
-                                'Synced',
+                                'Completed · imported',
                                 fmtDuration(activity.duration_min),
                                 formatDistance(activity.distance_km, distanceUnitPref),
                               ].filter(Boolean).join(' · ')}
@@ -1639,7 +1720,16 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
                     </p>
                     <p><span className="font-mono font-semibold text-ink">{fmtDuration(week.summary.plannedDurationMin) || '0m'}</span> planned</p>
                     <p><span className="font-mono font-semibold text-ink">{kmToUnit(week.summary.plannedDistanceKm, distanceUnitPref) || 0}</span> {distanceUnitPref} · TSS <span className="font-mono font-semibold text-ink">{Math.round(week.summary.plannedTss)}</span></p>
-                    <p>{week.summary.completedCount}/{week.summary.totalCount} done{week.summary.compliancePct != null ? ` · ${week.summary.compliancePct}%` : ''}</p>
+                    <p>
+                      <span className="font-mono font-semibold text-ink">{week.summary.completedSessionCount}</span> completed
+                      {week.summary.importedActivityCount ? ` · ${week.summary.importedActivityCount} imported` : ''}
+                    </p>
+                    {week.summary.completedSessionCount > 0 && (
+                      <p>
+                        Actual <span className="font-mono font-semibold text-ink">{fmtDuration(week.summary.completedDurationWithImports) || '0m'}</span>
+                        {' · '}<span className="font-mono font-semibold text-ink">{kmToUnit(week.summary.completedDistanceWithImports, distanceUnitPref) || 0}</span> {distanceUnitPref}
+                      </p>
+                    )}
                   </div>
                   {week.summary.totalCount > 0 && (
                     <button
@@ -1657,7 +1747,7 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
               <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl bg-white/60 px-3 py-1.5 text-[11px] text-ink/60 lg:hidden">
                 <span className="font-semibold text-ink/45">{week.days[0].date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} wk</span>
                 <span>{fmtDuration(week.summary.plannedDurationMin) || '0m'} · {kmToUnit(week.summary.plannedDistanceKm, distanceUnitPref) || 0} {distanceUnitPref} · TSS {Math.round(week.summary.plannedTss)}</span>
-                <span>{week.summary.completedCount}/{week.summary.totalCount} done</span>
+                <span>{week.summary.completedSessionCount} completed{week.summary.importedActivityCount ? ` · ${week.summary.importedActivityCount} imported` : ''}</span>
               </div>
             </div>
           ))}
