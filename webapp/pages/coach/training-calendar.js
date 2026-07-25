@@ -52,7 +52,7 @@ export default function CoachTrainingCalendarPage() {
   if (!coachFeatures) {
     return (
       <main className="min-h-screen bg-paper px-4 py-6 text-ink">
-        <div className="mx-auto max-w-6xl">
+        <div className="mx-auto max-w-[1600px]">
           <div className="mb-6 flex items-center justify-between rounded-full border border-ink/10 bg-white/70 px-4 py-3 backdrop-blur">
             <p className="text-xs uppercase tracking-[0.35em] text-accent">Threshold · Training Calendar</p>
             <NavMenu label="Navigation" links={appMenuLinks} primaryLink={{ href: '/dashboard', label: 'Home', variant: 'secondary' }} />
@@ -71,7 +71,7 @@ export default function CoachTrainingCalendarPage() {
 
   return (
     <main className="min-h-screen bg-paper px-4 py-6 text-ink">
-      <div className="mx-auto max-w-6xl">
+      <div className="mx-auto max-w-[1600px]">
         <div className="mb-6 flex items-center justify-between rounded-full border border-ink/10 bg-white/70 px-4 py-3 backdrop-blur">
           <p className="text-xs uppercase tracking-[0.35em] text-accent">Threshold · Training Calendar</p>
           <NavMenu label="Navigation" links={appMenuLinks} primaryLink={{ href: '/coach-command-center', label: 'Command Center', variant: 'secondary' }} />

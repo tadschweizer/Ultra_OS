@@ -359,7 +359,7 @@ export default function RacesPage() {
             </div>
           ) : events.length === 0 ? (
             <div className="rounded-[28px] border border-dashed border-ink/15 bg-white/40 p-10 text-center">
-              <p className="text-2xl">🗓</p>
+              <p className="text-[11px] uppercase tracking-[0.25em] text-ink/35">Race calendar</p>
               <p className="mt-3 font-semibold text-ink">No races on your calendar yet</p>
               <p className="mt-2 text-sm leading-6 text-ink/50">
                 Search above to add your first event. You can add as many races as you want.

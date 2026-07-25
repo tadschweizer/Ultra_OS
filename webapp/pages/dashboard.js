@@ -934,8 +934,7 @@ export default function Dashboard() {
         </section>
 
         {isFirstLogin ? (
-          <div className="mb-6 flex items-start gap-4 rounded-[22px] border border-accent/30 bg-accent/8 px-5 py-4">
-            <span className="mt-0.5 text-xl">👋</span>
+          <div className="mb-6 rounded-[22px] border border-accent/30 bg-accent/8 px-5 py-4">
             <div>
               <p className="text-sm font-semibold text-ink">Welcome to Threshold, {athlete?.name?.split(' ')[0] || 'athlete'}.</p>
               <p className="mt-1 text-sm leading-6 text-ink/65">
@@ -1040,13 +1039,13 @@ export default function Dashboard() {
               {/* Sub-scores */}
               <div className="mt-6 grid grid-cols-4 gap-3">
                 {[
-                  { label: 'Phase', value: protocolSummary?.phase || 'Base', em: '📋' },
-                  { label: 'Type', value: currentRace.race_type || '—', em: '🏔️' },
-                  { label: 'Distance', value: currentRace.distance_miles ? `${Number(currentRace.distance_miles).toFixed(0)}mi` : '—', em: '📏' },
-                  { label: 'Logs', value: interventions.length, em: '📊' },
-                ].map(({ label, value, em }) => (
+                  { label: 'Phase', value: protocolSummary?.phase || 'Base' },
+                  { label: 'Type', value: currentRace.race_type || '—' },
+                  { label: 'Distance', value: currentRace.distance_miles ? `${Number(currentRace.distance_miles).toFixed(0)}mi` : '—' },
+                  { label: 'Logs', value: interventions.length },
+                ].map(({ label, value }) => (
                   <div key={label}>
-                    <p className="text-[10px] font-mono uppercase tracking-[0.15em]" style={{ color: 'rgba(240,234,224,0.55)' }}>{em} {label}</p>
+                    <p className="text-[10px] font-mono uppercase tracking-[0.15em]" style={{ color: 'rgba(240,234,224,0.55)' }}>{label}</p>
                     <p className="mt-1.5 font-mono text-lg font-semibold leading-none">{value}</p>
                   </div>
                 ))}

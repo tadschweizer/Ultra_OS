@@ -77,7 +77,7 @@ function buildTimeline({ raceDate, daysLeft, heatSessionsDone, useHeat, useBicar
         detail: `${heatRemaining} session${heatRemaining !== 1 ? 's' : ''} remaining — finish by ${formatShortDate(windowEnd)} (5+ days before race)`,
         daysOut: Math.min(daysLeft - 5, 21),
         status: daysLeft < 5 ? 'overdue' : heatRemaining === 0 ? 'done' : 'pending',
-        icon: '🔥',
+        category: 'Heat',
       });
     } else if (heatRemaining === 0) {
       items.push({
@@ -85,7 +85,7 @@ function buildTimeline({ raceDate, daysLeft, heatSessionsDone, useHeat, useBicar
         detail: `${Number(heatSessionsDone)} sessions logged — plasma volume expansion is underway.`,
         daysOut: null,
         status: 'done',
-        icon: '🔥',
+        category: 'Heat',
       });
     }
   }
@@ -98,7 +98,7 @@ function buildTimeline({ raceDate, daysLeft, heatSessionsDone, useHeat, useBicar
       detail: `~${sessionsNeeded} more session${sessionsNeeded !== 1 ? 's' : ''} to close the ${gutGapG}g/hr gap. Stop structured gut training 5 days out.`,
       daysOut: daysLeft - 5,
       status: 'pending',
-      icon: '🥤',
+      category: 'Gut',
     });
   } else if (gutGapG <= 15 && gutGapG > 0) {
     items.push({
@@ -106,7 +106,7 @@ function buildTimeline({ raceDate, daysLeft, heatSessionsDone, useHeat, useBicar
       detail: `${gutGapG}g/hr gap is within normal race-day variance. One or two more sessions is sufficient.`,
       daysOut: daysLeft > 10 ? daysLeft - 5 : null,
       status: 'pending',
-      icon: '🥤',
+      category: 'Gut',
     });
   }
 
@@ -118,7 +118,7 @@ function buildTimeline({ raceDate, daysLeft, heatSessionsDone, useHeat, useBicar
       detail: `Cut caffeine 5–7 days before race (${formatShortDate(taperStart)}) to restore receptor sensitivity. Race-day dose is most effective after a withdrawal period.`,
       daysOut: 7,
       status: daysLeft <= 7 ? 'now' : 'upcoming',
-      icon: '☕',
+      category: 'Caffeine',
     });
   }
 
@@ -129,7 +129,7 @@ function buildTimeline({ raceDate, daysLeft, heatSessionsDone, useHeat, useBicar
       detail: `Log one full-dose trial 7–10 days before race. Confirm timing, delivery format, and GI response before race week.`,
       daysOut: 10,
       status: daysLeft <= 10 ? 'now' : 'upcoming',
-      icon: '🧪',
+      category: 'Bicarb',
     });
   }
 
@@ -140,7 +140,7 @@ function buildTimeline({ raceDate, daysLeft, heatSessionsDone, useHeat, useBicar
       detail: `Increase daily carb intake to 8–10g/kg for 2–3 days (for marathon+). Focus on low-fiber, easily digestible sources.`,
       daysOut: 3,
       status: daysLeft <= 3 ? 'now' : 'upcoming',
-      icon: '🍝',
+      category: 'Carbs',
     });
   }
 
@@ -152,7 +152,7 @@ function buildTimeline({ raceDate, daysLeft, heatSessionsDone, useHeat, useBicar
         detail: `Take bicarb 90–120 min before gun. Have a backup plan if GI discomfort appears — reduce to 0.2g/kg.`,
         daysOut: 0,
         status: 'upcoming',
-        icon: '🧪',
+        category: 'Bicarb',
       });
     }
     if (useCaffeine) {
@@ -161,7 +161,7 @@ function buildTimeline({ raceDate, daysLeft, heatSessionsDone, useHeat, useBicar
         detail: `Take caffeine dose 45–60 min before start. After a 5-7 day taper this will hit harder than your training baseline.`,
         daysOut: 0,
         status: 'upcoming',
-        icon: '☕',
+        category: 'Caffeine',
       });
     }
   }
@@ -612,7 +612,7 @@ export default function RacePlanPage() {
             {!generated ? (
               <div className="flex h-full min-h-[300px] items-center justify-center rounded-[28px] border border-dashed border-ink/15 bg-white/40 p-10 text-center">
                 <div>
-                  <p className="text-2xl">🗺️</p>
+                  <p className="text-[11px] uppercase tracking-[0.25em] text-ink/35">Blueprint</p>
                   <p className="mt-3 font-semibold text-ink">Your blueprint will appear here</p>
                   <p className="mt-2 text-sm leading-6 text-ink/50">Fill in your race details and training state, then click Generate.</p>
                 </div>
@@ -622,7 +622,6 @@ export default function RacePlanPage() {
                 {/* ── Race summary pill ──── */}
                 {(form.raceName || form.raceDate) && (
                   <div className="flex items-center gap-4 rounded-full border border-ink/10 bg-white px-5 py-3">
-                    <span className="text-lg">📍</span>
                     <div>
                       <p className="text-sm font-semibold text-ink">{form.raceName || form.raceType}</p>
                       {blueprint.daysLeft !== null && (
@@ -727,7 +726,9 @@ export default function RacePlanPage() {
                     <div className="space-y-3">
                       {blueprint.timeline.map((item, i) => (
                         <div key={i} className="flex items-start gap-3 rounded-[14px] border border-ink/6 bg-paper px-4 py-3">
-                          <span className="mt-0.5 text-base leading-none">{item.icon}</span>
+                          <span className="mt-1 shrink-0 rounded bg-ink/6 px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-wide text-ink/50">
+                            {item.category}
+                          </span>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
                               <p className="text-sm font-semibold text-ink">{item.label}</p>

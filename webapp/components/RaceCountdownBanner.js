@@ -78,7 +78,6 @@ export default function RaceCountdownBanner() {
     return (
       <div className="mx-4 mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[22px] border border-accent/30 bg-accent/8 px-4 py-3 lg:mx-0">
         <div className="flex items-center gap-3">
-          <span className="text-base">🏅</span>
           <div className="min-w-0">
             <span className="text-sm font-semibold text-ink">{name} is complete</span>
             <span className="ml-2 text-xs text-ink/50">Log your outcome to unlock race analysis</span>

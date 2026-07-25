@@ -88,7 +88,7 @@ export default function JoinPage() {
     return (
       <main className="flex min-h-screen items-center justify-center bg-paper px-4">
         <div className="max-w-sm rounded-[30px] border border-ink/10 bg-white p-8 text-center shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-          <p className="text-3xl">🔗</p>
+          <p className="text-[11px] uppercase tracking-[0.25em] text-ink/35">Invite</p>
           <p className="mt-4 font-semibold text-ink">Invalid invite link</p>
           <p className="mt-2 text-sm leading-6 text-ink/55">
             This invite link doesn&apos;t look right. Check the URL or ask for a new invite.
@@ -106,7 +106,7 @@ export default function JoinPage() {
     return (
       <main className="flex min-h-screen items-center justify-center bg-paper px-4">
         <div className="max-w-sm rounded-[30px] border border-ink/10 bg-white p-8 text-center shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-          <p className="text-3xl">✓</p>
+          <p className="text-[11px] uppercase tracking-[0.25em] text-ink/35">Invite</p>
           <p className="mt-4 font-semibold text-ink">This invite has already been used</p>
           <p className="mt-2 text-sm leading-6 text-ink/55">
             Each invite link can only be used once. If you already created an account, go to the dashboard. Otherwise, request a new invite.
@@ -124,7 +124,7 @@ export default function JoinPage() {
     return (
       <main className="flex min-h-screen items-center justify-center bg-paper px-4">
         <div className="max-w-sm rounded-[30px] border border-ink/10 bg-white p-8 text-center shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-          <p className="text-3xl">⚠️</p>
+          <p className="text-[11px] uppercase tracking-[0.25em] text-ink/35">Invite</p>
           <p className="mt-4 font-semibold text-ink">Something went wrong</p>
           <p className="mt-2 text-sm leading-6 text-ink/55">
             Could not validate the invite. Try refreshing, or contact the person who sent you the link.
@@ -152,12 +152,6 @@ export default function JoinPage() {
         </div>
 
         <div className="rounded-[36px] border border-ink/10 bg-white p-8 shadow-[0_24px_60px_rgba(19,24,22,0.10)]">
-          <div className="mb-6 text-center">
-            <span className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-accent/15 text-2xl">
-              🏔️
-            </span>
-          </div>
-
           <h1 className="text-center font-display text-3xl font-semibold leading-tight text-ink">
             You&apos;re invited to Threshold
           </h1>
@@ -166,22 +160,19 @@ export default function JoinPage() {
           </p>
 
           <div className="mt-8 space-y-3">
-            <div className="flex items-start gap-3 rounded-[18px] border border-ink/10 bg-paper px-4 py-3">
-              <span className="mt-0.5 text-base">📊</span>
+            <div className="rounded-[18px] border border-ink/10 bg-paper px-4 py-3">
               <div>
                 <p className="text-sm font-semibold text-ink">N=1 correlations</p>
                 <p className="mt-0.5 text-xs leading-5 text-ink/55">See what interventions actually move the needle for your body</p>
               </div>
             </div>
-            <div className="flex items-start gap-3 rounded-[18px] border border-ink/10 bg-paper px-4 py-3">
-              <span className="mt-0.5 text-base">🔬</span>
+            <div className="rounded-[18px] border border-ink/10 bg-paper px-4 py-3">
               <div>
                 <p className="text-sm font-semibold text-ink">72+ research studies</p>
                 <p className="mt-0.5 text-xs leading-5 text-ink/55">Curated endurance research with plain-English takeaways</p>
               </div>
             </div>
-            <div className="flex items-start gap-3 rounded-[18px] border border-ink/10 bg-paper px-4 py-3">
-              <span className="mt-0.5 text-base">🏁</span>
+            <div className="rounded-[18px] border border-ink/10 bg-paper px-4 py-3">
               <div>
                 <p className="text-sm font-semibold text-ink">Race blueprints</p>
                 <p className="mt-0.5 text-xs leading-5 text-ink/55">Build and log race plans, then debrief what worked</p>

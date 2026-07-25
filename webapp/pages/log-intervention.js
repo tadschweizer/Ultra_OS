@@ -7,7 +7,7 @@ import {
   favoriteInterventionStorageKey,
   getAllInterventionDefinitions,
   getInterventionDefinition,
-  getInterventionIcon,
+  getInterventionMonogram,
 } from '../lib/interventionCatalog';
 import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
@@ -626,7 +626,9 @@ export default function LogIntervention() {
               {form.intervention_type ? (
                 <div className="flex items-center justify-between rounded-[24px] border border-ink/10 bg-paper px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <span className="text-xl">{getInterventionIcon(form.intervention_type)}</span>
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-ink/6 font-mono text-xs font-semibold tracking-wide text-ink/55" aria-hidden="true">
+                      {getInterventionMonogram(form.intervention_type)}
+                    </span>
                     <div>
                       <p className="text-xs uppercase tracking-[0.2em] text-accent">Selected</p>
                       <p className="text-sm font-semibold text-ink">{form.intervention_type}</p>

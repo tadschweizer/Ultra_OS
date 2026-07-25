@@ -1,7 +1,6 @@
 import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
 import TrainingCalendar from '../components/TrainingCalendar';
-import WeeklyReconciliation from '../components/WeeklyReconciliation';
 import { useMe } from '../lib/planUtils';
 import { appMenuLinks } from '../lib/siteNavigation';
 
@@ -12,7 +11,7 @@ export default function CalendarPage() {
 
   return (
     <main className="min-h-screen bg-paper px-4 py-6 text-ink">
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-[1600px]">
         <div className="mb-6 flex items-center justify-between rounded-full border border-ink/10 bg-white/70 px-4 py-3 backdrop-blur">
           <p className="text-xs uppercase tracking-[0.35em] text-accent">Training Calendar</p>
           <NavMenu label="Calendar navigation" links={appMenuLinks} primaryLink={{ href: '/dashboard', label: 'Home', variant: 'secondary' }} />
@@ -57,10 +56,8 @@ export default function CalendarPage() {
           )}
         </section>
 
-        <section className="mt-4">
-          <WeeklyReconciliation />
-        </section>
-
+        {/* The calendar is the single source of truth for this week's sessions —
+            no duplicate list above it. */}
         <section className="mt-4">
           <TrainingCalendar role="athlete" />
         </section>

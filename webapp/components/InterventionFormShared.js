@@ -2,7 +2,7 @@ import { classifyActivityType } from '../lib/activityInsights';
 import {
   defaultFavoriteInterventions,
   favoriteInterventionStorageKey,
-  getInterventionIcon,
+  getInterventionMonogram,
 } from '../lib/interventionCatalog';
 
 export const trainingPhases = ['Base', 'Build', 'Peak', 'Taper', 'Recovery', 'Race Week'];
@@ -99,8 +99,13 @@ export function CategoryGrid({ definitions, selectedType, counts, onSelect }) {
             }`}
           >
             <div className="flex items-start justify-between gap-3">
-              <span className="text-2xl" aria-hidden="true">
-                {getInterventionIcon(definition.label)}
+              <span
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-mono text-xs font-semibold tracking-wide ${
+                  isSelected ? 'bg-white/10 text-paper' : 'bg-ink/6 text-ink/55'
+                }`}
+                aria-hidden="true"
+              >
+                {getInterventionMonogram(definition.label)}
               </span>
               <span
                 className={`ui-badge px-2.5 py-1 ${

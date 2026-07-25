@@ -8,9 +8,14 @@ import { useRouter } from 'next/router';
  * discussions, where a session is a planned workout or a completed activity.
  */
 
-const SPORT_EMOJI = {
-  run: '🏃', bike: '🚴', swim: '🏊', strength: '🏋️', row: '🚣', ski: '⛷️', hike: '🥾', other: '⚡',
+// Short sport codes rather than icons — they stay legible and on-brand.
+const SPORT_CODE = {
+  run: 'RUN', bike: 'BIKE', swim: 'SWIM', strength: 'STR', row: 'ROW', ski: 'SKI', hike: 'HIKE', other: 'OTH',
 };
+
+function sportCode(sport) {
+  return SPORT_CODE[sport] || (sport ? String(sport).slice(0, 4).toUpperCase() : 'OTH');
+}
 
 function timeAgo(value) {
   if (!value) return '';
@@ -291,8 +296,8 @@ export default function MessageCenter() {
                           className="flex w-full items-center gap-3 rounded-2xl border border-transparent px-3 py-2.5 text-left transition hover:border-ink/10 hover:bg-paper"
                         >
                           {/* An activity ring reads as "already done"; a plan stays neutral. */}
-                          <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-base ${t.subject_type === 'activity' ? 'bg-sky-50 ring-1 ring-sky-200' : 'bg-paper'}`}>
-                            {SPORT_EMOJI[t.sport] || '⚡'}
+                          <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-mono text-[9px] font-semibold tracking-wide ${t.subject_type === 'activity' ? 'bg-sky-50 text-sky-700 ring-1 ring-sky-200' : 'bg-paper text-ink/50'}`}>
+                            {sportCode(t.sport)}
                           </span>
                           <span className="min-w-0 flex-1">
                             <span className="flex items-center justify-between gap-2">

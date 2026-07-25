@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import NavMenu from '../components/NavMenu';
 import { clearMe } from '../lib/meClient';
+import { getInterventionMonogram } from '../lib/interventionCatalog';
 
 /**
  * /admin — Admin dashboard
@@ -37,15 +38,16 @@ function ActivityDot({ lastDate }) {
   return <span title="Inactive 21+ days" className="h-2.5 w-2.5 rounded-full bg-red-400" />;
 }
 
-// Intervention type → emoji
-function typeIcon(type) {
-  const map = {
-    'Heat Acclimation': '🔥', 'Altitude': '⛰️', 'Sleep': '😴', 'Cold Exposure': '🧊',
-    'Gut Training': '🫀', 'Sodium Bicarbonate': '🧪', 'Carbohydrate Loading': '🍝',
-    'Strength Training': '🏋️', 'HRV': '💓', 'Sauna': '🧖', 'Trekking Poles': '🥢',
-    'Workout Check-in': '✅',
-  };
-  return map[type] || '📋';
+/** Compact monogram badge standing in for an intervention type. */
+function TypeBadge({ type }) {
+  return (
+    <span
+      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-ink/6 font-mono text-[10px] font-semibold tracking-wide text-ink/55"
+      aria-hidden="true"
+    >
+      {getInterventionMonogram(type)}
+    </span>
+  );
 }
 
 export default function AdminPage() {
@@ -226,7 +228,7 @@ export default function AdminPage() {
     return (
       <main className="flex min-h-screen items-center justify-center bg-paper p-8">
         <div className="max-w-sm rounded-[30px] border border-ink/10 bg-white p-8 text-center shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-          <p className="text-2xl">🔒</p>
+          <p className="text-[11px] uppercase tracking-[0.25em] text-ink/35">Restricted</p>
           <p className="mt-4 font-semibold text-ink">Admin access required</p>
           <p className="mt-2 text-sm text-ink/55">This page is only available to Threshold admins.</p>
           <a href="/dashboard" className="mt-6 inline-flex rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-paper">
@@ -329,7 +331,7 @@ export default function AdminPage() {
             { key: 'roster', label: `Roster (${athletes.length})` },
             { key: 'activity', label: `Activity (${logs.length})` },
             { key: 'invite', label: '+ Invite' },
-            { key: 'demo', label: '🧪 Demo' },
+            { key: 'demo', label: 'Demo' },
           ].map(({ key, label }) => (
             <button
               key={key}
@@ -456,7 +458,7 @@ export default function AdminPage() {
                           <div className="space-y-2">
                             {logs.filter((l) => l.athlete_id === athlete.id).slice(0, 5).map((log) => (
                               <div key={log.id} className="flex items-center gap-3 rounded-[14px] border border-ink/10 bg-white px-3 py-2.5">
-                                <span className="text-base">{typeIcon(log.intervention_type)}</span>
+                                <TypeBadge type={log.intervention_type} />
                                 <div className="flex-1">
                                   <p className="text-sm font-semibold text-ink">{log.intervention_type}</p>
                                 </div>
@@ -491,7 +493,7 @@ export default function AdminPage() {
                 <div className="divide-y divide-ink/6">
                   {logs.map((log) => (
                     <div key={log.id} className="flex items-center gap-3 px-5 py-3">
-                      <span className="text-xl">{typeIcon(log.intervention_type)}</span>
+                      <TypeBadge type={log.intervention_type} />
                       <div className="flex-1 min-w-0">
                         <p className="truncate text-sm font-semibold text-ink">{log.intervention_type}</p>
                         <p className="text-xs text-ink/45">{log.athletes?.name || 'Unknown athlete'}</p>

@@ -38,16 +38,61 @@ function fmtFullDate(date) {
   return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 }
 
-const SPORT_EMOJI = {
-  run: '🏃', bike: '🚴', swim: '🏊', strength: '🏋️', row: '🚣', ski: '⛷️', hike: '🥾', other: '⚡',
+// Short sport codes stand in for icons: they stay legible at every cell width
+// and keep the calendar looking like a training log rather than a chat window.
+const SPORT_CODE = {
+  run: 'RUN', bike: 'BIKE', swim: 'SWIM', strength: 'STR', row: 'ROW', ski: 'SKI', hike: 'HIKE', other: 'OTH',
 };
 
+function sportCode(sport) {
+  return SPORT_CODE[sport] || (sport ? String(sport).slice(0, 4).toUpperCase() : 'OTH');
+}
+
+/** Compact monochrome sport marker used in day cells and list rows. */
+function SportTag({ sport, tone = 'bg-ink/8 text-ink/55' }) {
+  return (
+    <span className={`shrink-0 rounded px-1 py-px font-mono text-[9px] font-semibold leading-none tracking-wide ${tone}`}>
+      {sportCode(sport)}
+    </span>
+  );
+}
+
 const NOTE_META = {
-  general: { icon: '📝', label: 'Note', card: 'border-ink/10 bg-amber-50/60' },
-  day_off: { icon: '🛌', label: 'Day off', card: 'border-dashed border-ink/20 bg-ink/4' },
-  event: { icon: '🏁', label: 'Event', card: 'border-amber-300/60 bg-amber-50' },
-  goal: { icon: '🎯', label: 'Goal', card: 'border-ink/10 bg-sky-50/60' },
+  general: { label: 'Note', card: 'border-ink/10 bg-amber-50/60' },
+  day_off: { label: 'Day off', card: 'border-dashed border-ink/20 bg-ink/4' },
+  event: { label: 'Event', card: 'border-amber-300/60 bg-amber-50' },
+  goal: { label: 'Goal', card: 'border-ink/10 bg-sky-50/60' },
 };
+
+// Below `sm` a seven-column week collapses to unreadable ~48px strips, so the
+// week becomes a stacked day list. From `sm` up it is seven equal columns plus
+// an optional week-totals rail. `minmax(0,…)` is what keeps a long workout title
+// from widening its column and pushing the calendar into a horizontal scroll —
+// the title truncates instead.
+const WEEK_GRID_COLUMNS =
+  'grid-cols-1 sm:grid-cols-[repeat(7,minmax(0,1fr))] lg:grid-cols-[repeat(7,minmax(0,1fr))_minmax(0,150px)]';
+
+// Progressive disclosure inside a day cell. The title and headline numbers are
+// always visible; supporting detail drops out only in the band where seven
+// columns are genuinely narrow — it comes back in the full-width list on phones
+// and once the columns are wide enough again on desktop.
+const CELL_DETAIL_LINE = 'block sm:hidden md:block';
+const CELL_META_LINE = 'flex sm:hidden lg:flex';
+
+// Headline numbers wrap rather than truncate — a duration cut off mid-value is
+// worse than a second line.
+const CELL_METRIC_LINE = 'mt-0.5 break-words font-mono text-[11px] leading-tight';
+
+/**
+ * Joins day-cell metrics with a separator, binding each value's own spaces so a
+ * narrow column wraps between "1h 21m" and "7.52 mi" but never inside either.
+ */
+function metricLine(parts) {
+  return parts
+    .filter(Boolean)
+    .map((part) => String(part).replace(/ /g, ' '))
+    .join(' · ');
+}
 
 const COMPLIANCE_DOT = {
   green: 'bg-emerald-500',
@@ -718,7 +763,7 @@ function WorkoutDetail({ workout, role, onUpdate, onEdit, onDelete, onClose }) {
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-[0.25em] text-accent">
-              {SPORT_EMOJI[workout.sport] || '⚡'} {workout.sport} · {workout.workout_date}
+              {workout.sport} · {workout.workout_date}
             </p>
             <h3 className="mt-2 text-2xl font-semibold text-ink">{workout.title}</h3>
             <p className="mt-1 text-xs text-ink/55">
@@ -968,7 +1013,7 @@ function ActivityDetail({ activity, role, distanceUnit = 'mi', onCountChange, on
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-xs uppercase tracking-[0.25em] text-sky-700">
-              {SPORT_EMOJI[activity.sport] || '⚡'} {activity.sport} · {dateLabel}
+              {activity.sport} · {dateLabel}
             </p>
             <h3 className="mt-2 break-words text-2xl font-semibold text-ink">{activity.name}</h3>
             <p className="mt-1 text-xs text-ink/55">
@@ -1059,7 +1104,7 @@ function DayMenu({ date, role, onAddWorkout, onAddDayOff, onAddNote, onAddEvent,
               onClick={() => onAddWorkout(s.id)}
               className="flex flex-col items-center gap-1 rounded-2xl border border-ink/10 bg-white px-2 py-3 text-xs font-semibold text-ink/75 transition hover:border-accent/50 hover:bg-accent/5"
             >
-              <span className="text-lg">{SPORT_EMOJI[s.id] || '⚡'}</span>
+              <span className="font-mono text-[10px] tracking-wide text-ink/40">{sportCode(s.id)}</span>
               {s.label}
             </button>
           ))}
@@ -1069,32 +1114,28 @@ function DayMenu({ date, role, onAddWorkout, onAddDayOff, onAddNote, onAddEvent,
         <div className="mt-2 grid grid-cols-3 gap-2">
           <button
             onClick={onAddDayOff}
-            className="flex flex-col items-center gap-1 rounded-2xl border border-ink/10 bg-white px-2 py-3 text-xs font-semibold text-ink/75 transition hover:border-accent/50 hover:bg-accent/5"
+            className="rounded-2xl border border-ink/10 bg-white px-2 py-3 text-xs font-semibold text-ink/75 transition hover:border-accent/50 hover:bg-accent/5"
           >
-            <span className="text-lg">🛌</span>
             Day off
           </button>
           <button
             onClick={onAddNote}
-            className="flex flex-col items-center gap-1 rounded-2xl border border-ink/10 bg-white px-2 py-3 text-xs font-semibold text-ink/75 transition hover:border-accent/50 hover:bg-accent/5"
+            className="rounded-2xl border border-ink/10 bg-white px-2 py-3 text-xs font-semibold text-ink/75 transition hover:border-accent/50 hover:bg-accent/5"
           >
-            <span className="text-lg">📝</span>
             Note
           </button>
           {role === 'athlete' ? (
             <button
               onClick={onAddEvent}
-              className="flex flex-col items-center gap-1 rounded-2xl border border-ink/10 bg-white px-2 py-3 text-xs font-semibold text-ink/75 transition hover:border-accent/50 hover:bg-accent/5"
+              className="rounded-2xl border border-ink/10 bg-white px-2 py-3 text-xs font-semibold text-ink/75 transition hover:border-accent/50 hover:bg-accent/5"
             >
-              <span className="text-lg">🏁</span>
               Race / Event
             </button>
           ) : (
             <button
               onClick={() => onAddNote('goal')}
-              className="flex flex-col items-center gap-1 rounded-2xl border border-ink/10 bg-white px-2 py-3 text-xs font-semibold text-ink/75 transition hover:border-accent/50 hover:bg-accent/5"
+              className="rounded-2xl border border-ink/10 bg-white px-2 py-3 text-xs font-semibold text-ink/75 transition hover:border-accent/50 hover:bg-accent/5"
             >
-              <span className="text-lg">🎯</span>
               Goal
             </button>
           )}
@@ -1131,7 +1172,7 @@ function NoteEditor({ initial, role, canEdit, onSave, onDelete, onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="w-full max-w-md rounded-[28px] border border-ink/10 bg-paper p-6">
         <div className="flex items-center justify-between">
-          <p className="text-sm uppercase tracking-[0.25em] text-accent">{meta.icon} {meta.label} · {form.note_date}</p>
+          <p className="text-sm uppercase tracking-[0.25em] text-accent">{meta.label} · {form.note_date}</p>
           <button onClick={onClose} className="rounded-full border border-ink/10 px-3 py-1 text-sm text-ink/60 hover:bg-ink/5">✕</button>
         </div>
         <form onSubmit={submit} className="mt-4 space-y-3">
@@ -1213,7 +1254,7 @@ function EventEditor({ date, onSave, onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="w-full max-w-md rounded-[28px] border border-ink/10 bg-paper p-6">
         <div className="flex items-center justify-between">
-          <p className="text-sm uppercase tracking-[0.25em] text-accent">🏁 Race / Event · {date}</p>
+          <p className="text-sm uppercase tracking-[0.25em] text-accent">Race / Event · {date}</p>
           <button onClick={onClose} className="rounded-full border border-ink/10 px-3 py-1 text-sm text-ink/60 hover:bg-ink/5">✕</button>
         </div>
         <form onSubmit={submit} className="mt-4 space-y-3">
@@ -1317,9 +1358,10 @@ function ProgressMeter({ label, actual, planned, formatValue, unit = '' }) {
 
   return (
     <div>
-      <div className="flex items-baseline justify-between gap-1">
+      {/* Wraps as a whole when the rail is tight, so a value never splits mid-number. */}
+      <div className="flex flex-wrap items-baseline justify-between gap-x-1">
         <span className="text-[10px] uppercase tracking-wide text-ink/40">{label}</span>
-        <span className="font-mono text-[11px] font-semibold text-ink">
+        <span className="ml-auto whitespace-nowrap font-mono text-[11px] font-semibold text-ink">
           {formatValue(actual)}{unit}
           {hasPlan && <span className="font-normal text-ink/40"> / {formatValue(planned)}{unit}</span>}
           {onTarget && <span className="text-emerald-600"> ✓</span>}
@@ -1709,7 +1751,7 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
   const detailActivity = activityDetailId ? activities.find((a) => a.id === activityDetailId) || null : null;
   const dayMenuDate = dayMenuKey ? new Date(`${dayMenuKey}T00:00:00`) : null;
 
-  // Keeps the card's 💬 badge honest after a comment is posted, without
+  // Keeps the card's comment badge honest after a comment is posted, without
   // refetching the whole calendar range.
   const setActivityCommentCount = useCallback((activityId, count) => {
     setActivities((prev) => prev.map((a) => (a.id === activityId ? { ...a, comment_count: count } : a)));
@@ -1903,11 +1945,12 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
             )}
           </div>
           {/* Weekday header (sticky) */}
-          <div className="sticky top-0 z-20 -mx-3 -mt-3 mb-2 grid grid-cols-7 gap-2 border-b border-ink/8 bg-paper/95 px-3 pb-2 pt-3 backdrop-blur lg:grid-cols-[repeat(7,1fr)_150px]">
+          {/* Weekday header (sticky) — meaningless in the phone list layout. */}
+          <div className={`sticky top-0 z-20 -mx-3 -mt-3 mb-2 hidden gap-1.5 border-b border-ink/8 bg-paper/95 px-3 pb-2 pt-3 backdrop-blur sm:grid sm:gap-2 ${WEEK_GRID_COLUMNS}`}>
             {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => (
-              <p key={d} className="text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-ink/45">{d}</p>
+              <p key={d} className="truncate text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-ink/45">{d}</p>
             ))}
-            <p className="hidden text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-ink/45 lg:block">Week totals</p>
+            <p className="hidden truncate text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-ink/45 lg:block">Week totals</p>
           </div>
 
           {weeks.map((week) => (
@@ -1918,15 +1961,20 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
                   <span className="h-px flex-1 bg-ink/10" />
                 </div>
               )}
-              <div className="mb-2 grid grid-cols-7 gap-2 lg:grid-cols-[repeat(7,1fr)_150px]">
+              <div className={`mb-2 grid gap-1.5 sm:gap-2 ${WEEK_GRID_COLUMNS}`}>
                 {week.days.map((day) => {
                   const isToday = day.key === todayKey;
                   const isPast = day.key < todayKey;
+                  // In the phone list layout an empty day is a blank row with
+                  // nothing to say, so it only appears once there is a grid.
+                  const isEmpty = !day.events.length && !day.workouts.length && !day.activities.length && !day.notes.length;
                   return (
                     <div
                       key={day.key}
                       onClick={() => setDayMenuKey(day.key)}
-                      className={`group min-h-[132px] cursor-pointer rounded-2xl border p-2 transition ${
+                      className={`group min-w-0 cursor-pointer rounded-2xl border p-2 transition sm:min-h-[132px] sm:p-2 ${
+                        isEmpty ? 'hidden sm:block' : ''
+                      } ${
                         isToday
                           ? 'border-accent/50 bg-accent/5 ring-1 ring-accent/30'
                           : isPast
@@ -1936,9 +1984,15 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
                     >
                       <div className="flex items-center justify-between">
                         <span className={`text-xs font-bold ${isToday ? 'rounded-full bg-accent px-1.5 py-0.5 text-white' : 'text-ink/45'}`}>
-                          {day.date.getDate() === 1
-                            ? day.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                            : day.date.getDate()}
+                          {/* The list layout has no weekday header to sit under. */}
+                          <span className="sm:hidden">
+                            {day.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                          </span>
+                          <span className="hidden sm:inline">
+                            {day.date.getDate() === 1
+                              ? day.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                              : day.date.getDate()}
+                          </span>
                         </span>
                         <span className="hidden text-sm text-ink/25 transition group-hover:inline">+</span>
                       </div>
@@ -1948,17 +2002,21 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
                             key={`event-${event.id}`}
                             href="/races"
                             onClick={(e) => e.stopPropagation()}
-                            className="block rounded-xl border border-amber-300/60 bg-amber-50 px-2 py-1.5 text-left"
+                            className="block min-w-0 rounded-xl border border-amber-300/60 bg-amber-50 px-1.5 py-1.5 text-left sm:px-2"
                           >
-                            <p className="truncate text-xs font-semibold text-amber-900">🏁 {event.name}</p>
-                            {event.priority && <p className="text-[10px] text-amber-800/70">{event.priority} race{event.race_type ? ` · ${event.race_type}` : ''}</p>}
+                            <p className="truncate text-xs font-semibold text-amber-900">{event.name}</p>
+                            {event.priority && (
+                              <p className={`${CELL_DETAIL_LINE} truncate text-[10px] text-amber-800/70`}>
+                                {event.priority} race{event.race_type ? ` · ${event.race_type}` : ''}
+                              </p>
+                            )}
                           </a>
                         ))}
                         {day.workouts.map((w) => (
                           <button
                             key={w.id}
                             onClick={(e) => { e.stopPropagation(); setDetailId(w.id); }}
-                            className={`block w-full rounded-xl border px-2 py-1.5 text-left transition hover:border-ink/30 ${
+                            className={`block w-full min-w-0 rounded-xl border px-1.5 py-1.5 text-left transition hover:border-ink/30 sm:px-2 ${
                               w.status === 'completed'
                                 ? 'border-emerald-200 bg-emerald-50/75'
                                 : w.status === 'skipped'
@@ -1966,45 +2024,51 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
                                   : 'border-ink/8 bg-paper'
                             }`}
                           >
-                            <div className="flex items-center gap-1.5">
-                              <span className={`h-2 w-2 shrink-0 rounded-full ${COMPLIANCE_DOT[w.compliance_status] || COMPLIANCE_DOT.none}`} />
-                              <span className="truncate text-xs font-semibold text-ink">
-                                {w.status === 'completed' ? '✓ ' : ''}{SPORT_EMOJI[w.sport] || '⚡'} {w.title}
+                            <div className="flex min-w-0 items-center gap-1">
+                              <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${COMPLIANCE_DOT[w.compliance_status] || COMPLIANCE_DOT.none}`} />
+                              <span className="truncate text-xs font-semibold text-ink" title={w.title}>
+                                {w.status === 'completed' ? '✓ ' : ''}{w.title}
                               </span>
                             </div>
                             {w.status === 'completed' ? (
                               <>
-                                <p className="mt-0.5 truncate font-mono text-[11px] font-semibold text-emerald-800">
-                                  {[
+                                <p className={`${CELL_METRIC_LINE} font-semibold text-emerald-800`}>
+                                  <span className="font-normal text-ink/40">{sportCode(w.sport)} · </span>
+                                  {metricLine([
                                     fmtDuration(w.completed_duration_min),
                                     formatDistance(w.completed_distance_km, w.planned_distance_unit),
                                     w.compliance_pct != null ? `${w.compliance_pct}%` : null,
-                                  ].filter(Boolean).join(' · ')}
+                                  ])}
                                 </p>
                                 {/* Planned reference, so the actual above always has something to be judged against. */}
                                 {(w.planned_duration_min || w.planned_distance_km) && (
-                                  <p className="truncate text-[10px] text-ink/40">
-                                    P: {[
+                                  <p className={`${CELL_DETAIL_LINE} mt-px break-words text-[10px] leading-tight text-ink/40`}>
+                                    P: {metricLine([
                                       fmtDuration(w.planned_duration_min),
                                       formatDistance(w.planned_distance_km, w.planned_distance_unit),
-                                    ].filter(Boolean).join(' · ')}
+                                    ])}
                                   </p>
                                 )}
                               </>
                             ) : (
-                              <p className="mt-0.5 truncate text-[11px] text-ink/55">
-                                {[
+                              <p className={`${CELL_METRIC_LINE} text-ink/55`}>
+                                <span className="text-ink/40">{sportCode(w.sport)} · </span>
+                                {metricLine([
                                   fmtDuration(w.planned_duration_min),
                                   formatDistance(w.planned_distance_km, w.planned_distance_unit),
                                   w.planned_tss ? `TSS ${Math.round(w.planned_tss)}` : null,
                                   w.status === 'skipped' ? 'Skipped' : null,
-                                ].filter(Boolean).join(' · ')}
+                                ])}
                               </p>
                             )}
                             {(w.athlete_rpe != null || w.comment_count > 0) && (
-                              <p className="mt-0.5 flex items-center gap-2 text-[10px] text-ink/45">
+                              <p className={`${CELL_META_LINE} mt-0.5 items-center gap-2 truncate text-[10px] text-ink/45`}>
                                 {w.athlete_rpe != null && <span title={`Perceived effort ${w.athlete_rpe}/10`}>RPE {w.athlete_rpe}</span>}
-                                {w.comment_count > 0 && <span title={`${w.comment_count} comment${w.comment_count === 1 ? '' : 's'}`}>💬 {w.comment_count}</span>}
+                                {w.comment_count > 0 && (
+                                  <span title={`${w.comment_count} comment${w.comment_count === 1 ? '' : 's'}`}>
+                                    {w.comment_count} note{w.comment_count === 1 ? '' : 's'}
+                                  </span>
+                                )}
                               </p>
                             )}
                           </button>
@@ -2014,27 +2078,31 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
                             key={`activity-${activity.id}`}
                             onClick={(e) => { e.stopPropagation(); setActivityDetailId(activity.id); }}
                             title="Imported activity with no planned workout — open for stats and comments"
-                            className="block w-full rounded-xl border border-sky-200 bg-sky-50/70 px-2 py-1.5 text-left transition hover:border-sky-400"
+                            className="block w-full min-w-0 rounded-xl border border-sky-200 bg-sky-50/70 px-1.5 py-1.5 text-left transition hover:border-sky-400 sm:px-2"
                           >
-                            <div className="flex items-center gap-1.5">
-                              <span className="truncate text-xs font-semibold text-ink">{SPORT_EMOJI[activity.sport] || '⚡'} {activity.name}</span>
+                            <div className="flex min-w-0 items-center gap-1">
+                              <span className="truncate text-xs font-semibold text-ink" title={activity.name}>{activity.name}</span>
                             </div>
-                            <p className="mt-0.5 truncate font-mono text-[11px] font-semibold text-sky-900">
-                              {[
+                            <p className={`${CELL_METRIC_LINE} font-semibold text-sky-900`}>
+                              <span className="font-normal text-sky-800/50">{sportCode(activity.sport)} · </span>
+                              {metricLine([
                                 fmtDuration(activity.duration_min),
                                 formatDistance(activity.distance_km, distanceUnitPref),
                                 activity.tss ? `${activity.tss} TSS` : null,
-                              ].filter(Boolean).join(' · ')}
+                              ])}
                             </p>
-                            <p className="truncate text-[10px] text-sky-800/60">
+                            <p className={`${CELL_DETAIL_LINE} mt-px break-words text-[10px] leading-tight text-sky-800/60`}>
                               {[
                                 fmtElevation(activity.elevation_gain_m, distanceUnitPref),
                                 activity.average_heartrate ? `${activity.average_heartrate} bpm` : null,
                               ].filter(Boolean).join(' · ') || 'Unplanned'}
                             </p>
                             {activity.comment_count > 0 && (
-                              <p className="mt-0.5 text-[10px] text-ink/45" title={`${activity.comment_count} comment${activity.comment_count === 1 ? '' : 's'}`}>
-                                💬 {activity.comment_count}
+                              <p
+                                className={`${CELL_META_LINE} mt-0.5 truncate text-[10px] text-ink/45`}
+                                title={`${activity.comment_count} comment${activity.comment_count === 1 ? '' : 's'}`}
+                              >
+                                {activity.comment_count} note{activity.comment_count === 1 ? '' : 's'}
                               </p>
                             )}
                           </button>
@@ -2045,10 +2113,12 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
                             <button
                               key={`note-${note.id}`}
                               onClick={(e) => { e.stopPropagation(); setNoteEditor(note); }}
-                              className={`block w-full rounded-xl border px-2 py-1.5 text-left ${meta.card}`}
+                              className={`block w-full min-w-0 rounded-xl border px-1.5 py-1.5 text-left sm:px-2 ${meta.card}`}
                             >
-                              <p className="truncate text-xs font-semibold text-ink/75">{meta.icon} {note.title}</p>
-                              {note.visibility === 'coach_private' && <p className="text-[10px] text-ink/40">Private draft</p>}
+                              <p className="truncate text-xs font-semibold text-ink/75">{note.title}</p>
+                              {note.visibility === 'coach_private' && (
+                                <p className={`${CELL_DETAIL_LINE} text-[10px] text-ink/40`}>Private draft</p>
+                              )}
                             </button>
                           );
                         })}
@@ -2099,7 +2169,7 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
                       <div className="space-y-0.5 border-t border-ink/8 pt-1.5 text-[10px]">
                         {week.summary.sports.map((sport) => (
                           <div key={sport.sport} className="flex items-baseline justify-between gap-1">
-                            <span className="truncate text-ink/55">{SPORT_EMOJI[sport.sport] || '⚡'} {sport.count}</span>
+                            <span className="truncate text-ink/55">{sportCode(sport.sport)} ×{sport.count}</span>
                             <span className="font-mono text-ink/70">
                               {fmtDuration(sport.durationMin) || '0m'}
                               {sport.distanceKm > 0 ? ` · ${kmToUnit(sport.distanceKm, distanceUnitPref)}${distanceUnitPref}` : ''}
@@ -2154,7 +2224,10 @@ function LibraryCard({ item, onApply, onDelete }) {
   return (
     <div className="rounded-2xl border border-ink/10 bg-paper p-3">
       <div className="flex items-start justify-between gap-2">
-        <p className="text-sm font-semibold text-ink">{SPORT_EMOJI[item.sport] || '⚡'} {item.name}</p>
+        <p className="flex min-w-0 items-center gap-1.5 text-sm font-semibold text-ink">
+          <SportTag sport={item.sport} />
+          <span className="truncate">{item.name}</span>
+        </p>
         <button onClick={onDelete} className="rounded-full px-1.5 text-xs text-ink/40 hover:text-rose-600">✕</button>
       </div>
       <p className="mt-1 text-[11px] text-ink/55">
