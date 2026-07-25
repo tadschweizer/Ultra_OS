@@ -9,6 +9,7 @@ import {
   summarizeWeek,
   toDateKey,
 } from '../lib/workoutCompliance';
+import { formatTempo, isSpeedSport } from '../lib/activityFormat';
 
 // ─── Date helpers ────────────────────────────────────────────────────────────
 
@@ -537,6 +538,162 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
 
 // ─── Completion / detail panel ───────────────────────────────────────────────
 
+// ─── Shared discussion thread ────────────────────────────────────────────────
+
+function initialsOf(name) {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return '?';
+  return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
+}
+
+function fmtCommentTime(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+
+/**
+ * A conversation attached to one session — a planned workout or an imported
+ * activity. `subject` is the query the API keys the thread on, so the same
+ * component serves both without knowing which it is looking at.
+ */
+function CommentThread({ subject, role, onCountChange }) {
+  const [comments, setComments] = useState([]);
+  const [body, setBody] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
+
+  const params = useMemo(() => new URLSearchParams(subject).toString(), [subject]);
+  const endRef = useRef(null);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError('');
+    fetch(`/api/workout-comments?${params}`)
+      .then(async (r) => {
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(data.error || 'Could not load this discussion.');
+        return data;
+      })
+      .then((data) => {
+        if (!active) return;
+        setComments(data.comments || []);
+        setLoading(false);
+      })
+      .catch((err) => {
+        if (!active) return;
+        setError(err.message);
+        setLoading(false);
+      });
+    return () => { active = false; };
+  }, [params]);
+
+  // Keep the newest message in view as the thread grows past the scroll box.
+  useEffect(() => {
+    if (comments.length) endRef.current?.scrollIntoView({ block: 'nearest' });
+  }, [comments.length]);
+
+  async function send() {
+    const trimmed = body.trim();
+    if (!trimmed || sending) return;
+    setSending(true);
+    setError('');
+    try {
+      const res = await fetch('/api/workout-comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...subject, body: trimmed }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Could not post that comment.');
+      setComments((prev) => {
+        const next = [...prev, data.comment];
+        onCountChange?.(next.length);
+        return next;
+      });
+      setBody('');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSending(false);
+    }
+  }
+
+  const counterpart = role === 'coach' ? 'athlete' : 'coach';
+
+  return (
+    <div className="mt-4 rounded-2xl border border-ink/10 bg-white p-4">
+      <div className="flex items-center justify-between">
+        <p className="text-xs uppercase tracking-[0.22em] text-ink/55">
+          Discussion{comments.length ? ` · ${comments.length}` : ''}
+        </p>
+        <span className="text-[10px] text-ink/40">Visible to you and your {counterpart}</span>
+      </div>
+
+      <div className="mt-3 max-h-64 space-y-2 overflow-y-auto pr-1">
+        {loading && <p className="text-sm text-ink/45">Loading conversation…</p>}
+        {!loading && !comments.length && (
+          <p className="text-sm text-ink/50">
+            No messages on this session yet. Ask a question, add context, or celebrate a good one — it stays attached here.
+          </p>
+        )}
+        {comments.map((comment) => {
+          const fromCoach = comment.sender_role === 'coach';
+          return (
+            <div
+              key={comment.id}
+              className={`rounded-xl p-3 text-sm ${fromCoach ? 'border border-accent/20 bg-accent/5 text-ink/80' : 'bg-paper text-ink/75'}`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span
+                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] font-bold ${
+                      fromCoach ? 'bg-accent/20 text-accent' : 'bg-ink/10 text-ink/60'
+                    }`}
+                    aria-hidden="true"
+                  >
+                    {initialsOf(comment.author_name)}
+                  </span>
+                  <p className="truncate text-[11px] font-semibold text-ink/70">
+                    {comment.author_name}
+                    {fromCoach && <span className="ml-1 font-normal text-ink/40">coach</span>}
+                  </p>
+                </div>
+                <p className="shrink-0 text-[10px] text-ink/35">{fmtCommentTime(comment.created_at)}</p>
+              </div>
+              <p className="mt-1 whitespace-pre-wrap break-words">{comment.body}</p>
+            </div>
+          );
+        })}
+        <div ref={endRef} />
+      </div>
+
+      {error && <p className="mt-2 text-xs text-rose-600">{error}</p>}
+
+      <div className="mt-3 flex gap-2">
+        <input
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
+          placeholder="Message about this session…"
+          aria-label="Write a comment"
+          className="flex-1 rounded-xl border border-ink/10 bg-paper px-3 py-2 text-sm text-ink"
+        />
+        <button
+          disabled={sending || !body.trim()}
+          onClick={send}
+          className="rounded-full bg-panel px-4 py-2 text-sm font-semibold text-paper disabled:opacity-60"
+        >
+          {sending ? 'Sending…' : 'Send'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function WorkoutDetail({ workout, role, onUpdate, onEdit, onDelete, onClose }) {
   const distanceUnit = workout.planned_distance_unit || 'mi';
   const [completion, setCompletion] = useState({
@@ -548,33 +705,6 @@ function WorkoutDetail({ workout, role, onUpdate, onEdit, onDelete, onClose }) {
   });
   const [feedback, setFeedback] = useState(workout.coach_feedback || '');
   const [busy, setBusy] = useState(false);
-  const [comments, setComments] = useState([]);
-  const [commentBody, setCommentBody] = useState('');
-
-  useEffect(() => {
-    let active = true;
-    fetch(`/api/workout-comments?workout_id=${workout.id}`)
-      .then((r) => (r.ok ? r.json() : { comments: [] }))
-      .then((d) => { if (active) setComments(d.comments || []); })
-      .catch(() => {});
-    return () => { active = false; };
-  }, [workout.id]);
-
-  async function sendComment() {
-    if (!commentBody.trim()) return;
-    setBusy(true);
-    const res = await fetch('/api/workout-comments', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ planned_workout_id: workout.id, body: commentBody }),
-    });
-    if (res.ok) {
-      const d = await res.json();
-      setComments((prev) => [...prev, d.comment]);
-      setCommentBody('');
-    }
-    setBusy(false);
-  }
 
   async function submit(updates) {
     setBusy(true);
@@ -767,37 +897,7 @@ function WorkoutDetail({ workout, role, onUpdate, onEdit, onDelete, onClose }) {
         )}
 
 
-        <div className="mt-4 rounded-2xl border border-ink/10 bg-white p-4">
-          <div className="flex items-center justify-between">
-            <p className="text-xs uppercase tracking-[0.22em] text-ink/55">Workout discussion</p>
-            <span className="text-[10px] text-ink/40">Visible to you and your {role === 'coach' ? 'athlete' : 'coach'}</span>
-          </div>
-          <div className="mt-3 space-y-2">
-            {!comments.length && <p className="text-sm text-ink/50">No messages on this workout yet. Ask a question or leave context — it stays attached to this session.</p>}
-            {comments.map((comment) => (
-              <div
-                key={comment.id}
-                className={`rounded-xl p-3 text-sm ${comment.sender_role === 'coach' ? 'border border-accent/20 bg-accent/5 text-ink/80' : 'bg-paper text-ink/75'}`}
-              >
-                <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-ink/45">{comment.sender_role}</p>
-                  <p className="text-[10px] text-ink/35">{comment.created_at ? new Date(comment.created_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''}</p>
-                </div>
-                <p className="mt-1 whitespace-pre-wrap">{comment.body}</p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-3 flex gap-2">
-            <input
-              value={commentBody}
-              onChange={(e) => setCommentBody(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendComment(); } }}
-              placeholder="Message about this workout…"
-              className="flex-1 rounded-xl border border-ink/10 bg-paper px-3 py-2 text-sm text-ink"
-            />
-            <button disabled={busy || !commentBody.trim()} onClick={sendComment} className="rounded-full bg-panel px-4 py-2 text-sm font-semibold text-paper disabled:opacity-60">Send</button>
-          </div>
-        </div>
+        <CommentThread subject={{ workout_id: workout.id }} role={role} />
 
         {/* Edit / delete */}
         <div className="mt-5 flex items-center justify-between border-t border-ink/8 pt-4">
@@ -821,6 +921,120 @@ function WorkoutDetail({ workout, role, onUpdate, onEdit, onDelete, onClose }) {
             </button>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Imported activity detail ────────────────────────────────────────────────
+
+function StatTile({ label, value, tone = 'default' }) {
+  if (value == null || value === '') return null;
+  return (
+    <div className="rounded-xl border border-ink/8 bg-paper px-3 py-2">
+      <p className="text-[10px] uppercase tracking-[0.16em] text-ink/45">{label}</p>
+      <p className={`mt-0.5 font-mono text-sm font-semibold ${tone === 'accent' ? 'text-sky-900' : 'text-ink'}`}>{value}</p>
+    </div>
+  );
+}
+
+/**
+ * Detail view for a session that arrived from a provider with no planned
+ * workout behind it. Most of an athlete's history looks like this, so it needs
+ * to carry the full stat set and its own conversation.
+ */
+function ActivityDetail({ activity, role, distanceUnit = 'mi', onCountChange, onClose }) {
+  const tempo = formatTempo(activity.sport, activity.distance_km, activity.duration_min, distanceUnit);
+  const speedSport = isSpeedSport(activity.sport);
+  const dateLabel = activity.activity_date
+    ? fmtFullDate(new Date(`${activity.activity_date}T00:00:00`))
+    : '';
+  const startTime = activity.start_date
+    ? new Date(activity.start_date).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+    : null;
+
+  const flags = [
+    activity.trainer ? 'Indoor' : null,
+    activity.commute ? 'Commute' : null,
+    activity.manual ? 'Manual entry' : null,
+  ].filter(Boolean);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-[28px] border border-ink/10 bg-paper p-6">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs uppercase tracking-[0.25em] text-sky-700">
+              {SPORT_EMOJI[activity.sport] || '⚡'} {activity.sport} · {dateLabel}
+            </p>
+            <h3 className="mt-2 break-words text-2xl font-semibold text-ink">{activity.name}</h3>
+            <p className="mt-1 text-xs text-ink/55">
+              {[
+                startTime,
+                `Imported from ${activity.source || 'provider'}`,
+                'No planned workout',
+              ].filter(Boolean).join(' · ')}
+            </p>
+          </div>
+          <button onClick={onClose} className="shrink-0 rounded-full border border-ink/10 px-4 py-1.5 text-sm text-ink/70 hover:bg-ink/5">
+            Close
+          </button>
+        </div>
+
+        {/* Headline numbers, the three an athlete looks for first. */}
+        <div className="mt-4 grid grid-cols-3 gap-2 rounded-2xl border border-sky-200 bg-sky-50/60 p-4 text-center">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.16em] text-sky-800/60">Time</p>
+            <p className="mt-0.5 font-mono text-xl font-semibold text-sky-900">{fmtDuration(activity.duration_min) || '—'}</p>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.16em] text-sky-800/60">Distance</p>
+            <p className="mt-0.5 font-mono text-xl font-semibold text-sky-900">
+              {formatDistance(activity.distance_km, distanceUnit) || '—'}
+            </p>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.16em] text-sky-800/60">{speedSport ? 'Speed' : 'Pace'}</p>
+            <p className="mt-0.5 font-mono text-xl font-semibold text-sky-900">{tempo || '—'}</p>
+          </div>
+        </div>
+
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <StatTile label="Elapsed" value={fmtDuration(activity.elapsed_min)} />
+          <StatTile label="Elevation gain" value={fmtElevation(activity.elevation_gain_m, distanceUnit)} />
+          <StatTile label="Avg HR" value={activity.average_heartrate ? `${activity.average_heartrate} bpm` : null} />
+          <StatTile label="Max HR" value={activity.max_heartrate ? `${activity.max_heartrate} bpm` : null} />
+          <StatTile label="TSS" value={activity.tss != null ? activity.tss : null} />
+          <StatTile label="IF" value={activity.intensity_factor != null ? activity.intensity_factor : null} />
+          <StatTile label="Calories" value={activity.calories ? `${activity.calories.toLocaleString()} kcal` : null} />
+          <StatTile label="Work" value={activity.kilojoules ? `${activity.kilojoules.toLocaleString()} kJ` : null} />
+          <StatTile label="Avg cadence" value={activity.average_cadence || null} />
+          <StatTile label="Relative effort" value={activity.suffer_score || null} />
+          <StatTile label="High point" value={fmtElevation(activity.elev_high_m, distanceUnit)} />
+          <StatTile label="Low point" value={fmtElevation(activity.elev_low_m, distanceUnit)} />
+        </div>
+
+        {flags.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {flags.map((flag) => (
+              <span key={flag} className="rounded-full border border-ink/10 bg-white px-2.5 py-1 text-[10px] uppercase tracking-wide text-ink/55">
+                {flag}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {activity.description && (
+          <div className="mt-4 rounded-2xl border border-ink/10 bg-white p-4">
+            <p className="text-xs uppercase tracking-[0.22em] text-ink/55">Description</p>
+            <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-ink/80">{activity.description}</p>
+          </div>
+        )}
+
+        <CommentThread subject={{ activity_id: activity.id }} role={role} onCountChange={onCountChange} />
       </div>
     </div>
   );
@@ -1137,6 +1351,7 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
   const [error, setError] = useState('');
   const [editorInitial, setEditorInitial] = useState(null);
   const [detailId, setDetailId] = useState(null);
+  const [activityDetailId, setActivityDetailId] = useState(null);
   const [dayMenuKey, setDayMenuKey] = useState(null);
   const [noteEditor, setNoteEditor] = useState(null);
   const [eventEditorDate, setEventEditorDate] = useState(null);
@@ -1478,7 +1693,14 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
   }, [anchorMonday, pastWeeks, futureWeeks, workoutsByDate, notesByDate, eventsByDate, activitiesByDate]);
 
   const detailWorkout = detailId ? workouts.find((w) => w.id === detailId) || null : null;
+  const detailActivity = activityDetailId ? activities.find((a) => a.id === activityDetailId) || null : null;
   const dayMenuDate = dayMenuKey ? new Date(`${dayMenuKey}T00:00:00`) : null;
+
+  // Keeps the card's 💬 badge honest after a comment is posted, without
+  // refetching the whole calendar range.
+  const setActivityCommentCount = useCallback((activityId, count) => {
+    setActivities((prev) => prev.map((a) => (a.id === activityId ? { ...a, comment_count: count } : a)));
+  }, []);
 
   function openWorkoutEditor(dateKey, sport = 'run') {
     setDayMenuKey(null);
@@ -1507,6 +1729,15 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
           onSave={saveWorkout}
           onSaveToLibrary={role === 'coach' ? saveToLibrary : null}
           onClose={() => setEditorInitial(null)}
+        />
+      )}
+      {detailActivity && (
+        <ActivityDetail
+          activity={detailActivity}
+          role={role}
+          distanceUnit={distanceUnitPref}
+          onCountChange={(count) => setActivityCommentCount(detailActivity.id, count)}
+          onClose={() => setActivityDetailId(null)}
         />
       )}
       {detailWorkout && (
@@ -1589,7 +1820,7 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
             <button onClick={scrollToToday} className="rounded-full border border-ink/10 px-4 py-2 text-sm font-semibold text-ink/80 hover:bg-ink/5">Today</button>
           </div>
           <span className="w-full text-xs text-ink/55 sm:w-auto">
-            Completed sessions are green; imported activity is blue. Click a day to plan or add context.
+            Completed sessions are green; imported activity is blue. Click any session for stats and comments, or a day to plan.
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -1766,11 +1997,11 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
                           </button>
                         ))}
                         {day.activities.map((activity) => (
-                          <div
+                          <button
                             key={`activity-${activity.id}`}
-                            onClick={(e) => e.stopPropagation()}
-                            title="Imported activity with no planned workout"
-                            className="rounded-xl border border-sky-200 bg-sky-50/70 px-2 py-1.5"
+                            onClick={(e) => { e.stopPropagation(); setActivityDetailId(activity.id); }}
+                            title="Imported activity with no planned workout — open for stats and comments"
+                            className="block w-full rounded-xl border border-sky-200 bg-sky-50/70 px-2 py-1.5 text-left transition hover:border-sky-400"
                           >
                             <div className="flex items-center gap-1.5">
                               <span className="truncate text-xs font-semibold text-ink">{SPORT_EMOJI[activity.sport] || '⚡'} {activity.name}</span>
@@ -1788,7 +2019,12 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
                                 activity.average_heartrate ? `${activity.average_heartrate} bpm` : null,
                               ].filter(Boolean).join(' · ') || 'Unplanned'}
                             </p>
-                          </div>
+                            {activity.comment_count > 0 && (
+                              <p className="mt-0.5 text-[10px] text-ink/45" title={`${activity.comment_count} comment${activity.comment_count === 1 ? '' : 's'}`}>
+                                💬 {activity.comment_count}
+                              </p>
+                            )}
+                          </button>
                         ))}
                         {day.notes.map((note) => {
                           const meta = NOTE_META[note.note_type] || NOTE_META.general;

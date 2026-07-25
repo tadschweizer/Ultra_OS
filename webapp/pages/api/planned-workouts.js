@@ -113,24 +113,28 @@ async function fetchActivitiesForRange(admin, athleteId, start, end) {
 }
 
 /**
- * Comment counts per workout, so a calendar card can show that a conversation
+ * Comment counts per subject, so a calendar card can show that a conversation
  * exists without loading the thread. A failure degrades to "no badge".
+ *
+ * `column` is the subject key on workout_comments — planned_workout_id for
+ * plans, activity_id for imported sessions.
  */
-async function fetchCommentCounts(admin, workoutIds) {
+async function fetchCommentCounts(admin, column, ids) {
   const counts = new Map();
-  if (!workoutIds.length) return counts;
+  if (!ids.length) return counts;
 
   const { data, error } = await admin
     .from('workout_comments')
-    .select('workout_id')
-    .in('workout_id', workoutIds);
+    .select(column)
+    .in(column, ids);
 
   if (error) {
     console.error('[planned-workouts] comment counts failed:', error.message);
     return counts;
   }
   (data || []).forEach((row) => {
-    counts.set(row.workout_id, (counts.get(row.workout_id) || 0) + 1);
+    const id = row[column];
+    if (id) counts.set(id, (counts.get(id) || 0) + 1);
   });
   return counts;
 }
@@ -158,6 +162,19 @@ function toCalendarActivity(activity) {
     calories: activity.calories != null ? Math.round(Number(activity.calories)) : null,
     tss: activity.tss != null ? Math.round(Number(activity.tss)) : null,
     source: activity.source || 'strava',
+    // Detail-view fields. The calendar card ignores these, but carrying them in
+    // the same payload means opening a session costs no extra round trip.
+    description: activity.description || null,
+    average_speed_mps: activity.average_speed != null ? Number(activity.average_speed) : null,
+    max_speed_mps: activity.max_speed != null ? Number(activity.max_speed) : null,
+    average_cadence: activity.average_cadence != null ? Math.round(Number(activity.average_cadence)) : null,
+    intensity_factor: activity.intensity_factor != null ? Number(activity.intensity_factor) : null,
+    suffer_score: activity.suffer_score != null ? Math.round(Number(activity.suffer_score)) : null,
+    elev_high_m: activity.elev_high != null ? Math.round(Number(activity.elev_high)) : null,
+    elev_low_m: activity.elev_low != null ? Math.round(Number(activity.elev_low)) : null,
+    trainer: activity.trainer ?? null,
+    commute: activity.commute ?? null,
+    manual: activity.manual ?? null,
   };
 }
 
@@ -226,11 +243,14 @@ export default async function handler(req, res) {
         .filter((a) => a?.start_date && !consumed.has(String(a.id)))
         .map(toCalendarActivity);
 
-      const commentCounts = await fetchCommentCounts(admin, decorated.map((w) => w.id));
+      const [workoutComments, activityComments] = await Promise.all([
+        fetchCommentCounts(admin, 'planned_workout_id', decorated.map((w) => w.id)),
+        fetchCommentCounts(admin, 'activity_id', unplannedActivities.map((a) => a.id)),
+      ]);
 
       res.status(200).json({
-        workouts: decorated.map((w) => ({ ...w, comment_count: commentCounts.get(w.id) || 0 })),
-        activities: unplannedActivities,
+        workouts: decorated.map((w) => ({ ...w, comment_count: workoutComments.get(w.id) || 0 })),
+        activities: unplannedActivities.map((a) => ({ ...a, comment_count: activityComments.get(a.id) || 0 })),
         range: { start, end },
       });
       return;

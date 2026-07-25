@@ -56,6 +56,10 @@ async function buildCoachSummary(admin, coachId) {
     admin
       .from('workout_comments')
       .select('id, planned_workout_id, athlete_id, sender_role, body, created_at, read_at')
+      // Comments can now hang off an imported activity instead of a plan. Those
+      // group by a different key and have no planned_workouts row behind them,
+      // so this surface stays on plan threads until it can present both.
+      .not('planned_workout_id', 'is', null)
       .in('athlete_id', athleteIds)
       .order('created_at', { ascending: false })
       .limit(120),
@@ -139,6 +143,8 @@ async function buildAthleteSummary(admin, athleteId) {
   const { data: comments } = await admin
     .from('workout_comments')
     .select('id, planned_workout_id, athlete_id, sender_role, body, created_at, read_at')
+    // See buildCoachSummary: activity-backed threads are excluded here.
+    .not('planned_workout_id', 'is', null)
     .eq('athlete_id', athleteId)
     .order('created_at', { ascending: false })
     .limit(120);
