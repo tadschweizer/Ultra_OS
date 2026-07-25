@@ -1363,6 +1363,7 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
   const prependHeightRef = useRef(null);
   const extendingRef = useRef(false);
   const lastOpenedFromQuery = useRef(null);
+  const lastOpenedActivityFromQuery = useRef(null);
 
   const rangeStart = toDateKey(addDays(anchorMonday, -pastWeeks * 7));
   const rangeEnd = toDateKey(addDays(anchorMonday, futureWeeks * 7 + 6));
@@ -1438,6 +1439,18 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
       setDetailId(target);
     }
   }, [router.isReady, router.query.workout, workouts]);
+
+  // Deep link: /calendar?activity=<id> does the same for an imported session,
+  // which is how a message-center thread on a completed activity lands on the
+  // day it belongs to. Only fires once the range holding it has loaded.
+  useEffect(() => {
+    if (!router.isReady) return;
+    const target = typeof router.query.activity === 'string' ? router.query.activity : '';
+    if (target && target !== lastOpenedActivityFromQuery.current && activities.some((a) => String(a.id) === target)) {
+      lastOpenedActivityFromQuery.current = target;
+      setActivityDetailId(activities.find((a) => String(a.id) === target).id);
+    }
+  }, [router.isReady, router.query.activity, activities]);
 
   // Initial position: scroll the container so this week sits at the top.
   useLayoutEffect(() => {

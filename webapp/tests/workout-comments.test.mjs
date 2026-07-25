@@ -5,7 +5,10 @@ import {
   MAX_COMMENT_LENGTH,
   attachAuthorNames,
   collectIds,
+  commentSubject,
+  groupComments,
   parseSubject,
+  subjectKey,
   validateCommentBody,
 } from '../lib/workoutComments.js';
 import { formatPace, formatSpeed, formatTempo, isSpeedSport } from '../lib/activityFormat.js';
@@ -146,6 +149,87 @@ test('collectIds returns each id once and drops nulls', () => {
   );
 
   assert.deepEqual(ids, [COACH_ID]);
+});
+
+// ─── Thread grouping ─────────────────────────────────────────────────────────
+
+const SECOND_WORKOUT_ID = '66666666-6666-4666-8666-666666666666';
+const SECOND_ACTIVITY_ID = '77777777-7777-4777-8777-777777777777';
+
+function workoutComment(id, plannedWorkoutId = WORKOUT_ID) {
+  return { id, planned_workout_id: plannedWorkoutId, activity_id: null, athlete_id: ATHLETE_ID };
+}
+
+function activityComment(id, activityId = ACTIVITY_ID) {
+  return { id, planned_workout_id: null, activity_id: activityId, athlete_id: ATHLETE_ID };
+}
+
+test('a comment reports the subject it actually hangs off', () => {
+  assert.deepEqual(commentSubject(workoutComment('1')), { subject_type: 'workout', subject_id: WORKOUT_ID });
+  assert.deepEqual(commentSubject(activityComment('2')), { subject_type: 'activity', subject_id: ACTIVITY_ID });
+  assert.equal(commentSubject({ id: '3' }), null);
+});
+
+test('comments on the same workout become one thread', () => {
+  const threads = groupComments([workoutComment('1'), workoutComment('2')]);
+
+  assert.equal(threads.length, 1);
+  assert.equal(threads[0].subject_type, 'workout');
+  assert.equal(threads[0].subject_id, WORKOUT_ID);
+  assert.equal(threads[0].athlete_id, ATHLETE_ID);
+  assert.deepEqual(threads[0].comments.map((c) => c.id), ['1', '2']);
+});
+
+test('comments on the same activity become one thread keyed on the activity', () => {
+  const threads = groupComments([activityComment('1'), activityComment('2')]);
+
+  assert.equal(threads.length, 1);
+  assert.equal(threads[0].subject_type, 'activity');
+  assert.equal(threads[0].subject_id, ACTIVITY_ID);
+});
+
+// The regression the plan-only filter was guarding against: keying every row on
+// planned_workout_id collapsed all activity comments into one null-keyed thread.
+test('distinct subjects stay distinct threads across both kinds', () => {
+  const threads = groupComments([
+    workoutComment('1'),
+    activityComment('2'),
+    workoutComment('3', SECOND_WORKOUT_ID),
+    activityComment('4', SECOND_ACTIVITY_ID),
+  ]);
+
+  assert.equal(threads.length, 4);
+  assert.deepEqual(
+    threads.map((t) => t.key),
+    [
+      subjectKey('workout', WORKOUT_ID),
+      subjectKey('activity', ACTIVITY_ID),
+      subjectKey('workout', SECOND_WORKOUT_ID),
+      subjectKey('activity', SECOND_ACTIVITY_ID),
+    ],
+  );
+  assert.ok(threads.every((t) => t.comments.length === 1));
+});
+
+// A subjectless row cannot be titled, dated, or linked anywhere, so it is
+// dropped rather than rendered as a thread that goes nowhere.
+test('a comment with no subject is dropped', () => {
+  const threads = groupComments([{ id: '1', planned_workout_id: null, activity_id: null }, workoutComment('2')]);
+
+  assert.equal(threads.length, 1);
+  assert.equal(threads[0].subject_type, 'workout');
+});
+
+test('grouping nothing yields no threads', () => {
+  assert.deepEqual(groupComments([]), []);
+  assert.deepEqual(groupComments(), []);
+});
+
+// The API reads newest-first and shows comments[0] as the thread preview.
+test('grouping preserves the order comments arrive in', () => {
+  const [thread] = groupComments([workoutComment('newest'), workoutComment('older'), workoutComment('oldest')]);
+
+  assert.deepEqual(thread.comments.map((c) => c.id), ['newest', 'older', 'oldest']);
 });
 
 // ─── Pace and speed ──────────────────────────────────────────────────────────
