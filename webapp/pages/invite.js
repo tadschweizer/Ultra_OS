@@ -74,7 +74,7 @@ export default function InvitePage() {
     return (
       <main className="flex min-h-screen items-center justify-center bg-paper p-8">
         <div className="max-w-sm rounded-[30px] border border-ink/10 bg-white p-8 text-center shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-          <p className="text-2xl">🔒</p>
+          <p className="text-[11px] uppercase tracking-[0.25em] text-ink/35">Restricted</p>
           <p className="mt-4 font-semibold text-ink">Admin access required</p>
           <p className="mt-2 text-sm text-ink/55">This page is only available to Threshold admins.</p>
           <a href="/dashboard" className="mt-6 inline-flex rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-paper">

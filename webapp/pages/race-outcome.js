@@ -181,7 +181,7 @@ export default function RaceOutcomePage() {
       <main className="min-h-screen bg-paper px-4 py-6 text-ink">
         <div className="mx-auto max-w-xl">
           <div className="mt-20 rounded-[36px] border border-ink/10 bg-white p-10 text-center shadow-[0_24px_60px_rgba(19,24,22,0.07)]">
-            <p className="text-4xl">🏅</p>
+            <p className="text-[11px] uppercase tracking-[0.25em] text-accent">Complete</p>
             <h1 className="font-display mt-6 text-3xl font-semibold">Race logged.</h1>
             <p className="mt-3 text-sm leading-7 text-ink/60">
               Your outcome is saved. As you log more races and interventions, Threshold will surface patterns in what worked and what cost you time.

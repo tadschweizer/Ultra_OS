@@ -449,13 +449,12 @@ export default function InsightsPage() {
               </div>
               <div className="mt-6 grid gap-3 sm:grid-cols-3">
                 {[
-                  { emoji: '🔥', label: 'Heat / Sauna', sub: '3+ sessions to unlock heat block insight' },
-                  { emoji: '🥤', label: 'Gut Training', sub: '2+ sessions with carb data to unlock trend' },
-                  { emoji: '🧪', label: 'Bicarb', sub: '3+ trials to find your optimal dose' },
+                  { label: 'Heat / Sauna', sub: '3+ sessions to unlock heat block insight' },
+                  { label: 'Gut Training', sub: '2+ sessions with carb data to unlock trend' },
+                  { label: 'Bicarb', sub: '3+ trials to find your optimal dose' },
                 ].map((item) => (
                   <div key={item.label} className="rounded-[18px] border border-ink/8 bg-paper p-4">
-                    <span className="text-xl">{item.emoji}</span>
-                    <p className="mt-2 text-sm font-semibold text-ink">{item.label}</p>
+                    <p className="text-sm font-semibold text-ink">{item.label}</p>
                     <p className="mt-1 text-xs leading-5 text-ink/50">{item.sub}</p>
                   </div>
                 ))}
@@ -687,13 +686,12 @@ export default function InsightsPage() {
               </div>
               <div className="mt-5 grid gap-3 sm:grid-cols-3">
                 {[
-                  { emoji: '🌀', label: 'Foam Rolling', sub: 'Do it some days, skip others — let data decide' },
-                  { emoji: '🧖', label: 'Sauna / Recovery', sub: 'Does the post-sauna run feel better?' },
-                  { emoji: '🧊', label: 'Cold Immersion', sub: 'Ice bath → next-day training response?' },
+                  { label: 'Foam Rolling', sub: 'Do it some days, skip others — let data decide' },
+                  { label: 'Sauna / Recovery', sub: 'Does the post-sauna run feel better?' },
+                  { label: 'Cold Immersion', sub: 'Ice bath → next-day training response?' },
                 ].map((item) => (
                   <div key={item.label} className="rounded-[18px] border border-ink/8 bg-paper p-4">
-                    <span className="text-xl">{item.emoji}</span>
-                    <p className="mt-2 text-sm font-semibold text-ink">{item.label}</p>
+                    <p className="text-sm font-semibold text-ink">{item.label}</p>
                     <p className="mt-1 text-xs leading-5 text-ink/50">{item.sub}</p>
                   </div>
                 ))}

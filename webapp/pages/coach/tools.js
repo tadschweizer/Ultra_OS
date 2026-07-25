@@ -474,7 +474,7 @@ function RampPlanner() {
           </div>
           {result.risky && (
             <p className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
-              ⚠ Ramp above +8 CTL/week — high overuse risk. Add weeks or lower the target.
+              Warning: ramp above +8 CTL/week — high overuse risk. Add weeks or lower the target.
             </p>
           )}
           {result.caution && (

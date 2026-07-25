@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
-import { summarizeReconciliationWindow, toDateKey } from '../lib/workoutCompliance';
+/**
+ * Presentational reconciliation summary. The athlete calendar renders planned
+ * vs completed inline, so this is used by the coach's athlete view only.
+ */
 
 const STATUS_TONES = {
   green: 'border-emerald-200 bg-emerald-50 text-emerald-700',
@@ -28,7 +30,7 @@ function dayLabel(key) {
   return new Date(`${key}T12:00:00`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
-/** Presentational: renders a reconciliation summary produced by summarizeReconciliationWindow. */
+/** Renders a reconciliation summary produced by summarizeReconciliationWindow. */
 export function ReconciliationSummary({ summary, title = 'This week: planned vs completed' }) {
   if (!summary) return null;
   const { plannedCount, completedCount, missedCount, upcomingCount, avgCompliancePct, unplannedActivities, days } = summary;
@@ -85,49 +87,4 @@ export function ReconciliationSummary({ summary, title = 'This week: planned vs 
       </ul>
     </div>
   );
-}
-
-/**
- * Self-fetching wrapper for the athlete's current week (Mon–Sun): loads
- * planned workouts and synced activities, reconciles, and renders the
- * summary. Renders nothing while loading, on error, or with no data —
- * the calendar below remains the primary surface.
- */
-export default function WeeklyReconciliation() {
-  const [workouts, setWorkouts] = useState(null);
-  const [activities, setActivities] = useState(null);
-  // One stable "now" for the whole render pass (avoids status flapping).
-  const [today] = useState(() => new Date());
-
-  const weekStart = useMemo(() => {
-    const d = new Date(today);
-    d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); // Monday = 0
-    return toDateKey(d);
-  }, [today]);
-  const weekEnd = useMemo(() => {
-    const d = new Date(`${weekStart}T12:00:00`);
-    d.setDate(d.getDate() + 6);
-    return toDateKey(d);
-  }, [weekStart]);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/planned-workouts?start=${weekStart}&end=${weekEnd}`)
-      .then((res) => (res.ok ? res.json() : { workouts: [] }))
-      .then((data) => { if (!cancelled) setWorkouts(data.workouts || []); })
-      .catch(() => { if (!cancelled) setWorkouts([]); });
-    fetch('/api/activities')
-      .then((res) => (res.ok ? res.json() : { activities: [] }))
-      .then((data) => { if (!cancelled) setActivities(data.activities || []); })
-      .catch(() => { if (!cancelled) setActivities([]); });
-    return () => { cancelled = true; };
-  }, [weekStart, weekEnd]);
-
-  const summary = useMemo(() => {
-    if (!workouts || !activities) return null;
-    return summarizeReconciliationWindow(workouts, activities, { start: weekStart, end: weekEnd, today });
-  }, [workouts, activities, weekStart, weekEnd, today]);
-
-  return <ReconciliationSummary summary={summary} />;
 }

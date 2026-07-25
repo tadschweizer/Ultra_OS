@@ -437,7 +437,7 @@ export default function Content() {
 
         {isEmptyState && viewMode === 'saved' ? (
           <div className="rounded-[30px] border border-ink/10 bg-white p-8 text-center shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-            <p className="text-2xl">🔖</p>
+            <p className="text-[11px] uppercase tracking-[0.25em] text-ink/35">Saved studies</p>
             <p className="mt-3 font-semibold text-ink">No saved studies yet.</p>
             <p className="mt-2 text-sm leading-6 text-ink/55">Browse the library and tap Save on any study to bookmark it here.</p>
             <button type="button" onClick={() => setViewMode('all')} className="mt-5 inline-flex rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-paper">

@@ -320,35 +320,6 @@ const allInterventionDefinitions = interventionCatalog.flatMap((group) =>
   group.types.map((type) => ({ ...type, phase: group.phase }))
 );
 
-const interventionIcons = {
-  'Workout Check-in': '📋',
-  'Heat Acclimation': '🔥',
-  'Altitude Acclimatization': '⛰️',
-  'Respiratory Training': '🫁',
-  'Gut Training': '🥤',
-  'Sodium Bicarbonate - Loading Protocol': '🧪',
-  'Caffeine Cycling / Washout': '☕',
-  'Carbohydrate Loading': '🍚',
-  'Cold Exposure - Adaptation Protocol': '🧊',
-  'BFR - Strength Maintenance': '🩸',
-  'Sleep Protocol': '🌙',
-  'Fueling - Mid-Effort': '⚡',
-  'Hydration and Electrolytes': '💧',
-  'Caffeine - Mid-Effort': '🚀',
-  'Sodium Bicarbonate - Acute Race Use': '🧫',
-  'Cooling Strategy': '❄️',
-  'Trekking Poles': '🥢',
-  'Massage Gun': '🔧',
-  'Normatec / Pneumatic Compression': '🦵',
-  'Ice Bath / Cold Immersion': '🛁',
-  'Contrast Therapy': '♨️',
-  'Sauna - Recovery': '🧖',
-  'Compression Garments': '🧦',
-  'Elevation / Legs Up': '🛋️',
-  'Stretching / Mobility': '🤸',
-  'Foam Rolling': '🌀',
-  'Custom Intervention': '✍️',
-};
 
 export function getInterventionDefinition(interventionType) {
   return allInterventionDefinitions.find((type) => type.label === interventionType) || null;
@@ -358,8 +329,18 @@ export function getAllInterventionDefinitions() {
   return allInterventionDefinitions;
 }
 
-export function getInterventionIcon(interventionType) {
-  return interventionIcons[interventionType] || '•';
+/**
+ * Two-letter monogram used where the UI needs a compact visual anchor for an
+ * intervention type. Derived from the label so new types need no registration.
+ */
+export function getInterventionMonogram(interventionType) {
+  const words = String(interventionType || '')
+    .replace(/[^a-zA-Z0-9 ]+/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean);
+  if (!words.length) return '--';
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return (words[0][0] + words[1][0]).toUpperCase();
 }
 
 export function createProtocolPayload(interventionType, existingPayload = {}) {
