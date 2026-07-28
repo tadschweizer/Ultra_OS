@@ -1,8 +1,13 @@
-import { supabase } from '../../lib/supabaseClient';
+import { getSupabaseAdminClient } from '../../lib/authServer';
 import cookie from 'cookie';
 import { inferLegacyScores, normalizeProtocolPayload } from '../../lib/interventionCatalog';
 import { canLogCheckIn, canLogIntervention, normalizeSubscriptionTier } from '../../lib/subscriptionTiers';
 import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
+
+// Server-side routes cannot use the anon client: it carries no Supabase
+// session, so auth.uid() is null and every RLS policy denies it. This route
+// uses the service-role client and authorises from the session athlete id.
+const supabase = getSupabaseAdminClient();
 
 
 /**
