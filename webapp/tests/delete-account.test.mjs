@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 process.env.SESSION_COOKIE_SECRET = process.env.SESSION_COOKIE_SECRET || 'test-session-secret';
 
 import deleteAccountHandler, { ORPHAN_DELETIONS } from '../pages/api/delete-account.js';
-import { signAthleteId } from '../lib/auth/sessionCookies.js';
+import { signAthleteSession } from '../lib/auth/sessionCookies.js';
 
 const UUID = '123e4567-e89b-12d3-a456-426614174000';
 
@@ -46,7 +46,7 @@ test('rejects wrong confirmation text before touching the database', async () =>
   await deleteAccountHandler(
     {
       method: 'DELETE',
-      headers: { cookie: `athlete_id=${signAthleteId(UUID)}` },
+      headers: { cookie: `athlete_id=${signAthleteSession(UUID, 1)}` },
       body: { confirm: 'delete my account' },
     },
     res

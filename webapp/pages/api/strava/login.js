@@ -1,4 +1,5 @@
 import { getStravaRedirectUri } from '../../../lib/auth/oauth.js';
+import { createOAuthState } from '../../../lib/auth/oauthState.js';
 
 /**
  * API route to initiate the Strava OAuth flow.
@@ -16,6 +17,10 @@ export default function handler(req, res) {
     return;
   }
 
+  // Binds this authorization to this browser; the callback rejects any code
+  // that comes back without the matching nonce. See lib/auth/oauthState.js.
+  const state = createOAuthState(res, 'strava');
+
   const scope = 'read,activity:read_all,profile:read_all';
   const authUrl =
     'https://www.strava.com/oauth/authorize?client_id=' +
@@ -23,7 +28,9 @@ export default function handler(req, res) {
     '&response_type=code&redirect_uri=' +
     encodeURIComponent(redirectUri) +
     '&approval_prompt=auto&scope=' +
-    encodeURIComponent(scope);
+    encodeURIComponent(scope) +
+    '&state=' +
+    encodeURIComponent(state);
   res.setHeader('Location', authUrl);
   res.statusCode = 302;
   res.end();

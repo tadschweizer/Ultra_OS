@@ -7,9 +7,12 @@ import { assertAuthPostMethod, isValidAthleteId } from '../lib/auth/contracts.js
 import {
   clearAthleteCookie,
   getAthleteIdFromRequest,
+  getSessionFromRequest,
+  renewAthleteCookieIfStale,
   setAthleteCookie,
-  signAthleteId,
-  verifySignedAthleteId,
+  signAthleteSession,
+  verifyAthleteSession,
+  SESSION_MAX_AGE_SEC,
 } from '../lib/auth/sessionCookies.js';
 import {
   setViewAsCookie,
@@ -42,8 +45,8 @@ test('set/clear cookie and parse athlete id', () => {
   const res = makeRes();
   setAthleteCookie(res, uuid);
   const setCookie = String(res.getHeader('Set-Cookie'));
-  // Value is the uuid plus a signature, and the cookie is httpOnly.
-  assert.match(setCookie, /athlete_id=123e4567-e89b-12d3-a456-426614174000\./);
+  // Value is `<uuid>:<version>:<expiry>` plus a signature, and it is httpOnly.
+  assert.match(setCookie, /athlete_id=123e4567-e89b-12d3-a456-426614174000%3A1%3A\d+\./);
   assert.match(setCookie, /HttpOnly/);
 
   const signedValue = decodeURIComponent(setCookie.split(';')[0].split('=').slice(1).join('='));
@@ -59,26 +62,80 @@ test('set/clear cookie and parse athlete id', () => {
 test('session cookie signature is enforced', () => {
   const uuid = '123e4567-e89b-12d3-a456-426614174000';
 
-  // A bare (legacy/forged) uuid with no signature is rejected.
+  // A bare (forged) uuid with no signature is rejected.
   assert.equal(getAthleteIdFromRequest({ headers: { cookie: `athlete_id=${uuid}` } }), null);
 
+  // The pre-expiry format `<uuid>.<mac>` is no longer accepted: those tokens
+  // could never expire or be revoked, so honouring them would reopen the hole
+  // this format exists to close.
+  const legacy = `${uuid}.${'a'.repeat(43)}`;
+  assert.equal(verifyAthleteSession(legacy), null);
+
   // A tampered signature is rejected.
-  assert.equal(verifySignedAthleteId(`${uuid}.forged-signature-value-aaaaaaaaaaaaaaaaaaaaaaa`), null);
+  const signed = signAthleteSession(uuid, 1);
+  assert.equal(verifyAthleteSession(`${signed.slice(0, signed.lastIndexOf('.'))}.forged`), null);
 
   // Swapping the uuid inside a validly signed value is rejected.
-  const signed = signAthleteId(uuid);
   const otherUuid = '223e4567-e89b-12d3-a456-426614174000';
-  const spliced = otherUuid + signed.slice(signed.lastIndexOf('.'));
-  assert.equal(verifySignedAthleteId(spliced), null);
+  const spliced = signed.replace(uuid, otherUuid);
+  assert.equal(verifyAthleteSession(spliced), null);
+
+  // Bumping the version inside a signed value is rejected.
+  assert.equal(verifyAthleteSession(signed.replace(`${uuid}:1:`, `${uuid}:2:`)), null);
 
   // Garbage shapes are rejected without throwing.
-  assert.equal(verifySignedAthleteId(null), null);
-  assert.equal(verifySignedAthleteId(''), null);
-  assert.equal(verifySignedAthleteId('not-a-cookie'), null);
-  assert.equal(verifySignedAthleteId('.'), null);
+  for (const bad of [null, '', 'not-a-cookie', '.', `${uuid}::.x`]) {
+    assert.equal(verifyAthleteSession(bad), null);
+  }
 
-  // The real signed value round-trips.
-  assert.equal(verifySignedAthleteId(signed), uuid);
+  // The real signed value round-trips with its version.
+  const parsed = verifyAthleteSession(signed);
+  assert.equal(parsed.athleteId, uuid);
+  assert.equal(parsed.sessionVersion, 1);
+});
+
+test('session tokens expire server-side', () => {
+  const uuid = '123e4567-e89b-12d3-a456-426614174000';
+  const now = Date.now();
+
+  const fresh = signAthleteSession(uuid, 1, now + 1000);
+  assert.equal(verifyAthleteSession(fresh, now).athleteId, uuid);
+
+  // A captured cookie stops working on schedule even if the browser would
+  // still send it — the old format had no expiry the server could enforce.
+  const expired = signAthleteSession(uuid, 1, now - 1);
+  assert.equal(verifyAthleteSession(expired, now), null);
+});
+
+test('session version is carried so revocation can be detected', () => {
+  const uuid = '123e4567-e89b-12d3-a456-426614174000';
+  const res = makeRes();
+  setAthleteCookie(res, uuid, 7);
+
+  const value = decodeURIComponent(String(res.getHeader('Set-Cookie')).split(';')[0].split('=').slice(1).join('='));
+  const session = getSessionFromRequest({ headers: { cookie: `athlete_id=${value}` } });
+  assert.equal(session.sessionVersion, 7);
+});
+
+test('an active session slides forward but a fresh one is left alone', () => {
+  const uuid = '123e4567-e89b-12d3-a456-426614174000';
+  const now = Date.now();
+
+  // Issued moments ago: no Set-Cookie, so most responses stay header-free.
+  const fresh = makeRes();
+  const justIssued = { athleteId: uuid, sessionVersion: 1, expiresAtMs: now + SESSION_MAX_AGE_SEC * 1000 };
+  assert.equal(renewAthleteCookieIfStale(fresh, justIssued, now), false);
+  assert.equal(fresh.getHeader('Set-Cookie'), undefined);
+
+  // Issued two days ago: renewed, so an active user is never logged out.
+  const stale = makeRes();
+  const twoDaysOld = {
+    athleteId: uuid,
+    sessionVersion: 1,
+    expiresAtMs: now + SESSION_MAX_AGE_SEC * 1000 - 2 * 24 * 60 * 60 * 1000,
+  };
+  assert.equal(renewAthleteCookieIfStale(stale, twoDaysOld, now), true);
+  assert.match(String(stale.getHeader('Set-Cookie')), /athlete_id=/);
 });
 
 test('role guards protect coach/admin routes', () => {
@@ -106,20 +163,23 @@ test('logout clears cookie and returns ok', async () => {
 const ADMIN_UUID = '123e4567-e89b-12d3-a456-426614174000';
 const TARGET_UUID = '223e4567-e89b-12d3-a456-426614174000';
 
-function fakeAdminClient(isAdmin) {
+function fakeAdminClient(isAdmin, sessionVersion = 1) {
   return {
     from: () => ({
       select: () => ({
         eq: () => ({
-          maybeSingle: async () => ({ data: { is_admin: isAdmin }, error: null }),
+          maybeSingle: async () => ({
+            data: { is_admin: isAdmin, session_version: sessionVersion },
+            error: null,
+          }),
         }),
       }),
     }),
   };
 }
 
-function requestAs(realId, { method = 'GET', viewAsValue = null } = {}) {
-  const cookies = [`athlete_id=${signAthleteId(realId)}`];
+function requestAs(realId, { method = 'GET', viewAsValue = null, sessionVersion = 1 } = {}) {
+  const cookies = [`athlete_id=${signAthleteSession(realId, sessionVersion)}`];
   if (viewAsValue) cookies.push(`view_as=${viewAsValue}`);
   return { method, headers: { cookie: cookies.join('; ') } };
 }
@@ -128,12 +188,43 @@ test('admin impersonation resolves the target id on GET only', async () => {
   const viewAs = signViewAsValue(TARGET_UUID);
 
   const get = await resolveEffectiveAthleteId(requestAs(ADMIN_UUID, { viewAsValue: viewAs }), fakeAdminClient(true));
-  assert.deepEqual(get, { athleteId: TARGET_UUID, realAthleteId: ADMIN_UUID, isImpersonating: true });
+  assert.equal(get.athleteId, TARGET_UUID);
+  assert.equal(get.realAthleteId, ADMIN_UUID);
+  assert.equal(get.isImpersonating, true);
 
   // Non-GET methods always resolve to the real athlete (middleware blocks
   // them outright as well) — a write must never touch either account wrongly.
   const post = await resolveEffectiveAthleteId(requestAs(ADMIN_UUID, { method: 'POST', viewAsValue: viewAs }), fakeAdminClient(true));
-  assert.deepEqual(post, { athleteId: ADMIN_UUID, realAthleteId: ADMIN_UUID, isImpersonating: false });
+  assert.equal(post.athleteId, ADMIN_UUID);
+  assert.equal(post.isImpersonating, false);
+});
+
+test('a session whose version no longer matches the athlete row is rejected', async () => {
+  // What "sign out everywhere" and a password reset rely on: the cookie was
+  // signed at version 1, the row has moved to 2, so the session is dead.
+  const revoked = await resolveEffectiveAthleteId(
+    requestAs(ADMIN_UUID, { sessionVersion: 1 }),
+    fakeAdminClient(true, 2)
+  );
+  assert.equal(revoked.athleteId, null);
+
+  const live = await resolveEffectiveAthleteId(
+    requestAs(ADMIN_UUID, { sessionVersion: 2 }),
+    fakeAdminClient(true, 2)
+  );
+  assert.equal(live.athleteId, ADMIN_UUID);
+});
+
+test('resolveEffectiveAthleteId fails closed when the athlete row cannot be read', async () => {
+  const brokenClient = {
+    from: () => ({
+      select: () => ({
+        eq: () => ({ maybeSingle: async () => ({ data: null, error: new Error('db down') }) }),
+      }),
+    }),
+  };
+  const resolved = await resolveEffectiveAthleteId(requestAs(ADMIN_UUID), brokenClient);
+  assert.equal(resolved.athleteId, null);
 });
 
 test('a forged (unsigned) view_as cookie is treated as self', async () => {
