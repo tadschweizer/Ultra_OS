@@ -305,3 +305,36 @@ test('no API route reads the athlete_id cookie without signature verification', 
   walk(apiDir);
   assert.deepEqual(offenders, [], `Routes reading athlete_id cookie without verification: ${offenders.join(', ')}`);
 });
+
+test('coach tables are never queried with the public anon key', async () => {
+  // coach_profiles / coach_athlete_links / coach_protocol_assignments have RLS
+  // enabled with no policies and no anon grants, so an anon-key query returns
+  // nothing. More importantly, reaching for the anon client here is the shape
+  // of the bug that left these tables world-readable in the first place.
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const apiDir = fileURLToPath(new URL('../pages/api', import.meta.url));
+
+  const COACH_TABLES = /coach_profiles|coach_athlete_links|coach_protocol_assignments/;
+
+  const offenders = [];
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, entry.name);
+      if (entry.isDirectory()) { walk(p); continue; }
+      if (!entry.name.endsWith('.js')) continue;
+      const src = fs.readFileSync(p, 'utf8');
+      if (COACH_TABLES.test(src) && /from '[^']*supabaseClient'/.test(src)) {
+        offenders.push(path.relative(apiDir, p));
+      }
+    }
+  };
+  walk(apiDir);
+
+  assert.deepEqual(
+    offenders,
+    [],
+    `Routes touching coach tables with the anon client: ${offenders.join(', ')}`
+  );
+});

@@ -1,4 +1,4 @@
-import { supabase } from '../../lib/supabaseClient';
+import { getSupabaseAdminClient } from '../../lib/authServer';
 import {
 
   computePlannedSessions,
@@ -7,6 +7,11 @@ import {
   generateCoachCode,
 } from '../../lib/coachProtocols';
 import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
+
+// Coach tables are no longer reachable with the public anon key (RLS is on and
+// the anon grants are revoked), so this route uses the service-role client.
+// Authorisation is enforced in the handler from the session athlete id.
+const supabase = getSupabaseAdminClient();
 
 function getAthleteId(req) {
   return getAthleteIdFromRequest(req);

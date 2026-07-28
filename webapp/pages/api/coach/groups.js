@@ -1,8 +1,13 @@
-import { supabase } from '../../../lib/supabaseClient';
+import { getSupabaseAdminClient } from '../../../lib/authServer';
 import { generateCoachCode } from '../../../lib/coachProtocols';
 import { countGroupMembers } from '../../../lib/coach/groupMembership';
 import { getAthleteIdFromRequest } from '../../../lib/auth/sessionCookies.js';
 import { getEffectiveAthleteIdFromRequest } from '../../../lib/auth/requireAthlete.js';
+
+// Coach tables are no longer reachable with the public anon key (RLS is on and
+// the anon grants are revoked), so this route uses the service-role client.
+// Authorisation is enforced in the handler from the session athlete id.
+const supabase = getSupabaseAdminClient();
 
 async function ensureCoachProfile(athleteId) {
   const { data: athlete } = await supabase.from('athletes').select('id, name').eq('id', athleteId).single();
