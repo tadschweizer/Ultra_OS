@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { createClient } from '@supabase/supabase-js';
 import NavMenu from '../components/NavMenu';
+import PasswordField from '../components/PasswordField';
+import { validatePassword } from '../lib/auth/contracts.js';
 
 function getSupabaseClient() {
   return createClient(
@@ -92,8 +94,11 @@ export default function SignupPage() {
   async function handleEmailSignup(event) {
     event.preventDefault();
     setError('');
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters.');
+    // Same rule the API enforces, imported from lib/auth/contracts.js so the
+    // two can never disagree about what counts as an acceptable password.
+    const passwordProblem = validatePassword(password, { email });
+    if (passwordProblem) {
+      setError(passwordProblem);
       return;
     }
     setLoading(true);
@@ -228,18 +233,12 @@ export default function SignupPage() {
                 className="w-full rounded-[14px] border border-ink/12 bg-paper px-4 py-3 text-sm text-ink placeholder-ink/30 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
               />
             </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.2em] text-ink/50">Password</label>
-              <input
-                type="password"
-                required
-                autoComplete="new-password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="At least 8 characters"
-                className="w-full rounded-[14px] border border-ink/12 bg-paper px-4 py-3 text-sm text-ink placeholder-ink/30 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
-              />
-            </div>
+            <PasswordField
+              id="signup-password"
+              value={password}
+              onChange={setPassword}
+              email={email}
+            />
             <button
               type="submit"
               disabled={loading}

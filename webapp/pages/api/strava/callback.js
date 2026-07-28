@@ -4,7 +4,12 @@ import { supabase } from '../../../lib/supabaseClient';
 import cookie from 'cookie';
 import { normalizeSubscriptionTier } from '../../../lib/subscriptionTiers';
 import { getStravaRedirectUri } from '../../../lib/auth/oauth.js';
-import { getAthleteIdFromRequest, signAthleteId } from '../../../lib/auth/sessionCookies.js';
+import { clearOAuthState, verifyOAuthState } from '../../../lib/auth/oauthState.js';
+import {
+  appendSetCookie,
+  getAthleteIdFromRequest,
+  setAthleteCookie,
+} from '../../../lib/auth/sessionCookies.js';
 
 function getAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -21,12 +26,26 @@ function getAdminClient() {
  * ID, and then redirects the browser to the dashboard page.
  */
 export default async function handler(req, res) {
-  const { code } = req.query;
+  const { code, state } = req.query;
   const cookies = cookie.parse(req.headers.cookie || '');
   if (!code) {
     res.status(400).send('Missing authorisation code');
     return;
   }
+
+  // Without this check an attacker can hold their own authorization code and
+  // trick a signed-in victim into loading this URL, grafting the attacker's
+  // Strava account onto the victim's — or, with the victim's code, walking off
+  // with their Strava tokens.
+  if (!verifyOAuthState(req, 'strava', state)) {
+    clearOAuthState(res, 'strava');
+    res.setHeader('Location', '/connections?error=oauth_state');
+    res.statusCode = 302;
+    res.end();
+    return;
+  }
+  clearOAuthState(res, 'strava');
+
   try {
     const clientId = process.env.STRAVA_CLIENT_ID;
     const clientSecret = process.env.STRAVA_CLIENT_SECRET;
@@ -45,6 +64,10 @@ export default async function handler(req, res) {
     if (existingAthleteId) {
       const adminClient = getAdminClient();
       const client = adminClient || supabase;
+      // Deliberately does NOT write `email`. Overwriting the account's address
+      // with whatever Strava reports would silently move the account to a
+      // different identity — and that address is what password reset and
+      // identity linking key off.
       const { data: linkedAthlete, error: linkError } = await client
         .from('athletes')
         .update({
@@ -52,38 +75,37 @@ export default async function handler(req, res) {
           access_token,
           refresh_token,
           token_expires_at: new Date(expires_at * 1000).toISOString(),
-          email: athlete.email || null,
         })
         .eq('id', existingAthleteId)
-        .select('id, onboarding_complete, name, subscription_tier')
+        .select('id, onboarding_complete, name, subscription_tier, session_version')
         .single();
       if (linkError) throw linkError;
       savedAthlete = linkedAthlete;
     } else {
       const adminClient = getAdminClient();
+      // No session: this is a sign-in, not a link. Matching an existing
+      // athlete by the email Strava reports used to happen here, and it let
+      // anyone who could set that address on a Strava profile walk into the
+      // matching Threshold account — including accounts that already had a
+      // password login. We cannot verify Strava's email claim, so the only
+      // safe anonymous match is on `strava_id` (the upsert below).
+      //
+      // A returning user whose account exists under that email is sent to log
+      // in instead, so they end up connecting Strava from inside their own
+      // session rather than silently forking a second account.
       if (adminClient && athlete.email) {
-        const { data: matchedAthlete } = await adminClient
+        const { data: emailMatches } = await adminClient
           .from('athletes')
-          .select('id, subscription_tier')
+          .select('id')
           .eq('email', athlete.email)
-          .maybeSingle();
+          .is('strava_id', null)
+          .limit(1);
 
-        if (matchedAthlete) {
-          const { data: linkedAthlete, error: linkError } = await adminClient
-            .from('athletes')
-            .update({
-              strava_id: athlete.id.toString(),
-              access_token,
-              refresh_token,
-              token_expires_at: new Date(expires_at * 1000).toISOString(),
-              email: athlete.email || null,
-              subscription_tier: normalizeSubscriptionTier(matchedAthlete.subscription_tier),
-            })
-            .eq('id', matchedAthlete.id)
-            .select('id, onboarding_complete, name, subscription_tier')
-            .single();
-          if (linkError) throw linkError;
-          savedAthlete = linkedAthlete;
+        if (emailMatches?.length) {
+          res.setHeader('Location', '/login?error=strava_email_exists');
+          res.statusCode = 302;
+          res.end();
+          return;
         }
       }
 
@@ -103,7 +125,7 @@ export default async function handler(req, res) {
             },
             { onConflict: 'strava_id' }
           )
-          .select('id, onboarding_complete, name, subscription_tier')
+          .select('id, onboarding_complete, name, subscription_tier, session_version')
           .single();
         if (athleteError) throw athleteError;
         savedAthlete = upsertedAthlete;
@@ -125,22 +147,20 @@ export default async function handler(req, res) {
       }
     }
 
-    const cookieOptions = { secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/' };
-
-    // Set athlete_id cookie + clear the pending invite token cookie
-    const setCookies = [
-      cookie.serialize('athlete_id', signAthleteId(athleteId), {
-        ...cookieOptions,
-        httpOnly: true,
-        maxAge: 60 * 60 * 24 * 30, // 30 days
-      }),
+    // Both writes APPEND. Assigning the Set-Cookie header outright, as this
+    // did before, would drop the OAuth-state cookie cleared at the top of the
+    // handler and leave a spent nonce live for its full 30 minutes.
+    setAthleteCookie(res, athleteId, savedAthlete.session_version);
+    appendSetCookie(
+      res,
       cookie.serialize('pending_invite_token', '', {
-        ...cookieOptions,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
         httpOnly: true,
-        maxAge: 0, // clear it
-      }),
-    ];
-    res.setHeader('Set-Cookie', setCookies);
+        maxAge: 0,
+      })
+    );
 
     const destination = savedAthlete.onboarding_complete
       ? '/dashboard'

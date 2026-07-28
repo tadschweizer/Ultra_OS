@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import NavMenu from '../components/NavMenu';
 import { clearMe } from '../lib/meClient';
+import { safeNextPath } from '../lib/auth/redirects.js';
 
 function getSupabaseClient() {
   return createClient(
@@ -16,11 +17,19 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
+  // Where to land after signing in. OnboardingGate sets ?next= when it bounces
+  // a signed-out visitor; this page used to ignore it and send everyone to
+  // /dashboard, so every deep link lost its destination.
+  const [nextPath, setNextPath] = useState('/dashboard');
 
   useEffect(() => {
     let cancelled = false;
 
     async function checkExistingSession() {
+      const params = new URLSearchParams(window.location.search);
+      const destination = safeNextPath(params.get('next'));
+      if (!cancelled) setNextPath(destination);
+
       try {
         const res = await fetch('/api/me', {
           cache: 'no-store',
@@ -28,7 +37,7 @@ export default function LoginPage() {
         });
         if (res.ok) {
           const data = await res.json();
-          window.location.href = data.athlete?.onboarding_complete ? '/dashboard' : '/onboarding';
+          window.location.href = data.athlete?.onboarding_complete ? destination : '/onboarding';
           return;
         }
       } catch {
@@ -40,12 +49,15 @@ export default function LoginPage() {
       // The session cookie is httpOnly now; ask the server to clear it.
       fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
 
-      const params = new URLSearchParams(window.location.search);
       const errorParam = params.get('error');
       if (errorParam === 'strava_not_configured') {
         setError('Strava login is not configured yet. You can still log in with email or Google.');
       } else if (errorParam === 'oauth_failed' || errorParam === 'session_sync') {
         setError('Google sign-in started, but Threshold could not finish the login. Please try again.');
+      } else if (errorParam === 'strava_email_exists') {
+        setError('You already have a Threshold account with that email. Log in below, then connect Strava from Connections.');
+      } else if (errorParam === 'oauth_state') {
+        setError('That connection link expired or did not match. Please start again.');
       }
       setChecking(false);
     }
@@ -76,7 +88,7 @@ export default function LoginPage() {
       }
 
       clearMe();
-      window.location.href = data.onboardingComplete ? '/dashboard' : '/onboarding';
+      window.location.href = data.onboardingComplete ? nextPath : '/onboarding';
     } catch {
       setError('Something went wrong. Please try again.');
       setLoading(false);
@@ -88,10 +100,11 @@ export default function LoginPage() {
     setLoading(true);
 
     const supabase = getSupabaseClient();
-        const { error: oauthError } = await supabase.auth.signInWithOAuth({
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        // Carried through the provider round-trip so the deep link survives.
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
       },
     });
 
@@ -156,8 +169,14 @@ export default function LoginPage() {
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.2em] text-ink/50">Password</label>
+              <div className="mb-1.5 flex items-center justify-between">
+                <label htmlFor="login-password" className="block text-xs font-semibold uppercase tracking-[0.2em] text-ink/50">Password</label>
+                <a href="/forgot-password" className="text-xs font-semibold text-accent hover:underline">
+                  Forgot password?
+                </a>
+              </div>
               <input
+                id="login-password"
                 type="password"
                 required
                 autoComplete="current-password"

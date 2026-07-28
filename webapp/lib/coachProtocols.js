@@ -6,12 +6,37 @@ function addDays(dateString, days) {
   return date;
 }
 
+// Excludes I, L, O, 0 and 1 — a coach reads this code aloud or types it from a
+// screenshot, and those are the characters people get wrong.
+const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const CODE_LENGTH = 8;
+
+/**
+ * Generates a coach code.
+ *
+ * The old version took four characters from `Math.random()`, which is not a
+ * cryptographic generator and is seeded predictably enough that its output
+ * should never guard access to anything. Combined with a prefix derived from
+ * the coach's own name — public information — that left roughly a million
+ * guesses, against an endpoint with no rate limiting.
+ *
+ * This uses crypto randomness over a longer, unambiguous alphabet: ~31^8, or
+ * about 8.5e11 codes. The name prefix is kept because coaches recognise their
+ * own code by it, but it is no longer doing any of the security work.
+ */
 export function generateCoachCode(displayName = 'COACH') {
   const base = displayName
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, '')
     .slice(0, 6) || 'COACH';
-  const suffix = Math.random().toString(36).slice(2, 6).toUpperCase();
+
+  const bytes = globalThis.crypto.getRandomValues(new Uint8Array(CODE_LENGTH));
+  let suffix = '';
+  for (const byte of bytes) {
+    // Modulo bias across a 31-character alphabet is negligible at this size.
+    suffix += CODE_ALPHABET[byte % CODE_ALPHABET.length];
+  }
+
   return `${base}-${suffix}`;
 }
 

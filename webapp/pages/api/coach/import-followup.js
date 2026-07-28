@@ -1,6 +1,11 @@
-import { supabase } from '../../../lib/supabaseClient';
+import { getSupabaseAdminClient } from '../../../lib/authServer';
 import { canSendFollowup } from '../../../lib/importHealth';
 import { getAthleteIdFromRequest } from '../../../lib/auth/sessionCookies.js';
+
+// Coach tables are no longer reachable with the public anon key (RLS is on and
+// the anon grants are revoked), so this route uses the service-role client.
+// Authorisation is enforced in the handler from the session athlete id.
+const supabase = getSupabaseAdminClient();
 
 function buildFollowupBody(count) {
   return `Your TrainingPeaks import has ${count} workout${count === 1 ? '' : 's'} that need manual mapping. Open Connections → Migration completeness to finish them so your calendar and reports are complete.`;

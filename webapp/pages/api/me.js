@@ -1,7 +1,7 @@
 import { getSupabaseAdminClient } from '../../lib/authServer';
 import { buildUsageSnapshot, getSubscriptionTierLabel, normalizeSubscriptionTier } from '../../lib/subscriptionTiers';
 import { buildLoadMetrics, buildLoadStatus } from '../../lib/loadRollups';
-import { clearAthleteCookie } from '../../lib/auth/sessionCookies.js';
+import { clearAthleteCookie, renewAthleteCookieIfStale } from '../../lib/auth/sessionCookies.js';
 import { resolveEffectiveAthleteId } from '../../lib/auth/requireAthlete.js';
 import { isValidAthleteId } from '../../lib/auth/contracts.js';
 
@@ -12,9 +12,13 @@ import { isValidAthleteId } from '../../lib/auth/contracts.js';
  */
 export default async function handler(req, res) {
   const admin = getSupabaseAdminClient();
-  const { athleteId, isImpersonating } = await resolveEffectiveAthleteId(req, admin);
+  const { athleteId, isImpersonating, session } = await resolveEffectiveAthleteId(req, admin);
 
   if (!athleteId) {
+    // Covers an expired token and one revoked by a password change or
+    // "sign out everywhere". Clearing the cookie here is what turns a revoked
+    // session into a visibly logged-out browser on the next page load.
+    clearAthleteCookie(res);
     res.status(401).json({ error: 'Not authenticated' });
     return;
   }
@@ -24,10 +28,14 @@ export default async function handler(req, res) {
     return;
   }
 
+  // Every page load calls this endpoint, so it is the natural place to slide
+  // the expiry forward and keep active users signed in.
+  if (!isImpersonating) renewAthleteCookieIfStale(res, session);
+
   // Fetch athlete
   const { data: athlete, error: athleteError } = await admin
     .from('athletes')
-    .select('id, name, email, strava_id, token_expires_at, onboarding_complete, primary_sports, years_racing_band, weekly_training_hours_band, home_elevation_ft, target_race_id, is_admin, subscription_tier, supabase_user_id, stripe_subscription_status')
+    .select('id, name, email, strava_id, token_expires_at, onboarding_complete, primary_sports, years_racing_band, weekly_training_hours_band, home_elevation_ft, target_race_id, is_admin, subscription_tier, supabase_user_id, stripe_subscription_status, email_verified_at')
     .eq('id', athleteId)
     .maybeSingle();
   if (athleteError) {
@@ -93,6 +101,10 @@ export default async function handler(req, res) {
     subscription_tier: normalizedTier,
     subscription_label: getSubscriptionTierLabel(normalizedTier),
     auth_provider: athlete.supabase_user_id ? 'supabase' : athlete.strava_id ? 'strava' : null,
+    // Strava-only accounts never go through Supabase email confirmation, so
+    // they are not "unverified" in a way the user can act on — only accounts
+    // with a Supabase identity can be prompted to confirm.
+    email_verified: Boolean(athlete.email_verified_at) || !athlete.supabase_user_id,
   };
 
   res.status(200).json({

@@ -27,7 +27,7 @@ async function writeSubscriptionToAthlete({ athleteId, customerId, subscription 
     .from('athletes')
     .update(updates)
     .eq('id', athleteId)
-    .select('id, subscription_tier, stripe_customer_id, stripe_subscription_id, stripe_price_id, stripe_subscription_status')
+    .select('id, subscription_tier, stripe_customer_id, stripe_subscription_id, stripe_price_id, stripe_subscription_status, session_version')
     .single();
 
   if (error) {
@@ -208,7 +208,11 @@ export default async function handler(req, res) {
       subscription,
     });
 
-    setAthleteCookie(res, athleteId);
+    // Re-issues the session for the checkout-return recovery path, where the
+    // athlete was resolved from the pending-billing cookie rather than a live
+    // session. Must carry the current session_version or the fresh cookie
+    // would verify as revoked.
+    setAthleteCookie(res, athleteId, updatedAthlete.session_version);
     clearPendingCheckoutCookie(res);
 
     res.status(200).json({

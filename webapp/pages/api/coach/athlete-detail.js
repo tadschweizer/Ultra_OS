@@ -1,7 +1,12 @@
-import { supabase } from '../../../lib/supabaseClient';
+import { getSupabaseAdminClient } from '../../../lib/authServer';
 import { buildAthleteImportHealth } from '../../../lib/importHealth';
 import { getAthleteIdFromRequest } from '../../../lib/auth/sessionCookies.js';
 import { getEffectiveAthleteIdFromRequest } from '../../../lib/auth/requireAthlete.js';
+
+// Coach tables are no longer reachable with the public anon key (RLS is on and
+// the anon grants are revoked), so this route uses the service-role client.
+// Authorisation is enforced in the handler from the session athlete id.
+const supabase = getSupabaseAdminClient();
 
 function buildRaceReadiness({ upcomingRace, activeProtocols, compliance, activities, checkins, interventions }) {
   const daysUntilRace = upcomingRace?.event_date ? Math.ceil((new Date(upcomingRace.event_date) - new Date()) / 86400000) : null;
