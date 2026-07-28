@@ -1,8 +1,13 @@
-import { supabase } from '../../lib/supabaseClient';
+import { getSupabaseAdminClient } from '../../lib/authServer';
 import { getActivityStreams, getDetailedActivity, refreshToken } from '../../lib/strava';
 import cookie from 'cookie';
 import { analyzeSteadyState } from '../../lib/streamAnalysis';
 import { getEffectiveAthleteIdFromRequest } from '../../lib/auth/requireAthlete.js';
+
+// Server-side routes cannot use the anon client: it carries no Supabase
+// session, so auth.uid() is null and every RLS policy denies it. This route
+// uses the service-role client and authorises from the session athlete id.
+const supabase = getSupabaseAdminClient();
 
 function summarizeAltitude(streamData = []) {
   if (!Array.isArray(streamData) || streamData.length === 0) {

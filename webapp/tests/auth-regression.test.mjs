@@ -306,6 +306,37 @@ test('no API route reads the athlete_id cookie without signature verification', 
   assert.deepEqual(offenders, [], `Routes reading athlete_id cookie without verification: ${offenders.join(', ')}`);
 });
 
+test('no API route uses the anon Supabase client', async () => {
+  // The anon client carries no Supabase session, so auth.uid() is null and
+  // every RLS policy denies it. A server route using it does not fail loudly —
+  // reads come back empty and writes affect nothing — so this is caught here
+  // rather than in production. Revoking the anon table grants turned those
+  // silent no-ops into hard permission errors, which is how it surfaced.
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const apiDir = fileURLToPath(new URL('../pages/api', import.meta.url));
+
+  const offenders = [];
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, entry.name);
+      if (entry.isDirectory()) { walk(p); continue; }
+      if (!entry.name.endsWith('.js')) continue;
+      if (/from '[^']*supabaseClient'/.test(fs.readFileSync(p, 'utf8'))) {
+        offenders.push(path.relative(apiDir, p));
+      }
+    }
+  };
+  walk(apiDir);
+
+  assert.deepEqual(
+    offenders,
+    [],
+    `API routes on the anon client (use getSupabaseAdminClient): ${offenders.join(', ')}`
+  );
+});
+
 test('coach tables are never queried with the public anon key', async () => {
   // coach_profiles / coach_athlete_links / coach_protocol_assignments have RLS
   // enabled with no policies and no anon grants, so an anon-key query returns

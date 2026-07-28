@@ -1,6 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
 import { exchangeToken } from '../../../lib/strava';
-import { supabase } from '../../../lib/supabaseClient';
+import { getSupabaseAdminClient } from '../../../lib/authServer';
 import cookie from 'cookie';
 import { normalizeSubscriptionTier } from '../../../lib/subscriptionTiers';
 import { getStravaRedirectUri } from '../../../lib/auth/oauth.js';
@@ -11,12 +10,10 @@ import {
   setAthleteCookie,
 } from '../../../lib/auth/sessionCookies.js';
 
-function getAdminClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !serviceKey) return null;
-  return createClient(url, serviceKey);
-}
+// Server-side routes cannot use the anon client: it carries no Supabase
+// session, so auth.uid() is null and every RLS policy denies it. This route
+// uses the service-role client and authorises from the session athlete id.
+const supabase = getSupabaseAdminClient();
 
 /**
  * Handle the Strava OAuth callback.
@@ -62,13 +59,11 @@ export default async function handler(req, res) {
     let savedAthlete;
 
     if (existingAthleteId) {
-      const adminClient = getAdminClient();
-      const client = adminClient || supabase;
       // Deliberately does NOT write `email`. Overwriting the account's address
       // with whatever Strava reports would silently move the account to a
       // different identity — and that address is what password reset and
       // identity linking key off.
-      const { data: linkedAthlete, error: linkError } = await client
+      const { data: linkedAthlete, error: linkError } = await supabase
         .from('athletes')
         .update({
           strava_id: athlete.id.toString(),
@@ -82,7 +77,6 @@ export default async function handler(req, res) {
       if (linkError) throw linkError;
       savedAthlete = linkedAthlete;
     } else {
-      const adminClient = getAdminClient();
       // No session: this is a sign-in, not a link. Matching an existing
       // athlete by the email Strava reports used to happen here, and it let
       // anyone who could set that address on a Strava profile walk into the
@@ -93,8 +87,8 @@ export default async function handler(req, res) {
       // A returning user whose account exists under that email is sent to log
       // in instead, so they end up connecting Strava from inside their own
       // session rather than silently forking a second account.
-      if (adminClient && athlete.email) {
-        const { data: emailMatches } = await adminClient
+      if (athlete.email) {
+        const { data: emailMatches } = await supabase
           .from('athletes')
           .select('id')
           .eq('email', athlete.email)
@@ -110,8 +104,7 @@ export default async function handler(req, res) {
       }
 
       if (!savedAthlete) {
-        const upsertClient = getAdminClient() || supabase;
-        const { data: upsertedAthlete, error: athleteError } = await upsertClient
+        const { data: upsertedAthlete, error: athleteError } = await supabase
           .from('athletes')
           .upsert(
             {
@@ -137,14 +130,11 @@ export default async function handler(req, res) {
     // If there's a pending invite token cookie, mark it used now
     const inviteToken = cookies.pending_invite_token;
     if (inviteToken) {
-      const adminClient = getAdminClient();
-      if (adminClient) {
-        await adminClient
-          .from('invites')
-          .update({ used_at: new Date().toISOString(), used_by: athleteId })
-          .eq('token', inviteToken)
-          .is('used_at', null);
-      }
+      await supabase
+        .from('invites')
+        .update({ used_at: new Date().toISOString(), used_by: athleteId })
+        .eq('token', inviteToken)
+        .is('used_at', null);
     }
 
     // Both writes APPEND. Assigning the Set-Cookie header outright, as this
