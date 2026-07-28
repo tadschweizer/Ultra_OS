@@ -104,3 +104,33 @@ test('client IP prefers the proxy headers in order', () => {
   assert.equal(getClientIp({ headers: {}, socket: { remoteAddress: '4.4.4.4' } }), '4.4.4.4');
   assert.equal(getClientIp({ headers: {} }), null);
 });
+
+// ─── Coach codes ─────────────────────────────────────────────────────────────
+
+test('coach codes are cryptographically random and unambiguous', async () => {
+  const { generateCoachCode } = await import('../lib/coachProtocols.js');
+
+  const code = generateCoachCode('Tad Schweizer');
+  assert.match(code, /^TADSCH-[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{8}$/);
+
+  // The old implementation took four characters from Math.random(); the
+  // suffix is the only part doing security work, so it has to be wide and
+  // non-repeating across calls.
+  const suffixes = new Set();
+  for (let i = 0; i < 500; i += 1) {
+    suffixes.add(generateCoachCode('Coach').split('-')[1]);
+  }
+  assert.equal(suffixes.size, 500, 'suffixes should not collide over 500 draws');
+
+  // Characters people misread when typing a code from a screenshot.
+  for (const code2 of suffixes) {
+    assert.doesNotMatch(code2, /[ILO01]/);
+  }
+});
+
+test('coach code falls back to a usable prefix for odd display names', () => {
+  return import('../lib/coachProtocols.js').then(({ generateCoachCode }) => {
+    assert.match(generateCoachCode('...'), /^COACH-/);
+    assert.match(generateCoachCode(''), /^COACH-/);
+  });
+});

@@ -4,6 +4,7 @@ import DashboardTabs from '../components/DashboardTabs';
 import UpgradePrompt from '../components/UpgradePrompt';
 import EmptyStateCard from '../components/EmptyStateCard';
 import ImportHealthCard from '../components/ImportHealthCard';
+import CoachRequestsPanel from '../components/CoachRequestsPanel';
 import { usePlan } from '../lib/planUtils';
 import { interventionCatalog } from '../lib/interventionCatalog';
 import { appMenuLinks } from '../lib/siteNavigation';
@@ -907,6 +908,8 @@ export default function CoachCommandCenter() {
               </div>
             </div>
           </section>
+
+          <CoachRequestsPanel />
 
 
 

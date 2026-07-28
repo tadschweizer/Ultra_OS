@@ -3,7 +3,8 @@ import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
 import { createClient } from '@supabase/supabase-js';
 import { usePlan } from '../lib/planUtils';
-import { clearMe } from '../lib/meClient';
+import { clearMe, fetchMe, getCachedMe } from '../lib/meClient';
+import SecuritySection from '../components/SecuritySection';
 
 function getSupabaseClient() {
   return createClient(
@@ -20,6 +21,7 @@ export default function AccountPage() {
   const [coachMessage, setCoachMessage] = useState('');
   const [loggingOut, setLoggingOut] = useState(false);
   const [billingMessage, setBillingMessage] = useState('');
+  const [athlete, setAthlete] = useState(() => getCachedMe()?.athlete || null);
   const navLinks = [
     { href: '/dashboard', label: 'Threshold Home' },
     { href: '/guide', label: 'Guide' },
@@ -29,6 +31,12 @@ export default function AccountPage() {
     { href: '/account', label: 'Account' },
     { href: '/', label: 'Landing Page' },
   ];
+
+  useEffect(() => {
+    // Drives the security card: which sign-in methods exist, and whether the
+    // email still needs confirming.
+    fetchMe().then((data) => setAthlete(data?.athlete || null));
+  }, []);
 
   useEffect(() => {
     async function loadConnections() {
@@ -79,7 +87,9 @@ export default function AccountPage() {
 
     setCoachConnections((current) => [...current, data.connection]);
     setCoachCode('');
-    setCoachMessage('Coach connected.');
+    // A code now raises a request rather than joining outright, so the copy
+    // comes from the server and names what still has to happen.
+    setCoachMessage(data.message || 'Request sent.');
   }
 
   async function disconnectCoach(id) {
@@ -205,6 +215,8 @@ export default function AccountPage() {
           </div>
         </section>
 
+        <SecuritySection athlete={athlete} />
+
         <section className="mt-6 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
           <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
             <p className="text-sm uppercase tracking-[0.25em] text-accent">Coach Connection</p>
@@ -243,14 +255,17 @@ export default function AccountPage() {
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="text-sm font-semibold text-ink">{connection.coach?.display_name || 'Coach'}</p>
-                      <p className="mt-1 text-xs uppercase tracking-[0.18em] text-ink/55">{connection.role}</p>
+                      <p className="mt-1 text-xs uppercase tracking-[0.18em] text-ink/55">
+                        {connection.role}
+                        {connection.status === 'pending' ? ' · Awaiting approval' : null}
+                      </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => disconnectCoach(connection.id)}
                       className="rounded-full border border-ink/10 px-3 py-1 text-xs font-semibold text-ink"
                     >
-                      Disconnect
+                      {connection.status === 'pending' ? 'Cancel' : 'Disconnect'}
                     </button>
                   </div>
                 </div>
