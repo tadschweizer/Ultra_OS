@@ -52,7 +52,8 @@ This MVP assumes:
 - `public.athletes` exists
 - `public.interventions` exists
 - `pgcrypto` is enabled
-- RLS is disabled on both tables
+- RLS is enabled, and the anon/authenticated roles have no table grants —
+  every read and write goes through the API routes on the service-role key
 
 4. Start the app
 
@@ -80,7 +81,18 @@ After changing environment variables, trigger a fresh production redeploy.
 
 ## Current Security Model
 
-This MVP intentionally keeps RLS disabled and uses an `athlete_id` cookie to keep the integration path simple. That is acceptable for short-term validation, but it is not the final auth model.
+Auth is an HMAC-signed, httpOnly `athlete_id` cookie carrying the athlete id, a
+session version and an expiry. The server enforces the expiry, and bumping
+`athletes.session_version` revokes every outstanding cookie for that athlete —
+which is what password change, password reset and "sign out everywhere" do.
+
+Data access does not rely on RLS to authorise users: the API routes use the
+service-role key and authorise from the session athlete id. RLS is enabled and
+client-key grants are revoked so the anon key — which ships in the browser
+bundle — cannot reach any table directly.
+
+See [`docs-auth-stability.md`](./docs-auth-stability.md) for the invariants that
+must not regress.
 
 ## Suggested Operating Model
 
@@ -88,6 +100,10 @@ This MVP intentionally keeps RLS disabled and uses an `athlete_id` cookie to kee
 - Push to GitHub for version control
 - Let Vercel deploy preview and production
 - Keep Supabase schema in versioned SQL files instead of dashboard-only edits
+- Apply new migrations individually (SQL editor or the Supabase MCP), **not**
+  `supabase db push`: the applied history and these filenames carry different
+  version numbers for the same migrations, so a push would try to re-run work
+  the database already has
 
 ## Auth QA automation
 
