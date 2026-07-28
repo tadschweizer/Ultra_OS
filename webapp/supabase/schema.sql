@@ -216,15 +216,20 @@ create index if not exists research_library_entries_published_idx
 create index if not exists research_library_entries_topic_tags_idx
   on public.research_library_entries using gin (topic_tags);
 
-alter table public.athletes disable row level security;
-alter table public.interventions disable row level security;
-alter table public.athlete_settings disable row level security;
-alter table public.athlete_supplements disable row level security;
-alter table public.races disable row level security;
-alter table public.coach_profiles disable row level security;
-alter table public.coach_athlete_links disable row level security;
-alter table public.coach_protocol_assignments disable row level security;
-alter table public.race_catalog disable row level security;
+-- Application tables are reached only by the API routes, which use the
+-- service-role key (bypassing RLS) and authorise from the signed session
+-- cookie. RLS is enabled with no policies so the public anon key — which
+-- ships in the browser bundle — cannot read or write these tables directly.
+-- See docs-auth-stability.md.
+alter table public.athletes enable row level security;
+alter table public.interventions enable row level security;
+alter table public.athlete_settings enable row level security;
+alter table public.athlete_supplements enable row level security;
+alter table public.races enable row level security;
+alter table public.coach_profiles enable row level security;
+alter table public.coach_athlete_links enable row level security;
+alter table public.coach_protocol_assignments enable row level security;
+alter table public.race_catalog enable row level security;
 alter table public.research_library_entries enable row level security;
 
 drop policy if exists "Published research entries are public readable" on public.research_library_entries;
@@ -235,13 +240,12 @@ create policy "Published research entries are public readable"
   using (published = true);
 
 grant usage on schema public to anon, authenticated;
-grant select, insert, update, delete on table public.athletes to anon, authenticated;
-grant select, insert, update, delete on table public.interventions to anon, authenticated;
-grant select, insert, update, delete on table public.athlete_settings to anon, authenticated;
-grant select, insert, update, delete on table public.athlete_supplements to anon, authenticated;
-grant select, insert, update, delete on table public.races to anon, authenticated;
-grant select, insert, update, delete on table public.coach_profiles to anon, authenticated;
-grant select, insert, update, delete on table public.coach_athlete_links to anon, authenticated;
-grant select, insert, update, delete on table public.coach_protocol_assignments to anon, authenticated;
-grant select, insert, update, delete on table public.race_catalog to anon, authenticated;
+
+-- No table grants for the client keys. The API routes hold the service-role
+-- key, so nothing legitimate reaches these tables with the anon key, and a
+-- grant left in place would be a second lock unlocked: any policy later
+-- loosened for a legitimate read would open writes along with it.
+--
+-- research_library_entries is the one deliberate exception — published
+-- articles are public data, gated to `published = true` by the policy above.
 grant select on table public.research_library_entries to anon, authenticated;

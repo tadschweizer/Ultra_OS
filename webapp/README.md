@@ -45,9 +45,13 @@ For local Strava testing, set the Strava app callback domain to `localhost`.
 
 3. Create the database objects
 
-Run [`supabase/schema.sql`](./supabase/schema.sql) in the Supabase SQL editor.
+Run [`supabase/schema.sql`](./supabase/schema.sql) in the Supabase SQL editor,
+then apply everything in [`supabase/migrations/`](./supabase/migrations) in
+filename order. `schema.sql` is the baseline only — auth hardening, the coach
+command center and the training calendar all live in migrations, and the app
+will not run correctly without them.
 
-This MVP assumes:
+This assumes:
 
 - `public.athletes` exists
 - `public.interventions` exists
