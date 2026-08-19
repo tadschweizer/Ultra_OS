@@ -64,16 +64,23 @@ marks both as unavailable on Free.
 - **Fix:** uncap check-ins for athletes attached to an active coach relationship. Check-ins are the coach's product, not the athlete's upsell.
 - Evidence: `subscriptionTiers.js` `FREE_WEEKLY_CHECKIN_LIMIT = 3`, `FREE_INTERVENTION_LIMIT = 15`
 
-### B-05 · Choosing "I'm a coach" at signup never reaches the server
+### B-05 · The coach's readiness signal reads a table nothing writes
 
-The role picker writes to `localStorage` and a query string. The signup POST body carries name,
-email, password — no role. The onboarding save payload carries sports and race — no role. So the
-account has no idea it belongs to a coach. `lib/auth/roleGuards.js` exists to answer that question
-and is imported by zero files. The consequence is everything downstream: no role-aware nav, no
-role-aware defaults, no way to tell a coach from an athlete after signup.
+`/api/coach/relationships` — the query behind the Triage tab — pulls the primary readiness input
+from `daily_checkins.readiness_score`. **No code anywhere in the repo writes to `daily_checkins`.**
+It is read by exactly two endpoints and populated by none. So `latestReadiness` is always
+undefined, and every athlete's red/yellow/green falls through to the backup rule: *days since the
+athlete logged anything at all*. The colour a coach triages on is a proxy for app activity, not for
+how the athlete is coping.
 
-- **Fix:** persist the role on the athlete row at signup, then actually use `roleGuards` for nav and page gating.
-- Evidence: `signup.js:104` · `onboarding.js:651` · `roleGuards.js` 0 importers
+The same endpoint's compliance number is also unusable: `protocolComplianceGap` computes
+`athleteInterventions.length / 7 * 100` against an intervention query with **no date filter**, so
+any athlete with seven lifetime logs scores 100% compliant on every protocol forever.
+
+- **Fix:** either write `daily_checkins` from the check-in flow, or point readiness at the
+  `interventions` rows that actually exist. Then rebuild the compliance gap against the protocol's
+  own window rather than a fixed 7.
+- Evidence: `api/coach/relationships.js:68` reads · grep `daily_checkins` insert/upsert → 0 writers · `api/coach/relationships.js:101` compliance formula
 
 ### B-06 · No privacy policy, no terms, no contact address
 
@@ -104,12 +111,12 @@ common device among serious endurance athletes, so this is the button coaches pr
 | Step | State | What actually happens |
 | --- | --- | --- |
 | Land on the site | Good | Coach-first positioning, honest copy, strong product illustration. Only gap: "How it works" goes to a Guide with zero coach content. |
-| Sign up as a coach | Rough | Role picker works visually, but the choice is thrown away before it reaches the server (B-05). |
+| Sign up as a coach | Rough | Role picker works; the choice reaches the server only as a side effect of onboarding creating a `coach_profiles` row, and never as a field on the account (R-08). |
 | Coach onboarding | Good | Two steps, generates a coach code, offers a copy button. Genuinely tight. |
 | Open Command Center | **Blocked** | Upgrade wall for anyone not already on the Coach tier (B-03). |
 | Add first athlete | **Blocked** | Invitations buried under Advanced → Invitations; empty state points at an "Invitations tab" that doesn't exist; invite sends no email and the link 404s (B-01, B-02). |
 | Athlete accepts | **Blocked** | No accept path wired to any UI. The coach-code route on `/account` works, but nothing tells the athlete it's there. |
-| See athlete data | Rough | Solid content, but a read-only cul-de-sac: "Assign protocol / add note" bounces back to the Command Center with no athlete selected. |
+| See athlete data | Rough | Solid content, but readiness and compliance are computed from inputs that are empty or malformed (B-05), and "Assign protocol / add note" bounces back to the Command Center with no athlete selected. |
 | Assign a protocol | Rough | Works from the roster drawer. Group assignment is sold on the pricing page but `/coach/groups` has zero inbound links. |
 | Message the athlete | Rough | Sends and stores correctly with unread badges. No email or push fires, so the athlete only sees it if they open the app. |
 | Check the roster on a phone | **Blocked** | Mobile bottom nav is Home / Log / History / Research / Profile — athlete-only. No sidebar under 1024px. A coach on a phone cannot reach the Command Center at all. |
@@ -121,18 +128,19 @@ common device among serious endurance athletes, so this is the button coaches pr
 | Receive the invite | **Blocked** | No email arrives; a manually pasted link renders "Invalid invite link" — behind a full logged-in app sidebar, to a total stranger. |
 | Sign up + connect coach | Rough | The coach-code onboarding step is well built. If skipped, onboarding says "from Settings" and the Command Center says "on the connections page" — the field is on neither. It lives on `/account`. |
 | Connect Strava | Good | Real OAuth, clean screen, skippable. No "Powered by Strava" attribution anywhere. |
-| Do a daily check-in | **Blocked** | The single most important habit has no front door. See U-01. |
+| Do a daily check-in | **Buried** | The habit the product is built around is one of ~25 options inside `/log-intervention`, with no prompt and no reminder. See U-01. |
 | See their own value | Rough | Insights need several check-ins; the dashboard shows a hardcoded "Connections: 1" tile and a checklist whose step 2 points at a 617-line settings page. |
-| Hear from their coach | Rough | Unread badges work well. Nothing reaches them outside the app, and the conversation header shows the athlete their own name. |
+| Hear from their coach | Rough | Unread badges work well. Nothing reaches them outside the app — no email, no push — so a message is only seen if they happen to open it. |
 
 ---
 
-## Tier 2 — the deepest design problem
+## Tier 2 — the habit the product is designed around has no front door
 
-The entire coach value proposition — triage, trend changes, correlations, the review queue — is
-computed from athlete check-ins. Everything in Tier 1 is a wiring problem fixable in a day. This one
-is a product-shape problem, and it is why a pilot would go quiet in week two even with every blocker
-fixed.
+Check-in data feeds the **correlation engine and the athlete's own insights** — not, as it turns
+out, the coach's triage queue, which runs on intervention recency, protocols and races (see B-05).
+That makes this less of a wiring problem and more of a retention problem: the habit the product is
+designed around has no front door, so athletes stop logging, and both the correlations and the
+"days since log" signal the coach *does* see decay together.
 
 ### U-01 · "Workout Check-in" is item one of twenty-five in a category grid
 
@@ -142,16 +150,16 @@ promises, an athlete taps **Log**, scrolls past a full-screen marketing hero, fi
 Check-in" in a grid of pills, then fills six fields. There is no daily prompt, no dashboard nudge
 when today is missing, no reminder, no streak. Nothing in the product asks them to do it.
 
-- **Fix:** promote check-in to its own screen and its own bottom-nav slot. Four fields, today's date prefilled, one tap from the home screen. Add a "you haven't checked in today" card at the top of the dashboard.
+- **Fix:** promote check-in to its own screen and its own bottom-nav slot. Four fields, today's date prefilled, one tap from the home screen. Add a "you haven't checked in today" card at the top of the dashboard. Have it write `daily_checkins` as well, which closes B-05.
 - Evidence: `lib/interventionCatalog.js:10-29` · `MobileBottomNav.js`
 
 ### U-02 · The one fast path that exists produces unusable data
 
 "Lightweight session" mode saves with `intervention_type: 'Workout Check-in'` but captures only
 `session_type` and `session_load`. It drops `legs_feel`, `energy_feel` and `perceived_effort` — the
-three numbers the correlation engine and the coach's triage queue are built on. The quickest way to
-log a check-in creates a row that looks like a check-in, counts as a check-in, and tells the coach
-nothing.
+three numbers the correlation engine is built on. The quickest way to log a check-in creates a row
+that looks like a check-in, counts against the free-tier cap, and produces nothing the insights
+engine can use.
 
 - **Fix:** make legs / energy / RPE the fast path; push session type and load into the optional section.
 - Evidence: `log-intervention.js:507-516`
@@ -169,7 +177,7 @@ Center** and **Coach Tools** and can click into a paywall for a product they'll 
 wades past Log Intervention, Intervention History, Progress and Explorer to reach the one screen
 they use daily. On mobile the coach gets no coach navigation at all.
 
-- **Fix:** two nav sets driven by the role persisted in B-05, plus a coach bottom nav: Roster / Messages / Calendar / Profile.
+- **Fix:** two nav sets driven by a role persisted on the account (R-08), plus a coach bottom nav: Roster / Messages / Calendar / Profile.
 - Evidence: `lib/siteNavigation.js` single `sidebarSections` array · `MobileBottomNav.js` hardcoded athlete tabs
 
 ---
@@ -185,7 +193,7 @@ they use daily. On mobile the coach gets no coach navigation at all.
 | R-05 | Athlete detail is a dead end: "Assign protocol / add note" is a plain link back to `/coach-command-center` with no athlete context. | `coach/athletes/[athleteId].js:89` |
 | R-06 | The Guide has no coach content at all — six athlete sections. "How it works" in the landing nav sends coaches here. Its "Add a target race" button points at `/log-intervention`. | `guide.js:5-40` |
 | R-07 | Logged-out visitors on `/join` get the full internal sidebar — Dashboard, Coach Command Center, everything — before they have an account. | `lib/siteNavigation.js:48` omits `/join` and `/invite` |
-| R-08 | Athletes see their own name where their coach's should be: `conversationName()` returns the athlete name for both roles. | `messages.js:36-40` |
+| R-08 | The signup role is never persisted on the athlete record — it rides `localStorage` and a query param into onboarding. A `coach_profiles` row *is* created there and is what coach APIs read, but `ensureCoachProfile` is called unguarded by 12 endpoints, so any athlete who touches a coach route becomes one by that signal. `lib/auth/roleGuards.js` has zero importers and nothing branches navigation on role at all. | `signup.js:104`, `onboarding.js:651`, `roleGuards.js` |
 | R-09 | Onboarding's Continue button silently does nothing on incomplete forms — early return, no message, no field highlighting. | `onboarding.js:669-684` |
 
 ---
@@ -221,10 +229,11 @@ bypassed.
   `border-ink/10 bg-white` is hand-rolled **284** times. Corner radii have drifted to **16 distinct
   values** (30px ×79, 24px ×58, 28px ×54, 22px ×42, down to 4px). Pick three radii and convert the
   top-traffic screens.
-- **V-03 — Five layers of navigation on the coach page:** fixed sidebar, page-level pill bar with
-  hamburger, DashboardTabs row, a four-item tab bar, and a "Screen depth: basic/advanced" switch —
-  before any roster content. The floating message bubble is pinned at `top-4 right-5`, directly over
-  the pill bar's menu button on desktop.
+- **V-03 — Four navigation layers stack before any roster content on the coach page**, five on a
+  phone. Desktop gets the fixed sidebar, a DashboardTabs row, a four-item tab bar and a
+  "Screen depth: basic/advanced" switch; mobile swaps the sidebar for the pill-bar hamburger and
+  adds the bottom nav. (The sidebar is `lg:flex` and `NavMenu` is `lg:hidden`, so those two never
+  render together — the stack is four and five, not six.)
 - **V-04 — No link preview when you text or email the URL.** `og:image` points at `/og-image.svg`;
   iMessage, LinkedIn, Slack and most email clients don't render SVG OG images. Export a 1200×630 PNG
   before sending anyone the link.
@@ -256,28 +265,29 @@ bypassed.
 2. Actually email the invitation, add a copy button next to the link (B-02)
 3. Unlock the Command Center for pilot coaches — beta flag, or set tiers by hand and fix the copy (B-03)
 4. Uncap check-ins for athletes attached to a coach (B-04)
-5. Turn off the four unconfigured connector buttons (B-07)
-6. Move invitations out of "Advanced" and fix the two phantom-tab instructions (R-01, R-02)
+5. Make readiness read something that exists, and fix the compliance formula (B-05)
+6. Turn off the four unconfigured connector buttons (B-07)
+7. Move invitations out of "Advanced" and fix the two phantom-tab instructions (R-01, R-02)
 
 ### Block 2 — make it survive contact
 
-7. Give check-in its own screen and bottom-nav slot; add a "no check-in today" dashboard card (U-01, U-02)
-8. Persist the signup role and split the nav, including a coach bottom nav on mobile (B-05, U-04)
-9. Publish privacy policy, terms, support address (B-06)
-10. One canonical place to link a coach; point every reference at it (R-03)
-11. Delete or wire up the hardcoded tiles and the fake TrainingPeaks migration block (F-01, F-02, F-03)
-12. Make the pricing page agree with itself and with the code (F-04)
-13. Link `/coach/groups`; let athlete detail assign in place (R-04, R-05)
+8. Give check-in its own screen and bottom-nav slot; add a "no check-in today" dashboard card (U-01, U-02)
+9. Persist the signup role and split the nav, including a coach bottom nav on mobile (R-08, U-04)
+10. Publish privacy policy, terms, support address (B-06)
+11. One canonical place to link a coach; point every reference at it (R-03)
+12. Delete or wire up the hardcoded tiles and the fake TrainingPeaks migration block (F-01, F-02, F-03)
+13. Make the pricing page agree with itself and with the code (F-04)
+14. Link `/coach/groups`; let athlete detail assign in place (R-04, R-05)
 
 ### Block 3 — make it feel finished
 
-14. Cap in-app hero type at ~30px across all nineteen pages (V-01)
-15. Converge on three corner radii; move top screens onto `ui-card` (V-02)
-16. Strip a nav layer off the coach page; move the message bubble off the menu button (V-03)
-17. Ship a PNG OG image (V-04)
-18. Add Strava attribution and "View on Strava" links (V-06)
-19. Write a coach section into the Guide; point "How it works" at it (R-06)
-20. Send an email or push for new messages, or the loop never closes (F-05)
+15. Cap in-app hero type at ~30px across all nineteen pages (V-01)
+16. Converge on three corner radii; move top screens onto `ui-card` (V-02)
+17. Strip a nav layer or two off the coach page (V-03)
+18. Ship a PNG OG image (V-04)
+19. Add Strava attribution and "View on Strava" links (V-06)
+20. Write a coach section into the Guide; point "How it works" at it (R-06)
+21. Send an email or push for new messages, or the loop never closes (F-05)
 
 ---
 
