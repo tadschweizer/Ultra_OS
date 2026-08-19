@@ -53,6 +53,7 @@ export const appShellExcludedRoutes = [
   '/guide',
   '/content/admin',
   '/onboarding',
+  '/join',
   '/auth/callback',
 ];
 

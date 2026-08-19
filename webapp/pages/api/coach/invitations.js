@@ -2,6 +2,7 @@ import { getSupabaseAdminClient } from '../../../lib/authServer';
 import { generateCoachCode } from '../../../lib/coachProtocols';
 import { getAthleteIdFromRequest } from '../../../lib/auth/sessionCookies.js';
 import { getEffectiveAthleteIdFromRequest } from '../../../lib/auth/requireAthlete.js';
+import { getSiteUrl, sendCoachInvitationEmail } from '../../../lib/email/transactional.js';
 
 // Coach tables are no longer reachable with the public anon key (RLS is on and
 // the anon grants are revoked), so this route uses the service-role client.
@@ -83,7 +84,38 @@ export default async function handler(req, res) {
         .single();
 
       if (error) { res.status(500).json({ error: error.message }); return; }
-      res.status(200).json({ invitation: data, profile });
+
+      const inviteUrl = `${getSiteUrl()}/join?coach_invite=${encodeURIComponent(token)}`;
+      const delivery = await sendCoachInvitationEmail({
+        coachName: profile.display_name,
+        email: data.email,
+        inviteUrl,
+        expiresAt: data.expires_at,
+      });
+
+      if (!delivery.ok || delivery.skipped) {
+        console.error('[coach invitation] email was not delivered', {
+          invitationId: data.id,
+          skipped: Boolean(delivery.skipped),
+        });
+        res.status(502).json({
+          error: delivery.skipped
+            ? 'Invitation created, but email delivery is not configured. Copy the invitation link instead.'
+            : 'Invitation created, but the email could not be delivered. Copy the invitation link instead.',
+          invitation: data,
+          profile,
+          invite_url: inviteUrl,
+          delivery_status: 'failed',
+        });
+        return;
+      }
+
+      res.status(200).json({
+        invitation: data,
+        profile,
+        invite_url: inviteUrl,
+        delivery_status: 'sent',
+      });
       return;
     }
 

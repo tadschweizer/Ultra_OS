@@ -31,6 +31,15 @@ function button(href, label) {
   return `<a href="${href}" style="display:inline-block; background:#131816; color:white; text-decoration:none; border-radius:999px; padding:14px 24px; font-size:14px; font-weight:600;">${label}</a>`;
 }
 
+function escapeHtml(value) {
+  return String(value || '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
 const HEADING = 'font-size:24px; font-weight:700; color:#131816; margin:0 0 12px;';
 const BODY = 'font-size:15px; line-height:1.7; color:#555F5A; margin:0 0 16px;';
 const FINE = 'font-size:13px; line-height:1.7; color:#8A938F; margin:16px 0 0;';
@@ -117,6 +126,29 @@ export async function sendPasswordChangedEmail({ name, email }) {
       <p style="${BODY}">The password on your Threshold account was just changed, and every signed-in device was signed out.</p>
       <p style="${BODY}">If this was you, there's nothing to do.</p>
       ${button(`${getSiteUrl()}/forgot-password`, 'This wasn’t me — reset it')}
+    `),
+  });
+}
+
+export async function sendCoachInvitationEmail({ coachName, email, inviteUrl, expiresAt }) {
+  if (!coachName || !email || !inviteUrl || !expiresAt) return { ok: false };
+
+  const safeCoachName = escapeHtml(coachName);
+  const safeInviteUrl = escapeHtml(inviteUrl);
+  const expiry = new Intl.DateTimeFormat('en-US', {
+    dateStyle: 'long',
+    timeStyle: 'short',
+    timeZone: 'UTC',
+  }).format(new Date(expiresAt));
+
+  return send({
+    to: email,
+    subject: `${coachName} invited you to Threshold`,
+    html: layout(`
+      <p style="${HEADING}">${safeCoachName} invited you to Threshold.</p>
+      <p style="${BODY}">Accept this invitation to connect your Threshold athlete account with ${safeCoachName}. Once connected, your coach can view the training and check-in information you share in Threshold.</p>
+      ${button(safeInviteUrl, 'Accept coach invitation')}
+      <p style="${FINE}">This invitation expires ${escapeHtml(expiry)} UTC. If you were not expecting it, you can ignore this email and no connection will be created.</p>
     `),
   });
 }
