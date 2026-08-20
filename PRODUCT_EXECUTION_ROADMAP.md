@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
 Last updated: 2026-08-20<br>
-Status: M0 implementation in progress; P0-001 and P0-002 acceptance gaps under repair<br>
+Status: M0 implementation in progress; P0-001 and P0-002 verified after review-gap repair<br>
 Current milestone: M0 — make the closed coach pilot work end to end<br>
-Next item: Close the P0-001 and P0-002 review gaps before P0-003
+Next item: P0-003 — persist role and enforce role-aware access
 
 ## Purpose
 
@@ -86,7 +86,7 @@ athlete, and use the experience on a phone without Tad or an administrator repai
 
 ### Pilot blockers
 
-- [ ] **P0-001 — Repair coach invitation acceptance** *(review gap in progress)*
+- [x] **P0-001 — Repair coach invitation acceptance**
   - `/join` accepts the canonical coach invitation parameter.
   - Logged-out recipients return to the invite after signup or login.
   - The UI calls `/api/coach/accept-invitation` exactly once and handles used, expired, invalid, and
@@ -94,7 +94,7 @@ athlete, and use the experience on a phone without Tad or an administrator repai
   - The active coach-athlete relationship appears in both accounts.
   - Automated API and browser tests cover the complete journey.
 
-- [ ] **P0-002 — Send a real invitation email** *(review gap in progress)*
+- [x] **P0-002 — Send a real invitation email**
   - Use the existing transactional email layer.
   - Include coach identity, clear purpose, expiration, and canonical acceptance URL.
   - Keep a one-click copy-link fallback in Command Center.
@@ -453,8 +453,9 @@ criteria.
 | Date | Item | PR/commit | Verification evidence | Notes |
 | --- | --- | --- | --- | --- |
 | 2026-08-19 | Roadmap created | Local branch `agent/product-execution-roadmap` | Reconciled PR #104, current source audit, and existing roadmaps | No implementation items completed |
-| 2026-08-20 | P0-001 | [PR #106](https://github.com/tadschweizer/Ultra_OS/pull/106) / `cc3c1da` | Production on `mythreshold.co`: canonical `coach_invite` links displayed invalid (404), expired (410), already-connected/used (409), and accepted states; acceptance POST returned 200; active records were confirmed in both relationship tables and appeared in the athlete account and coach roster. [Auth Smoke run #99](https://github.com/tadschweizer/Ultra_OS/actions/runs/32390037510) passed 41/41 auth tests and 12/12 Playwright tests in desktop Chromium and 390 px mobile Chromium; local invitation API tests passed 7/7 and the full suite passed 179/179. | A fresh athlete accepted the production invitation. Production auth links preserved the invitation in `next`; the exact post-signup redirect was covered by Playwright rather than repeated manually after account creation occurred in a separate browser tab. |
-| 2026-08-20 | P0-002 | [PR #106](https://github.com/tadschweizer/Ultra_OS/pull/106) / `cc3c1da` | A production invitation sent through the existing transactional layer arrived in a real recipient inbox from `Threshold <hello@mythreshold.co>`. The message identified the coach, explained the relationship, stated the expiration, and linked to the canonical `https://mythreshold.co/join?coach_invite=...` URL. Command Center retained the copy-link control and displayed `Copied`. Automated API/regression coverage verified honest 502 failure handling while retaining the fallback link. | Live successful delivery was verified. Production provider failure was intentionally not induced; the failure contract was verified by automated tests. |
+| 2026-08-20 | P0-001 | [PR #106](https://github.com/tadschweizer/Ultra_OS/pull/106) / `cc3c1da` | Production on `mythreshold.co`: canonical `coach_invite` links displayed invalid (404), expired (410), already-connected/used (409), and accepted states; acceptance POST returned 200; active records were confirmed in both relationship tables and appeared in the athlete account and coach roster. [Auth Smoke run #99](https://github.com/tadschweizer/Ultra_OS/actions/runs/32390037510) passed 41/41 auth tests and 12/12 Playwright tests in desktop Chromium and 390 px mobile Chromium; local invitation API tests passed 7/7 and the full suite passed 179/179. | A fresh athlete accepted the production invitation. PR #107 review later identified that the logged-out browser test stopped at auth-link inspection, so this item was reopened for the complete transition and repaired in PR #108. |
+| 2026-08-20 | P0-002 | [PR #106](https://github.com/tadschweizer/Ultra_OS/pull/106) / `cc3c1da` | A production invitation sent through the existing transactional layer arrived in a real recipient inbox from `Threshold <hello@mythreshold.co>`. The message identified the coach, explained the relationship, stated the expiration, and linked to the canonical `https://mythreshold.co/join?coach_invite=...` URL. Command Center retained the copy-link control and displayed `Copied`. Automated API/regression coverage verified honest 502 failure handling while retaining the fallback link. | Live successful delivery was verified. PR #107 review later identified that failed delivery was response-only and disappeared after refresh, so this item was reopened for persistence and repaired in PR #108. |
+| 2026-08-20 | P0-001/P0-002 review-gap repair | [PR #108](https://github.com/tadschweizer/Ultra_OS/pull/108) / `6d70c6c` | Invitation API and migration-schema tests passed 12/12; full regression passed 184/184; the production build generated all 35 static pages; invitation Playwright passed 14/14 in desktop Chromium and 390 px mobile Chromium, including complete login and signup return/acceptance journeys; `git diff --check` passed. | Delivery lifecycle is persisted separately from invitation lifecycle, failed/skipped delivery remains honest after GET refresh, and Copy Link remains available. The migration was created and validated but was not applied; production migration and deployment require Tad's explicit approval. |
 
 ## Parking lot
 
