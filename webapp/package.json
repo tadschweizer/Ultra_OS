@@ -14,9 +14,9 @@
     "test:auth:smoke": "node --test tests/auth-smoke.test.mjs tests/auth-regression.test.mjs tests/auth-oauth-regression.test.mjs tests/auth-password-reset.test.mjs",
     "test:insights": "node --test tests/training-insights.test.mjs tests/training-calculations.test.mjs tests/activity-sync.test.mjs",
     "test:comments": "node --test tests/workout-comments.test.mjs",
-    "test:coach-invitations": "node --test tests/coach-invitation-api.test.mjs",
+    "test:coach-invitations": "node --test tests/coach-invitation-api.test.mjs tests/coach-invitation-migration.test.mjs",
     "test:e2e:coach-invitations": "playwright test e2e/coach-invitation.spec.mjs",
-    "test:auth:full": "node --test tests/auth-smoke.test.mjs tests/auth-regression.test.mjs tests/auth-oauth-regression.test.mjs tests/auth-password-reset.test.mjs tests/billing-plans.test.mjs tests/coach-group-membership.test.mjs tests/coach-invitation-api.test.mjs tests/protocol-lifecycle.test.mjs tests/delete-account.test.mjs tests/workout-compliance.test.mjs tests/training-calculations.test.mjs tests/training-insights.test.mjs tests/coach-import-health.test.mjs tests/stream-analysis.test.mjs tests/admin-demo.test.mjs tests/activity-sync.test.mjs tests/workout-comments.test.mjs"
+    "test:auth:full": "node --test tests/auth-smoke.test.mjs tests/auth-regression.test.mjs tests/auth-oauth-regression.test.mjs tests/auth-password-reset.test.mjs tests/billing-plans.test.mjs tests/coach-group-membership.test.mjs tests/coach-invitation-api.test.mjs tests/coach-invitation-migration.test.mjs tests/protocol-lifecycle.test.mjs tests/delete-account.test.mjs tests/workout-compliance.test.mjs tests/training-calculations.test.mjs tests/training-insights.test.mjs tests/coach-import-health.test.mjs tests/stream-analysis.test.mjs tests/admin-demo.test.mjs tests/activity-sync.test.mjs tests/workout-comments.test.mjs"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",

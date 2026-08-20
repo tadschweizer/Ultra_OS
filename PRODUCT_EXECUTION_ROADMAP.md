@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
 Last updated: 2026-08-20<br>
-Status: M0 implementation in progress; P0-001 and P0-002 verified<br>
+Status: M0 implementation in progress; P0-001 and P0-002 acceptance gaps under repair<br>
 Current milestone: M0 — make the closed coach pilot work end to end<br>
-Next item: P0-003 — persist role and enforce role-aware access
+Next item: Close the P0-001 and P0-002 review gaps before P0-003
 
 ## Purpose
 
@@ -86,7 +86,7 @@ athlete, and use the experience on a phone without Tad or an administrator repai
 
 ### Pilot blockers
 
-- [x] **P0-001 — Repair coach invitation acceptance**
+- [ ] **P0-001 — Repair coach invitation acceptance** *(review gap in progress)*
   - `/join` accepts the canonical coach invitation parameter.
   - Logged-out recipients return to the invite after signup or login.
   - The UI calls `/api/coach/accept-invitation` exactly once and handles used, expired, invalid, and
@@ -94,7 +94,7 @@ athlete, and use the experience on a phone without Tad or an administrator repai
   - The active coach-athlete relationship appears in both accounts.
   - Automated API and browser tests cover the complete journey.
 
-- [x] **P0-002 — Send a real invitation email**
+- [ ] **P0-002 — Send a real invitation email** *(review gap in progress)*
   - Use the existing transactional email layer.
   - Include coach identity, clear purpose, expiration, and canonical acceptance URL.
   - Keep a one-click copy-link fallback in Command Center.

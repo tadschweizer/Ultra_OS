@@ -61,12 +61,15 @@ async function send({ to, subject, html }) {
     if (!response.ok) {
       // Never log the body: verification and reset links live in it.
       console.error('[email] Resend rejected the send:', response.status, subject);
-      return { ok: false };
+      return {
+        ok: false,
+        failureCategory: response.status >= 500 ? 'provider_unavailable' : 'provider_rejected',
+      };
     }
     return { ok: true };
   } catch (error) {
     console.error('[email] send failed:', subject, error?.message);
-    return { ok: false };
+    return { ok: false, failureCategory: 'provider_unavailable' };
   }
 }
 

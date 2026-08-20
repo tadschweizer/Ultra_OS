@@ -8,14 +8,16 @@ const invitation = {
 
 async function mockInvitation(page, { authenticated = false, preview = invitation } = {}) {
   let postCount = 0;
+  let isAuthenticated = authenticated;
   await page.route('**/api/me', (route) => route.fulfill({
-    status: authenticated ? 200 : 401,
+    status: isAuthenticated ? 200 : 401,
     contentType: 'application/json',
-    body: JSON.stringify(authenticated ? { athlete: { id: 'athlete-1', onboarding_complete: true } } : { error: 'Not authenticated' }),
+    body: JSON.stringify(isAuthenticated ? { athlete: { id: 'athlete-1', onboarding_complete: true } } : { error: 'Not authenticated' }),
   }));
   await page.route('**/api/coach/accept-invitation**', async (route) => {
     if (route.request().method() === 'POST') {
       postCount += 1;
+      await new Promise((resolve) => setTimeout(resolve, 50));
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -29,28 +31,83 @@ async function mockInvitation(page, { authenticated = false, preview = invitatio
       body: JSON.stringify(preview.body || preview),
     });
   });
-  return () => postCount;
+  return {
+    authenticate() { isAuthenticated = true; },
+    getPostCount() { return postCount; },
+  };
 }
 
-test('logged-out athlete keeps the canonical invitation through signup and login', async ({ page }) => {
-  await mockInvitation(page);
+async function mockEmailAuth(page, invitationState, endpoint) {
+  await page.route('**/api/auth/logout', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ ok: true }),
+  }));
+  await page.route(`**/api/auth/${endpoint}`, (route) => {
+    invitationState.authenticate();
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ ok: true, onboardingComplete: false }),
+    });
+  });
+}
+
+async function acceptOnceAndVerify(page, invitationState) {
+  await expect(page).toHaveURL(/\/join\?coach_invite=token-1$/);
+  const acceptButton = page.getByRole('button', { name: 'Accept invitation' });
+  await expect(acceptButton).toBeVisible();
+
+  // Exercise duplicate user events while the request is in flight. The UI
+  // must still issue exactly one acceptance mutation.
+  await acceptButton.evaluate((button) => {
+    button.click();
+    button.click();
+  });
+
+  await expect(page.getByRole('heading', { name: 'Invitation accepted' })).toBeVisible();
+  await expect(page.getByText(/relationship now appears in your account and your coach's roster/i)).toBeVisible();
+  expect(invitationState.getPostCount()).toBe(1);
+}
+
+test('logged-out athlete completes email login, returns to the invitation, and accepts once', async ({ page }) => {
+  const invitationState = await mockInvitation(page);
+  await mockEmailAuth(page, invitationState, 'login');
   await page.goto('/join?coach_invite=token-1');
   await expect(page.getByRole('heading', { name: 'Join Coach Casey on Threshold' })).toBeVisible();
 
-  const signupHref = await page.getByRole('link', { name: 'Create athlete account' }).getAttribute('href');
-  const loginHref = await page.getByRole('link', { name: 'Log in to accept' }).getAttribute('href');
-  expect(signupHref).toContain('role=athlete-with-coach');
-  expect(decodeURIComponent(signupHref)).toContain('next=/join?coach_invite=token-1');
-  expect(decodeURIComponent(loginHref)).toContain('next=/join?coach_invite=token-1');
+  await page.getByRole('link', { name: 'Log in to accept' }).click();
+  await expect(page).toHaveURL(/\/login\?/);
+  await page.locator('input[autocomplete="email"]').fill('athlete@example.com');
+  await page.locator('#login-password').fill('CorrectHorseBattery9!');
+  await page.getByRole('button', { name: 'Log In →' }).click();
+
+  await acceptOnceAndVerify(page, invitationState);
+});
+
+test('logged-out athlete completes signup, returns to the invitation, and accepts once', async ({ page }) => {
+  const invitationState = await mockInvitation(page);
+  await mockEmailAuth(page, invitationState, 'signup');
+  await page.goto('/join?coach_invite=token-1');
+  await expect(page.getByRole('heading', { name: 'Join Coach Casey on Threshold' })).toBeVisible();
+
+  await page.getByRole('link', { name: 'Create athlete account' }).click();
+  await expect(page).toHaveURL(/\/signup\?/);
+  await page.locator('input[autocomplete="name"]').fill('Athlete Avery');
+  await page.locator('input[autocomplete="email"]').fill('athlete@example.com');
+  await page.locator('#signup-password').fill('CorrectHorseBattery9!');
+  await page.getByRole('button', { name: 'Create Account →' }).click();
+
+  await acceptOnceAndVerify(page, invitationState);
 });
 
 test('signed-in athlete accepts once and sees the completed relationship state', async ({ page }) => {
-  const getPostCount = await mockInvitation(page, { authenticated: true });
+  const invitationState = await mockInvitation(page, { authenticated: true });
   await page.goto('/join?coach_invite=token-1');
   await page.getByRole('button', { name: 'Accept invitation' }).click();
   await expect(page.getByRole('heading', { name: 'Invitation accepted' })).toBeVisible();
   await expect(page.getByText(/relationship now appears in your account and your coach's roster/i)).toBeVisible();
-  expect(getPostCount()).toBe(1);
+  expect(invitationState.getPostCount()).toBe(1);
 });
 
 for (const scenario of [
