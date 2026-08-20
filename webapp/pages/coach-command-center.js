@@ -424,6 +424,7 @@ export default function CoachCommandCenter() {
   // Invitation form
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteMsg, setInviteMsg] = useState('');
+  const [copiedInviteId, setCopiedInviteId] = useState(null);
 
   // Template form
   const [templateForm, setTemplateForm] = useState({ name: '', protocol_type: PROTOCOL_TYPES[0] || '', description: '', duration_weeks: '', is_shared: false, goal: '', steps: '', athlete_logging: '', compliance_target: 80, coach_notes: '', evidence_notes: '' });
@@ -715,10 +716,23 @@ export default function CoachCommandCenter() {
       body: JSON.stringify({ email: inviteEmail }),
     });
     const d = await res.json();
+    if (d.invitation) {
+      setInvitations((prev) => [d.invitation, ...prev.filter((item) => item.id !== d.invitation.id)]);
+      setInviteEmail('');
+    }
     if (!res.ok) { setInviteMsg(d.error || 'Failed to send invite.'); return; }
-    setInvitations((prev) => [d.invitation, ...prev]);
-    setInviteEmail('');
-    setInviteMsg('Invitation created.');
+    setInviteMsg('Invitation email sent.');
+  }
+
+  async function copyInvite(invitation) {
+    const url = inviteUrl(invitation.token);
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedInviteId(invitation.id);
+      window.setTimeout(() => setCopiedInviteId((current) => current === invitation.id ? null : current), 2000);
+    } catch {
+      setInviteMsg('Could not copy automatically. Select the link and copy it manually.');
+    }
   }
 
   async function revokeInvite(id) {
@@ -1329,14 +1343,22 @@ export default function CoachCommandCenter() {
                         }`}>{inv.status}</span>
                       </div>
                       {inv.status === 'pending' && (
-                        <div className="mt-3 flex items-center gap-3">
+                        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
                           <input
                             readOnly
                             value={inviteUrl(inv.token)}
-                            className="flex-1 truncate rounded-xl border border-ink/10 bg-white px-3 py-1.5 text-xs text-ink/70"
+                            className="w-full min-w-0 flex-1 truncate rounded-xl border border-ink/10 bg-white px-3 py-2 text-xs text-ink/70"
                             onClick={(e) => e.target.select()}
                           />
                           <button
+                            type="button"
+                            onClick={() => copyInvite(inv)}
+                            className="rounded-full border border-ink/10 px-3 py-1.5 text-xs font-semibold text-ink hover:bg-ink/5"
+                          >
+                            {copiedInviteId === inv.id ? 'Copied' : 'Copy link'}
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => revokeInvite(inv.id)}
                             className="rounded-full border border-ink/10 px-3 py-1.5 text-xs text-ink/60 hover:bg-ink/5"
                           >

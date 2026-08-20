@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import NavMenu from '../components/NavMenu';
 import PasswordField from '../components/PasswordField';
 import { validatePassword } from '../lib/auth/contracts.js';
+import { isCoachInvitationPath, safeNextPath } from '../lib/auth/redirects.js';
 
 function getSupabaseClient() {
   return createClient(
@@ -41,6 +42,7 @@ export default function SignupPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [nextPath, setNextPath] = useState('/dashboard');
 
   useEffect(() => {
     const queryRole = typeof router.query.role === 'string' ? router.query.role : '';
@@ -64,6 +66,9 @@ export default function SignupPage() {
     let cancelled = false;
 
     async function checkExistingSession() {
+      const params = new URLSearchParams(window.location.search);
+      const destination = safeNextPath(params.get('next'));
+      if (!cancelled) setNextPath(destination);
       try {
         const res = await fetch('/api/me', {
           cache: 'no-store',
@@ -71,7 +76,7 @@ export default function SignupPage() {
         });
         if (res.ok) {
           const data = await res.json();
-          window.location.href = data.athlete?.onboarding_complete ? '/dashboard' : '/onboarding';
+          window.location.href = data.athlete?.onboarding_complete || isCoachInvitationPath(destination) ? destination : '/onboarding';
           return;
         }
       } catch {
@@ -115,8 +120,8 @@ export default function SignupPage() {
         setLoading(false);
         return;
       }
-      window.location.href = data.onboardingComplete
-        ? '/dashboard'
+      window.location.href = data.onboardingComplete || isCoachInvitationPath(nextPath)
+        ? nextPath
         : `/onboarding?role=${encodeURIComponent(role)}`;
     } catch {
       setError('Something went wrong. Please try again.');
@@ -131,7 +136,7 @@ export default function SignupPage() {
         const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
       },
     });
 
@@ -156,7 +161,7 @@ export default function SignupPage() {
                 { href: '/content', label: 'Research' },
                 { href: '/pricing', label: 'Pricing' },
               ]}
-              primaryLink={{ href: '/login', label: 'Log In' }}
+              primaryLink={{ href: `/login?next=${encodeURIComponent(nextPath)}`, label: 'Log In' }}
             />
           </div>
         </div>
@@ -167,7 +172,7 @@ export default function SignupPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-accent">Free to start</p>
           <h1 className="mt-3 text-3xl font-semibold text-ink">Create your account</h1>
           <p className="mt-2 text-sm text-ink/55">
-            Already have an account? <a href="/login" className="font-semibold text-accent hover:underline">Log in</a>
+            Already have an account? <a href={`/login?next=${encodeURIComponent(nextPath)}`} className="font-semibold text-accent hover:underline">Log in</a>
           </p>
 
           <div className="mt-6">
@@ -271,7 +276,7 @@ export default function SignupPage() {
             </button>
 
             <a
-              href="/api/strava/login"
+              href={`/api/strava/login?next=${encodeURIComponent(nextPath)}`}
               className="flex w-full items-center justify-center gap-3 rounded-full border border-ink/12 bg-paper px-6 py-3.5 text-sm font-semibold text-ink transition hover:bg-white"
             >
               Continue with Strava

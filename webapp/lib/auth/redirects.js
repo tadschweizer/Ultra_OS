@@ -37,3 +37,15 @@ export function safeNextPath(rawNext, fallback = '/dashboard') {
 
   return rawNext;
 }
+
+export function isCoachInvitationPath(path) {
+  if (!path || typeof path !== 'string') return false;
+  try {
+    const url = new URL(path, 'https://mythreshold.co');
+    return url.origin === 'https://mythreshold.co'
+      && url.pathname === '/join'
+      && Boolean(url.searchParams.get('coach_invite'));
+  } catch {
+    return false;
+  }
+}

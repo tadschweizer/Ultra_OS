@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import NavMenu from '../components/NavMenu';
 import { clearMe } from '../lib/meClient';
-import { safeNextPath } from '../lib/auth/redirects.js';
+import { isCoachInvitationPath, safeNextPath } from '../lib/auth/redirects.js';
 
 function getSupabaseClient() {
   return createClient(
@@ -37,7 +37,7 @@ export default function LoginPage() {
         });
         if (res.ok) {
           const data = await res.json();
-          window.location.href = data.athlete?.onboarding_complete ? destination : '/onboarding';
+          window.location.href = data.athlete?.onboarding_complete || isCoachInvitationPath(destination) ? destination : '/onboarding';
           return;
         }
       } catch {
@@ -88,7 +88,7 @@ export default function LoginPage() {
       }
 
       clearMe();
-      window.location.href = data.onboardingComplete ? nextPath : '/onboarding';
+      window.location.href = data.onboardingComplete || isCoachInvitationPath(nextPath) ? nextPath : '/onboarding';
     } catch {
       setError('Something went wrong. Please try again.');
       setLoading(false);
@@ -126,7 +126,7 @@ export default function LoginPage() {
               <a href="/guide" className="text-sm font-semibold text-ink/65 transition hover:text-ink">How it works</a>
               <a href="/content" className="text-sm font-semibold text-ink/65 transition hover:text-ink">Research</a>
               <a href="/pricing" className="text-sm font-semibold text-ink/65 transition hover:text-ink">Pricing</a>
-              <a href="/signup" className="ui-button-primary py-2.5">Sign Up</a>
+              <a href={`/signup?next=${encodeURIComponent(nextPath)}`} className="ui-button-primary py-2.5">Sign Up</a>
             </div>
             <NavMenu
               label="Login navigation"
@@ -135,7 +135,7 @@ export default function LoginPage() {
                 { href: '/content', label: 'Research' },
                 { href: '/pricing', label: 'Pricing' },
               ]}
-              primaryLink={{ href: '/signup', label: 'Sign Up' }}
+              primaryLink={{ href: `/signup?next=${encodeURIComponent(nextPath)}`, label: 'Sign Up' }}
             />
           </div>
         </div>
@@ -146,7 +146,7 @@ export default function LoginPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-accent">Welcome Back</p>
           <h1 className="mt-3 text-3xl font-semibold text-ink">Log in to Threshold</h1>
           <p className="mt-2 text-sm text-ink/55">
-            Don&apos;t have an account? <a href="/signup" className="font-semibold text-accent hover:underline">Sign up free</a>
+            Don&apos;t have an account? <a href={`/signup?next=${encodeURIComponent(nextPath)}`} className="font-semibold text-accent hover:underline">Sign up free</a>
           </p>
 
           {error ? (
@@ -218,7 +218,7 @@ export default function LoginPage() {
             </button>
 
             <a
-              href="/api/strava/login"
+              href={`/api/strava/login?next=${encodeURIComponent(nextPath)}`}
               className="flex w-full items-center justify-center gap-3 rounded-full border border-ink/12 bg-paper px-6 py-3.5 text-sm font-semibold text-ink transition hover:bg-white"
             >
               Continue with Strava

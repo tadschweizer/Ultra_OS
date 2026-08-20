@@ -1,5 +1,6 @@
 import cookie from 'cookie';
 import crypto from 'crypto';
+import { safeNextPath } from './redirects.js';
 
 /**
  * OAuth `state` — CSRF protection for the authorization-code flow.
@@ -22,6 +23,7 @@ import crypto from 'crypto';
  */
 
 const STATE_COOKIE_PREFIX = 'oauth_state_';
+const RETURN_COOKIE_PREFIX = 'oauth_return_';
 
 // Long enough to finish a provider consent screen, short enough that a stale
 // nonce is not lying around. Matches the pending-invite cookie's window.
@@ -81,4 +83,18 @@ export function verifyOAuthState(req, provider, providedState) {
 /** Burns the nonce so a callback URL cannot be replayed. */
 export function clearOAuthState(res, provider) {
   appendSetCookie(res, cookie.serialize(stateCookieName(provider), '', cookieOptions(0)));
+}
+
+export function setOAuthReturnPath(res, provider, rawPath) {
+  const path = safeNextPath(rawPath, '');
+  if (!path) return;
+  const name = `${RETURN_COOKIE_PREFIX}${String(provider).replace(/[^a-z0-9_]/gi, '')}`;
+  appendSetCookie(res, cookie.serialize(name, path, cookieOptions(STATE_MAX_AGE_SEC)));
+}
+
+export function consumeOAuthReturnPath(req, res, provider) {
+  const name = `${RETURN_COOKIE_PREFIX}${String(provider).replace(/[^a-z0-9_]/gi, '')}`;
+  const rawPath = cookie.parse(req.headers.cookie || '')[name];
+  appendSetCookie(res, cookie.serialize(name, '', cookieOptions(0)));
+  return safeNextPath(rawPath, '');
 }

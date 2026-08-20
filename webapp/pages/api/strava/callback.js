@@ -3,7 +3,8 @@ import { getSupabaseAdminClient } from '../../../lib/authServer';
 import cookie from 'cookie';
 import { normalizeSubscriptionTier } from '../../../lib/subscriptionTiers';
 import { getStravaRedirectUri } from '../../../lib/auth/oauth.js';
-import { clearOAuthState, verifyOAuthState } from '../../../lib/auth/oauthState.js';
+import { clearOAuthState, consumeOAuthReturnPath, verifyOAuthState } from '../../../lib/auth/oauthState.js';
+import { isCoachInvitationPath } from '../../../lib/auth/redirects.js';
 import {
   appendSetCookie,
   getAthleteIdFromRequest,
@@ -42,6 +43,7 @@ export default async function handler(req, res) {
     return;
   }
   clearOAuthState(res, 'strava');
+  const returnPath = consumeOAuthReturnPath(req, res, 'strava');
 
   try {
     const clientId = process.env.STRAVA_CLIENT_ID;
@@ -152,8 +154,8 @@ export default async function handler(req, res) {
       })
     );
 
-    const destination = savedAthlete.onboarding_complete
-      ? '/dashboard'
+    const destination = savedAthlete.onboarding_complete || isCoachInvitationPath(returnPath)
+      ? (returnPath || '/dashboard')
       : `/onboarding?strava=connected&name=${encodeURIComponent(savedAthlete.name || athleteName || 'Strava athlete')}`;
     res.setHeader('Location', destination);
     res.statusCode = 302;
