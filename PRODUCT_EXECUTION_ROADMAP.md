@@ -1,6 +1,6 @@
 # Threshold Product Execution Roadmap
 
-Last updated: 2026-08-20<br>
+Last updated: 2026-08-21<br>
 Status: M0 implementation in progress; P0-001 and P0-002 verified after review-gap repair<br>
 Current milestone: M0 — make the closed coach pilot work end to end<br>
 Next item: P0-003 — persist role and enforce role-aware access
