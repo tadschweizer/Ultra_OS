@@ -21,7 +21,11 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 NEXT_PUBLIC_SUPABASE_ANON_KEY=test npm run dev -- --hostname 127.0.0.1',
+    command: 'npm run dev -- --hostname 127.0.0.1',
+    env: {
+      NEXT_PUBLIC_SUPABASE_URL: 'http://127.0.0.1:54321',
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: 'test',
+    },
     url: 'http://127.0.0.1:3000/join?coach_invite=health-check',
     reuseExistingServer: true,
     timeout: 120000,

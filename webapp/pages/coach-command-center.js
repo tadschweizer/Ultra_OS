@@ -105,6 +105,42 @@ function inviteUrl(token) {
   return `${base}/join?coach_invite=${token}`;
 }
 
+function invitationDeliveryPresentation(invitation) {
+  if (invitation.delivery_status === 'sent') {
+    return {
+      label: 'Email sent',
+      detail: invitation.delivery_sent_at ? `Sent ${fmt(invitation.delivery_sent_at)}.` : 'Email delivery succeeded.',
+      className: 'bg-category-sleep/55 text-ink',
+    };
+  }
+  if (invitation.delivery_status === 'failed') {
+    return {
+      label: 'Email failed',
+      detail: 'The email was not delivered. Copy the link to share it manually.',
+      className: 'bg-category-respiratory/40 text-ink',
+    };
+  }
+  if (invitation.delivery_status === 'skipped') {
+    return {
+      label: 'Email not configured',
+      detail: 'Email delivery is not configured. Copy the link to share it manually.',
+      className: 'bg-category-nutrition/55 text-ink',
+    };
+  }
+  if (invitation.delivery_status === 'pending') {
+    return {
+      label: 'Email pending',
+      detail: 'Threshold has not recorded a delivery result yet.',
+      className: 'bg-category-nutrition/40 text-ink',
+    };
+  }
+  return {
+    label: 'Delivery not recorded',
+    detail: 'This invitation predates delivery tracking. Copy the link if the athlete still needs it.',
+    className: 'bg-ink/8 text-ink/65',
+  };
+}
+
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
 function SummaryCard({ label, value, accent }) {
@@ -1324,13 +1360,14 @@ export default function CoachCommandCenter() {
 
               {/* Invitations list */}
               <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-                <p className="text-sm uppercase tracking-[0.25em] text-accent">Sent invitations</p>
+                <p className="text-sm uppercase tracking-[0.25em] text-accent">Invitations</p>
                 <div className="mt-5 space-y-3">
                   {invitations.length === 0 && (
-                    <p className="text-sm text-ink/55">No invitations sent yet.</p>
+                    <p className="text-sm text-ink/55">No invitations created yet.</p>
                   )}
-                  {invitations.map((inv) => (
-                    <div key={inv.id} className="rounded-2xl border border-ink/10 bg-paper p-4">
+                  {invitations.map((inv) => {
+                    const delivery = invitationDeliveryPresentation(inv);
+                    return <div key={inv.id} className="rounded-2xl border border-ink/10 bg-paper p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="text-sm font-semibold text-ink">{inv.email}</p>
@@ -1341,6 +1378,12 @@ export default function CoachCommandCenter() {
                           inv.status === 'revoked' ? 'bg-category-respiratory/30 text-ink/60' :
                           'bg-category-nutrition/40 text-ink'
                         }`}>{inv.status}</span>
+                      </div>
+                      <div className="mt-3">
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${delivery.className}`}>
+                          {delivery.label}
+                        </span>
+                        <p className="mt-1.5 text-xs leading-5 text-ink/55">{delivery.detail}</p>
                       </div>
                       {inv.status === 'pending' && (
                         <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -1366,8 +1409,8 @@ export default function CoachCommandCenter() {
                           </button>
                         </div>
                       )}
-                    </div>
-                  ))}
+                    </div>;
+                  })}
                 </div>
               </div>
             </div>
