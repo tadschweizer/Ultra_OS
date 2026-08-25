@@ -1,6 +1,13 @@
 import { getSupabaseAdminClient } from '../../lib/authServer';
 import { deriveRaceType } from '../../lib/raceTypes';
 import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
+import {
+  clearSignupRoleIntent,
+  getSignupRoleIntent,
+  normalizeSignupRoleIntent,
+  setSignupRoleIntent,
+} from '../../lib/auth/signupRoleIntent.js';
+import { primaryRoleForSignupRole } from '../../lib/auth/roleGuards.js';
 
 // Server-side routes cannot use the anon client: it carries no Supabase
 // session, so auth.uid() is null and every RLS policy denies it. This route
@@ -53,7 +60,7 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     const { data: athlete, error } = await supabase
       .from('athletes')
-      .select('id, name, email, onboarding_complete, primary_sports, years_racing_band, weekly_training_hours_band, home_elevation_ft, target_race_id')
+      .select('id, name, email, onboarding_complete, primary_role, primary_sports, years_racing_band, weekly_training_hours_band, home_elevation_ft, target_race_id')
       .eq('id', athleteId)
       .single();
 
@@ -64,12 +71,54 @@ export default async function handler(req, res) {
     }
 
     const targetRace = await loadCurrentTargetRace(athleteId);
-    res.status(200).json({ athlete, targetRace });
+    res.status(200).json({ athlete, targetRace, signupRole: getSignupRoleIntent(req) });
+    return;
+  }
+
+  if (req.method === 'PATCH') {
+    const signupRole = normalizeSignupRoleIntent(req.body?.role, '');
+    if (!signupRole) {
+      res.status(400).json({ error: 'role must be coach, athlete-with-coach, or individual.' });
+      return;
+    }
+    const primaryRole = primaryRoleForSignupRole(signupRole);
+    const { data: currentAthlete, error: currentError } = await supabase
+      .from('athletes')
+      .select('id, onboarding_complete')
+      .eq('id', athleteId)
+      .single();
+    if (currentError) {
+      res.status(500).json({ error: currentError.message });
+      return;
+    }
+    if (currentAthlete.onboarding_complete) {
+      res.status(409).json({ error: 'Role selection is only available during onboarding.' });
+      return;
+    }
+    const { data: athlete, error } = await supabase
+      .from('athletes')
+      .update({ primary_role: primaryRole })
+      .eq('id', athleteId)
+      .select('id, primary_role')
+      .single();
+    if (error) {
+      res.status(500).json({ error: error.message });
+      return;
+    }
+    setSignupRoleIntent(res, signupRole);
+    res.status(200).json({ athlete, signupRole });
     return;
   }
 
   if (req.method === 'POST') {
     const body = req.body || {};
+    const signupRole = body.role === undefined
+      ? null
+      : normalizeSignupRoleIntent(body.role, '');
+    if (body.role !== undefined && !signupRole) {
+      res.status(400).json({ error: 'role must be coach, athlete-with-coach, or individual.' });
+      return;
+    }
     const sports = Array.isArray(body.primary_sports)
       ? body.primary_sports.map((item) => String(item).trim()).filter(Boolean)
       : [];
@@ -116,6 +165,7 @@ export default async function handler(req, res) {
       .from('athletes')
       .update({
         onboarding_complete: Boolean(body.onboarding_complete),
+        ...(signupRole ? { primary_role: primaryRoleForSignupRole(signupRole) } : {}),
         primary_sports: sports,
         years_racing_band: body.years_racing_band || null,
         weekly_training_hours_band: body.weekly_training_hours_band || null,
@@ -123,7 +173,7 @@ export default async function handler(req, res) {
         target_race_id: targetRaceId,
       })
       .eq('id', athleteId)
-      .select('id, name, onboarding_complete, primary_sports, years_racing_band, weekly_training_hours_band, home_elevation_ft, target_race_id')
+      .select('id, name, onboarding_complete, primary_role, primary_sports, years_racing_band, weekly_training_hours_band, home_elevation_ft, target_race_id')
       .single();
 
     if (error) {
@@ -133,6 +183,7 @@ export default async function handler(req, res) {
     }
 
     const targetRace = targetRaceId ? await loadCurrentTargetRace(athleteId) : null;
+    if (body.onboarding_complete) clearSignupRoleIntent(res);
     res.status(200).json({ athlete, targetRace });
     return;
   }

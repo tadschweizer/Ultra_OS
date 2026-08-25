@@ -11,6 +11,7 @@ import {
   getClientIp,
   recordAuthAttempt,
 } from '../../../lib/auth/rateLimit.js';
+import { loadAccountAccess } from '../../../lib/auth/roleAccessServer.js';
 
 /**
  * Distinguishes "wrong password" from "this account has no password at all".
@@ -79,12 +80,16 @@ export default async function handler(req, res) {
     await clearAuthAttempts(admin, { kind: 'login', identifier: email, ip });
     await recordAuthAttempt(admin, { kind: 'login', identifier: email, ip, succeeded: true });
 
+    const access = await loadAccountAccess(admin, athlete);
     res.status(200).json({
       athleteId: athlete.id,
       name: athlete.name,
       onboardingComplete: Boolean(athlete.onboarding_complete),
       subscriptionTier: athlete.subscription_tier,
       emailVerified,
+      primaryRole: access.primaryRole,
+      capabilities: access.capabilities,
+      defaultPath: access.defaultPath,
     });
   } catch (error) {
     console.error('[login] athlete lookup error:', error);

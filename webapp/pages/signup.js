@@ -31,8 +31,6 @@ const ROLE_OPTIONS = [
   },
 ];
 
-export const SIGNUP_ROLE_STORAGE_KEY = 'threshold_signup_role';
-
 export default function SignupPage() {
   const router = useRouter();
   const [role, setRole] = useState('individual');
@@ -53,13 +51,6 @@ export default function SignupPage() {
 
   function selectRole(nextRole) {
     setRole(nextRole);
-    try {
-      // Persisted so the onboarding flow can recover the choice after an
-      // OAuth redirect, where query params are lost.
-      window.localStorage.setItem(SIGNUP_ROLE_STORAGE_KEY, nextRole);
-    } catch {
-      // Ignore storage failures; email signup still carries role in the URL.
-    }
   }
 
   useEffect(() => {
@@ -76,7 +67,10 @@ export default function SignupPage() {
         });
         if (res.ok) {
           const data = await res.json();
-          window.location.href = data.athlete?.onboarding_complete || isCoachInvitationPath(destination) ? destination : '/onboarding';
+          const defaultPath = data.account?.default_path || '/dashboard';
+          window.location.href = data.athlete?.onboarding_complete || isCoachInvitationPath(destination)
+            ? (params.get('next') ? destination : defaultPath)
+            : '/onboarding';
           return;
         }
       } catch {
@@ -96,6 +90,10 @@ export default function SignupPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (isCoachInvitationPath(nextPath)) setRole('athlete-with-coach');
+  }, [nextPath]);
+
   async function handleEmailSignup(event) {
     event.preventDefault();
     setError('');
@@ -112,7 +110,7 @@ export default function SignupPage() {
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, role, next: nextPath }),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -122,7 +120,7 @@ export default function SignupPage() {
       }
       window.location.href = data.onboardingComplete || isCoachInvitationPath(nextPath)
         ? nextPath
-        : `/onboarding?role=${encodeURIComponent(role)}`;
+        : '/onboarding';
     } catch {
       setError('Something went wrong. Please try again.');
       setLoading(false);
@@ -132,8 +130,20 @@ export default function SignupPage() {
   async function handleGoogleSignup() {
     setError('');
     setLoading(true);
+    const intentResponse = await fetch('/api/auth/role-intent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role, next: nextPath }),
+    });
+    if (!intentResponse.ok) {
+      const intentData = await intentResponse.json().catch(() => ({}));
+      setError(intentData.error || 'Could not save your signup choice. Please try again.');
+      setLoading(false);
+      return;
+    }
+
     const supabase = getSupabaseClient();
-        const { error: oauthError } = await supabase.auth.signInWithOAuth({
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
@@ -178,7 +188,9 @@ export default function SignupPage() {
           <div className="mt-6">
             <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-ink/50">How will you use Threshold?</p>
             <div className="space-y-2">
-              {ROLE_OPTIONS.map((option) => {
+              {ROLE_OPTIONS
+                .filter((option) => !isCoachInvitationPath(nextPath) || option.id !== 'coach')
+                .map((option) => {
                 const active = role === option.id;
                 return (
                   <button
@@ -276,7 +288,7 @@ export default function SignupPage() {
             </button>
 
             <a
-              href={`/api/strava/login?next=${encodeURIComponent(nextPath)}`}
+              href={`/api/strava/login?next=${encodeURIComponent(nextPath)}&role=${encodeURIComponent(role)}`}
               className="flex w-full items-center justify-center gap-3 rounded-full border border-ink/12 bg-paper px-6 py-3.5 text-sm font-semibold text-ink transition hover:bg-white"
             >
               Continue with Strava

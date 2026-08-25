@@ -20,7 +20,7 @@ import {
   verifyViewAsValue,
 } from '../lib/auth/sessionCookies.js';
 import { resolveEffectiveAthleteId } from '../lib/auth/requireAthlete.js';
-import { hasRole, requireRole } from '../lib/auth/roleGuards.js';
+import { buildAccountAccess, hasRole, requireRole } from '../lib/auth/roleGuards.js';
 import logoutHandler from '../pages/api/auth/logout.js';
 
 function makeRes() {
@@ -139,8 +139,12 @@ test('an active session slides forward but a fresh one is left alone', () => {
 });
 
 test('role guards protect coach/admin routes', () => {
-  assert.equal(hasRole({ subscription_tier: 'coach' }, 'coach'), true);
-  assert.equal(requireRole({ is_admin: false }, 'admin').allowed, false);
+  const coach = buildAccountAccess({
+    athlete: { id: 'athlete-1', primary_role: 'coach', subscription_tier: 'free', is_admin: false },
+    coachProfile: { id: 'coach-1' },
+  });
+  assert.equal(hasRole(coach, 'coach'), true);
+  assert.equal(requireRole(coach, 'admin').allowed, false);
 });
 
 test('non-post auth requests are rejected', () => {

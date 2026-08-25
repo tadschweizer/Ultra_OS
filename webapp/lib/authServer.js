@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { normalizeSubscriptionTier } from './subscriptionTiers.js';
 import { getSessionFromRequest } from './auth/sessionCookies.js';
+import { isValidPrimaryRole } from './auth/roleGuards.js';
 
 let adminClient = null;
 let anonClient = null;
@@ -36,7 +37,7 @@ export function getSupabaseAnonServerClient() {
 }
 
 const ATHLETE_FIELDS =
-  'id, name, email, onboarding_complete, subscription_tier, supabase_user_id, session_version, email_verified_at';
+  'id, name, email, onboarding_complete, primary_role, subscription_tier, supabase_user_id, session_version, email_verified_at';
 
 /**
  * Resolves the athlete row for a Supabase identity, creating one if needed.
@@ -62,8 +63,10 @@ export async function findOrCreateAthleteForAuthUser({
   email,
   name = null,
   emailVerified = false,
+  primaryRole = null,
 }) {
   let isNewAthlete = false;
+  const normalizedPrimaryRole = isValidPrimaryRole(primaryRole) ? primaryRole : null;
   let { data: athlete, error: athleteLookupError } = await admin
     .from('athletes')
     .select(ATHLETE_FIELDS)
@@ -100,6 +103,9 @@ export async function findOrCreateAthleteForAuthUser({
         .update({
           supabase_user_id: supabaseUserId,
           subscription_tier: normalizedTier,
+          ...(normalizedPrimaryRole && !emailAthlete.onboarding_complete
+            ? { primary_role: normalizedPrimaryRole }
+            : {}),
         })
         .eq('id', emailAthlete.id)
         .is('supabase_user_id', null)
@@ -124,6 +130,7 @@ export async function findOrCreateAthleteForAuthUser({
         email,
         supabase_user_id: supabaseUserId,
         subscription_tier: 'free',
+        primary_role: normalizedPrimaryRole || 'athlete',
       })
       .select(ATHLETE_FIELDS)
       .single();
@@ -134,6 +141,22 @@ export async function findOrCreateAthleteForAuthUser({
 
     athlete = newAthlete;
     isNewAthlete = true;
+  }
+
+  if (
+    !isNewAthlete
+    && normalizedPrimaryRole
+    && !athlete.onboarding_complete
+    && athlete.primary_role !== normalizedPrimaryRole
+  ) {
+    const { data: updatedAthlete, error: roleError } = await admin
+      .from('athletes')
+      .update({ primary_role: normalizedPrimaryRole })
+      .eq('id', athlete.id)
+      .select(ATHLETE_FIELDS)
+      .single();
+    if (roleError) throw roleError;
+    athlete = updatedAthlete;
   }
 
   // Mirror the auth user's confirmation onto the athlete row the first time we

@@ -1,9 +1,13 @@
 import { getSupabaseAdminClient } from '../../lib/authServer';
 import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
+import {
+  loadAccountAccess,
+  loadActiveCoachRelationship,
+} from '../../lib/auth/roleAccessServer.js';
 
 async function getOwnCoachProfile(admin, athleteId) {
-  const { data: profile } = await admin.from('coach_profiles').select('id').eq('athlete_id', athleteId).maybeSingle();
-  return profile || null;
+  const access = await loadAccountAccess(admin, athleteId);
+  return access?.capabilities.coach ? access.coachProfile : null;
 }
 
 export default async function handler(req, res) {
@@ -42,13 +46,7 @@ export default async function handler(req, res) {
   if (!allowed) {
     const profile = await getOwnCoachProfile(admin, sessionAthleteId);
     if (profile) {
-      const { data: relationship } = await admin
-        .from('coach_athlete_relationships')
-        .select('id')
-        .eq('coach_id', profile.id)
-        .eq('athlete_id', workout.athlete_id)
-        .eq('status', 'active')
-        .maybeSingle();
+      const relationship = await loadActiveCoachRelationship(admin, profile.id, workout.athlete_id);
       allowed = Boolean(relationship);
     }
   }

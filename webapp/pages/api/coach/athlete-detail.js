@@ -1,7 +1,9 @@
 import { getSupabaseAdminClient } from '../../../lib/authServer';
 import { buildAthleteImportHealth } from '../../../lib/importHealth';
-import { getAthleteIdFromRequest } from '../../../lib/auth/sessionCookies.js';
-import { getEffectiveAthleteIdFromRequest } from '../../../lib/auth/requireAthlete.js';
+import {
+  requireActiveCoachRelationship,
+  requireCoachAccess,
+} from '../../../lib/auth/roleAccessServer.js';
 
 // Coach tables are no longer reachable with the public anon key (RLS is on and
 // the anon grants are revoked), so this route uses the service-role client.
@@ -70,27 +72,21 @@ function buildRaceReadiness({ upcomingRace, activeProtocols, compliance, activit
   };
 }
 
-function getAthleteId(req) {
-  return getEffectiveAthleteIdFromRequest(req);
-}
-
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).end();
-  const authAthleteId = await getAthleteId(req);
   const athleteId = req.query.athlete_id;
-  if (!authAthleteId) return res.status(401).json({ error: 'Not authenticated' });
+  const access = await requireCoachAccess(req, res, supabase);
+  if (!access) return;
   if (!athleteId) return res.status(400).json({ error: 'athlete_id is required' });
 
-  const { data: coachProfile } = await supabase.from('coach_profiles').select('id').eq('athlete_id', authAthleteId).maybeSingle();
-  if (!coachProfile?.id) return res.status(403).json({ error: 'Coach profile not found' });
-
-  const { data: relationship } = await supabase
-    .from('coach_athlete_relationships')
-    .select('id, status, group_name')
-    .eq('coach_id', coachProfile.id)
-    .eq('athlete_id', athleteId)
-    .maybeSingle();
-  if (!relationship) return res.status(404).json({ error: 'Athlete not found in your roster' });
+  const coachProfile = access.profile;
+  const relationship = await requireActiveCoachRelationship(
+    res,
+    supabase,
+    coachProfile.id,
+    athleteId
+  );
+  if (!relationship) return;
 
   const reconciliationStart = new Date(Date.now() - 28 * 86400000).toISOString().slice(0, 10);
 

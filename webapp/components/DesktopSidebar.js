@@ -1,5 +1,6 @@
 import { useRouter } from 'next/router';
-import { getSidebarActiveHref, sidebarSections } from '../lib/siteNavigation';
+import { getSidebarActiveHref, getSidebarSections } from '../lib/siteNavigation';
+import { useMe } from '../lib/meClient';
 
 // Amber circle logo matching the design system spec
 function ThresholdLogo({ size = 28 }) {
@@ -34,11 +35,15 @@ function itemClassName(isActive) {
 export default function DesktopSidebar() {
   const router = useRouter();
   const activeHref = getSidebarActiveHref(router.pathname);
+  const me = useMe();
+  if (!me?.account) return null;
+  const sidebarSections = getSidebarSections(me.account);
+  const coachFirst = me.account.primary_role === 'coach' && me.account.capabilities?.coach;
 
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-[210px] flex-col border-r border-border-subtle bg-paper lg:flex">
       <div className="flex h-full flex-col overflow-y-auto px-4 py-5">
-        <a href="/dashboard" className="flex items-center gap-2.5 rounded-[22px] px-3 py-3">
+        <a href={me.account.default_path || '/dashboard'} className="flex items-center gap-2.5 rounded-[22px] px-3 py-3">
           <ThresholdLogo size={28} />
           <span
             className="font-mono text-xs font-semibold uppercase tracking-[0.3em]"
@@ -74,10 +79,10 @@ export default function DesktopSidebar() {
 
         <div className="mt-6 pt-2">
           <a
-            href="/log-intervention"
+            href={coachFirst ? '/coach-command-center' : '/log-intervention'}
             className="ui-button-primary block w-full text-center"
           >
-            Log Intervention
+            {coachFirst ? 'Open Roster' : 'Log Intervention'}
           </a>
         </div>
       </div>

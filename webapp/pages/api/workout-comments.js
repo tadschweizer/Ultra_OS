@@ -6,16 +6,16 @@ import {
   parseSubject,
   validateCommentBody,
 } from '../../lib/workoutComments.js';
+import {
+  loadAccountAccess,
+  loadActiveCoachRelationship,
+} from '../../lib/auth/roleAccessServer.js';
 
 const COMMENT_COLUMNS = 'id, planned_workout_id, activity_id, athlete_id, coach_id, author_athlete_id, sender_role, body, created_at, read_at';
 
 async function getOwnCoachProfile(admin, sessionAthleteId) {
-  const { data: profile } = await admin
-    .from('coach_profiles')
-    .select('id, display_name')
-    .eq('athlete_id', sessionAthleteId)
-    .maybeSingle();
-  return profile || null;
+  const access = await loadAccountAccess(admin, sessionAthleteId);
+  return access?.capabilities.coach ? access.coachProfile : null;
 }
 
 /**
@@ -33,13 +33,7 @@ async function resolveAccess(admin, sessionAthleteId, ownerAthleteId) {
   const profile = await getOwnCoachProfile(admin, sessionAthleteId);
   if (!profile) return { allowed: false };
 
-  const { data: relationship } = await admin
-    .from('coach_athlete_relationships')
-    .select('id')
-    .eq('coach_id', profile.id)
-    .eq('athlete_id', ownerAthleteId)
-    .eq('status', 'active')
-    .maybeSingle();
+  const relationship = await loadActiveCoachRelationship(admin, profile.id, ownerAthleteId);
 
   if (!relationship) return { allowed: false };
   return { allowed: true, senderRole: 'coach', coachId: profile.id };

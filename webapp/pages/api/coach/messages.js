@@ -1,6 +1,8 @@
 import { getSupabaseAdminClient } from '../../../lib/authServer';
 import { getAthleteIdFromRequest } from '../../../lib/auth/sessionCookies.js';
 import { getEffectiveAthleteIdFromRequest } from '../../../lib/auth/requireAthlete.js';
+import { loadAccountAccess } from '../../../lib/auth/roleAccessServer.js';
+import { resolveAccountMode } from '../../../lib/auth/roleGuards.js';
 
 // Coach tables are no longer reachable with the public anon key (RLS is on and
 // the anon grants are revoked), so this route uses the service-role client.
@@ -27,11 +29,6 @@ function latestByAthlete(messages = []) {
     }
   });
   return map;
-}
-
-async function getCoachProfile(actorId) {
-  const { data } = await supabase.from('coach_profiles').select('id').eq('athlete_id', actorId).maybeSingle();
-  return data || null;
 }
 
 async function getActiveCoachRelationship(actorId) {
@@ -110,9 +107,19 @@ export default async function handler(req, res) {
   if (!actorId) return res.status(401).json({ error: 'Not authenticated' });
 
   try {
+    const access = await loadAccountAccess(supabase, actorId);
+    const requestedMode = req.method === 'GET' ? req.query.mode : req.body?.mode;
+    // This route is the explicit coaching message flow for coach-capable
+    // accounts. Athlete mode remains available for a coach who is also coached.
+    const messageMode = resolveAccountMode(
+      access,
+      requestedMode || (access?.capabilities?.coach ? 'coach' : 'athlete')
+    );
+    const coachProfile = messageMode === 'coach' && access?.capabilities.coach
+      ? access.coachProfile
+      : null;
     if (req.method === 'GET') {
       const requestedAthleteId = req.query.athlete_id || '';
-      const coachProfile = await getCoachProfile(actorId);
 
       if (coachProfile?.id) {
         if (!requestedAthleteId) {
@@ -156,7 +163,6 @@ export default async function handler(req, res) {
 
     if (req.method === 'POST') {
       const body = req.body || {};
-      const coachProfile = await getCoachProfile(actorId);
       if (coachProfile?.id) {
         if (!body.athlete_id) return res.status(400).json({ error: 'athlete_id is required' });
         const { data: relationship } = await supabase

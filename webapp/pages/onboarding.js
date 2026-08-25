@@ -32,8 +32,6 @@ export const SPORT_GROUPS = [
 const yearsOptions = ['1', '2-3', '4-6', '7+'];
 const hoursOptions = ['<8', '8-12', '12-16', '16-20', '20+'];
 
-const SIGNUP_ROLE_STORAGE_KEY = 'threshold_signup_role';
-
 const ROLE_OPTIONS = [
   {
     id: 'coach',
@@ -95,6 +93,7 @@ export default function OnboardingPage() {
   const router = useRouter();
   const [role, setRole] = useState('individual');
   const [roleInitialized, setRoleInitialized] = useState(false);
+  const [roleError, setRoleError] = useState('');
   const [stepIndex, setStepIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -120,24 +119,6 @@ export default function OnboardingPage() {
   const currentStep = steps[Math.min(stepIndex, steps.length - 1)];
 
   useEffect(() => {
-    if (!router.isReady || roleInitialized) return;
-    let initialRole = typeof router.query.role === 'string' ? router.query.role : '';
-    if (!ROLE_OPTIONS.some((option) => option.id === initialRole)) {
-      try {
-        initialRole = window.localStorage.getItem(SIGNUP_ROLE_STORAGE_KEY) || '';
-      } catch {
-        initialRole = '';
-      }
-    }
-    if (ROLE_OPTIONS.some((option) => option.id === initialRole)) {
-      setRole(initialRole);
-      // The path was already chosen at signup — drop straight into setup.
-      setStepIndex(1);
-    }
-    setRoleInitialized(true);
-  }, [router.isReady, router.query.role, roleInitialized]);
-
-  useEffect(() => {
     async function loadOnboarding() {
       try {
         const res = await fetch('/api/onboarding');
@@ -146,6 +127,15 @@ export default function OnboardingPage() {
           return;
         }
         const data = await res.json();
+        const serverRole = ROLE_OPTIONS.some((option) => option.id === data.signupRole)
+          ? data.signupRole
+          : data.athlete?.primary_role === 'coach'
+            ? 'coach'
+            : null;
+        if (serverRole) {
+          setRole(serverRole);
+          setStepIndex(1);
+        }
         setForm({
           target_race_id: data.targetRace?.id || '',
           target_race: data.targetRace
@@ -166,6 +156,7 @@ export default function OnboardingPage() {
           setStravaName(String(router.query.name));
         }
       } finally {
+        setRoleInitialized(true);
         setLoading(false);
       }
     }
@@ -176,7 +167,7 @@ export default function OnboardingPage() {
   useEffect(() => {
     if (role !== 'coach' || coachProfile) return;
     let cancelled = false;
-    fetch('/api/coach-profile')
+    fetch('/api/coach-profile', { method: 'POST' })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (!cancelled && data?.profile) setCoachProfile(data.profile);
@@ -202,12 +193,26 @@ export default function OnboardingPage() {
     );
   }, [form.home_elevation_ft]);
 
-  function pickRole(nextRole) {
-    setRole(nextRole);
+  async function pickRole(nextRole) {
+    setRoleError('');
+    setSaving(true);
     try {
-      window.localStorage.setItem(SIGNUP_ROLE_STORAGE_KEY, nextRole);
+      const response = await fetch('/api/onboarding', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: nextRole }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setRoleError(data.error || 'Could not save your role. Please try again.');
+        return;
+      }
+      setRole(nextRole);
+      setCoachProfile(nextRole === 'coach' ? null : coachProfile);
     } catch {
-      // Storage is best-effort; the choice still lives in component state.
+      setRoleError('Could not save your role. Please try again.');
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -260,7 +265,7 @@ export default function OnboardingPage() {
           </p>
         </div>
 
-        <div className="space-y-3 rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
+          <div className="space-y-3 rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
           {ROLE_OPTIONS.map((option) => {
             const active = role === option.id;
             return (
@@ -268,6 +273,7 @@ export default function OnboardingPage() {
                 key={option.id}
                 type="button"
                 onClick={() => pickRole(option.id)}
+                disabled={saving}
                 className={`w-full rounded-[24px] border px-5 py-4 text-left transition ${
                   active ? 'border-ink bg-panel text-paper' : 'border-ink/10 bg-paper text-ink hover:bg-[#efe7dc]'
                 }`}
@@ -277,6 +283,11 @@ export default function OnboardingPage() {
               </button>
             );
           })}
+          {roleError ? (
+            <p className="rounded-[14px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {roleError}
+            </p>
+          ) : null}
         </div>
       </section>
     ),
@@ -326,7 +337,7 @@ export default function OnboardingPage() {
             <button
               type="button"
               onClick={() => completeOnboarding()}
-              disabled={saving}
+              disabled={saving || !coachProfile}
               className="inline-flex w-full items-center justify-center rounded-full bg-panel px-6 py-3 text-sm font-semibold text-paper disabled:opacity-50"
             >
               Open your Command Center →
@@ -658,6 +669,7 @@ export default function OnboardingPage() {
       home_elevation_ft: form.home_elevation_ft,
       target_race: form.target_race,
       target_race_id: form.target_race_id || null,
+      role,
     };
     const res = await fetch('/api/onboarding', {
       method: 'POST',
@@ -739,6 +751,7 @@ export default function OnboardingPage() {
               <button
                 type="button"
                 onClick={() => setStepIndex(1)}
+                disabled={saving}
                 className="rounded-full bg-panel px-6 py-3 text-sm font-semibold text-paper"
               >
                 Continue

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
+import { isCoachRoute } from '../lib/siteNavigation';
 
 /**
  * Global message center: a floating button (top-right on desktop, above the
@@ -50,17 +51,19 @@ export default function MessageCenter() {
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const scrollRef = useRef(null);
+  const coachingFlow = router.pathname === '/messages' || isCoachRoute(router.pathname);
 
   const refresh = useCallback(async () => {
     try {
-      const res = await fetch('/api/message-center');
+      const modeQuery = coachingFlow ? '?mode=coach' : '';
+      const res = await fetch(`/api/message-center${modeQuery}`);
       if (!res.ok) return;
       const data = await res.json();
       setSummary(data);
     } catch {
       // Silent: the badge just stays stale until the next poll.
     }
-  }, []);
+  }, [coachingFlow]);
 
   useEffect(() => {
     refresh();
@@ -89,8 +92,9 @@ export default function MessageCenter() {
     setThreadLoading(true);
     setThreadMessages([]);
     try {
-      const query = summary?.role === 'coach' ? `?athlete_id=${conversation.athlete_id}` : '';
-      const res = await fetch(`/api/coach/messages${query}`);
+      const query = new URLSearchParams({ mode: summary?.role || 'athlete' });
+      if (summary?.role === 'coach') query.set('athlete_id', conversation.athlete_id);
+      const res = await fetch(`/api/coach/messages?${query.toString()}`);
       if (res.ok) {
         const data = await res.json();
         setThreadMessages(data.messages || []);
@@ -98,7 +102,12 @@ export default function MessageCenter() {
       await fetch('/api/message-center', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'mark_read', scope: 'conversation', athlete_id: conversation.athlete_id }),
+        body: JSON.stringify({
+          action: 'mark_read',
+          scope: 'conversation',
+          athlete_id: conversation.athlete_id,
+          mode: summary?.role || 'athlete',
+        }),
       });
       setSummary((prev) => prev ? {
         ...prev,
@@ -118,6 +127,7 @@ export default function MessageCenter() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          mode: summary?.role || 'athlete',
           athlete_id: summary?.role === 'coach' ? thread.athlete_id : undefined,
           message_body: draft.trim(),
         }),
@@ -143,6 +153,7 @@ export default function MessageCenter() {
       body: JSON.stringify({
         action: 'mark_read',
         scope: 'workout',
+        mode: summary?.role || 'athlete',
         [`${subjectParam}_id`]: sessionThread.subject_id,
       }),
     }).catch(() => {});

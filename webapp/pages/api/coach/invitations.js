@@ -1,5 +1,5 @@
-import { generateCoachCode } from '../../../lib/coachProtocols.js';
 import { getSiteUrl, sendCoachInvitationEmail } from '../../../lib/email/transactional.js';
+import { loadAccountAccess } from '../../../lib/auth/roleAccessServer.js';
 
 const INVITATION_FIELDS = [
   'id',
@@ -40,35 +40,6 @@ function deliveryRecord(delivery, attemptedAt) {
   };
 }
 
-async function ensureCoachProfile(admin, athleteId) {
-  const { data: athlete } = await admin
-    .from('athletes')
-    .select('id, name')
-    .eq('id', athleteId)
-    .single();
-
-  const { data: existing } = await admin
-    .from('coach_profiles')
-    .select('id, athlete_id, display_name, coach_code')
-    .eq('athlete_id', athleteId)
-    .maybeSingle();
-
-  if (existing) return existing;
-
-  const { data, error } = await admin
-    .from('coach_profiles')
-    .insert({
-      athlete_id: athleteId,
-      display_name: athlete?.name || 'Coach',
-      coach_code: generateCoachCode(athlete?.name || 'Coach'),
-    })
-    .select('id, athlete_id, display_name, coach_code')
-    .single();
-
-  if (error) throw error;
-  return data;
-}
-
 export async function handleCoachInvitations(req, res, {
   admin,
   athleteIdResolver,
@@ -84,7 +55,12 @@ export async function handleCoachInvitations(req, res, {
   if (!athleteId) { res.status(401).json({ error: 'Not authenticated' }); return; }
 
   try {
-    const profile = await ensureCoachProfile(admin, athleteId);
+    const access = await loadAccountAccess(admin, athleteId);
+    if (!access?.capabilities.coach) {
+      res.status(403).json({ error: 'Coach access required.' });
+      return;
+    }
+    const profile = access.coachProfile;
 
     // ── GET: list all invitations for this coach ────────────────────────────
     if (req.method === 'GET') {

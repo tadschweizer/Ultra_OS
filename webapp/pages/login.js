@@ -20,14 +20,14 @@ export default function LoginPage() {
   // Where to land after signing in. OnboardingGate sets ?next= when it bounces
   // a signed-out visitor; this page used to ignore it and send everyone to
   // /dashboard, so every deep link lost its destination.
-  const [nextPath, setNextPath] = useState('/dashboard');
+  const [nextPath, setNextPath] = useState('');
 
   useEffect(() => {
     let cancelled = false;
 
     async function checkExistingSession() {
       const params = new URLSearchParams(window.location.search);
-      const destination = safeNextPath(params.get('next'));
+      const destination = safeNextPath(params.get('next'), '');
       if (!cancelled) setNextPath(destination);
 
       try {
@@ -37,7 +37,10 @@ export default function LoginPage() {
         });
         if (res.ok) {
           const data = await res.json();
-          window.location.href = data.athlete?.onboarding_complete || isCoachInvitationPath(destination) ? destination : '/onboarding';
+          const resolvedDestination = destination || data.account?.default_path || '/dashboard';
+          window.location.href = data.athlete?.onboarding_complete || isCoachInvitationPath(resolvedDestination)
+            ? resolvedDestination
+            : '/onboarding';
           return;
         }
       } catch {
@@ -88,7 +91,8 @@ export default function LoginPage() {
       }
 
       clearMe();
-      window.location.href = data.onboardingComplete || isCoachInvitationPath(nextPath) ? nextPath : '/onboarding';
+      const destination = nextPath || data.defaultPath || '/dashboard';
+      window.location.href = data.onboardingComplete || isCoachInvitationPath(destination) ? destination : '/onboarding';
     } catch {
       setError('Something went wrong. Please try again.');
       setLoading(false);

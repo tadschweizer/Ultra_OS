@@ -1,52 +1,19 @@
 import { getSupabaseAdminClient } from '../../../lib/authServer';
 import {
-
   evaluateProtocolRules,
-  generateCoachCode,
   validateProtocolWindow,
   isActiveProtocolStatus,
   hasDateWindowOverlap,
 } from '../../../lib/coachProtocols';
-import { getAthleteIdFromRequest } from '../../../lib/auth/sessionCookies.js';
-import { getEffectiveAthleteIdFromRequest } from '../../../lib/auth/requireAthlete.js';
+import {
+  requireActiveCoachRelationship,
+  requireCoachAccess,
+} from '../../../lib/auth/roleAccessServer.js';
 
 // Coach tables are no longer reachable with the public anon key (RLS is on and
 // the anon grants are revoked), so this route uses the service-role client.
 // Authorisation is enforced in the handler from the session athlete id.
 const supabase = getSupabaseAdminClient();
-
-function getAthleteId(req) {
-  return getEffectiveAthleteIdFromRequest(req);
-}
-
-async function ensureCoachProfile(athleteId) {
-  const { data: athlete } = await supabase
-    .from('athletes')
-    .select('id, name')
-    .eq('id', athleteId)
-    .single();
-
-  const { data: existing } = await supabase
-    .from('coach_profiles')
-    .select('id, athlete_id, display_name, coach_code')
-    .eq('athlete_id', athleteId)
-    .maybeSingle();
-
-  if (existing) return existing;
-
-  const { data, error } = await supabase
-    .from('coach_profiles')
-    .insert({
-      athlete_id: athleteId,
-      display_name: athlete?.name || 'Coach',
-      coach_code: generateCoachCode(athlete?.name || 'Coach'),
-    })
-    .select('id, athlete_id, display_name, coach_code')
-    .single();
-
-  if (error) throw error;
-  return data;
-}
 
 function toNumber(v) {
   const n = Number(v);
@@ -59,11 +26,11 @@ function mean(values) {
 }
 
 export default async function handler(req, res) {
-  const athleteId = await getAthleteId(req);
-  if (!athleteId) { res.status(401).json({ error: 'Not authenticated' }); return; }
+  const access = await requireCoachAccess(req, res, supabase);
+  if (!access) return;
 
   try {
-    const profile = await ensureCoachProfile(athleteId);
+    const profile = access.profile;
 
     if (req.method === 'GET') {
       let query = supabase
@@ -72,7 +39,29 @@ export default async function handler(req, res) {
         .eq('coach_id', profile.id)
         .order('start_date', { ascending: false });
 
-      if (typeof req.query.athlete_id === 'string') query = query.eq('athlete_id', req.query.athlete_id);
+      if (typeof req.query.athlete_id === 'string') {
+        const relationship = await requireActiveCoachRelationship(
+          res,
+          supabase,
+          profile.id,
+          req.query.athlete_id
+        );
+        if (!relationship) return;
+        query = query.eq('athlete_id', req.query.athlete_id);
+      } else {
+        const { data: activeRelationships, error: relationshipError } = await supabase
+          .from('coach_athlete_relationships')
+          .select('athlete_id')
+          .eq('coach_id', profile.id)
+          .eq('status', 'active');
+        if (relationshipError) throw relationshipError;
+        const activeIds = (activeRelationships || []).map((item) => item.athlete_id);
+        if (!activeIds.length) {
+          res.status(200).json({ protocols: [], profile, adherenceByAthlete: [], adherenceByInterventionType: [], subjectiveTrendVsDose: [] });
+          return;
+        }
+        query = query.in('athlete_id', activeIds);
+      }
       if (typeof req.query.status === 'string') query = query.eq('status', req.query.status);
 
       const { data, error } = await query;
@@ -133,8 +122,8 @@ export default async function handler(req, res) {
       const windowValidation = validateProtocolWindow(body.start_date, body.end_date);
       if (!windowValidation.valid) { res.status(400).json({ error: windowValidation.error }); return; }
 
-      const { data: relationship } = await supabase.from('coach_athlete_relationships').select('id').eq('coach_id', profile.id).eq('athlete_id', body.athlete_id).eq('status', 'active').maybeSingle();
-      if (!relationship) { res.status(403).json({ error: 'Athlete is not in your active roster' }); return; }
+      const relationship = await requireActiveCoachRelationship(res, supabase, profile.id, body.athlete_id);
+      if (!relationship) return;
 
       const { data: existingActive } = await supabase
         .from('coach_protocol_assignments')
@@ -191,6 +180,8 @@ export default async function handler(req, res) {
       const { data: existing, error: existingErr } = await supabase.from('coach_protocol_assignments').select('*').eq('id', body.id).eq('coach_id', profile.id).maybeSingle();
       if (existingErr) { res.status(500).json({ error: existingErr.message }); return; }
       if (!existing) { res.status(404).json({ error: 'Protocol assignment not found' }); return; }
+      const relationship = await requireActiveCoachRelationship(res, supabase, profile.id, existing.athlete_id);
+      if (!relationship) return;
 
       const startDate = body.start_date ?? existing.start_date;
       const endDate = body.end_date ?? existing.target_completion_date;
@@ -235,6 +226,17 @@ export default async function handler(req, res) {
     if (req.method === 'DELETE') {
       const id = req.query.id || req.body?.id;
       if (!id) { res.status(400).json({ error: 'id is required' }); return; }
+
+      const { data: existing, error: lookupError } = await supabase
+        .from('coach_protocol_assignments')
+        .select('id, athlete_id')
+        .eq('id', id)
+        .eq('coach_id', profile.id)
+        .maybeSingle();
+      if (lookupError) throw lookupError;
+      if (!existing) { res.status(404).json({ error: 'Protocol assignment not found' }); return; }
+      const relationship = await requireActiveCoachRelationship(res, supabase, profile.id, existing.athlete_id);
+      if (!relationship) return;
 
       const { error } = await supabase.from('coach_protocol_assignments').update({ status: 'abandoned' }).eq('id', id).eq('coach_id', profile.id);
       if (error) { res.status(500).json({ error: error.message }); return; }

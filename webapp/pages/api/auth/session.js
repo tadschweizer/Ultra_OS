@@ -2,6 +2,8 @@ import { findOrCreateAthleteForAuthUser, getSupabaseAdminClient } from '../../..
 import { setAthleteCookie } from '../../../lib/auth/sessionCookies.js';
 import { assertAuthPostMethod, AUTH_ERROR_MESSAGES, AUTH_STATUS } from '../../../lib/auth/contracts.js';
 import { sendWelcomeEmail } from '../../../lib/email/transactional.js';
+import { getPersistedPrimaryRoleIntent } from '../../../lib/auth/signupRoleIntent.js';
+import { loadAccountAccess } from '../../../lib/auth/roleAccessServer.js';
 
 /**
  * Exchanges a verified Supabase access token for this app's session cookie.
@@ -30,6 +32,7 @@ export default async function handler(req, res) {
   // provider itself has confirmed the address, so `email_confirmed_at` is the
   // single signal that decides whether this login may claim an existing row.
   const emailVerified = Boolean(user.email_confirmed_at);
+  const primaryRole = getPersistedPrimaryRoleIntent(req);
 
   try {
     const { athlete, isNewAthlete } = await findOrCreateAthleteForAuthUser({
@@ -38,6 +41,7 @@ export default async function handler(req, res) {
       email: user.email || null,
       name: user.user_metadata?.full_name || user.user_metadata?.name || null,
       emailVerified,
+      primaryRole,
     });
 
     setAthleteCookie(res, athlete.id, athlete.session_version);
@@ -46,6 +50,7 @@ export default async function handler(req, res) {
       await sendWelcomeEmail({ name: athlete.name, email: athlete.email });
     }
 
+    const access = await loadAccountAccess(admin, athlete);
     res.status(200).json({
       athleteId: athlete.id,
       name: athlete.name,
@@ -53,6 +58,9 @@ export default async function handler(req, res) {
       subscriptionTier: athlete.subscription_tier,
       isNewAthlete,
       emailVerified,
+      primaryRole: access.primaryRole,
+      capabilities: access.capabilities,
+      defaultPath: access.defaultPath,
     });
   } catch (error) {
     console.error('[session] sync error:', error);

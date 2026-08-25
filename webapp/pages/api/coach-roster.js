@@ -1,62 +1,26 @@
 import { getSupabaseAdminClient } from '../../lib/authServer';
 import {
-
   computePhaseFromDays,
   countAssignmentCompletions,
-  generateCoachCode,
   getDaysUntil,
   normalizeRace,
 } from '../../lib/coachProtocols';
-import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
-import { getEffectiveAthleteIdFromRequest } from '../../lib/auth/requireAthlete.js';
+import {
+  requireActiveCoachRelationship,
+  requireCoachAccess,
+} from '../../lib/auth/roleAccessServer.js';
 
 // Coach tables are no longer reachable with the public anon key (RLS is on and
 // the anon grants are revoked), so this route uses the service-role client.
 // Authorisation is enforced in the handler from the session athlete id.
 const supabase = getSupabaseAdminClient();
 
-function getAthleteId(req) {
-  return getEffectiveAthleteIdFromRequest(req);
-}
-
-async function ensureCoachProfile(athleteId) {
-  const { data: athlete } = await supabase
-    .from('athletes')
-    .select('id, name')
-    .eq('id', athleteId)
-    .single();
-
-  const { data: existing } = await supabase
-    .from('coach_profiles')
-    .select('id, athlete_id, display_name, coach_code, created_at')
-    .eq('athlete_id', athleteId)
-    .maybeSingle();
-
-  if (existing) return existing;
-
-  const { data, error } = await supabase
-    .from('coach_profiles')
-    .insert({
-      athlete_id: athleteId,
-      display_name: athlete?.name || 'Coach',
-      coach_code: generateCoachCode(athlete?.name || 'Coach'),
-    })
-    .select('id, athlete_id, display_name, coach_code, created_at')
-    .single();
-
-  if (error) throw error;
-  return data;
-}
-
 export default async function handler(req, res) {
-  const athleteId = await getAthleteId(req);
-  if (!athleteId) {
-    res.status(401).json({ error: 'Not authenticated' });
-    return;
-  }
+  const access = await requireCoachAccess(req, res, supabase);
+  if (!access) return;
 
   try {
-    const profile = await ensureCoachProfile(athleteId);
+    const profile = access.profile;
 
     if (req.method === 'GET') {
       const { data: links, error } = await supabase
@@ -71,7 +35,24 @@ export default async function handler(req, res) {
         return;
       }
 
-      const athleteIds = (links || []).map((item) => item.athlete_id);
+      const linkedAthleteIds = (links || []).map((item) => item.athlete_id);
+      const { data: relationships, error: relationshipError } = linkedAthleteIds.length
+        ? await supabase
+            .from('coach_athlete_relationships')
+            .select('athlete_id')
+            .eq('coach_id', profile.id)
+            .eq('status', 'active')
+            .in('athlete_id', linkedAthleteIds)
+        : { data: [], error: null };
+
+      if (relationshipError) {
+        res.status(500).json({ error: relationshipError.message });
+        return;
+      }
+
+      const authorizedAthleteIds = new Set((relationships || []).map((item) => item.athlete_id));
+      const authorizedLinks = (links || []).filter((item) => authorizedAthleteIds.has(item.athlete_id));
+      const athleteIds = authorizedLinks.map((item) => item.athlete_id);
       let athletes = [];
       if (athleteIds.length) {
         const { data: rosterAthletes, error: athleteError } = await supabase
@@ -111,7 +92,7 @@ export default async function handler(req, res) {
             .eq('status', 'active')
         : { data: [] };
 
-      const roster = (links || []).map((link) => {
+      const roster = authorizedLinks.map((link) => {
         const athlete = athletes.find((item) => item.id === link.athlete_id) || null;
         const athleteRaces = (races || [])
           .filter((race) => race.athlete_id === link.athlete_id)
@@ -183,6 +164,14 @@ export default async function handler(req, res) {
         return;
       }
 
+      const relationship = await requireActiveCoachRelationship(
+        res,
+        supabase,
+        profile.id,
+        athleteTargetId
+      );
+      if (!relationship) return;
+
       const { data, error } = await supabase
         .from('coach_athlete_links')
         .insert({
@@ -222,6 +211,13 @@ export default async function handler(req, res) {
         res.status(500).json({ error: error.message });
         return;
       }
+
+      await supabase
+        .from('coach_athlete_relationships')
+        .update({ status: 'removed', removed_at: new Date().toISOString() })
+        .eq('coach_id', profile.id)
+        .eq('athlete_id', athleteTargetId)
+        .eq('status', 'active');
 
       res.status(200).json({ success: true });
       return;

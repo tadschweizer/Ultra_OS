@@ -1,30 +1,23 @@
 import { getSupabaseAdminClient } from '../../lib/authServer';
 import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
 import { getEffectiveAthleteIdFromRequest } from '../../lib/auth/requireAthlete.js';
+import {
+  loadAccountAccess,
+  loadActiveCoachRelationship,
+} from '../../lib/auth/roleAccessServer.js';
 
 const NOTE_COLUMNS = 'id, athlete_id, coach_id, note_date, title, body, visibility, note_type, created_at, updated_at';
 const NOTE_TYPES = ['general', 'day_off', 'event', 'goal'];
 
-async function getOwnCoachProfile(admin, sessionAthleteId) {
-  const { data: profile } = await admin
-    .from('coach_profiles')
-    .select('id')
-    .eq('athlete_id', sessionAthleteId)
-    .maybeSingle();
-  return profile || null;
-}
-
 async function getCoachProfileFor(admin, sessionAthleteId, targetAthleteId) {
-  const profile = await getOwnCoachProfile(admin, sessionAthleteId);
-  if (!profile) return null;
-  const { data: relationship } = await admin
-    .from('coach_athlete_relationships')
-    .select('id')
-    .eq('coach_id', profile.id)
-    .eq('athlete_id', targetAthleteId)
-    .eq('status', 'active')
-    .maybeSingle();
-  return relationship ? profile : null;
+  const access = await loadAccountAccess(admin, sessionAthleteId);
+  if (!access?.capabilities.coach) return null;
+  const relationship = await loadActiveCoachRelationship(
+    admin,
+    access.coachProfile.id,
+    targetAthleteId
+  );
+  return relationship ? access.coachProfile : null;
 }
 
 export default async function handler(req, res) {
