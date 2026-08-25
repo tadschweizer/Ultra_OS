@@ -1,7 +1,7 @@
 # Threshold Product Execution Roadmap
 
-Last updated: 2026-08-21<br>
-Status: M0 implementation in progress; P0-001 and P0-002 verified after review-gap repair<br>
+Last updated: 2026-08-25<br>
+Status: M0 implementation in progress; P0-003 locally verified, staging and production pending<br>
 Current milestone: M0 — make the closed coach pilot work end to end<br>
 Next item: P0-003 — persist role and enforce role-aware access
 
@@ -105,6 +105,18 @@ athlete, and use the experience on a phone without Tad or an administrator repai
   - Existing accounts receive a safe migration/default.
   - Server-side route checks and navigation consume one canonical role helper.
   - A client-side role selector cannot grant coach or admin privileges by itself.
+  - Local verification on 2026-08-25: focused role/auth tests passed 53/53; the full regression
+    suite passed 196/196; the production build generated all 35 static pages; role-aware browser
+    tests passed 5/5 across desktop Chromium and 390 px mobile Chromium (with three intentional
+    project-specific skips); invitation browser regression passed 14/14 across both viewports; and
+    `git diff --check` passed.
+  - Migration `20260821193413` passed isolated PostgreSQL 17.6 validation: a real existing coach
+    profile backfilled to coach, ordinary/paid/admin accounts stayed athlete-oriented, invalid roles
+    were rejected, and a rerun preserved a later primary-mode choice. A full local migration-chain
+    reset remains blocked by pre-existing legacy migration filenames that the Supabase CLI skips,
+    leaving `public.athletes` absent for the first timestamped migration.
+  - Still open: staging verification, production migration approval/application, production
+    deployment, and production verification have not been performed.
 
 - [ ] **P0-004 — Give pilot coaches honest access**
   - Implement an explicit pilot/beta entitlement or manually provisioned pilot state.

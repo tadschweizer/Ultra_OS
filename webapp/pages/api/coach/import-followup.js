@@ -1,6 +1,6 @@
 import { getSupabaseAdminClient } from '../../../lib/authServer';
 import { canSendFollowup } from '../../../lib/importHealth';
-import { getAthleteIdFromRequest } from '../../../lib/auth/sessionCookies.js';
+import { requireCoachAccess } from '../../../lib/auth/roleAccessServer.js';
 
 // Coach tables are no longer reachable with the public anon key (RLS is on and
 // the anon grants are revoked), so this route uses the service-role client.
@@ -14,19 +14,14 @@ function buildFollowupBody(count) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
-  const actorId = getAthleteIdFromRequest(req);
-  if (!actorId) return res.status(401).json({ error: 'Not authenticated' });
+  const access = await requireCoachAccess(req, res, supabase);
+  if (!access) return;
 
   const jobId = req.body?.jobId;
   if (!jobId) return res.status(400).json({ error: 'jobId is required' });
 
   try {
-    const { data: coachProfile } = await supabase
-      .from('coach_profiles')
-      .select('id')
-      .eq('athlete_id', actorId)
-      .maybeSingle();
-    if (!coachProfile?.id) return res.status(403).json({ error: 'Coach profile not found' });
+    const coachProfile = access.profile;
 
     const { data: job } = await supabase
       .from('trainingpeaks_import_jobs')

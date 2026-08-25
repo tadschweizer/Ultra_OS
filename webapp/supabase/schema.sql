@@ -15,6 +15,7 @@ create table if not exists public.athletes (
   stripe_subscription_id text unique,
   stripe_price_id text,
   stripe_subscription_status text,
+  primary_role text not null default 'athlete' check (primary_role in ('athlete', 'coach')),
   onboarding_complete boolean not null default false,
   primary_sports text[] not null default '{}'::text[],
   years_racing_band text,

@@ -1,64 +1,63 @@
 import { getSupabaseAdminClient } from '../../lib/authServer';
 import { generateCoachCode } from '../../lib/coachProtocols';
-import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
-
-// Coach tables are no longer reachable with the public anon key (RLS is on and
-// the anon grants are revoked), so this route uses the service-role client.
-// Authorisation is enforced in the handler from the session athlete id.
-const supabase = getSupabaseAdminClient();
-
-function getAthleteId(req) {
-  return getAthleteIdFromRequest(req);
-}
-
-async function ensureCoachProfile(athleteId) {
-  const { data: athlete } = await supabase
-    .from('athletes')
-    .select('id, name')
-    .eq('id', athleteId)
-    .single();
-
-  const { data: existing } = await supabase
-    .from('coach_profiles')
-    .select('id, athlete_id, display_name, coach_code, created_at')
-    .eq('athlete_id', athleteId)
-    .maybeSingle();
-
-  if (existing) return existing;
-
-  const payload = {
-    athlete_id: athleteId,
-    display_name: athlete?.name || 'Coach',
-    coach_code: generateCoachCode(athlete?.name || 'Coach'),
-  };
-
-  const { data, error } = await supabase
-    .from('coach_profiles')
-    .insert(payload)
-    .select('id, athlete_id, display_name, coach_code, created_at')
-    .single();
-
-  if (error) throw error;
-  return data;
-}
+import { resolveEffectiveAthleteId } from '../../lib/auth/requireAthlete.js';
+import { COACH_PROFILE_FIELDS, loadAccountAccess } from '../../lib/auth/roleAccessServer.js';
 
 export default async function handler(req, res) {
-  const athleteId = getAthleteId(req);
+  if (!['GET', 'POST'].includes(req.method)) {
+    res.status(405).end();
+    return;
+  }
+
+  const admin = getSupabaseAdminClient();
+  const { athleteId } = await resolveEffectiveAthleteId(req, admin);
   if (!athleteId) {
     res.status(401).json({ error: 'Not authenticated' });
     return;
   }
 
-  if (req.method !== 'GET') {
-    res.status(405).end();
-    return;
-  }
-
   try {
-    const profile = await ensureCoachProfile(athleteId);
-    res.status(200).json({ profile });
+    const access = await loadAccountAccess(admin, athleteId);
+
+    if (req.method === 'GET') {
+      if (!access?.coachProfile) {
+        res.status(404).json({ error: 'Coach profile not found.' });
+        return;
+      }
+      res.status(200).json({ profile: access.coachProfile });
+      return;
+    }
+
+    // This is the only self-service coach-profile creation path. Selecting a
+    // role in a request body is insufficient: the persisted primary role must
+    // already have been accepted by the onboarding API.
+    if (access?.primaryRole !== 'coach') {
+      res.status(403).json({ error: 'Choose the coach experience before creating a coach profile.' });
+      return;
+    }
+    if (access.coachProfile) {
+      res.status(200).json({ profile: access.coachProfile, created: false });
+      return;
+    }
+    if (access.athlete?.onboarding_complete) {
+      res.status(403).json({ error: 'Coach profiles can only be created during coach onboarding.' });
+      return;
+    }
+
+    const { data: profile, error } = await admin
+      .from('coach_profiles')
+      .insert({
+        athlete_id: athleteId,
+        display_name: access.athlete?.name || 'Coach',
+        coach_code: generateCoachCode(access.athlete?.name || 'Coach'),
+      })
+      .select(COACH_PROFILE_FIELDS)
+      .single();
+    if (error) throw error;
+
+    res.status(201).json({ profile, created: true });
   } catch (error) {
-    console.error(error);
+    console.error('[coach-profile] failed:', error);
     res.status(500).json({ error: error.message });
   }
 }

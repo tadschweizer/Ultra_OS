@@ -1,7 +1,8 @@
 import { getSupabaseAdminClient } from '../../../lib/authServer';
-import { generateCoachCode } from '../../../lib/coachProtocols';
-import { getAthleteIdFromRequest } from '../../../lib/auth/sessionCookies.js';
-import { getEffectiveAthleteIdFromRequest } from '../../../lib/auth/requireAthlete.js';
+import {
+  requireActiveCoachRelationship,
+  requireCoachAccess,
+} from '../../../lib/auth/roleAccessServer.js';
 
 // Coach tables are no longer reachable with the public anon key (RLS is on and
 // the anon grants are revoked), so this route uses the service-role client.
@@ -15,39 +16,6 @@ const QUICK_COACH_PROMPT_TEMPLATES = [
   'What is the smallest next step for the next 48 hours?',
   'What support does the athlete need from coaching this week?',
 ];
-
-function getAthleteId(req) {
-  return getEffectiveAthleteIdFromRequest(req);
-}
-
-async function ensureCoachProfile(athleteId) {
-  const { data: athlete } = await supabase
-    .from('athletes')
-    .select('id, name')
-    .eq('id', athleteId)
-    .single();
-
-  const { data: existing } = await supabase
-    .from('coach_profiles')
-    .select('id, athlete_id, display_name, coach_code')
-    .eq('athlete_id', athleteId)
-    .maybeSingle();
-
-  if (existing) return existing;
-
-  const { data, error } = await supabase
-    .from('coach_profiles')
-    .insert({
-      athlete_id: athleteId,
-      display_name: athlete?.name || 'Coach',
-      coach_code: generateCoachCode(athlete?.name || 'Coach'),
-    })
-    .select('id, athlete_id, display_name, coach_code')
-    .single();
-
-  if (error) throw error;
-  return data;
-}
 
 function normalizeEvidenceCards(rawCards) {
   if (!Array.isArray(rawCards)) return [];
@@ -69,11 +37,11 @@ function buildThreadKey({ athleteId, protocolAssignmentId, workoutId, workoutDat
 export const __testables = { normalizeEvidenceCards, buildThreadKey, VALID_EVIDENCE_TYPES };
 
 export default async function handler(req, res) {
-  const athleteId = await getAthleteId(req);
-  if (!athleteId) { res.status(401).json({ error: 'Not authenticated' }); return; }
+  const access = await requireCoachAccess(req, res, supabase);
+  if (!access) return;
 
   try {
-    const profile = await ensureCoachProfile(athleteId);
+    const profile = access.profile;
 
     if (req.method === 'GET') {
       const filterAthleteId = typeof req.query.athlete_id === 'string' ? req.query.athlete_id : null;
@@ -81,6 +49,13 @@ export default async function handler(req, res) {
         res.status(400).json({ error: 'athlete_id query param is required' });
         return;
       }
+      const relationship = await requireActiveCoachRelationship(
+        res,
+        supabase,
+        profile.id,
+        filterAthleteId
+      );
+      if (!relationship) return;
 
       let query = supabase
         .from('coach_notes')
@@ -119,6 +94,13 @@ export default async function handler(req, res) {
         res.status(400).json({ error: `note_type must be one of: ${VALID_NOTE_TYPES.join(', ')}` });
         return;
       }
+      const relationship = await requireActiveCoachRelationship(
+        res,
+        supabase,
+        profile.id,
+        body.athlete_id
+      );
+      if (!relationship) return;
 
       const protocolAssignmentId = body.protocol_assignment_id || null;
       const workoutId = body.workout_id || null;
@@ -156,6 +138,22 @@ export default async function handler(req, res) {
     if (req.method === 'PATCH') {
       const body = req.body || {};
       if (!body.id) { res.status(400).json({ error: 'id is required' }); return; }
+
+      const { data: ownedNote, error: lookupError } = await supabase
+        .from('coach_notes')
+        .select('id, athlete_id')
+        .eq('id', body.id)
+        .eq('coach_id', profile.id)
+        .maybeSingle();
+      if (lookupError) throw lookupError;
+      if (!ownedNote) { res.status(404).json({ error: 'Note not found' }); return; }
+      const relationship = await requireActiveCoachRelationship(
+        res,
+        supabase,
+        profile.id,
+        ownedNote.athlete_id
+      );
+      if (!relationship) return;
 
       const updates = {};
       if (body.content !== undefined) updates.content = body.content.trim();
@@ -203,6 +201,22 @@ export default async function handler(req, res) {
     if (req.method === 'DELETE') {
       const id = req.query.id || req.body?.id;
       if (!id) { res.status(400).json({ error: 'id is required' }); return; }
+
+      const { data: ownedNote, error: lookupError } = await supabase
+        .from('coach_notes')
+        .select('id, athlete_id')
+        .eq('id', id)
+        .eq('coach_id', profile.id)
+        .maybeSingle();
+      if (lookupError) throw lookupError;
+      if (!ownedNote) { res.status(404).json({ error: 'Note not found' }); return; }
+      const relationship = await requireActiveCoachRelationship(
+        res,
+        supabase,
+        profile.id,
+        ownedNote.athlete_id
+      );
+      if (!relationship) return;
 
       const { error: deleteError } = await supabase
         .from('coach_notes')

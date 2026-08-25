@@ -76,7 +76,10 @@ export default function AuthCallbackPage() {
       clearMe();
       // `next` rides along through the provider round-trip so a deep link that
       // bounced to /login still ends up where the user was headed.
-      const destination = safeNextPath(new URL(window.location.href).searchParams.get('next'));
+      const destination = safeNextPath(
+        new URL(window.location.href).searchParams.get('next'),
+        ''
+      ) || data.defaultPath || '/dashboard';
       window.location.href = data.onboardingComplete || isCoachInvitationPath(destination) ? destination : '/onboarding';
     }
 

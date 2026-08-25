@@ -12,11 +12,17 @@ import {
   recordAuthAttempt,
 } from '../../../lib/auth/rateLimit.js';
 import { getSiteUrl, sendVerificationEmail, sendWelcomeEmail } from '../../../lib/email/transactional.js';
+import { safeNextPath } from '../../../lib/auth/redirects.js';
+import { primaryRoleForSignupRole } from '../../../lib/auth/roleGuards.js';
+import {
+  normalizeSignupRoleIntent,
+  setSignupRoleIntent,
+} from '../../../lib/auth/signupRoleIntent.js';
 
 export default async function handler(req, res) {
   if (!assertAuthPostMethod(req, res)) return;
 
-  const { email, password, name } = req.body || {};
+  const { email, password, name, role, next } = req.body || {};
   if (!email || !password) {
     res.status(400).json({ error: 'Email and password are required.' });
     return;
@@ -27,6 +33,16 @@ export default async function handler(req, res) {
     res.status(400).json({ error: passwordProblem });
     return;
   }
+
+  const signupRole = normalizeSignupRoleIntent(role, next);
+  if (!signupRole) {
+    res.status(400).json({ error: 'role must be coach, athlete-with-coach, or individual.' });
+    return;
+  }
+  const primaryRole = primaryRoleForSignupRole(signupRole);
+  const nextPath = safeNextPath(next, '');
+  const callbackUrl = new URL('/auth/callback', getSiteUrl());
+  if (nextPath) callbackUrl.searchParams.set('next', nextPath);
 
   const admin = getSupabaseAdminClient();
   const ip = getClientIp(req);
@@ -42,7 +58,7 @@ export default async function handler(req, res) {
     type: 'signup',
     email,
     password,
-    options: { redirectTo: `${getSiteUrl()}/auth/callback` },
+    options: { redirectTo: callbackUrl.toString() },
   });
 
   if (linkError || !linkData?.user) {
@@ -67,9 +83,11 @@ export default async function handler(req, res) {
       // Nothing has been proven yet, so this signup gets a fresh athlete and
       // cannot adopt an existing row until the address is confirmed.
       emailVerified: false,
+      primaryRole,
     });
 
     setAthleteCookie(res, athlete.id, athlete.session_version);
+    setSignupRoleIntent(res, signupRole);
     await recordAuthAttempt(admin, { kind: 'signup', identifier: email, ip, succeeded: true });
 
     // Both sends are best-effort — a mail outage must not fail the signup.
@@ -86,6 +104,7 @@ export default async function handler(req, res) {
       isNewAthlete,
       emailVerified: false,
       verificationEmailSent: Boolean(verifyUrl),
+      primaryRole: athlete.primary_role,
     });
   } catch (error) {
     console.error('[signup] profile creation error:', error);

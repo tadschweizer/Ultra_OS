@@ -4,6 +4,7 @@ import { buildLoadMetrics, buildLoadStatus } from '../../lib/loadRollups';
 import { clearAthleteCookie, renewAthleteCookieIfStale } from '../../lib/auth/sessionCookies.js';
 import { resolveEffectiveAthleteId } from '../../lib/auth/requireAthlete.js';
 import { isValidAthleteId } from '../../lib/auth/contracts.js';
+import { loadAccountAccess } from '../../lib/auth/roleAccessServer.js';
 
 /**
  * Returns the authenticated athlete profile plus subscription tier and usage.
@@ -35,7 +36,7 @@ export default async function handler(req, res) {
   // Fetch athlete
   const { data: athlete, error: athleteError } = await admin
     .from('athletes')
-    .select('id, name, email, strava_id, token_expires_at, onboarding_complete, primary_sports, years_racing_band, weekly_training_hours_band, home_elevation_ft, target_race_id, is_admin, subscription_tier, supabase_user_id, stripe_subscription_status, email_verified_at')
+    .select('id, name, email, strava_id, token_expires_at, onboarding_complete, primary_role, primary_sports, years_racing_band, weekly_training_hours_band, home_elevation_ft, target_race_id, is_admin, subscription_tier, supabase_user_id, stripe_subscription_status, email_verified_at')
     .eq('id', athleteId)
     .maybeSingle();
   if (athleteError) {
@@ -106,9 +107,22 @@ export default async function handler(req, res) {
     // with a Supabase identity can be prompted to confirm.
     email_verified: Boolean(athlete.email_verified_at) || !athlete.supabase_user_id,
   };
+  const access = await loadAccountAccess(admin, normalizedAthlete);
 
   res.status(200).json({
     athlete: normalizedAthlete,
+    account: {
+      primary_role: access.primaryRole,
+      capabilities: access.capabilities,
+      default_path: access.defaultPath,
+      coach_profile: access.coachProfile
+        ? {
+            id: access.coachProfile.id,
+            display_name: access.coachProfile.display_name,
+            coach_code: access.coachProfile.coach_code,
+          }
+        : null,
+    },
     impersonating: isImpersonating ? { athleteId: athlete.id, name: athlete.name } : null,
     interventionCount: count ?? 0,
     weeklyCheckIns: weeklyCheckIns ?? 0,

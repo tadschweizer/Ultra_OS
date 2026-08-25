@@ -1,22 +1,12 @@
 import { getSupabaseAdminClient } from '../../lib/authServer';
 
 import { estimateTss, summarizeStructure } from '../../lib/workoutCompliance';
-import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
-import { getEffectiveAthleteIdFromRequest } from '../../lib/auth/requireAthlete.js';
+import { requireCoachAccess } from '../../lib/auth/roleAccessServer.js';
 
 const LIBRARY_COLUMNS = `
   id, coach_id, name, sport, description, structure,
   planned_duration_min, planned_distance_km, planned_distance_unit, planned_tss, tags, created_at, updated_at
 `;
-
-async function getCoachProfile(admin, athleteId) {
-  const { data: profile } = await admin
-    .from('coach_profiles')
-    .select('id')
-    .eq('athlete_id', athleteId)
-    .maybeSingle();
-  return profile || null;
-}
 
 function normalizePayload(body) {
   const payload = {};
@@ -55,20 +45,12 @@ function normalizePayload(body) {
 }
 
 export default async function handler(req, res) {
-  const athleteId = await getEffectiveAthleteIdFromRequest(req);
-  if (!athleteId) {
-    res.status(401).json({ error: 'Not authenticated' });
-    return;
-  }
-
   const admin = getSupabaseAdminClient();
+  const access = await requireCoachAccess(req, res, admin);
+  if (!access) return;
 
   try {
-    const profile = await getCoachProfile(admin, athleteId);
-    if (!profile) {
-      res.status(403).json({ error: 'Workout library is available to coach accounts.' });
-      return;
-    }
+    const profile = access.profile;
 
     if (req.method === 'GET') {
       const { data, error } = await admin

@@ -1,11 +1,8 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/router';
-import Link from 'next/link';
-import { fetchMe } from '../lib/meClient';
-
-// Items already covered by the bottom nav — skip in the sheet to avoid redundancy
-const BOTTOM_NAV_HREFS = new Set(['/dashboard', '/log-intervention', '/history', '/content', '/settings']);
+import { useMe } from '../lib/meClient';
+import { getMobileTabs, getSidebarSections } from '../lib/siteNavigation';
 
 const sheetSections = [
   {
@@ -52,21 +49,33 @@ const sheetSections = [
   },
 ];
 
-export default function NavMenu({ primaryLink = null }) {
+export default function NavMenu({ primaryLink = null, links = [] }) {
   const [open, setOpen] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
+  const me = useMe();
+  const account = me?.account || null;
+  const isAdmin = Boolean(account?.capabilities?.administrator);
+  const coachFirst = account?.primary_role === 'coach' && account?.capabilities?.coach;
+  const bottomNavHrefs = new Set(getMobileTabs(account).map((item) => item.href));
+  const visibleSheetSections = account
+    ? getSidebarSections(account).map((section) => ({
+        ...section,
+        icon: sheetSections.find((candidate) => candidate.title === section.title)?.icon || null,
+        items: section.items.map((item) => ({ ...item, description: item.description || '' })),
+      }))
+    : [{
+        title: 'Explore',
+        icon: null,
+        items: links.length ? links : [
+          { href: '/guide', label: 'How It Works', description: '' },
+          { href: '/content', label: 'Research', description: '' },
+          { href: '/pricing', label: 'Pricing', description: '' },
+        ],
+      }];
 
   useEffect(() => {
     setMounted(true);
-  }, []);
-
-  // Resolve admin status from the shared session cache (no extra round-trip)
-  useEffect(() => {
-    fetchMe()
-      .then((data) => { if (data?.athlete?.is_admin) setIsAdmin(true); })
-      .catch(() => {});
   }, []);
 
   // Avoid horizontal page drift while keeping the menu itself scrollable.
@@ -197,7 +206,7 @@ export default function NavMenu({ primaryLink = null }) {
 
           {/* Sections */}
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-8">
-            {sheetSections.map((section, si) => (
+            {visibleSheetSections.map((section, si) => (
               <div key={section.title} className={si > 0 ? 'mt-5' : ''}>
                 <div className="mb-2 flex items-center gap-2 px-1">
                   {section.icon}
@@ -208,7 +217,7 @@ export default function NavMenu({ primaryLink = null }) {
 
                 <div className="space-y-1 rounded-[22px] bg-ink/3 p-2">
                   {section.items
-                    .filter((item) => !BOTTOM_NAV_HREFS.has(item.href))
+                    .filter((item) => !bottomNavHrefs.has(item.href))
                     .map((item) => {
                       const isActive = router.pathname === item.href;
                       return (
@@ -246,11 +255,11 @@ export default function NavMenu({ primaryLink = null }) {
 
             {/* Quick CTA */}
             <a
-              href="/log-intervention"
+              href={coachFirst ? '/coach-command-center' : '/log-intervention'}
               onClick={() => setOpen(false)}
               className="mt-6 block rounded-full bg-ink py-3.5 text-center text-sm font-semibold text-paper"
             >
-              + Log Intervention
+              {coachFirst ? 'Open Coach Roster' : '+ Log Intervention'}
             </a>
           </div>
         </div>

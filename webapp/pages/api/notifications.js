@@ -1,6 +1,7 @@
 import { getSupabaseAdminClient } from '../../lib/authServer';
 import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
 import { getEffectiveAthleteIdFromRequest } from '../../lib/auth/requireAthlete.js';
+import { loadAccountAccess } from '../../lib/auth/roleAccessServer.js';
 
 // Coach tables are no longer reachable with the public anon key (RLS is on and
 // the anon grants are revoked), so this route uses the service-role client.
@@ -24,14 +25,10 @@ function getAthleteId(req) {
 export default async function handler(req, res) {
   const athleteId = await getAthleteId(req);
   if (!athleteId) return res.status(401).json({ error: 'Not authenticated' });
+  const access = await loadAccountAccess(supabase, athleteId);
+  const coachProfile = access?.capabilities.coach ? access.coachProfile : null;
 
   if (req.method === 'GET') {
-    const { data: coachProfile } = await supabase
-      .from('coach_profiles')
-      .select('id')
-      .eq('athlete_id', athleteId)
-      .maybeSingle();
-
     const { data, error } = await supabase
       .from('athletes')
       .select('id, notification_preferences')
@@ -63,11 +60,6 @@ export default async function handler(req, res) {
     const body = req.body || {};
 
     if (body.mark_read) {
-      const { data: coachProfile } = await supabase
-        .from('coach_profiles')
-        .select('id')
-        .eq('athlete_id', athleteId)
-        .maybeSingle();
       if (!coachProfile?.id) return res.status(403).json({ error: 'Coach notifications require a coach profile.' });
 
       let query = supabase

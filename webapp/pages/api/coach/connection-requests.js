@@ -1,5 +1,5 @@
 import { getSupabaseAdminClient } from '../../../lib/authServer';
-import { requireLiveAthleteId } from '../../../lib/auth/requireAthlete.js';
+import { requireCoachAccess } from '../../../lib/auth/roleAccessServer.js';
 
 /**
  * The coach's side of coach linking — the approval step that did not exist.
@@ -14,25 +14,9 @@ import { requireLiveAthleteId } from '../../../lib/auth/requireAthlete.js';
  */
 export default async function handler(req, res) {
   const admin = getSupabaseAdminClient();
-  const athleteId = await requireLiveAthleteId(req, res, admin);
-  if (!athleteId) return;
-
-  // Note this does NOT auto-create a coach profile: a coach who has never had
-  // one also has no roster and therefore no requests.
-  const { data: profile, error: profileError } = await admin
-    .from('coach_profiles')
-    .select('id, display_name')
-    .eq('athlete_id', athleteId)
-    .maybeSingle();
-
-  if (profileError) {
-    res.status(500).json({ error: profileError.message });
-    return;
-  }
-  if (!profile) {
-    res.status(200).json({ requests: [] });
-    return;
-  }
+  const access = await requireCoachAccess(req, res, admin);
+  if (!access) return;
+  const profile = access.profile;
 
   if (req.method === 'GET') {
     const { data: pending, error } = await admin

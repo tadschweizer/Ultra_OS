@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { protectedRoutes } from '../lib/siteNavigation';
+import { isCoachRoute, protectedRoutes } from '../lib/siteNavigation';
 import { fetchMe, getCachedMe } from '../lib/meClient';
 
 // Explicit whitelist: only these routes render immediately (and prerender
@@ -29,7 +29,8 @@ export default function OnboardingGate({ children }) {
       // us render immediately. The fetch below still revalidates in the
       // background and redirects if the session has actually expired.
       const cached = getCachedMe();
-      if (cached?.athlete?.onboarding_complete && path !== '/onboarding') {
+      const cachedCanOpen = !isCoachRoute(path) || cached?.account?.capabilities?.coach;
+      if (cached?.athlete?.onboarding_complete && path !== '/onboarding' && cachedCanOpen) {
         setStatus('ready');
       }
 
@@ -47,6 +48,7 @@ export default function OnboardingGate({ children }) {
         }
 
         const completed = Boolean(data.athlete?.onboarding_complete);
+        const defaultPath = data.account?.default_path || '/dashboard';
 
         if (!completed && path !== '/onboarding') {
           router.replace('/onboarding');
@@ -54,7 +56,12 @@ export default function OnboardingGate({ children }) {
         }
 
         if (completed && path === '/onboarding') {
-          router.replace('/dashboard');
+          router.replace(defaultPath);
+          return;
+        }
+
+        if (completed && isCoachRoute(path) && !data.account?.capabilities?.coach) {
+          router.replace(defaultPath);
           return;
         }
 

@@ -3,6 +3,7 @@ import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
 import { getEffectiveAthleteIdFromRequest } from '../../lib/auth/requireAthlete.js';
 import { groupComments, parseSubject, subjectKey } from '../../lib/workoutComments.js';
 import { activityDateKey, normalizeSport } from '../../lib/workoutCompliance';
+import { loadAccountAccess } from '../../lib/auth/roleAccessServer.js';
 
 /**
  * Message center summary + read-state endpoint.
@@ -16,15 +17,6 @@ import { activityDateKey, normalizeSport } from '../../lib/workoutCompliance';
  */
 
 const COMMENT_COLUMNS = 'id, planned_workout_id, activity_id, athlete_id, sender_role, body, created_at, read_at';
-
-async function getCoachProfile(admin, athleteId) {
-  const { data } = await admin
-    .from('coach_profiles')
-    .select('id, display_name')
-    .eq('athlete_id', athleteId)
-    .maybeSingle();
-  return data || null;
-}
 
 /**
  * Resolves the title, date, and sport behind each thread.
@@ -206,7 +198,10 @@ export default async function handler(req, res) {
   const admin = getSupabaseAdminClient();
 
   try {
-    const coachProfile = await getCoachProfile(admin, sessionAthleteId);
+    const access = await loadAccountAccess(admin, sessionAthleteId);
+    const coachProfile = access?.primaryRole === 'coach' && access.capabilities.coach
+      ? access.coachProfile
+      : null;
     const role = coachProfile ? 'coach' : 'athlete';
 
     if (req.method === 'GET') {

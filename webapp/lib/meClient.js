@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react';
+
 /**
  * Shared client-side cache for /api/me.
  *
@@ -103,4 +105,16 @@ export function fetchMe({ force = false } = {}) {
   })();
 
   return inflight;
+}
+
+export function useMe() {
+  const [data, setData] = useState(() => getCachedMe());
+
+  useEffect(() => {
+    const unsubscribe = subscribeMe(setData);
+    fetchMe().then(setData).catch(() => {});
+    return unsubscribe;
+  }, []);
+
+  return data;
 }

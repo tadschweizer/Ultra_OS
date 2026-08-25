@@ -10,6 +10,8 @@ import {
   getAthleteIdFromRequest,
   setAthleteCookie,
 } from '../../../lib/auth/sessionCookies.js';
+import { getPersistedPrimaryRoleIntent } from '../../../lib/auth/signupRoleIntent.js';
+import { loadAccountAccess } from '../../../lib/auth/roleAccessServer.js';
 
 // Server-side routes cannot use the anon client: it carries no Supabase
 // session, so auth.uid() is null and every RLS policy denies it. This route
@@ -58,6 +60,7 @@ export default async function handler(req, res) {
     const { access_token, refresh_token, expires_at, athlete } = tokenData;
     const athleteName = [athlete.firstname, athlete.lastname].filter(Boolean).join(' ').trim();
     const existingAthleteId = getAthleteIdFromRequest(req);
+    const primaryRoleIntent = getPersistedPrimaryRoleIntent(req);
     let savedAthlete;
 
     if (existingAthleteId) {
@@ -74,7 +77,7 @@ export default async function handler(req, res) {
           token_expires_at: new Date(expires_at * 1000).toISOString(),
         })
         .eq('id', existingAthleteId)
-        .select('id, onboarding_complete, name, subscription_tier, session_version')
+        .select('id, onboarding_complete, primary_role, name, subscription_tier, session_version')
         .single();
       if (linkError) throw linkError;
       savedAthlete = linkedAthlete;
@@ -117,10 +120,11 @@ export default async function handler(req, res) {
               refresh_token,
               token_expires_at: new Date(expires_at * 1000).toISOString(),
               subscription_tier: 'free',
+              ...(primaryRoleIntent ? { primary_role: primaryRoleIntent } : {}),
             },
             { onConflict: 'strava_id' }
           )
-          .select('id, onboarding_complete, name, subscription_tier, session_version')
+          .select('id, onboarding_complete, primary_role, name, subscription_tier, session_version')
           .single();
         if (athleteError) throw athleteError;
         savedAthlete = upsertedAthlete;
@@ -154,8 +158,9 @@ export default async function handler(req, res) {
       })
     );
 
+    const access = await loadAccountAccess(supabase, savedAthlete);
     const destination = savedAthlete.onboarding_complete || isCoachInvitationPath(returnPath)
-      ? (returnPath || '/dashboard')
+      ? (returnPath || access.defaultPath)
       : `/onboarding?strava=connected&name=${encodeURIComponent(savedAthlete.name || athleteName || 'Strava athlete')}`;
     res.setHeader('Location', destination);
     res.statusCode = 302;

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import setInviteCookieHandler from '../pages/api/set-invite-cookie.js';
 import stravaLoginHandler from '../pages/api/strava/login.js';
-import { hasRole } from '../lib/auth/roleGuards.js';
+import { buildAccountAccess, hasRole } from '../lib/auth/roleGuards.js';
 import { protectedRoutes } from '../lib/siteNavigation.js';
 import { getStravaRedirectUri } from '../lib/auth/oauth.js';
 
@@ -31,8 +31,15 @@ test('athlete login contract rejects non-POST requests with actionable message',
 });
 
 test('coach role detection continues to work for coach login gating', () => {
-  assert.equal(hasRole({ subscription_tier: 'coach' }, 'coach'), true);
-  assert.equal(hasRole({ subscription_tier: 'free' }, 'coach'), false);
+  const coach = buildAccountAccess({
+    athlete: { id: 'athlete-1', primary_role: 'coach', subscription_tier: 'free' },
+    coachProfile: { id: 'coach-1' },
+  });
+  const paidAthlete = buildAccountAccess({
+    athlete: { id: 'athlete-2', primary_role: 'athlete', subscription_tier: 'coach' },
+  });
+  assert.equal(hasRole(coach, 'coach'), true);
+  assert.equal(hasRole(paidAthlete, 'coach'), false);
 });
 
 test('protected routes include critical post-login destinations', () => {

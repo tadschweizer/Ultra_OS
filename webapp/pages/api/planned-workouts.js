@@ -10,6 +10,10 @@ import {
 import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
 import { getEffectiveAthleteIdFromRequest } from '../../lib/auth/requireAthlete.js';
 import { syncAthleteActivities, getStoredActivities } from '../../lib/activitySync';
+import {
+  loadAccountAccess,
+  loadActiveCoachRelationship,
+} from '../../lib/auth/roleAccessServer.js';
 
 // Matches the rolling window a routine sync pulls; older ranges need a widened
 // request so scrolling back through history fills in rather than staying blank.
@@ -55,25 +59,15 @@ const WORKOUT_COLUMNS = `
 `;
 
 async function getOwnCoachProfile(admin, sessionAthleteId) {
-  const { data: profile } = await admin
-    .from('coach_profiles')
-    .select('id')
-    .eq('athlete_id', sessionAthleteId)
-    .maybeSingle();
-  return profile || null;
+  const access = await loadAccountAccess(admin, sessionAthleteId);
+  return access?.capabilities.coach ? access.coachProfile : null;
 }
 
 async function getCoachProfileFor(admin, sessionAthleteId, targetAthleteId) {
   const profile = await getOwnCoachProfile(admin, sessionAthleteId);
   if (!profile) return null;
 
-  const { data: relationship } = await admin
-    .from('coach_athlete_relationships')
-    .select('id')
-    .eq('coach_id', profile.id)
-    .eq('athlete_id', targetAthleteId)
-    .eq('status', 'active')
-    .maybeSingle();
+  const relationship = await loadActiveCoachRelationship(admin, profile.id, targetAthleteId);
 
   return relationship ? profile : null;
 }

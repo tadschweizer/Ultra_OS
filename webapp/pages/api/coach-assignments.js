@@ -1,50 +1,18 @@
 import { getSupabaseAdminClient } from '../../lib/authServer';
 import {
-
   computePlannedSessions,
   countAssignmentCompletions,
   evaluateProtocolRules,
-  generateCoachCode,
 } from '../../lib/coachProtocols';
-import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
+import {
+  requireActiveCoachRelationship,
+  requireCoachAccess,
+} from '../../lib/auth/roleAccessServer.js';
 
 // Coach tables are no longer reachable with the public anon key (RLS is on and
 // the anon grants are revoked), so this route uses the service-role client.
 // Authorisation is enforced in the handler from the session athlete id.
 const supabase = getSupabaseAdminClient();
-
-function getAthleteId(req) {
-  return getAthleteIdFromRequest(req);
-}
-
-async function ensureCoachProfile(athleteId) {
-  const { data: athlete } = await supabase
-    .from('athletes')
-    .select('id, name')
-    .eq('id', athleteId)
-    .single();
-
-  const { data: existing } = await supabase
-    .from('coach_profiles')
-    .select('id, athlete_id, display_name, coach_code, created_at')
-    .eq('athlete_id', athleteId)
-    .maybeSingle();
-
-  if (existing) return existing;
-
-  const { data, error } = await supabase
-    .from('coach_profiles')
-    .insert({
-      athlete_id: athleteId,
-      display_name: athlete?.name || 'Coach',
-      coach_code: generateCoachCode(athlete?.name || 'Coach'),
-    })
-    .select('id, athlete_id, display_name, coach_code, created_at')
-    .single();
-
-  if (error) throw error;
-  return data;
-}
 
 function normalizePayload(body = {}, coachId) {
   const plannedSessions = computePlannedSessions({
@@ -85,14 +53,11 @@ function normalizePayload(body = {}, coachId) {
 }
 
 export default async function handler(req, res) {
-  const athleteId = getAthleteId(req);
-  if (!athleteId) {
-    res.status(401).json({ error: 'Not authenticated' });
-    return;
-  }
+  const access = await requireCoachAccess(req, res, supabase);
+  if (!access) return;
 
   try {
-    const profile = await ensureCoachProfile(athleteId);
+    const profile = access.profile;
 
     if (req.method === 'GET') {
       const athleteFilter = typeof req.query.athlete_id === 'string' ? req.query.athlete_id : null;
@@ -103,7 +68,27 @@ export default async function handler(req, res) {
         .order('target_completion_date', { ascending: true });
 
       if (athleteFilter) {
+        const relationship = await requireActiveCoachRelationship(
+          res,
+          supabase,
+          profile.id,
+          athleteFilter
+        );
+        if (!relationship) return;
         query = query.eq('athlete_id', athleteFilter);
+      } else {
+        const { data: activeRelationships, error: relationshipError } = await supabase
+          .from('coach_athlete_relationships')
+          .select('athlete_id')
+          .eq('coach_id', profile.id)
+          .eq('status', 'active');
+        if (relationshipError) throw relationshipError;
+        const activeIds = (activeRelationships || []).map((item) => item.athlete_id);
+        if (!activeIds.length) {
+          res.status(200).json({ assignments: [], profile });
+          return;
+        }
+        query = query.in('athlete_id', activeIds);
       }
 
       const { data, error } = await query;
@@ -143,6 +128,13 @@ export default async function handler(req, res) {
         res.status(400).json({ error: 'athlete_id, intervention_type, start_date, and target_completion_date are required' });
         return;
       }
+      const relationship = await requireActiveCoachRelationship(
+        res,
+        supabase,
+        profile.id,
+        body.athlete_id
+      );
+      if (!relationship) return;
 
       const payload = normalizePayload(body, profile.id);
       const { data, error } = await supabase
@@ -167,7 +159,26 @@ export default async function handler(req, res) {
         return;
       }
 
-      const payload = normalizePayload(body, profile.id);
+      const { data: existing, error: existingError } = await supabase
+        .from('coach_protocol_assignments')
+        .select('id, athlete_id')
+        .eq('id', body.id)
+        .eq('coach_id', profile.id)
+        .maybeSingle();
+      if (existingError) throw existingError;
+      if (!existing) {
+        res.status(404).json({ error: 'Assignment not found' });
+        return;
+      }
+      const relationship = await requireActiveCoachRelationship(
+        res,
+        supabase,
+        profile.id,
+        existing.athlete_id
+      );
+      if (!relationship) return;
+
+      const payload = normalizePayload({ ...body, athlete_id: existing.athlete_id }, profile.id);
       const { data, error } = await supabase
         .from('coach_protocol_assignments')
         .update(payload)
