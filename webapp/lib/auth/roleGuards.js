@@ -44,6 +44,32 @@ export function buildAccountAccess({ athlete, coachProfile = null } = {}) {
   };
 }
 
+/**
+ * Coach-profile creation is explicit and server-authorized. A persisted coach
+ * intent may create the profile while onboarding is incomplete. An existing
+ * account may also recover after the server has recorded a coach subscription.
+ * Neither path trusts a role or entitlement supplied in the request body.
+ */
+export function canCreateCoachProfile(access) {
+  if (!access?.athlete || access.coachProfile) return false;
+  const onboardingCoach = access.primaryRole === 'coach'
+    && !access.athlete.onboarding_complete;
+  const entitledCoach = normalizeSubscriptionTier(access.athlete.subscription_tier) === 'coach';
+  return onboardingCoach || entitledCoach;
+}
+
+/**
+ * Resolves an interaction mode without turning that mode into authority.
+ * Forged coach mode is ignored unless the account already has coach capability.
+ */
+export function resolveAccountMode(access, requestedMode = null) {
+  if (requestedMode === 'athlete') return 'athlete';
+  if (requestedMode === 'coach' && access?.capabilities?.coach) return 'coach';
+  return access?.primaryRole === 'coach' && access?.capabilities?.coach
+    ? 'coach'
+    : 'athlete';
+}
+
 export function hasRole(access, role) {
   if (!access) return false;
   const capabilities = access.capabilities || buildAccountAccess({ athlete: access }).capabilities;

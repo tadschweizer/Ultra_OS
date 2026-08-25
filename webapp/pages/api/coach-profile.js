@@ -2,6 +2,7 @@ import { getSupabaseAdminClient } from '../../lib/authServer';
 import { generateCoachCode } from '../../lib/coachProtocols';
 import { resolveEffectiveAthleteId } from '../../lib/auth/requireAthlete.js';
 import { COACH_PROFILE_FIELDS, loadAccountAccess } from '../../lib/auth/roleAccessServer.js';
+import { canCreateCoachProfile } from '../../lib/auth/roleGuards.js';
 
 export default async function handler(req, res) {
   if (!['GET', 'POST'].includes(req.method)) {
@@ -28,19 +29,19 @@ export default async function handler(req, res) {
       return;
     }
 
-    // This is the only self-service coach-profile creation path. Selecting a
-    // role in a request body is insufficient: the persisted primary role must
-    // already have been accepted by the onboarding API.
-    if (access?.primaryRole !== 'coach') {
-      res.status(403).json({ error: 'Choose the coach experience before creating a coach profile.' });
-      return;
-    }
     if (access.coachProfile) {
       res.status(200).json({ profile: access.coachProfile, created: false });
       return;
     }
-    if (access.athlete?.onboarding_complete) {
-      res.status(403).json({ error: 'Coach profiles can only be created during coach onboarding.' });
+
+    // This is the only self-service coach-profile creation path. Request-body
+    // role or tier values are ignored. The server authorizes either persisted
+    // coach intent during onboarding or an already-recorded coach subscription,
+    // which gives completed paid accounts an explicit recovery path.
+    if (!canCreateCoachProfile(access)) {
+      res.status(403).json({
+        error: 'Coach profiles require coach onboarding or an active coach subscription.',
+      });
       return;
     }
 

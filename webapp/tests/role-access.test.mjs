@@ -6,8 +6,10 @@ import { fileURLToPath } from 'node:url';
 
 import {
   buildAccountAccess,
+  canCreateCoachProfile,
   hasRole,
   primaryRoleForSignupRole,
+  resolveAccountMode,
 } from '../lib/auth/roleGuards.js';
 import {
   normalizeSignupRoleIntent,
@@ -110,6 +112,45 @@ test('primary experience, coach capability, paid entitlement, and admin authoriz
   assert.equal(freeCoach.capabilities.administrator, false);
   assert.equal(freeCoach.defaultPath, '/coach-command-center');
   assert.equal(hasRole(freeCoach, 'coach'), true);
+});
+
+test('coach profile creation and interaction mode stay server-authorized', () => {
+  const accountAccess = (athlete, coachProfile = null) => ({
+    athlete,
+    ...buildAccountAccess({ athlete, coachProfile }),
+  });
+  const onboardingCoach = accountAccess({
+      id: 'athlete-1',
+      primary_role: 'coach',
+      subscription_tier: 'free',
+      onboarding_complete: false,
+  });
+  const paidCompletedAthlete = accountAccess({
+      id: 'athlete-2',
+      primary_role: 'athlete',
+      subscription_tier: 'coach',
+      onboarding_complete: true,
+  });
+  const ordinaryCompletedAthlete = accountAccess({
+      id: 'athlete-3',
+      primary_role: 'athlete',
+      subscription_tier: 'free',
+      onboarding_complete: true,
+  });
+  const athleteModeCoach = accountAccess({
+      id: 'athlete-4',
+      primary_role: 'athlete',
+      subscription_tier: 'free',
+      onboarding_complete: true,
+  }, { id: 'coach-4' });
+
+  assert.equal(canCreateCoachProfile(onboardingCoach), true);
+  assert.equal(canCreateCoachProfile(paidCompletedAthlete), true);
+  assert.equal(canCreateCoachProfile(ordinaryCompletedAthlete), false);
+  assert.equal(resolveAccountMode(athleteModeCoach), 'athlete');
+  assert.equal(resolveAccountMode(athleteModeCoach, 'coach'), 'coach');
+  assert.equal(resolveAccountMode(ordinaryCompletedAthlete, 'coach'), 'athlete');
+  assert.equal(resolveAccountMode(athleteModeCoach, 'administrator'), 'athlete');
 });
 
 test('server coach guards deny athletes and enforce the active athlete relationship', async () => {
@@ -245,12 +286,22 @@ test('coach APIs cannot implicitly create coach profiles', () => {
   assert.deepEqual(offenders, []);
 
   const explicitCreation = read('pages/api/coach-profile.js');
-  assert.match(explicitCreation, /primaryRole !== 'coach'/);
-  assert.match(explicitCreation, /onboarding_complete/);
-  assert.match(explicitCreation, /only be created during coach onboarding/);
+  assert.match(explicitCreation, /canCreateCoachProfile/);
+  assert.match(explicitCreation, /active coach subscription/);
 
   const onboarding = read('pages/api/onboarding.js');
   assert.match(onboarding, /Role selection is only available during onboarding/);
+});
+
+test('coach-capable athlete mode can explicitly enter coaching message flows', () => {
+  for (const file of ['pages/api/coach/messages.js', 'pages/api/message-center.js']) {
+    const source = read(file);
+    assert.match(source, /resolveAccountMode/);
+    assert.doesNotMatch(source, /primaryRole === 'coach' && access\.capabilities\.coach/);
+  }
+  const accountPage = read('pages/account.js');
+  assert.match(accountPage, /Activate Coach Workspace/);
+  assert.match(accountPage, /fetch\('\/api\/coach-profile', \{ method: 'POST' \}\)/);
 });
 
 test('protected coach handlers use the canonical access helper', () => {

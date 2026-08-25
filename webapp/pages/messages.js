@@ -56,7 +56,9 @@ export default function MessagesPage() {
   async function load(targetAthleteId = athleteId, { keepSelection = false } = {}) {
     setError('');
     try {
-      const r = await fetch('/api/coach/messages' + (targetAthleteId ? `?athlete_id=${targetAthleteId}` : ''));
+      const query = new URLSearchParams({ mode: 'coach' });
+      if (targetAthleteId) query.set('athlete_id', targetAthleteId);
+      const r = await fetch(`/api/coach/messages?${query.toString()}`);
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || 'Failed to load messages');
       const nextConversations = d.conversations || [];
@@ -115,6 +117,7 @@ export default function MessagesPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          mode: 'coach',
           athlete_id: role === 'coach' ? athleteId || undefined : undefined,
           template_key: role === 'coach' ? templateKey : undefined,
           message_body: body || undefined,

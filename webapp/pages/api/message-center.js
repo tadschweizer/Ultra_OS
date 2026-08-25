@@ -4,6 +4,7 @@ import { getEffectiveAthleteIdFromRequest } from '../../lib/auth/requireAthlete.
 import { groupComments, parseSubject, subjectKey } from '../../lib/workoutComments.js';
 import { activityDateKey, normalizeSport } from '../../lib/workoutCompliance';
 import { loadAccountAccess } from '../../lib/auth/roleAccessServer.js';
+import { resolveAccountMode } from '../../lib/auth/roleGuards.js';
 
 /**
  * Message center summary + read-state endpoint.
@@ -199,10 +200,11 @@ export default async function handler(req, res) {
 
   try {
     const access = await loadAccountAccess(admin, sessionAthleteId);
-    const coachProfile = access?.primaryRole === 'coach' && access.capabilities.coach
+    const requestedMode = req.method === 'GET' ? req.query.mode : req.body?.mode;
+    const role = resolveAccountMode(access, requestedMode);
+    const coachProfile = role === 'coach' && access?.capabilities.coach
       ? access.coachProfile
       : null;
-    const role = coachProfile ? 'coach' : 'athlete';
 
     if (req.method === 'GET') {
       if (role === 'coach') {

@@ -14,6 +14,7 @@ function getSupabaseClient() {
 }
 
 export default function AccountPage() {
+  const cachedMe = getCachedMe();
   const { planLabel, planId } = usePlan();
   const [coachCode, setCoachCode] = useState('');
   const [coachRole, setCoachRole] = useState('primary');
@@ -21,7 +22,8 @@ export default function AccountPage() {
   const [coachMessage, setCoachMessage] = useState('');
   const [loggingOut, setLoggingOut] = useState(false);
   const [billingMessage, setBillingMessage] = useState('');
-  const [athlete, setAthlete] = useState(() => getCachedMe()?.athlete || null);
+  const [athlete, setAthlete] = useState(() => cachedMe?.athlete || null);
+  const [account, setAccount] = useState(() => cachedMe?.account || null);
   const navLinks = [
     { href: '/dashboard', label: 'Threshold Home' },
     { href: '/guide', label: 'Guide' },
@@ -35,7 +37,10 @@ export default function AccountPage() {
   useEffect(() => {
     // Drives the security card: which sign-in methods exist, and whether the
     // email still needs confirming.
-    fetchMe().then((data) => setAthlete(data?.athlete || null));
+    fetchMe().then((data) => {
+      setAthlete(data?.athlete || null);
+      setAccount(data?.account || null);
+    });
   }, []);
 
   useEffect(() => {
@@ -133,10 +138,17 @@ export default function AccountPage() {
       }
 
       if (data.synced) {
+        let coachWorkspaceReady = false;
+        if (data.athlete?.subscription_tier === 'coach') {
+          const profileRes = await fetch('/api/coach-profile', { method: 'POST' });
+          coachWorkspaceReady = profileRes.ok;
+        }
         // Drop the cached profile so every page sees the new tier immediately.
         clearMe();
         setBillingMessage('Your subscription is now synced. Reloading account details...');
-        window.location.href = '/account?billing=updated';
+        window.location.href = coachWorkspaceReady
+          ? '/coach-command-center'
+          : '/account?billing=updated';
         return;
       }
 
@@ -149,6 +161,22 @@ export default function AccountPage() {
         setBillingMessage('Could not reach Stripe to refresh billing status.');
       }
     } finally {
+    }
+  }
+
+  async function activateCoachWorkspace() {
+    setBillingMessage('Activating your coach workspace...');
+    try {
+      const res = await fetch('/api/coach-profile', { method: 'POST' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setBillingMessage(data.error || 'Could not activate the coach workspace.');
+        return;
+      }
+      clearMe();
+      window.location.href = '/coach-command-center';
+    } catch {
+      setBillingMessage('Could not reach the server to activate the coach workspace.');
     }
   }
 
@@ -190,6 +218,15 @@ export default function AccountPage() {
               <a href="/api/billing/portal" className="mt-3 inline-flex rounded-full border border-ink/10 px-5 py-3 text-sm font-semibold text-ink">
                 Manage Billing
               </a>
+            ) : null}
+            {planId === 'coach' && account && !account.capabilities?.coach ? (
+              <button
+                type="button"
+                onClick={activateCoachWorkspace}
+                className="mt-3 inline-flex rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white"
+              >
+                Activate Coach Workspace
+              </button>
             ) : null}
             {billingMessage ? (
               <p className="mt-3 text-sm leading-6 text-ink/70">{billingMessage}</p>

@@ -2,6 +2,7 @@ import { getSupabaseAdminClient } from '../../../lib/authServer';
 import { getAthleteIdFromRequest } from '../../../lib/auth/sessionCookies.js';
 import { getEffectiveAthleteIdFromRequest } from '../../../lib/auth/requireAthlete.js';
 import { loadAccountAccess } from '../../../lib/auth/roleAccessServer.js';
+import { resolveAccountMode } from '../../../lib/auth/roleGuards.js';
 
 // Coach tables are no longer reachable with the public anon key (RLS is on and
 // the anon grants are revoked), so this route uses the service-role client.
@@ -107,7 +108,14 @@ export default async function handler(req, res) {
 
   try {
     const access = await loadAccountAccess(supabase, actorId);
-    const coachProfile = access?.primaryRole === 'coach' && access.capabilities.coach
+    const requestedMode = req.method === 'GET' ? req.query.mode : req.body?.mode;
+    // This route is the explicit coaching message flow for coach-capable
+    // accounts. Athlete mode remains available for a coach who is also coached.
+    const messageMode = resolveAccountMode(
+      access,
+      requestedMode || (access?.capabilities?.coach ? 'coach' : 'athlete')
+    );
+    const coachProfile = messageMode === 'coach' && access?.capabilities.coach
       ? access.coachProfile
       : null;
     if (req.method === 'GET') {
