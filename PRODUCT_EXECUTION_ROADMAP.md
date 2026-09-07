@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
-Last updated: 2026-08-25<br>
-Status: M0 implementation in progress; P0-003 locally verified, staging and production pending<br>
+Last updated: 2026-09-06<br>
+Status: M0 launch audit complete; P0-003 merged and production deployment observed, database and end-to-end acceptance unverified<br>
 Current milestone: M0 — make the closed coach pilot work end to end<br>
-Next item: P0-003 — persist role and enforce role-aware access
+Next item: P0-013A — verify restored backend and P0-003 evidence; then P0-013B — secure research administration
 
 ## Purpose
 
@@ -13,6 +13,8 @@ written.
 
 Supporting evidence lives in:
 
+- `LAUNCH_AUDIT_2026-09-06.md` for the latest source, GitHub, Vercel, Supabase, and public-page review.
+- `NEXT_CHAT_EXECUTION_PROMPT.md` for the bounded first execution session and handoff requirements.
 - `COACH_PILOT_READINESS.md` in PR #104 for the detailed coach/athlete journey audit.
 - `COACH_TEST_PLAN.md` for the current manual coach workflow.
 - `README-PLATFORM.md` for the existing architecture and older parity matrix.
@@ -24,6 +26,11 @@ Supporting evidence lives in:
 Threshold's main product goal is to become at least as useful as TrainingPeaks for a coach's and
 athlete's daily planning work, then win on intervention tracking, correlations, and coach decision
 support.
+
+The September launch priority is manual coach/athlete training: create and assign workouts, log or
+import completion, review results, and exchange timely feedback. AI-labelled features and automated
+generation are deferred until after this loop is reliable. Preserve deterministic training calculations
+and coach-written feedback. The detailed launch audit defines the deferral and verification scope.
 
 That does **not** mean building every large parity feature before fixing the current closed loop.
 The invite, role, check-in, and mobile navigation failures must be repaired first. Otherwise there
@@ -115,8 +122,12 @@ athlete, and use the experience on a phone without Tad or an administrator repai
     were rejected, and a rerun preserved a later primary-mode choice. A full local migration-chain
     reset remains blocked by pre-existing legacy migration filenames that the Supabase CLI skips,
     leaving `public.athletes` absent for the first timestamped migration.
-  - Still open: staging verification, production migration approval/application, production
-    deployment, and production verification have not been performed.
+  - September 6 audit: GitHub main contains P0-003 via PR #111 (`7336511`). Vercel lists production
+    deployment `dpl_CqSxKNoaLjeBndJ4BiK1nXSiEBYr` as READY on equivalent source commit `27ee0e5`.
+    This supersedes the earlier statement that production deployment had not occurred.
+  - Still open: independently confirm migration application and staging/production acceptance.
+    Supabase reports INACTIVE and a read-only migration query timed out during this audit.
+    Do not mark complete from deployment status or historic local tests alone.
 
 - [ ] **P0-004 — Give pilot coaches honest access**
   - Implement an explicit pilot/beta entitlement or manually provisioned pilot state.
@@ -171,6 +182,79 @@ athlete, and use the experience on a phone without Tad or an administrator repai
   - Seed the existing demo coach/athlete dataset from `lib/adminDemo.js` safely in staging.
   - M0 has a repeatable phone and desktop test script.
 
+### September launch additions
+
+These items are part of M0. Finish readiness first, then P0-004/005 and the daily training loop.
+Bring UX-001 through UX-005 forward for the five frequent surfaces; leave the broad final M7 audit
+in place. Existing milestones remain the larger parity roadmap.
+
+- [ ] **P0-013 — Backend readiness and authorization audit**
+  - Resolve Supabase availability, verify P0-003 migration and fresh-account role persistence.
+  - Scope Vercel's reported configuration errors to their deployments; verify the intended release.
+  - Separate liveness from database readiness; add useful failure alerts without exposing secrets.
+  - Require administrator authorization for research-library administration before service-role access.
+  - Validate athlete isolation, coach relationship revocation, privileged routes, and staging RLS.
+  - Production service changes still require explicit authorization.
+
+  Execute this item in separately verifiable slices; do not attempt the whole launch audit in one chat:
+
+  - [ ] **P0-013A — Read-only release baseline.** Recheck Supabase availability after the owner
+    unpauses it; confirm migration `20260821193413`, required role columns/constraints, current
+    GitHub/Vercel source, and deployment-specific configuration errors. Record exactly what was
+    observed. Do not infer fresh-account persistence from migration presence or mock browser tests.
+    Owner reported an intent to unpause on September 6; the subsequent project listing still said
+    INACTIVE, so restoration remains unverified. This slice may complete with an evidenced blocker
+    report, but P0-003 and the parent P0-013 remain open until their acceptance requirements pass.
+  - [ ] **P0-013B — Research-admin authorization repair.** Require the canonical server-side
+    administrator guard before every privileged research-library operation. Add meaningful tests
+    for anonymous, athlete, coach, and admin requests across supported methods, including denial
+    before any privileged read/write. Preserve legitimate admin behavior. Verify locally and in
+    isolated staging before marking complete; otherwise record implementation and remaining gates.
+  - [ ] **P0-013C — Dependency readiness and alerting.** Add bounded readiness checks separate
+    from liveness, safe error contracts, and actionable operational alerts. Verify dependency failure.
+  - [ ] **P0-013D — Relationship and data-isolation verification.** Verify cross-athlete denial,
+    revoked coach access, privileged routes, staging RLS, and outstanding P0-003 real-account tests.
+    Record evidence and complete the parent only after every remaining criterion passes.
+
+  First-session scope: A plus the focused B repair if feasible; stop before C or any P0-014–018 work.
+  If Supabase remains unavailable, continue B locally and document the blocked staging checks.
+
+- [ ] **P0-014 — Reliable workout creation and logging**
+  - Every create/update/complete/delete/library action reports persisted success or actionable failure.
+  - Preserve drafts, clear busy states after errors, prevent duplicate submission, and support retry.
+  - Directly edit/undo completion; support partial, skipped, and unplanned sessions.
+  - Distinguish actual/imported values from copied planned defaults.
+  - Test later device import against manual logging, mistaken matches, and timezone boundaries.
+  - Returning athlete target: log completion within 30 seconds, excluding optional written notes.
+
+- [ ] **P0-015 — One dependable messaging experience**
+  - Full inbox and floating center share conversation selection, unread state, and read acknowledgement.
+  - Incoming replies refresh promptly; target five seconds in an open conversation.
+  - Keep per-recipient drafts, retry safely, paginate history, and preserve session-discussion links.
+  - Notifications have explicit preferences, delivery state, and private content handling.
+  - Verify two-account delivery, refresh, reconnect, duplicate prevention, and relationship revocation.
+
+- [ ] **P0-016 — Athlete-first navigation and focused interface**
+  - Athlete mobile navigation: Today, Calendar, Log workout, Messages, Profile.
+  - Today exposes the planned session, fast check-in, and latest coach reply.
+  - Preserve coach Roster/Calendar/Messages access already introduced by P0-003.
+  - Converge roster, calendar, editor/logging, Today, and inbox components now, including accessible
+    dialogs, labelled fields, saved/error states, readable type, and touch controls.
+  - Verify a phone agenda view and non-drag editing; retain calendar context after mutations.
+
+- [ ] **P0-017 — Defer AI and align product claims**
+  - Inventory AI labels, generation/search/enrichment routes, scheduled work, and deterministic logic.
+  - Disable deferred generation on the server and remove its pilot UI entry points and sales claims.
+  - Keep manual planning, coach feedback, workout totals, and transparent deterministic calculations.
+  - Preserve stored data and verify pilot routes make no deferred generation requests.
+  - Replace TrainingPeaks-overlay positioning with an honest description of the available pilot loop.
+
+- [ ] **P0-018 — Measure daily-loop usability and retention**
+  - Add the full build/regression and critical role/workout/message journeys to required CI.
+  - Observe one coach and up to five athletes for two weeks after technical gates pass.
+  - Record task time, save failures, support needs, unread failures, corrections, and repeat usage.
+  - Compare representative planning tasks with TrainingPeaks before claiming equal speed or parity.
+
 ### M0 exit test
 
 - [ ] Tad completes the coach journey on a phone using the seeded demo pair.
@@ -181,6 +265,10 @@ athlete, and use the experience on a phone without Tad or an administrator repai
 - [ ] The coach sees the signals, assigns work, comments/messages, and reviews completion on mobile.
 - [ ] No unfinished connector or hardcoded migration state is presented as real.
 - [ ] One real coach completes a moderated first session before a second coach is invited.
+- [ ] Workout saves and completion corrections recover from network failure without lost input.
+- [ ] Two accounts exchange timely messages and unread state stays correct across both message views.
+- [ ] Pilot UI and server routes exclude deferred AI features and false migration states.
+- [ ] Backend readiness, authorization, and P0-003 migration/role evidence are recorded.
 
 ## M1 — Fast calendar editing
 
@@ -451,6 +539,8 @@ Threshold cannot claim parity until all of these pass with representative accoun
 
 | Date | Decision | Reason |
 | --- | --- | --- |
+| 2026-09-06 | Promote logging, messaging, core UX, and AI deferral into M0 | The initial users need a reliable manual training loop; see `LAUNCH_AUDIT_2026-09-06.md` |
+| 2026-09-06 | Verify backend readiness before continuing the release | Supabase reports INACTIVE; migration query timed out; production deployment alone is insufficient evidence |
 | 2026-08-19 | Do not advertise the public free trial yet | Current invite, entitlement, billing, truth, and activation gaps would waste trial traffic and damage trust |
 | 2026-08-19 | Fix M0 before major parity implementation | A working one-coach loop is needed to validate the larger planning roadmap |
 | 2026-08-19 | Calendar, then plans, then structured workouts/device delivery | This follows the coach's daily planning dependency chain |
