@@ -91,6 +91,11 @@ export function fetchMe({ force = false } = {}) {
       const response = await fetch('/api/me');
       if (!response.ok) {
         if (response.status === 401) clearMe();
+        if (response.status === 503 && getCachedMe()) {
+          const cached = getCachedMe();
+          primeMe({ ...cached, account: { ...cached.account, coach_access: { eligible: false } },
+            usage: null, entitlementError: 'Access could not be verified. Refresh to try again.' });
+        }
         return null;
       }
       const data = await response.json();

@@ -1,4 +1,4 @@
-# Pilot access execution checkpoint — 2026-09-06
+# Pilot access execution checkpoint — 2026-09-07
 
 Scope: P0-003/P0-013A verification, P0-013B research authorization, then P0-004/005.
 No production writes, migrations, configuration changes, deployment, emails, or merges authorized.
@@ -46,4 +46,61 @@ Combined full regression/build/browser checks run after stage 3, avoiding duplic
 
 ## Stage 3
 
-Next: implement pilot entitlements and coach-dependent check-ins together.
+Implemented separate, expiring administrator-controlled coach pilot grants, a same-origin/live-admin
+provisioning and revocation API and form, canonical server entitlement lookup, paid/pilot Coach Command
+Center gating, truthful signup/pricing/upgrade/landing copy, and coach-dependent daily check-ins.
+Role, pilot, paid tier and administrator authority remain separate. Pending/paused/removed/expired
+relationships and revoked/expired grants confer no check-in benefit. Historical data and independent
+paid athlete access remain. Failures return 503 without insertion. A separate atomic 30/minute abuse
+bucket applies to every plan. See [PILOT_ACCESS_RUNBOOK.md](PILOT_ACCESS_RUNBOOK.md) for exact behavior,
+operator provisioning instructions, migration order and real staging acceptance checklist.
+
+Local Node 22.23.2: pilot handler/matrix tests 30/30; combined test:auth:full 248/248; initial build passed.
+Isolated PGlite 0.5.8 / PostgreSQL 18.3 WASM: actual migration executed, 18 anon/authenticated CRUD/RPC
+permission denials, RLS flags, service-role operations, expiry constraint, 30/31 rate boundary and
+next-window recovery passed. This minimal-prerequisite engine is not the production PostgreSQL 17.6
+or the complete migration chain. Docker daemon is unavailable. No SQL was applied to production.
+
+P0-004/P0-005 implementation is locally verified; real isolated staging acceptance remains unchecked.
+Cohort size (one coach, up to five athletes) is an operator-controlled pilot condition, not a new public
+billing/roster limit.
+
+## Stage 4: combined final verification — 2026-09-07
+
+- Node 22.23.2 `npm run test:auth:full`: **248/248 passed** after final application edits.
+- Node 22.23.2 `npm run build`: **passed** after final application edits.
+- Existing mocked role navigation: **5 passed**, 3 intentional viewport-specific skips.
+- New pilot browser suite: **10/10 passed** on desktop Chromium and 390 x 844 mobile Chromium.
+  It exercises signup/pricing, role-only denial, grant/refresh/revoke, admin form persistence in the
+  in-memory adapter, seven consecutive daily check-ins with legs/energy/RPE, preserved seven-row
+  history after revocation, restored free cap, and explicit entitlement-error/cache behavior.
+- The browser suite uses real page rendering and handler/helper logic with an instrumented in-memory
+  database and test sessions. It is **local/mocked**, not Supabase or staging acceptance. Early test
+  failures were corrected to match existing label hints and numeric-string protocol storage; all
+  seven saves then passed in both viewports. No production synthetic records were created.
+- Browser skill smoke: local pricing renders meaningful content with no Next error overlay; initial
+  navigation began before server readiness and was retried. Screenshots inspected for pricing and
+  mobile provisioning; administrator mobile page has no horizontal overflow.
+- Local artifacts (untracked): `output/pilot-auth-full-final.log`, `output/pilot-build-final.log`,
+  `output/pilot-browser.log` (initial role results), `output/pilot-browser-final.log` (final pilot results),
+  `output/pilot-admin-{desktop,mobile}-chromium.png`, `output/pilot-checkins-{desktop,mobile}-chromium.png`.
+- Final origin fetch still reports main `fcc29a0`. Production read-only grant inspection found no
+  anon/authenticated CRUD grants on athletes, coach_profiles, or coach_athlete_relationships.
+  Residual non-CRUD REFERENCES/TRIGGER/TRUNCATE grants on relationships are recorded for P0-013D's
+  broader isolation review; no privileges were changed in production.
+
+## Stage 5: reviewable handoff
+
+- Baseline evidence: [PR #113](https://github.com/tadschweizer/Ultra_OS/pull/113), commit `4ada51b`.
+- Research authorization: [PR #114](https://github.com/tadschweizer/Ultra_OS/pull/114), commit `fafb20c`.
+  Both report successful Auth Smoke and Vercel preview checks. Preview status is not isolated staging
+  or production acceptance. Existing Git integration generated previews on push; no deployment
+  command, merge, production configuration change, or production migration was performed.
+- Pilot feature: [PR #115](https://github.com/tadschweizer/Ultra_OS/pull/115), code commit `fceb053`.
+  It is stacked on the research branch. Review/merge order is
+  baseline → research → pilot; retarget each dependent PR to main after its base is merged.
+- Next required action: identify/provide an isolated Supabase staging project plus matching app URL
+  and test accounts/configuration. Run every unchecked gate in PILOT_ACCESS_RUNBOOK.md there.
+  If creating an environment is necessary, obtain specific provisioning/deployment authorization
+  first. Production migration `20260907025635`, deployment/merge and named pilot provisioning each
+  require separate owner authorization after staging acceptance.

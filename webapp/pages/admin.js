@@ -250,6 +250,7 @@ export default function AdminPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-700">Admin</p>
           </div>
           <div className="flex items-center gap-3">
+            <a href="/admin/pilot-access" className="text-sm font-semibold underline">Pilot access</a>
             <a
               href="/dashboard"
               className="rounded-full border border-ink/10 bg-paper px-4 py-2 text-xs font-semibold text-ink transition hover:bg-ink hover:text-paper"

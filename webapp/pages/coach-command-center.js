@@ -429,7 +429,7 @@ function AthleteDrawer({ athlete, relationship, protocols, notes, docs = [], onC
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function CoachCommandCenter() {
-  const { coachFeatures, planReady } = usePlan();
+  const { coachFeatures, planReady, entitlementError, coachAccess } = usePlan();
 
   // Data state
   const [profile, setProfile] = useState(null);
@@ -863,6 +863,7 @@ export default function CoachCommandCenter() {
             <NavMenu label="Navigation" links={navLinks} primaryLink={{ href: '/dashboard', label: 'Home', variant: 'secondary' }} />
           </div>
           <section className="mt-12">
+            {entitlementError && <p role="alert" className="mb-4 text-red-700">{entitlementError}</p>}
             <UpgradePrompt
               featureName="Coach Command Center"
               unlockTier="Coach Monthly or Coach Annual"
@@ -1599,7 +1600,7 @@ export default function CoachCommandCenter() {
                     </div>
                     <div>
                       <p className="text-xs text-ink/50">Subscription</p>
-                      <p className="mt-1 text-ink/75">{profile?.subscription_tier} · {profile?.subscription_status}</p>
+                      <p className="mt-1 text-ink/75">{coachAccess?.paid ? 'Paid Coach access' : coachAccess?.pilot ? 'Approved pilot access' : 'Coach access requires approval'}</p>
                     </div>
                     {profileMsg && <p className="text-sm text-ink/65">{profileMsg}</p>}
                   </div>

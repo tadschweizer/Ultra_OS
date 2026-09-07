@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import {
   canAccessExplorer,
   getSubscriptionTierLabel,
-  hasCoachFeatures,
   normalizeSubscriptionTier,
 } from './subscriptionTiers';
 import { fetchMe, getCachedMe, subscribeMe } from './meClient';
@@ -50,7 +49,9 @@ export function usePlan() {
     // never render a "locked" state before this flips to true.
     planReady: !loading || Boolean(me),
     planLabel: getPlanLabel(planId),
+    entitlementError: me?.entitlementError || null,
+    coachAccess: me?.account?.coach_access || null,
     explorerUnlocked: canAccessExplorer(athlete).allowed,
-    coachFeatures: hasCoachFeatures(athlete).allowed,
+    coachFeatures: me?.account?.capabilities?.coach === true && me?.account?.coach_access?.eligible === true,
   };
 }

@@ -2,6 +2,7 @@ import { getSupabaseAdminClient } from '../../../lib/authServer';
 import { buildLoadMetrics } from '../../../lib/loadRollups';
 import { latestJobPerAthlete, buildAthleteImportHealth, summarizeImportHealth } from '../../../lib/importHealth';
 import { requireCoachAccess } from '../../../lib/auth/roleAccessServer.js';
+import { loadCoachEntitlement } from '../../../lib/pilotEntitlementsServer.js';
 
 // Coach tables are no longer reachable with the public anon key (RLS is on and
 // the anon grants are revoked), so this route uses the service-role client.
@@ -23,6 +24,8 @@ export default async function handler(req, res) {
 
   try {
     const profile = access.profile;
+    const entitlement = await loadCoachEntitlement(supabase, profile);
+    if (!entitlement.eligible) return res.status(403).json({ error: 'Coach Command Center requires approved pilot access or a paid Coach plan.' });
 
     const [{ data, error }, kpiRes] = await Promise.all([
       supabase.rpc('get_coach_dashboard_summary', { coach_uuid: profile.id }),
