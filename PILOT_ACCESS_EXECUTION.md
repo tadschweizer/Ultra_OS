@@ -36,8 +36,14 @@ check-ins in production. Real account persistence and staging RLS/authorization 
 
 ## Stage 2
 
-Next: require canonical administrator authorization before research operations; test every method.
+Implemented the canonical requireAdminAthleteId guard before GET/POST/PUT/DELETE research access.
+The route factory injects only the database client for tests; the real signed-session and admin
+guards run. Anonymous, athlete, paid coach, administrator, and failed admin lookup cases pass
+20/20 with Node 22.23.2. Denied requests make zero research-table calls; successful admin CRUD
+response contracts are preserved. Added this suite to test:auth:full.
+P0-013B implementation is locally verified, staging acceptance remains OPEN (stage 1 blocker).
+Combined full regression/build/browser checks run after stage 3, avoiding duplicate unchanged suites.
 
 ## Stage 3
 
-Pending: implement pilot entitlements and coach-dependent check-ins together after stage 2.
+Next: implement pilot entitlements and coach-dependent check-ins together.
