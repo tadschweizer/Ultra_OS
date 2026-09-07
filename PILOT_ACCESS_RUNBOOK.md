@@ -6,22 +6,24 @@ relationship authorization still applies. Unrelated athlete premium features rem
 own plan. Existing basic coach APIs retain their role/relationship authorization; the pilot does not
 turn those existing role capabilities into subscription privileges.
 
-## Reviewed rollout order (not applied to production)
+## Production status and remaining acceptance
 
-1. Review [baseline #113](https://github.com/tadschweizer/Ultra_OS/pull/113),
-   [research #114](https://github.com/tadschweizer/Ultra_OS/pull/114), then
-   [pilot #115](https://github.com/tadschweizer/Ultra_OS/pull/115). Use the combined pilot branch for
-   staging acceptance before requesting production/merge authorization.
-2. In an isolated staging database, apply only
+1. [Baseline #113](https://github.com/tadschweizer/Ultra_OS/pull/113),
+   [research #114](https://github.com/tadschweizer/Ultra_OS/pull/114), and
+   [pilot #115](https://github.com/tadschweizer/Ultra_OS/pull/115) were merged in that order on
+   2026-09-07. Vercel automatically deployed merge `1016373` to production.
+2. The exact SQL in
+   `webapp/supabase/migrations/20260907025635_pilot_coach_entitlements.sql` was applied to production
+   through the Supabase migration API after the automatic app deployment. Supabase recorded version
+   `20260907234756` with name `pilot_coach_entitlements`. Post-apply metadata and privileges were
+   verified; no broad `supabase db push` was used.
+3. In a future isolated staging database, apply only
    `webapp/supabase/migrations/20260907025635_pilot_coach_entitlements.sql` after reviewing its diff.
    It creates two service-only tables, a service-only invoker rate-limit function, and an optional
    relationship expiry column. Do not use broad `supabase db push` or repair unrelated history.
-3. Verify the schema/grants and record only this migration version after successful application.
-4. Deploy the matching app source to staging and run the real-account checklist below.
-5. After staging acceptance, authorized merge order is #113 → #114 → #115 (retarget dependent PRs
-   to main as their bases merge). Apply the approved production migration before deploying the app.
-   Production requires separate authorization for the exact migration, merge/deployment, and
-   any named coach provisioning. None is performed by this implementation request.
+4. Deploy matching app source to staging and run the real-account checklist below. Staging and
+   real-account acceptance remain open because the connected Supabase organization still exposes no
+   development branch. Production is not a substitute for those destructive test journeys.
 
 ## Administrator provisioning and revocation
 

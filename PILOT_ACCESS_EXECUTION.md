@@ -59,7 +59,8 @@ Local Node 22.23.2: pilot handler/matrix tests 30/30; combined test:auth:full 24
 Isolated PGlite 0.5.8 / PostgreSQL 18.3 WASM: actual migration executed, 18 anon/authenticated CRUD/RPC
 permission denials, RLS flags, service-role operations, expiry constraint, 30/31 rate boundary and
 next-window recovery passed. This minimal-prerequisite engine is not the production PostgreSQL 17.6
-or the complete migration chain. Docker daemon is unavailable. No SQL was applied to production.
+or the complete migration chain. Docker daemon was unavailable. No SQL had been applied to production
+at this stage; see the post-merge checkpoint below for the later authorized production application.
 
 P0-004/P0-005 implementation is locally verified; real isolated staging acceptance remains unchecked.
 Cohort size (one coach, up to five athletes) is an operator-controlled pilot condition, not a new public
@@ -93,14 +94,39 @@ billing/roster limit.
 
 - Baseline evidence: [PR #113](https://github.com/tadschweizer/Ultra_OS/pull/113), commit `4ada51b`.
 - Research authorization: [PR #114](https://github.com/tadschweizer/Ultra_OS/pull/114), commit `fafb20c`.
-  Both report successful Auth Smoke and Vercel preview checks. Preview status is not isolated staging
-  or production acceptance. Existing Git integration generated previews on push; no deployment
-  command, merge, production configuration change, or production migration was performed.
+  Both reported successful Auth Smoke and Vercel preview checks. Preview status is not isolated
+  staging or production acceptance. At this handoff, Git integration had generated previews but no
+  merge, production configuration change, or production migration had been performed.
 - Pilot feature: [PR #115](https://github.com/tadschweizer/Ultra_OS/pull/115), code commit `fceb053`.
   It is stacked on the research branch. Review/merge order is
   baseline → research → pilot; retarget each dependent PR to main after its base is merged.
-- Next required action: identify/provide an isolated Supabase staging project plus matching app URL
-  and test accounts/configuration. Run every unchecked gate in PILOT_ACCESS_RUNBOOK.md there.
-  If creating an environment is necessary, obtain specific provisioning/deployment authorization
-  first. Production migration `20260907025635`, deployment/merge and named pilot provisioning each
-  require separate owner authorization after staging acceptance.
+- At this handoff, the next required action was to identify an isolated Supabase staging project plus
+  matching app URL and test accounts/configuration. That acceptance requirement remains open; the
+  production actions subsequently authorized by the owner are recorded below.
+
+## Post-merge production checkpoint — 2026-09-07
+
+- The owner merged PRs #113, #114, and #115. Vercel Git integration automatically deployed merge
+  `1016373` to production as `dpl_5LdkyPxm7Ccce5ZFdq3ksEsFJP7F`; it reached READY and serves
+  `mythreshold.co`.
+- The application deployed before its additive database migration. Production inspection confirmed
+  that both new tables, the relationship expiry column, and the rate-limit function were absent.
+  Under the owner's production authorization, only the merged SQL file
+  `20260907025635_pilot_coach_entitlements.sql` was applied through the Supabase migration API.
+  Supabase recorded it as version `20260907234756` with name `pilot_coach_entitlements`.
+- Post-migration metadata verification confirmed both tables, the expiry column, and the function;
+  RLS is enabled on both tables; anon/authenticated have no table privileges or function EXECUTE;
+  `service_role` can execute the SECURITY INVOKER function. Public home, pricing, and health returned
+  200; anonymous `/api/me` returned its expected 401. No synthetic production check-ins or pilot
+  grants were created.
+- Post-merge automated review found two product defects: Individual and Research checkout links had
+  been replaced by account links, and a 503 on the first `/api/me` request did not expose the
+  entitlement verification error. The production-readiness repair restores only non-pilot checkout
+  links, preserves the closed-pilot coach signup path, and creates an explicit fail-closed client
+  state even with no warm cache. Focused browser coverage was added for both cases.
+- Supabase advisors reported the expected informational no-policy notices for the new service-only
+  RLS tables. Their roles have no grants, so this is intentional. Other advisor findings predate this
+  migration and remain outside this scoped release.
+- The post-review repair passed Node 22 `npm run test:auth:full` (248/248), `npm run build` (36 static
+  pages), and the full pilot Playwright suite (12/12 across desktop and 390 px mobile). The browser
+  suite includes the seven controlled-date check-in journey and remains local/mocked evidence.
