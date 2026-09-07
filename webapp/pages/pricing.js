@@ -218,14 +218,16 @@ export default function PricingPage() {
                 </ul>
 
                 <a
-                  href={plan.id === 'coach' ? '/signup?role=coach' : '/account'}
+                  href={plan.id === 'coach'
+                    ? '/signup?role=coach'
+                    : `/api/billing/checkout?plan=${encodeURIComponent(billing.checkoutPlan)}`}
                   className={`mt-7 block rounded-full px-5 py-3 text-center text-sm font-semibold transition ${
                     plan.flagship
                       ? 'bg-ink text-paper shadow-[0_4px_16px_rgba(19,24,22,0.2)] hover:opacity-85'
                       : 'border border-ink/15 bg-paper text-ink hover:bg-ink hover:text-paper'
                   }`}
                 >
-                  {plan.id === 'coach' ? billing.cta : 'View your account'} →
+                  {billing.cta} →
                 </a>
               </article>
             );
@@ -243,10 +245,10 @@ export default function PricingPage() {
               </p>
             </div>
             <a
-              href="/account"
+              href="/api/billing/checkout?plan=research_monthly"
               className="rounded-full border border-ink/15 bg-paper px-5 py-2.5 text-sm font-semibold text-ink transition hover:bg-ink hover:text-paper"
             >
-              View your account →
+              Start Research Feed →
             </a>
           </div>
         </section>

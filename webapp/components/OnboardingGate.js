@@ -47,6 +47,15 @@ export default function OnboardingGate({ children }) {
           return;
         }
 
+        // A 503 from /api/me means the signed-in session was valid but a
+        // server-side entitlement lookup failed. Let the protected page show
+        // its fail-closed retry state instead of misdirecting the user to
+        // onboarding or login as though their identity were missing.
+        if (data.entitlementError) {
+          setStatus('ready');
+          return;
+        }
+
         const completed = Boolean(data.athlete?.onboarding_complete);
         const defaultPath = data.account?.default_path || '/dashboard';
 
