@@ -96,7 +96,8 @@ billing/roster limit.
   Both report successful Auth Smoke and Vercel preview checks. Preview status is not isolated staging
   or production acceptance. Existing Git integration generated previews on push; no deployment
   command, merge, production configuration change, or production migration was performed.
-- Pilot feature PR: pending push. It is stacked on the research branch. Review/merge order is
+- Pilot feature: [PR #115](https://github.com/tadschweizer/Ultra_OS/pull/115), code commit `fceb053`.
+  It is stacked on the research branch. Review/merge order is
   baseline → research → pilot; retarget each dependent PR to main after its base is merged.
 - Next required action: identify/provide an isolated Supabase staging project plus matching app URL
   and test accounts/configuration. Run every unchecked gate in PILOT_ACCESS_RUNBOOK.md there.

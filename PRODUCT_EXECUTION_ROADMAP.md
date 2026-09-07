@@ -132,6 +132,7 @@ athlete, and use the experience on a phone without Tad or an administrator repai
     persistence, refresh/new-session, and authorization acceptance; no isolated staging was available.
 
 - [ ] **P0-004 — Give pilot coaches honest access**
+  - Review: [PR #115](https://github.com/tadschweizer/Ultra_OS/pull/115), code `fceb053`.
   - Implementation checkpoint 2026-09-07: separate expiring admin grants and provisioning/revocation
     form/API; role and paid tier unchanged; closed-pilot copy aligned. Staging acceptance open.
   - Implement an explicit pilot/beta entitlement or manually provisioned pilot state.
@@ -139,6 +140,7 @@ athlete, and use the experience on a phone without Tad or an administrator repai
   - Do not conflate a closed pilot entitlement with the later Stripe public trial.
 
 - [ ] **P0-005 — Uncap coach-dependent athlete check-ins**
+  - Review: [PR #115](https://github.com/tadschweizer/Ultra_OS/pull/115); same feature/dependency chain as P0-004.
   - Implementation checkpoint 2026-09-07: canonical server entitlement lookup and UI usage, active
     pilot/paid coach relationships, explicit lookup failure, expiry/revocation behavior and independent
     abuse limit. 30 pilot tests and combined 248-test suite passed; isolated SQL validated. Staging open.
@@ -220,6 +222,8 @@ in place. Existing milestones remain the larger parity roadmap.
     isolated staging before marking complete; otherwise record implementation and remaining gates.
     Local implementation checkpoint: canonical guard applied; all 20 signed-session/CRUD regression
     cases pass on Node 22. Staging blocked; see `PILOT_ACCESS_EXECUTION.md`.
+    Review: [PR #114](https://github.com/tadschweizer/Ultra_OS/pull/114), code `fafb20c`, after
+    [baseline PR #113](https://github.com/tadschweizer/Ultra_OS/pull/113). Pilot PR #115 follows.
   - [ ] **P0-013C — Dependency readiness and alerting.** Add bounded readiness checks separate
     from liveness, safe error contracts, and actionable operational alerts. Verify dependency failure.
   - [ ] **P0-013D — Relationship and data-isolation verification.** Verify cross-athlete denial,

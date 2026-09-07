@@ -8,14 +8,19 @@ turn those existing role capabilities into subscription privileges.
 
 ## Reviewed rollout order (not applied to production)
 
-1. Merge the release-baseline evidence PR, then the research administrator repair, then pilot access.
+1. Review [baseline #113](https://github.com/tadschweizer/Ultra_OS/pull/113),
+   [research #114](https://github.com/tadschweizer/Ultra_OS/pull/114), then
+   [pilot #115](https://github.com/tadschweizer/Ultra_OS/pull/115). Use the combined pilot branch for
+   staging acceptance before requesting production/merge authorization.
 2. In an isolated staging database, apply only
    `webapp/supabase/migrations/20260907025635_pilot_coach_entitlements.sql` after reviewing its diff.
    It creates two service-only tables, a service-only invoker rate-limit function, and an optional
    relationship expiry column. Do not use broad `supabase db push` or repair unrelated history.
 3. Verify the schema/grants and record only this migration version after successful application.
 4. Deploy the matching app source to staging and run the real-account checklist below.
-5. Production requires separate authorization for the exact migration, merge/deployment, and
+5. After staging acceptance, authorized merge order is #113 → #114 → #115 (retarget dependent PRs
+   to main as their bases merge). Apply the approved production migration before deploying the app.
+   Production requires separate authorization for the exact migration, merge/deployment, and
    any named coach provisioning. None is performed by this implementation request.
 
 ## Administrator provisioning and revocation
