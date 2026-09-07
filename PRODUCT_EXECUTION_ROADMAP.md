@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
 Last updated: 2026-09-06<br>
-Status: M0 launch audit complete; P0-003 merged and production deployment observed, database and end-to-end acceptance unverified<br>
+Status: P0-003 production schema verified; real-account staging acceptance blocked; scoped pilot-access execution in progress<br>
 Current milestone: M0 — make the closed coach pilot work end to end<br>
-Next item: P0-013A — verify restored backend and P0-003 evidence; then P0-013B — secure research administration
+Next item: P0-013B — secure research administration; then P0-004/P0-005 pilot entitlements. P0-003 staging acceptance remains open.
 
 ## Purpose
 
@@ -198,7 +198,7 @@ in place. Existing milestones remain the larger parity roadmap.
 
   Execute this item in separately verifiable slices; do not attempt the whole launch audit in one chat:
 
-  - [ ] **P0-013A — Read-only release baseline.** Recheck Supabase availability after the owner
+  - [x] **P0-013A — Read-only release baseline.** Recheck Supabase availability after the owner
     unpauses it; confirm migration `20260821193413`, required role columns/constraints, current
     GitHub/Vercel source, and deployment-specific configuration errors. Record exactly what was
     observed. Do not infer fresh-account persistence from migration presence or mock browser tests.
@@ -536,6 +536,11 @@ Threshold cannot claim parity until all of these pass with representative accoun
 - [ ] Billing, login, invitations, account recovery, export, and deletion require no administrator.
 
 ## Decision log
+
+Execution checkpoint: [PILOT_ACCESS_EXECUTION.md](PILOT_ACCESS_EXECUTION.md) records stage-by-stage
+implementation and acceptance separately. September 6 recheck confirms restored Supabase, role
+migration/schema, and current Vercel source. P0-003 remains unchecked because real staging
+accounts are unavailable; the previous INACTIVE observation below is historical.
 
 | Date | Decision | Reason |
 | --- | --- | --- |
