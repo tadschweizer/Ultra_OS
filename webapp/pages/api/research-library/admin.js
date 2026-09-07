@@ -1,20 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
-import { getAthleteIdFromRequest } from '../../../lib/auth/sessionCookies.js';
+import { requireAdminAthleteId, requireAthleteId } from '../../../lib/auth/requireAthlete.js';
 
 function getAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) throw new Error('Missing Supabase admin credentials.');
   return createClient(url, key, { auth: { persistSession: false } });
-}
-
-function requireAthlete(req, res) {
-  const athleteId = getAthleteIdFromRequest(req);
-  if (!athleteId) {
-    res.status(401).json({ error: 'Not authenticated' });
-    return null;
-  }
-  return athleteId;
 }
 
 function normalizeTags(value) {
@@ -56,66 +47,71 @@ function normalizePayload(body = {}) {
   };
 }
 
-export default async function handler(req, res) {
-  const athleteId = requireAthlete(req, res);
-  if (!athleteId) return;
+export function createResearchAdminHandler({ getClient = getAdminClient } = {}) {
+  return async function handler(req, res) {
+    if (!requireAthleteId(req, res)) return;
 
-  let supabase;
-  try {
-    supabase = getAdminClient();
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-    return;
-  }
-
-  if (req.method === 'GET') {
-    const { data, error } = await supabase
-      .from('research_library_entries')
-      .select('*')
-      .order('publication_date', { ascending: false, nullsFirst: false })
-      .order('inserted_at', { ascending: false });
-    if (error) return res.status(500).json({ error: error.message });
-    return res.status(200).json({ entries: data || [] });
-  }
-
-  if (req.method === 'POST') {
-    const payload = normalizePayload(req.body || {});
-    if (!payload.title || !payload.pubmed_url) {
-      return res.status(400).json({ error: 'Title and PubMed URL are required' });
+    let supabase;
+    try {
+      supabase = getClient();
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+      return;
     }
-    const { data, error } = await supabase
-      .from('research_library_entries')
-      .insert({ ...payload, updated_at: new Date().toISOString() })
-      .select()
-      .single();
-    if (error) return res.status(500).json({ error: error.message });
-    return res.status(200).json({ entry: data });
-  }
 
-  if (req.method === 'PUT') {
-    const { id } = req.body || {};
-    if (!id) return res.status(400).json({ error: 'Entry id is required' });
-    const payload = normalizePayload(req.body || {});
-    const { data, error } = await supabase
-      .from('research_library_entries')
-      .update({ ...payload, updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .select()
-      .single();
-    if (error) return res.status(500).json({ error: error.message });
-    return res.status(200).json({ entry: data });
-  }
+    if (!(await requireAdminAthleteId(req, res, supabase))) return;
 
-  if (req.method === 'DELETE') {
-    const id = typeof req.query.id === 'string' ? req.query.id : req.body?.id;
-    if (!id) return res.status(400).json({ error: 'Entry id is required' });
-    const { error } = await supabase
-      .from('research_library_entries')
-      .delete()
-      .eq('id', id);
-    if (error) return res.status(500).json({ error: error.message });
-    return res.status(200).json({ success: true });
-  }
+    if (req.method === 'GET') {
+      const { data, error } = await supabase
+        .from('research_library_entries')
+        .select('*')
+        .order('publication_date', { ascending: false, nullsFirst: false })
+        .order('inserted_at', { ascending: false });
+      if (error) return res.status(500).json({ error: error.message });
+      return res.status(200).json({ entries: data || [] });
+    }
 
-  res.status(405).end();
+    if (req.method === 'POST') {
+      const payload = normalizePayload(req.body || {});
+      if (!payload.title || !payload.pubmed_url) {
+        return res.status(400).json({ error: 'Title and PubMed URL are required' });
+      }
+      const { data, error } = await supabase
+        .from('research_library_entries')
+        .insert({ ...payload, updated_at: new Date().toISOString() })
+        .select()
+        .single();
+      if (error) return res.status(500).json({ error: error.message });
+      return res.status(200).json({ entry: data });
+    }
+
+    if (req.method === 'PUT') {
+      const { id } = req.body || {};
+      if (!id) return res.status(400).json({ error: 'Entry id is required' });
+      const payload = normalizePayload(req.body || {});
+      const { data, error } = await supabase
+        .from('research_library_entries')
+        .update({ ...payload, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) return res.status(500).json({ error: error.message });
+      return res.status(200).json({ entry: data });
+    }
+
+    if (req.method === 'DELETE') {
+      const id = typeof req.query.id === 'string' ? req.query.id : req.body?.id;
+      if (!id) return res.status(400).json({ error: 'Entry id is required' });
+      const { error } = await supabase
+        .from('research_library_entries')
+        .delete()
+        .eq('id', id);
+      if (error) return res.status(500).json({ error: error.message });
+      return res.status(200).json({ success: true });
+    }
+
+    res.status(405).end();
+  }
 }
+
+export default createResearchAdminHandler();

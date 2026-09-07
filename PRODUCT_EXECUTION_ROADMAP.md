@@ -3,7 +3,7 @@
 Last updated: 2026-09-06<br>
 Status: P0-003 production schema verified; real-account staging acceptance blocked; scoped pilot-access execution in progress<br>
 Current milestone: M0 — make the closed coach pilot work end to end<br>
-Next item: P0-013B — secure research administration; then P0-004/P0-005 pilot entitlements. P0-003 staging acceptance remains open.
+Next item: P0-004/P0-005 pilot entitlements. P0-003 and P0-013B staging acceptance remain open.
 
 ## Purpose
 
@@ -210,6 +210,8 @@ in place. Existing milestones remain the larger parity roadmap.
     for anonymous, athlete, coach, and admin requests across supported methods, including denial
     before any privileged read/write. Preserve legitimate admin behavior. Verify locally and in
     isolated staging before marking complete; otherwise record implementation and remaining gates.
+    Local implementation checkpoint: canonical guard applied; all 20 signed-session/CRUD regression
+    cases pass on Node 22. Staging blocked; see `PILOT_ACCESS_EXECUTION.md`.
   - [ ] **P0-013C — Dependency readiness and alerting.** Add bounded readiness checks separate
     from liveness, safe error contracts, and actionable operational alerts. Verify dependency failure.
   - [ ] **P0-013D — Relationship and data-isolation verification.** Verify cross-athlete denial,
