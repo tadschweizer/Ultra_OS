@@ -5,6 +5,7 @@ import { clearAthleteCookie, renewAthleteCookieIfStale } from '../../lib/auth/se
 import { resolveEffectiveAthleteId } from '../../lib/auth/requireAthlete.js';
 import { isValidAthleteId } from '../../lib/auth/contracts.js';
 import { loadAccountAccess } from '../../lib/auth/roleAccessServer.js';
+import { loadCheckInEntitlement, loadCoachEntitlement } from '../../lib/pilotEntitlementsServer.js';
 
 /**
  * Returns the authenticated athlete profile plus subscription tier and usage.
@@ -36,7 +37,7 @@ export default async function handler(req, res) {
   // Fetch athlete
   const { data: athlete, error: athleteError } = await admin
     .from('athletes')
-    .select('id, name, email, strava_id, token_expires_at, onboarding_complete, primary_role, primary_sports, years_racing_band, weekly_training_hours_band, home_elevation_ft, target_race_id, is_admin, subscription_tier, supabase_user_id, stripe_subscription_status, email_verified_at')
+    .select('id, name, email, strava_id, token_expires_at, onboarding_complete, primary_role, primary_sports, years_racing_band, weekly_training_hours_band, home_elevation_ft, target_race_id, is_admin, subscription_tier, supabase_user_id, stripe_subscription_id, stripe_subscription_status, email_verified_at')
     .eq('id', athleteId)
     .maybeSingle();
   if (athleteError) {
@@ -108,10 +109,19 @@ export default async function handler(req, res) {
     email_verified: Boolean(athlete.email_verified_at) || !athlete.supabase_user_id,
   };
   const access = await loadAccountAccess(admin, normalizedAthlete);
+  let checkInEntitlement;
+  let coachAccess;
+  try {
+    checkInEntitlement = await loadCheckInEntitlement(admin, normalizedAthlete);
+    coachAccess = await loadCoachEntitlement(admin, access.coachProfile, normalizedAthlete);
+  } catch {
+    return res.status(503).json({ error: 'Access could not be verified. Please try again.' });
+  }
 
   res.status(200).json({
     athlete: normalizedAthlete,
     account: {
+      coach_access: coachAccess,
       primary_role: access.primaryRole,
       capabilities: access.capabilities,
       default_path: access.defaultPath,
@@ -132,6 +142,7 @@ export default async function handler(req, res) {
       athlete: normalizedAthlete,
       interventionCount: count ?? 0,
       weeklyCheckIns: weeklyCheckIns ?? 0,
+      checkInEntitlement,
     }),
   });
 }

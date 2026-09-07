@@ -62,8 +62,10 @@ export function canLogIntervention(athlete, currentInterventionCount) {
   return { allowed: true };
 }
 
-export function canLogCheckIn(athlete, currentWeeklyCheckIns) {
-  const tier = normalizeSubscriptionTier(athlete?.subscription_tier);
+export function canLogCheckIn(athlete, currentWeeklyCheckIns, entitlement = null) {
+  if (entitlement?.unlimited === true) return { allowed: true };
+  const ownTier = normalizeSubscriptionTier(athlete?.subscription_tier);
+  const tier = entitlement && ['individual', 'coach'].includes(ownTier) ? 'free' : ownTier;
   if (tier === 'individual' || tier === 'coach') {
     return { allowed: true };
   }
@@ -103,16 +105,20 @@ export function hasCoachFeatures(athlete) {
   return { allowed: normalizeSubscriptionTier(athlete?.subscription_tier) === 'coach' };
 }
 
-export function buildUsageSnapshot({ athlete, interventionCount = 0, weeklyCheckIns = 0 }) {
+export function buildUsageSnapshot({ athlete, interventionCount = 0, weeklyCheckIns = 0, checkInEntitlement = null }) {
   const tier = normalizeSubscriptionTier(athlete?.subscription_tier);
   const isFree = tier === 'free';
+  const cappedCheckIns = !checkInEntitlement?.unlimited
+    && (isFree || (checkInEntitlement && ['individual', 'coach'].includes(tier)));
   return {
     interventionsUsed: interventionCount,
     interventionsLimit: isFree ? FREE_INTERVENTION_LIMIT : null,
     weeklyCheckInsUsed: weeklyCheckIns,
-    weeklyCheckInsLimit: isFree ? FREE_WEEKLY_CHECKIN_LIMIT : null,
+    weeklyCheckInsLimit: cappedCheckIns ? FREE_WEEKLY_CHECKIN_LIMIT : null,
+    checkInAccessSource: checkInEntitlement?.source || 'own_plan',
+    checkInsUnlimited: checkInEntitlement?.unlimited === true,
     atInterventionLimit: isFree && interventionCount >= FREE_INTERVENTION_LIMIT,
-    atCheckInLimit: isFree && weeklyCheckIns >= FREE_WEEKLY_CHECKIN_LIMIT,
+    atCheckInLimit: Boolean(cappedCheckIns && weeklyCheckIns >= FREE_WEEKLY_CHECKIN_LIMIT),
   };
 }
 

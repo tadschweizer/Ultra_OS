@@ -401,7 +401,7 @@ export default function Home() {
                   href={coachHref}
                   className="rounded-full bg-ink px-7 py-3.5 text-sm font-semibold text-paper shadow-[0_4px_20px_rgba(19,24,22,0.18)] transition hover:opacity-85"
                 >
-                  Get early access — free
+                  Create a pilot account
                 </a>
                 <a
                   href="/guide"
@@ -410,7 +410,7 @@ export default function Home() {
                   See the platform
                 </a>
               </div>
-              <p className="mt-5 text-xs text-ink/45">Free to start · No credit card · Flat pricing at any roster size</p>
+              <p className="mt-5 text-xs text-ink/45">Closed pilot · Coach approval required · Up to five athletes</p>
             </div>
 
             <div className="min-w-0">
@@ -591,7 +591,7 @@ export default function Home() {
                   check-ins, structured protocols, race prep — and it’s early. We’d rather say so
                   than manufacture social proof. Coach case studies will appear here as the first
                   cohort earns them. What you can verify today: the research library, the pricing,
-                  and the product itself — free to try before you commit anything.
+                  and the closed pilot access terms. Coach participation requires approval.
                 </p>
                 <p className="mt-4 text-sm leading-7 text-white/60">
                   And one principle that won’t change: Threshold informs your judgment. It doesn’t
@@ -603,7 +603,7 @@ export default function Home() {
                   { stat: '72', label: 'peer-reviewed papers in the research library' },
                   { stat: '19', label: 'protocol topics, from heat to gut training' },
                   { stat: '~30s', label: 'per athlete check-in — signal without homework' },
-                  { stat: '1 rate', label: 'flat coach pricing, 5 athletes or 50' },
+                  { stat: '5 athletes', label: 'per approved pilot coach' },
                 ].map((s) => (
                   <div key={s.label} className="rounded-2xl border border-white/10 bg-white/5 p-5">
                     <p className="font-mono text-3xl font-semibold" style={{ color: 'var(--color-accent-amber-light)' }}>{s.stat}</p>
@@ -641,7 +641,7 @@ export default function Home() {
             className="overflow-hidden rounded-[40px] px-8 py-16 text-center md:px-16 md:py-20"
             style={{ background: 'linear-gradient(135deg, #1c1a17 0%, #302b25 42%, #7d684d 100%)', color: 'var(--color-text-on-dark)' }}
           >
-            <p className="ui-eyebrow" style={{ color: 'var(--color-accent-amber-light)' }}>Early access · Free to start · Flat coach pricing</p>
+            <p className="ui-eyebrow" style={{ color: 'var(--color-accent-amber-light)' }}>Closed pilot · Administrator-approved access</p>
             <h2
               className="font-display mx-auto mt-4 max-w-2xl font-semibold leading-snug"
               style={{ fontSize: 'clamp(32px, 4vw, 48px)', color: 'var(--color-text-on-dark)' }}
@@ -649,7 +649,7 @@ export default function Home() {
               See the signal before it becomes a problem.
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-sm leading-7" style={{ color: 'var(--color-text-muted-on-dark)' }}>
-              Set up your roster in an afternoon. Athletes join free, check-ins start flowing, and
+              Once approved, invite your pilot athletes. Active eligible relationships unlock daily check-ins, and
               your morning review gets shorter — and sharper — from the first week.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -667,7 +667,7 @@ export default function Home() {
                 See coach pricing
               </a>
             </div>
-            <p className="mt-5 text-xs" style={{ color: 'var(--color-text-muted-on-dark)' }}>No credit card required · Athletes join your roster free</p>
+            <p className="mt-5 text-xs" style={{ color: 'var(--color-text-muted-on-dark)' }}>No card for the pilot · Coach approval required · Athlete check-ins depend on active access</p>
           </div>
         </section>
 

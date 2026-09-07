@@ -11,6 +11,8 @@ import {
 } from '../lib/interventionCatalog';
 import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
+import { useMe } from '../lib/planUtils';
+import { checkInAllowanceLabel } from '../lib/subscriptionTiers';
 import InterventionProtocolFields from '../components/InterventionProtocolFields';
 import {
   ActivityContextCard,
@@ -134,6 +136,7 @@ function mapRaceToDraft(race) {
 }
 
 export default function LogIntervention() {
+  const { me: accessMe } = useMe();
   const [activities, setActivities] = useState([]);
   const [interventions, setInterventions] = useState([]);
   const [form, setForm] = useState(createEmptyForm());
@@ -557,6 +560,11 @@ export default function LogIntervention() {
               <h1 className="font-display mt-4 max-w-4xl break-words text-5xl leading-tight md:text-7xl">
                 Log Intervention
               </h1>
+              <p role="status" className="mt-3 text-sm text-ink/70">
+                {accessMe?.entitlementError || (accessMe?.usage?.checkInsUnlimited
+                  ? 'Daily workout check-ins are included with your current access. Other features follow your own plan.'
+                  : checkInAllowanceLabel(accessMe?.usage) || 'Check-in access is verified when you save.')}
+              </p>
               <p className="mt-5 max-w-2xl text-base leading-7 text-ink/72">
                 Build clean intervention data fast. Pick the protocol, attach the workout if it exists, and save the session while it is still fresh.
               </p>

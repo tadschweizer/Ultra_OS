@@ -215,8 +215,8 @@ export default function SignupPage() {
             <p className="text-xs font-semibold text-accent">Free tier includes</p>
             <p className="mt-1 text-xs leading-5 text-ink/65">
               {role === 'coach'
-                ? 'Explore the Coach Command Center free, then activate the Coach plan when your roster is ready. No credit card required.'
-                : 'Research library · 15 intervention logs · 3 check-ins/week · 1 race profile. No credit card required.'}
+                ? 'Create your coach account for the closed pilot. An administrator must approve pilot access separately. Choosing Coach does not activate a pilot or paid plan. No card is required for the pilot.'
+                : 'Free: 15 intervention logs and 3 check-ins per rolling seven days. An active relationship with an eligible pilot or paid coach includes daily check-ins, without other premium features. No card required.'}
             </p>
           </div>
 

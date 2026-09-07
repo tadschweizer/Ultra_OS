@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
-Last updated: 2026-09-06<br>
-Status: P0-003 production schema verified; real-account staging acceptance blocked; scoped pilot-access execution in progress<br>
+Last updated: 2026-09-07<br>
+Status: Research/pilot implementation and desktop/mobile journeys locally verified; real-account staging gates remain open<br>
 Current milestone: M0 — make the closed coach pilot work end to end<br>
-Next item: P0-004/P0-005 pilot entitlements. P0-003 and P0-013B staging acceptance remain open.
+Next item: Isolated staging acceptance for P0-003, P0-013B, P0-004/P0-005; review the stacked PRs in baseline → research → pilot order.
 
 ## Purpose
 
@@ -125,16 +125,23 @@ athlete, and use the experience on a phone without Tad or an administrator repai
   - September 6 audit: GitHub main contains P0-003 via PR #111 (`7336511`). Vercel lists production
     deployment `dpl_CqSxKNoaLjeBndJ4BiK1nXSiEBYr` as READY on equivalent source commit `27ee0e5`.
     This supersedes the earlier statement that production deployment had not occurred.
-  - Still open: independently confirm migration application and staging/production acceptance.
-    Supabase reports INACTIVE and a read-only migration query timed out during this audit.
-    Do not mark complete from deployment status or historic local tests alone.
+  - September 6 recheck confirms restored ACTIVE_HEALTHY Supabase, migration `20260821193413`,
+    role/default/admin/tier constraints, and current production source `fcc29a0`. This supersedes
+    the audit's inactive/timeout evidence. September 7 combined local regression passes 248/248
+    and five applicable mocked role browser journeys pass. Still open: real staging account
+    persistence, refresh/new-session, and authorization acceptance; no isolated staging was available.
 
 - [ ] **P0-004 — Give pilot coaches honest access**
+  - Implementation checkpoint 2026-09-07: separate expiring admin grants and provisioning/revocation
+    form/API; role and paid tier unchanged; closed-pilot copy aligned. Staging acceptance open.
   - Implement an explicit pilot/beta entitlement or manually provisioned pilot state.
   - Signup, landing, pricing, and upgrade copy match the actual entitlement.
   - Do not conflate a closed pilot entitlement with the later Stripe public trial.
 
 - [ ] **P0-005 — Uncap coach-dependent athlete check-ins**
+  - Implementation checkpoint 2026-09-07: canonical server entitlement lookup and UI usage, active
+    pilot/paid coach relationships, explicit lookup failure, expiry/revocation behavior and independent
+    abuse limit. 30 pilot tests and combined 248-test suite passed; isolated SQL validated. Staging open.
   - An athlete attached to an active pilot/paid coach can complete the daily check-in needed by the
     coach product.
   - Abuse protection operates separately from product limits.
@@ -202,8 +209,9 @@ in place. Existing milestones remain the larger parity roadmap.
     unpauses it; confirm migration `20260821193413`, required role columns/constraints, current
     GitHub/Vercel source, and deployment-specific configuration errors. Record exactly what was
     observed. Do not infer fresh-account persistence from migration presence or mock browser tests.
-    Owner reported an intent to unpause on September 6; the subsequent project listing still said
-    INACTIVE, so restoration remains unverified. This slice may complete with an evidenced blocker
+    September 6 recheck confirms ACTIVE_HEALTHY, migration/schema and Vercel source `fcc29a0`.
+    Configuration-error summaries point to an older preview; current-deployment query had no errors
+    in the bounded window. This slice may complete with an evidenced blocker
     report, but P0-003 and the parent P0-013 remain open until their acceptance requirements pass.
   - [ ] **P0-013B — Research-admin authorization repair.** Require the canonical server-side
     administrator guard before every privileged research-library operation. Add meaningful tests

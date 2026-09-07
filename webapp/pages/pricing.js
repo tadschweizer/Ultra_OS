@@ -12,21 +12,21 @@ const navLinks = [
 const plans = [
   {
     id: 'coach',
-    name: 'Coach',
+    name: 'Closed coach pilot',
     flagship: true,
-    badge: 'For coaching businesses',
-    description: 'The full coach operating system — roster triage, protocol assignment, athlete analytics, and race prep oversight. Flat rate, any roster size.',
+    badge: 'Administrator approval required',
+    description: 'A supported pilot for one approved coach and up to five athletes. Pilot access is separate from your account role and any paid subscription.',
     includes: [
       'Coach Command Center with daily roster triage',
       'Protocol assignments for athletes and groups',
       'Per-athlete readiness, compliance + missing-data view',
       'Coach notes, shared resources + athlete messaging',
       'Race plan + post-race debrief oversight',
-      'Everything in Individual for your own training',
+      'Linked athletes receive daily check-ins only; other plan benefits stay separate',
     ],
     billing: {
-      monthly: { price: '$69', checkoutPlan: 'coach_monthly', note: 'Billed monthly — cancel anytime', cta: 'Start Coach' },
-      annual: { price: '$48', checkoutPlan: 'coach_annual', note: '$580 billed annually — save $248/yr', cta: 'Start Coach Annual' },
+      monthly: { price: '$0', note: 'During your approved pilot period', cta: 'Create coach account' },
+      annual: { price: '$0', note: 'During your approved pilot period', cta: 'Create coach account' },
     },
   },
   {
@@ -52,12 +52,12 @@ const plans = [
 
 const faq = [
   {
-    q: 'How does coach pricing work as my roster grows?',
-    a: 'The Coach plan is flat-rate. Whether you coach 5 athletes or 50, your price stays the same — no per-athlete fees, no billing surprises as you scale.',
+    q: 'How do I get pilot access?',
+    a: 'The closed pilot requires administrator approval and supports up to five athletes. Creating a coach account does not grant pilot or paid access. There is no public trial at this stage.',
   },
   {
     q: 'Do my athletes need their own paid plan?',
-    a: 'Athletes join your roster with a free account and can log interventions and check-ins your coaching depends on. Athletes who also want the full self-serve toolkit (insights dashboard, race blueprint) can add an Individual plan.',
+    a: 'An active relationship with an eligible pilot or paid coach unlocks daily workout check-ins. It does not unlock unlimited intervention logging, insights, or race tools. Pending, expired, paused, and removed relationships do not qualify. When eligibility ends, your own plan allowance resumes; history and independent paid access remain.',
   },
   {
     q: 'Is Threshold free right now?',
@@ -142,16 +142,16 @@ export default function PricingPage() {
         <section className="mt-10 text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.35em] text-accent">Pricing</p>
           <h1 className="font-display mx-auto mt-5 max-w-2xl text-5xl font-semibold leading-tight text-ink md:text-6xl">
-            Built for coaches.<br />Priced for rosters.
+            Closed coach pilot.<br />Clear access.
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-base leading-8 text-ink/65">
-            The Coach plan is the core of Threshold — one flat rate for your whole roster. Self-coached athletes get the full toolkit on the Individual plan.
+            Pilot coaches are approved individually. Free athletes have three check-ins per rolling seven days, with daily check-ins available through an active eligible coach. Existing paid plans remain separate.
           </p>
           {/* Beta banner */}
           <div className="mt-7 inline-flex items-center gap-3 rounded-full border border-accent/30 bg-accent/10 px-6 py-3">
             <span className="h-2 w-2 rounded-full bg-accent" />
             <p className="text-sm font-semibold text-ink">
-              Free tier available now — upgrade only when you need more depth
+              Closed pilot — approval required, no purchase needed
             </p>
           </div>
 
@@ -202,7 +202,7 @@ export default function PricingPage() {
                   </p>
                   <div className="mt-4 flex items-end gap-1">
                     <span className="font-mono text-4xl font-semibold text-ink">{billing.price}</span>
-                    <span className="mb-1 text-sm text-ink/50">/month</span>
+                    <span className="mb-1 text-sm text-ink/50">{plan.id === 'coach' ? 'during pilot' : '/month'}</span>
                   </div>
                   <p className={`mt-1 text-xs ${billingPeriod === 'annual' ? 'text-emerald-600' : 'text-ink/45'}`}>{billing.note}</p>
                   <p className="mt-3 text-sm leading-6 text-ink/60">{plan.description}</p>
@@ -218,14 +218,14 @@ export default function PricingPage() {
                 </ul>
 
                 <a
-                  href={`/api/billing/checkout?plan=${encodeURIComponent(billing.checkoutPlan)}`}
+                  href={plan.id === 'coach' ? '/signup?role=coach' : '/account'}
                   className={`mt-7 block rounded-full px-5 py-3 text-center text-sm font-semibold transition ${
                     plan.flagship
                       ? 'bg-ink text-paper shadow-[0_4px_16px_rgba(19,24,22,0.2)] hover:opacity-85'
                       : 'border border-ink/15 bg-paper text-ink hover:bg-ink hover:text-paper'
                   }`}
                 >
-                  {billing.cta} →
+                  {plan.id === 'coach' ? billing.cta : 'View your account'} →
                 </a>
               </article>
             );
@@ -243,10 +243,10 @@ export default function PricingPage() {
               </p>
             </div>
             <a
-              href="/api/billing/checkout?plan=research_monthly"
+              href="/account"
               className="rounded-full border border-ink/15 bg-paper px-5 py-2.5 text-sm font-semibold text-ink transition hover:bg-ink hover:text-paper"
             >
-              Start Research Feed →
+              View your account →
             </a>
           </div>
         </section>
@@ -254,7 +254,8 @@ export default function PricingPage() {
         {/* ── Feature comparison ───────────────────────────────────── */}
         <section className="mt-10">
           <div className="rounded-[28px] border border-ink/10 bg-white p-8 shadow-[0_8px_24px_rgba(19,24,22,0.05)]">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink/40">What's included</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink/40">Existing paid plans</p>
+            <p className="mt-3 text-sm text-ink/65">The table describes paid plans, not the pilot grant. Pilot access adds the Coach Command Center and eligible linked-athlete daily check-ins; it does not include the coach's own Individual toolkit. Free accounts retain 15 intervention logs and three check-ins per rolling seven days unless linked to an eligible coach.</p>
             <div className="mt-6 overflow-x-auto">
               <table className="w-full min-w-[540px] text-sm">
                 <thead>
@@ -329,10 +330,10 @@ export default function PricingPage() {
           <div className="rounded-[32px] bg-panel px-8 py-12 text-center text-white md:px-16">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-accent">Get started free</p>
             <h2 className="font-display mx-auto mt-4 max-w-xl text-3xl font-semibold md:text-4xl">
-              Free during beta. No card needed.
+              Approved pilot access. No card needed.
             </h2>
             <p className="mx-auto mt-4 max-w-lg text-sm leading-7 text-white/55">
-              Create a free account, set up your roster or connect your training sources, and upgrade when you are ready for the full coach or athlete toolkit.
+              Create an account, then ask your pilot organizer for coach approval. Athletes receive coach-dependent check-ins only after their qualifying relationship becomes active.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <a
