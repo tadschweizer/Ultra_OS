@@ -27,6 +27,9 @@ turn those existing role capabilities into subscription privileges.
    a canonical post-auth destination guard rejects crafted coach checkout URLs, incomplete-account
    login retains approved checkout intent, Strava onboarding retains that intent, and the server
    checkout route independently denies coach plans.
+   It merged as `b4339f1` and Vercel production deployment
+   `dpl_Fw9hoWzgs6fS5mDNLwsMJef7uuWv` reached READY on that exact source. Public desktop/mobile
+   routing passed, and the bounded post-deploy window contained no 5xx or runtime error clusters.
 3. In a future isolated staging database, apply only
    `webapp/supabase/migrations/20260907025635_pilot_coach_entitlements.sql` after reviewing its diff.
    It creates two service-only tables, a service-only invoker rate-limit function, and an optional

@@ -159,3 +159,12 @@ billing/roster limit.
   `npm run test:auth:full` 251/251, `npm run build` 36 pages, `git diff --check`, and pilot Playwright
   12/12 across desktop and 390 px mobile. Browser evidence is local/mocked; isolated real-account
   staging acceptance remains open.
+- [PR #119](https://github.com/tadschweizer/Ultra_OS/pull/119) merged as `b4339f1`. Vercel production
+  deployment `dpl_Fw9hoWzgs6fS5mDNLwsMJef7uuWv` reached READY on that exact source and attached
+  `mythreshold.co` and `www.mythreshold.co`. Live home, pricing, and health returned 200; anonymous
+  coach checkout returned 403 before auth/Stripe access; Individual Annual returned the expected
+  307 signup redirect. The deployed client routing journey passed 2/2 across desktop and mobile.
+- No 5xx, error, fatal, or grouped runtime error was found for that deployment in the bounded
+  post-deploy window. Supabase remained ACTIVE_HEALTHY; both new tables exist, their row counts remain
+  zero, anon/authenticated cannot execute the rate-limit function, and `service_role` can. This is
+  production read-only evidence, not the outstanding isolated real-account staging acceptance.
