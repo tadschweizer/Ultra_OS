@@ -139,3 +139,12 @@ billing/roster limit.
 - A final read-only production database check found zero pilot grants and zero rate-bucket rows, so
   the release did not provision a coach or create synthetic check-ins. Real-account staging gates
   remain unchecked and the scoped P0 items remain open accordingly.
+- A delayed automated review on PR #117 identified two additional edge cases after deployment. The
+  generic protected-page gate could render a page with no athlete during a cold 503, and signup did
+  not resume a selected paid Individual/Research checkout after onboarding. The follow-up makes the
+  gate own a generic fail-closed retry screen, carries only validated non-coach billing plans through
+  email/OAuth onboarding, and keeps public coach billing outside that continuation path.
+- Follow-up verification on Node 22: billing-plan tests 2/2, full authorization suite 249/249,
+  production build 36 pages, and pilot Playwright 12/12 across desktop and mobile. The browser check
+  covers `/dashboard` during a cold entitlement 503 and confirms coach billing cannot be introduced
+  through the public signup `plan` parameter.

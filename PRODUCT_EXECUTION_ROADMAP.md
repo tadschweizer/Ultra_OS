@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
 Last updated: 2026-09-07<br>
-Status: Research/pilot code, schema, and review repairs are deployed; real-account staging gates remain open<br>
+Status: Research/pilot production release is active; delayed review repairs are locally verified; real-account staging gates remain open<br>
 Current milestone: M0 — make the closed coach pilot work end to end<br>
-Next item: Complete isolated real-account acceptance for P0-003, P0-013B, and P0-004/P0-005; then continue P0-013C/D readiness work.
+Next item: Ship the delayed review repairs, then complete isolated real-account acceptance for P0-003, P0-013B, and P0-004/P0-005 before P0-013C/D readiness work.
 
 ## Purpose
 

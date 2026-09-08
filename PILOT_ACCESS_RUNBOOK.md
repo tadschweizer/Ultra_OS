@@ -20,6 +20,9 @@ turn those existing role capabilities into subscription privileges.
    Post-merge review repairs shipped through
    [PR #117](https://github.com/tadschweizer/Ultra_OS/pull/117), merge `cf55e73`, and production
    deployment `dpl_BTcjsEhdznGe1G6uvShkUCJe8fae`.
+   A delayed PR #117 review required one more focused follow-up: protected routes now use a generic
+   fail-closed retry screen during entitlement 503s, and validated Individual/Research selections
+   survive signup and onboarding while coach billing remains outside the public pilot path.
 3. In a future isolated staging database, apply only
    `webapp/supabase/migrations/20260907025635_pilot_coach_entitlements.sql` after reviewing its diff.
    It creates two service-only tables, a service-only invoker rate-limit function, and an optional
