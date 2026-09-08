@@ -47,7 +47,9 @@ test('public coach signup and pricing explain separate pilot approval', async ({
   await expect(page.getByText(/Choosing Coach does not activate a pilot or paid plan/)).toBeVisible();
   await page.goto('/pricing');
   await expect(page.getByRole('heading', { name: /Closed coach pilot/ })).toBeVisible();
-  await expect(page.locator('a[href*="/api/billing/checkout"]')).toHaveCount(0);
+  await expect(page.getByRole('link', { name: /Create coach account/ })).toHaveAttribute('href', '/signup?role=coach');
+  await expect(page.locator('a[href="/api/billing/checkout?plan=individual_annual"]')).toHaveCount(1);
+  await expect(page.locator('a[href="/api/billing/checkout?plan=research_monthly"]')).toHaveCount(1);
   await expect(page.getByText('During your approved pilot period')).toBeVisible();
 });
 test('coach role alone is locked; approved pilot opens workspace; revocation survives refresh', async ({ page }) => {
@@ -117,6 +119,17 @@ test('entitlement failure removes cached pilot claim and displays a retry messag
   await expect(page.getByRole('heading', { name: 'Pilot Coach' })).toBeVisible();
   await page.route('**/api/me', route => route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Access could not be verified.' }) }));
   await page.reload();
+  await expect(page.getByRole('alert').filter({ hasText: 'Access could not be verified.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Pilot Coach' })).toHaveCount(0);
+});
+
+test('entitlement failure is explicit in a new session without cached account data', async ({ page }) => {
+  await page.route('**/api/**', route => route.fulfill({
+    status: 503,
+    contentType: 'application/json',
+    body: JSON.stringify({ error: 'Access could not be verified.' }),
+  }));
+  await page.goto('/coach-command-center');
   await expect(page.getByRole('alert').filter({ hasText: 'Access could not be verified.' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Pilot Coach' })).toHaveCount(0);
 });
