@@ -17,6 +17,9 @@ turn those existing role capabilities into subscription privileges.
    through the Supabase migration API after the automatic app deployment. Supabase recorded version
    `20260907234756` with name `pilot_coach_entitlements`. Post-apply metadata and privileges were
    verified; no broad `supabase db push` was used.
+   Post-merge review repairs shipped through
+   [PR #117](https://github.com/tadschweizer/Ultra_OS/pull/117), merge `cf55e73`, and production
+   deployment `dpl_BTcjsEhdznGe1G6uvShkUCJe8fae`.
 3. In a future isolated staging database, apply only
    `webapp/supabase/migrations/20260907025635_pilot_coach_entitlements.sql` after reviewing its diff.
    It creates two service-only tables, a service-only invoker rate-limit function, and an optional
