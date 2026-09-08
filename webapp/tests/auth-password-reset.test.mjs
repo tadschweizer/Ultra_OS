@@ -8,7 +8,7 @@ import {
   scorePassword,
   validatePassword,
 } from '../lib/auth/contracts.js';
-import { safeNextPath } from '../lib/auth/redirects.js';
+import { buildOnboardingPath, safeNextPath, safePostAuthPath } from '../lib/auth/redirects.js';
 import {
   RATE_LIMITS,
   getClientIp,
@@ -77,6 +77,37 @@ test('next= cannot bounce back into the auth screens', () => {
   for (const loop of ['/login', '/signup', '/auth/callback', '/forgot-password', '/reset-password']) {
     assert.equal(safeNextPath(loop), '/dashboard');
   }
+});
+
+test('post-auth destinations preserve public checkout but reject coach checkout', () => {
+  assert.equal(
+    safePostAuthPath('/api/billing/checkout?plan=individual_annual'),
+    '/api/billing/checkout?plan=individual_annual'
+  );
+  assert.equal(
+    safePostAuthPath('/api/billing/checkout?plan=research_monthly'),
+    '/api/billing/checkout?plan=research_monthly'
+  );
+  assert.equal(safePostAuthPath('/api/billing/checkout?plan=coach_monthly'), '/dashboard');
+  assert.equal(safePostAuthPath('/api/billing/checkout?plan=unknown'), '/dashboard');
+});
+
+test('onboarding keeps safe checkout intent through ordinary and Strava auth', () => {
+  assert.equal(
+    buildOnboardingPath('/api/billing/checkout?plan=individual_annual'),
+    '/onboarding?next=%2Fapi%2Fbilling%2Fcheckout%3Fplan%3Dindividual_annual'
+  );
+  assert.equal(
+    buildOnboardingPath('/api/billing/checkout?plan=individual_annual', {
+      strava: 'connected',
+      name: 'Trail Runner',
+    }),
+    '/onboarding?strava=connected&name=Trail+Runner&next=%2Fapi%2Fbilling%2Fcheckout%3Fplan%3Dindividual_annual'
+  );
+  assert.equal(
+    buildOnboardingPath('/api/billing/checkout?plan=coach_monthly', { strava: 'connected' }),
+    '/onboarding?strava=connected'
+  );
 });
 
 // ─── Rate limiting ───────────────────────────────────────────────────────────

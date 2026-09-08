@@ -38,6 +38,36 @@ export function safeNextPath(rawNext, fallback = '/dashboard') {
   return rawNext;
 }
 
+import { getPublicCheckoutPath } from '../billingPlans.js';
+
+/**
+ * Validates a post-authentication destination and applies the closed-pilot
+ * billing rule. Public athlete and research checkout intents may survive an
+ * auth or OAuth round-trip; coach checkout never may.
+ */
+export function safePostAuthPath(rawNext, fallback = '/dashboard') {
+  const path = safeNextPath(rawNext, fallback);
+
+  try {
+    const url = new URL(path, 'https://mythreshold.co');
+    if (url.origin !== 'https://mythreshold.co' || url.pathname !== '/api/billing/checkout') {
+      return path;
+    }
+
+    return getPublicCheckoutPath(url.searchParams.get('plan')) || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+export function buildOnboardingPath(rawNext, extraParams = {}) {
+  const params = new URLSearchParams(extraParams);
+  const destination = safePostAuthPath(rawNext, '');
+  if (destination) params.set('next', destination);
+  const query = params.toString();
+  return query ? `/onboarding?${query}` : '/onboarding';
+}
+
 export function isCoachInvitationPath(path) {
   if (!path || typeof path !== 'string') return false;
   try {

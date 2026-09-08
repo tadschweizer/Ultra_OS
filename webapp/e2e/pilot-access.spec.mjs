@@ -56,6 +56,11 @@ test('public coach signup and pricing explain separate pilot approval', async ({
     'href',
     /next=%2Fapi%2Fbilling%2Fcheckout%3Fplan%3Dindividual_annual/
   );
+  await page.goto(`/signup?next=${encodeURIComponent('/api/billing/checkout?plan=coach_monthly')}`);
+  await expect(page.getByRole('link', { name: 'Log in' }).first()).toHaveAttribute(
+    'href',
+    /next=%2Fdashboard/
+  );
   await page.goto('/signup?plan=coach_monthly');
   await expect(page.getByRole('link', { name: 'Log in' }).first()).toHaveAttribute(
     'href',

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { getAccessTokenFromCallbackUrl } from '../../lib/auth/oauth.js';
-import { isCoachInvitationPath, safeNextPath } from '../../lib/auth/redirects.js';
+import { buildOnboardingPath, isCoachInvitationPath, safePostAuthPath } from '../../lib/auth/redirects.js';
 import { clearMe } from '../../lib/meClient';
 
 function getSupabaseClient() {
@@ -76,13 +76,13 @@ export default function AuthCallbackPage() {
       clearMe();
       // `next` rides along through the provider round-trip so a deep link that
       // bounced to /login still ends up where the user was headed.
-      const destination = safeNextPath(
+      const destination = safePostAuthPath(
         new URL(window.location.href).searchParams.get('next'),
         ''
       ) || data.defaultPath || '/dashboard';
       window.location.href = data.onboardingComplete || isCoachInvitationPath(destination)
         ? destination
-        : `/onboarding?next=${encodeURIComponent(destination)}`;
+        : buildOnboardingPath(destination);
     }
 
     handleCallback();

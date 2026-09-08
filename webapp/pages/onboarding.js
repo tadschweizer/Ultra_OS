@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
 import RaceSearchInput from '../components/RaceSearchInput';
-import { safeNextPath } from '../lib/auth/redirects.js';
+import { safePostAuthPath } from '../lib/auth/redirects.js';
 
 export const SPORT_GROUPS = [
   {
@@ -643,7 +643,13 @@ export default function OnboardingPage() {
           ) : null}
 
           <div className="mt-5 space-y-3">
-            <a href="/api/strava/login" className="inline-flex w-full items-center justify-center rounded-full bg-panel px-6 py-3 text-sm font-semibold text-paper">
+            <a
+              href={`/api/strava/login?next=${encodeURIComponent(safePostAuthPath(
+                typeof router.query.next === 'string' ? router.query.next : '',
+                ''
+              ))}`}
+              className="inline-flex w-full items-center justify-center rounded-full bg-panel px-6 py-3 text-sm font-semibold text-paper"
+            >
               Connect Strava
             </a>
             <button
@@ -700,7 +706,7 @@ export default function OnboardingPage() {
   async function completeOnboarding() {
     const ok = await saveProgress(true);
     if (ok) {
-      const destination = safeNextPath(
+      const destination = safePostAuthPath(
         typeof router.query.next === 'string' ? router.query.next : '',
         ''
       );

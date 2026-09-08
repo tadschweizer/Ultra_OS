@@ -4,7 +4,7 @@ import cookie from 'cookie';
 import { normalizeSubscriptionTier } from '../../../lib/subscriptionTiers';
 import { getStravaRedirectUri } from '../../../lib/auth/oauth.js';
 import { clearOAuthState, consumeOAuthReturnPath, verifyOAuthState } from '../../../lib/auth/oauthState.js';
-import { isCoachInvitationPath } from '../../../lib/auth/redirects.js';
+import { buildOnboardingPath, isCoachInvitationPath } from '../../../lib/auth/redirects.js';
 import {
   appendSetCookie,
   getAthleteIdFromRequest,
@@ -161,7 +161,10 @@ export default async function handler(req, res) {
     const access = await loadAccountAccess(supabase, savedAthlete);
     const destination = savedAthlete.onboarding_complete || isCoachInvitationPath(returnPath)
       ? (returnPath || access.defaultPath)
-      : `/onboarding?strava=connected&name=${encodeURIComponent(savedAthlete.name || athleteName || 'Strava athlete')}`;
+      : buildOnboardingPath(returnPath, {
+        strava: 'connected',
+        name: savedAthlete.name || athleteName || 'Strava athlete',
+      });
     res.setHeader('Location', destination);
     res.statusCode = 302;
     res.end();

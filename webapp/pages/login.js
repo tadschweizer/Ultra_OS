@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import NavMenu from '../components/NavMenu';
 import { clearMe } from '../lib/meClient';
-import { isCoachInvitationPath, safeNextPath } from '../lib/auth/redirects.js';
+import { buildOnboardingPath, isCoachInvitationPath, safePostAuthPath } from '../lib/auth/redirects.js';
 
 function getSupabaseClient() {
   return createClient(
@@ -27,7 +27,7 @@ export default function LoginPage() {
 
     async function checkExistingSession() {
       const params = new URLSearchParams(window.location.search);
-      const destination = safeNextPath(params.get('next'), '');
+      const destination = safePostAuthPath(params.get('next'), '');
       if (!cancelled) setNextPath(destination);
 
       try {
@@ -40,7 +40,7 @@ export default function LoginPage() {
           const resolvedDestination = destination || data.account?.default_path || '/dashboard';
           window.location.href = data.athlete?.onboarding_complete || isCoachInvitationPath(resolvedDestination)
             ? resolvedDestination
-            : '/onboarding';
+            : buildOnboardingPath(resolvedDestination);
           return;
         }
       } catch {
@@ -92,7 +92,9 @@ export default function LoginPage() {
 
       clearMe();
       const destination = nextPath || data.defaultPath || '/dashboard';
-      window.location.href = data.onboardingComplete || isCoachInvitationPath(destination) ? destination : '/onboarding';
+      window.location.href = data.onboardingComplete || isCoachInvitationPath(destination)
+        ? destination
+        : buildOnboardingPath(destination);
     } catch {
       setError('Something went wrong. Please try again.');
       setLoading(false);

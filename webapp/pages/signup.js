@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import NavMenu from '../components/NavMenu';
 import PasswordField from '../components/PasswordField';
 import { validatePassword } from '../lib/auth/contracts.js';
-import { isCoachInvitationPath, safeNextPath } from '../lib/auth/redirects.js';
+import { buildOnboardingPath, isCoachInvitationPath, safePostAuthPath } from '../lib/auth/redirects.js';
 import { getPublicCheckoutPath } from '../lib/billingPlans.js';
 
 function getSupabaseClient() {
@@ -60,7 +60,7 @@ export default function SignupPage() {
     async function checkExistingSession() {
       const params = new URLSearchParams(window.location.search);
       const checkoutPath = getPublicCheckoutPath(params.get('plan'));
-      const destination = checkoutPath || safeNextPath(params.get('next'));
+      const destination = checkoutPath || safePostAuthPath(params.get('next'));
       if (!cancelled) setNextPath(destination);
       try {
         const res = await fetch('/api/me', {
@@ -73,7 +73,7 @@ export default function SignupPage() {
           const hasExplicitDestination = Boolean(params.get('next') || checkoutPath);
           window.location.href = data.athlete?.onboarding_complete || isCoachInvitationPath(destination)
             ? (hasExplicitDestination ? destination : defaultPath)
-            : `/onboarding?next=${encodeURIComponent(destination)}`;
+            : buildOnboardingPath(destination);
           return;
         }
       } catch {
@@ -123,7 +123,7 @@ export default function SignupPage() {
       }
       window.location.href = data.onboardingComplete || isCoachInvitationPath(nextPath)
         ? nextPath
-        : `/onboarding?next=${encodeURIComponent(nextPath)}`;
+        : buildOnboardingPath(nextPath);
     } catch {
       setError('Something went wrong. Please try again.');
       setLoading(false);
