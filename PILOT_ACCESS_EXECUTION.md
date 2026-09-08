@@ -148,3 +148,14 @@ billing/roster limit.
   production build 36 pages, and pilot Playwright 12/12 across desktop and mobile. The browser check
   covers `/dashboard` during a cold entitlement 503 and confirms coach billing cannot be introduced
   through the public signup `plan` parameter.
+- The delayed follow-up itself received three authorization-flow findings. [PR #119](https://github.com/tadschweizer/Ultra_OS/pull/119)
+  now applies one canonical post-auth destination policy to signup, login, Google callback, Strava
+  return cookies/callback, and onboarding. Public Individual/Research checkout intents survive an
+  incomplete-account or Strava round-trip; coach and unknown checkout intents fail closed.
+- The billing endpoint independently rejects coach checkout before authentication or Stripe access,
+  so a crafted `next=/api/billing/checkout?plan=coach_monthly` cannot bypass administrator pilot
+  approval. The generic cold-503 protected-page gate from the same PR remains fail closed.
+- Final Node 22 verification after all review fixes: focused redirect/billing/OAuth tests 20/20,
+  `npm run test:auth:full` 251/251, `npm run build` 36 pages, `git diff --check`, and pilot Playwright
+  12/12 across desktop and 390 px mobile. Browser evidence is local/mocked; isolated real-account
+  staging acceptance remains open.

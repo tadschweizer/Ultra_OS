@@ -23,6 +23,10 @@ turn those existing role capabilities into subscription privileges.
    A delayed PR #117 review required one more focused follow-up: protected routes now use a generic
    fail-closed retry screen during entitlement 503s, and validated Individual/Research selections
    survive signup and onboarding while coach billing remains outside the public pilot path.
+   [PR #119](https://github.com/tadschweizer/Ultra_OS/pull/119) closes the subsequent review findings:
+   a canonical post-auth destination guard rejects crafted coach checkout URLs, incomplete-account
+   login retains approved checkout intent, Strava onboarding retains that intent, and the server
+   checkout route independently denies coach plans.
 3. In a future isolated staging database, apply only
    `webapp/supabase/migrations/20260907025635_pilot_coach_entitlements.sql` after reviewing its diff.
    It creates two service-only tables, a service-only invoker rate-limit function, and an optional

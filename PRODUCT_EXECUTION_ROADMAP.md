@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
 Last updated: 2026-09-07<br>
-Status: Research/pilot production release is active; delayed review repairs are locally verified; real-account staging gates remain open<br>
+Status: Research/pilot production release is active; delayed review repairs passed the full local release suite; real-account staging gates remain open<br>
 Current milestone: M0 — make the closed coach pilot work end to end<br>
-Next item: Ship the delayed review repairs, then complete isolated real-account acceptance for P0-003, P0-013B, and P0-004/P0-005 before P0-013C/D readiness work.
+Next item: Complete isolated real-account acceptance for P0-003, P0-013B, and P0-004/P0-005 before P0-013C/D readiness work.
 
 ## Purpose
 
@@ -130,11 +130,19 @@ athlete, and use the experience on a phone without Tad or an administrator repai
     the audit's inactive/timeout evidence. September 7 combined local regression passes 248/248
     and five applicable mocked role browser journeys pass. Still open: real staging account
     persistence, refresh/new-session, and authorization acceptance; no isolated staging was available.
+  - [PR #119](https://github.com/tadschweizer/Ultra_OS/pull/119) applies one canonical post-auth
+    destination rule across login, signup, onboarding, and OAuth. A crafted coach checkout return
+    path now fails closed, while approved public checkout intents survive incomplete-account and
+    Strava onboarding. Node 22 authorization tests pass 251/251 and pilot browser journeys pass
+    12/12 across desktop and mobile.
 
 - [ ] **P0-004 — Give pilot coaches honest access**
   - Review: [PR #115](https://github.com/tadschweizer/Ultra_OS/pull/115), code `fceb053`.
   - Implementation checkpoint 2026-09-07: separate expiring admin grants and provisioning/revocation
     form/API; role and paid tier unchanged; closed-pilot copy aligned. Staging acceptance open.
+  - Review hardening in [PR #119](https://github.com/tadschweizer/Ultra_OS/pull/119) rejects coach
+    checkout at both the post-auth return-path boundary and server checkout endpoint. Choosing coach
+    or crafting a billing URL cannot grant pilot or paid access.
   - Implement an explicit pilot/beta entitlement or manually provisioned pilot state.
   - Signup, landing, pricing, and upgrade copy match the actual entitlement.
   - Do not conflate a closed pilot entitlement with the later Stripe public trial.
@@ -144,6 +152,8 @@ athlete, and use the experience on a phone without Tad or an administrator repai
   - Implementation checkpoint 2026-09-07: canonical server entitlement lookup and UI usage, active
     pilot/paid coach relationships, explicit lookup failure, expiry/revocation behavior and independent
     abuse limit. 30 pilot tests and combined 248-test suite passed; isolated SQL validated. Staging open.
+  - Final local release verification after review hardening: 251/251 authorization tests, a 36-page
+    production build, and 12/12 pilot browser journeys including seven controlled daily dates.
   - An athlete attached to an active pilot/paid coach can complete the daily check-in needed by the
     coach product.
   - Abuse protection operates separately from product limits.
@@ -224,6 +234,8 @@ in place. Existing milestones remain the larger parity roadmap.
     cases pass on Node 22. Staging blocked; see `PILOT_ACCESS_EXECUTION.md`.
     Review: [PR #114](https://github.com/tadschweizer/Ultra_OS/pull/114), code `fafb20c`, after
     [baseline PR #113](https://github.com/tadschweizer/Ultra_OS/pull/113). Pilot PR #115 follows.
+    Combined release hardening and regression evidence is in
+    [PR #119](https://github.com/tadschweizer/Ultra_OS/pull/119).
   - [ ] **P0-013C — Dependency readiness and alerting.** Add bounded readiness checks separate
     from liveness, safe error contracts, and actionable operational alerts. Verify dependency failure.
   - [ ] **P0-013D — Relationship and data-isolation verification.** Verify cross-athlete denial,
