@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
 import RaceSearchInput from '../components/RaceSearchInput';
+import { safeNextPath } from '../lib/auth/redirects.js';
 
 export const SPORT_GROUPS = [
   {
@@ -699,7 +700,11 @@ export default function OnboardingPage() {
   async function completeOnboarding() {
     const ok = await saveProgress(true);
     if (ok) {
-      router.push(role === 'coach' ? '/coach-command-center' : '/dashboard?welcome=1');
+      const destination = safeNextPath(
+        typeof router.query.next === 'string' ? router.query.next : '',
+        ''
+      );
+      router.push(destination || (role === 'coach' ? '/coach-command-center' : '/dashboard?welcome=1'));
     }
   }
 

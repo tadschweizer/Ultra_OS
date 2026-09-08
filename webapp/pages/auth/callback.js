@@ -80,7 +80,9 @@ export default function AuthCallbackPage() {
         new URL(window.location.href).searchParams.get('next'),
         ''
       ) || data.defaultPath || '/dashboard';
-      window.location.href = data.onboardingComplete || isCoachInvitationPath(destination) ? destination : '/onboarding';
+      window.location.href = data.onboardingComplete || isCoachInvitationPath(destination)
+        ? destination
+        : `/onboarding?next=${encodeURIComponent(destination)}`;
     }
 
     handleCallback();

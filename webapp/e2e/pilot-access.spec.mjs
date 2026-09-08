@@ -51,6 +51,16 @@ test('public coach signup and pricing explain separate pilot approval', async ({
   await expect(page.locator('a[href="/api/billing/checkout?plan=individual_annual"]')).toHaveCount(1);
   await expect(page.locator('a[href="/api/billing/checkout?plan=research_monthly"]')).toHaveCount(1);
   await expect(page.getByText('During your approved pilot period')).toBeVisible();
+  await page.goto('/signup?plan=individual_annual');
+  await expect(page.getByRole('link', { name: 'Log in' }).first()).toHaveAttribute(
+    'href',
+    /next=%2Fapi%2Fbilling%2Fcheckout%3Fplan%3Dindividual_annual/
+  );
+  await page.goto('/signup?plan=coach_monthly');
+  await expect(page.getByRole('link', { name: 'Log in' }).first()).toHaveAttribute(
+    'href',
+    '/login?next=%2Fdashboard'
+  );
 });
 test('coach role alone is locked; approved pilot opens workspace; revocation survives refresh', async ({ page }) => {
   const db = pilotDb({ pilot: false });
@@ -132,4 +142,7 @@ test('entitlement failure is explicit in a new session without cached account da
   await page.goto('/coach-command-center');
   await expect(page.getByRole('alert').filter({ hasText: 'Access could not be verified.' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Pilot Coach' })).toHaveCount(0);
+  await page.goto('/dashboard');
+  await expect(page.getByRole('alert').filter({ hasText: 'Access could not be verified.' })).toBeVisible();
+  await expect(page.getByText('Application error')).toHaveCount(0);
 });
