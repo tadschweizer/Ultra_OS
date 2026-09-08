@@ -12,8 +12,9 @@ PILOT_ACCESS_EXECUTION.md, and PILOT_ACCESS_RUNBOOK.md. Preserve unrelated local
 Continue only the remaining acceptance of P0-003, P0-013B, P0-004/P0-005. PRs #113-#115 are
 merged and Vercel deployed merge 1016373. The production migration SQL file
 20260907025635 was applied through the Supabase migration API and recorded by Supabase as
-version 20260907234756. Read the post-merge checkpoint and inspect any later production-readiness
-repair PR/deployment before proceeding. Do not repeat completed local checks without a reason.
+version 20260907234756. Review repair PR #117 merged as cf55e73 and deployed to production as
+dpl_BTcjsEhdznGe1G6uvShkUCJe8fae. Read the post-merge checkpoint before proceeding. Do not repeat
+completed local checks without a reason.
 
 Identify an already isolated Supabase/Vercel staging environment and verify its identity before
 any write. The previous connected account exposed only production and no Supabase branches.

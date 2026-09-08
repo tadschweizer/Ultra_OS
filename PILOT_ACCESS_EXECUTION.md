@@ -130,3 +130,12 @@ billing/roster limit.
 - The post-review repair passed Node 22 `npm run test:auth:full` (248/248), `npm run build` (36 static
   pages), and the full pilot Playwright suite (12/12 across desktop and 390 px mobile). The browser
   suite includes the seven controlled-date check-in journey and remains local/mocked evidence.
+- [PR #117](https://github.com/tadschweizer/Ultra_OS/pull/117) passed Auth Smoke and its Vercel
+  preview check, then merged as `cf55e73`. Vercel production deployment
+  `dpl_BTcjsEhdznGe1G6uvShkUCJe8fae` reached READY with `mythreshold.co` and `www.mythreshold.co`
+  attached. Live HTML contains the coach pilot signup plus Individual Annual and Research checkout
+  links. Home, pricing, and health returned 200; anonymous `/api/me` returned expected 401. The new
+  deployment had no 5xx logs or grouped runtime errors in the bounded post-deploy window.
+- A final read-only production database check found zero pilot grants and zero rate-bucket rows, so
+  the release did not provision a coach or create synthetic check-ins. Real-account staging gates
+  remain unchecked and the scoped P0 items remain open accordingly.
