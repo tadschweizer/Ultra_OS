@@ -48,11 +48,11 @@ export default function OnboardingGate({ children }) {
         }
 
         // A 503 from /api/me means the signed-in session was valid but a
-        // server-side entitlement lookup failed. Let the protected page show
-        // its fail-closed retry state instead of misdirecting the user to
-        // onboarding or login as though their identity were missing.
+        // server-side entitlement lookup failed. Render the gate's own safe
+        // retry state because many protected pages require a complete athlete
+        // payload and cannot render a partial response safely.
         if (data.entitlementError) {
-          setStatus('ready');
+          setStatus('access-error');
           return;
         }
 
@@ -91,6 +91,24 @@ export default function OnboardingGate({ children }) {
       cancelled = true;
     };
   }, [router]);
+
+  if (status === 'access-error') {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-paper px-4 text-ink">
+        <div className="w-full max-w-md rounded-[28px] border border-red-200 bg-white px-6 py-6 text-center shadow-sm">
+          <p role="alert" className="text-sm font-semibold text-red-700">
+            Access could not be verified. Refresh to try again.
+          </p>
+          <a
+            href={router.asPath || '/dashboard'}
+            className="mt-4 inline-flex rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-paper"
+          >
+            Try again
+          </a>
+        </div>
+      </main>
+    );
+  }
 
   if (status !== 'ready') {
     return (

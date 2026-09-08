@@ -2,6 +2,7 @@ import { getAthleteByCookie, getSupabaseAdminClient } from '../../../lib/authSer
 import {
   getBillingPlan,
   getBillingPriceId,
+  getPublicCheckoutPath,
   isEntitledSubscriptionStatus,
 } from '../../../lib/billingPlans';
 import { getStripeClient } from '../../../lib/stripeServer';
@@ -65,6 +66,13 @@ export default async function handler(req, res) {
 
   if (!plan) {
     res.status(400).json({ error: 'Unknown billing plan.' });
+    return;
+  }
+
+  if (!getPublicCheckoutPath(plan.id)) {
+    res.status(403).json({
+      error: 'Coach access is available only through the administrator-approved pilot.',
+    });
     return;
   }
 

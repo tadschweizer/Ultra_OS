@@ -14,7 +14,13 @@ merged and Vercel deployed merge 1016373. The production migration SQL file
 20260907025635 was applied through the Supabase migration API and recorded by Supabase as
 version 20260907234756. Review repair PR #117 merged as cf55e73 and deployed to production as
 dpl_BTcjsEhdznGe1G6uvShkUCJe8fae. Read the post-merge checkpoint before proceeding. Do not repeat
-completed local checks without a reason.
+completed local checks without a reason. A delayed PR #117 review produced a focused follow-up for
+generic 503 handling and paid-plan signup continuation; verify that follow-up is present on current
+main before starting staging acceptance. PR #119 carries the complete delayed-review repair: it
+fails closed on cold entitlement errors, preserves only approved Individual/Research checkout intent
+through login and Google/Strava onboarding, and denies coach checkout at the server endpoint. Its
+final Node 22 local evidence is 251/251 authorization tests, a 36-page build, and 12/12 pilot browser
+journeys across desktop and mobile.
 
 Identify an already isolated Supabase/Vercel staging environment and verify its identity before
 any write. The previous connected account exposed only production and no Supabase branches.

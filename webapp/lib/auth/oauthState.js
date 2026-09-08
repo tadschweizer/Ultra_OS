@@ -1,6 +1,6 @@
 import cookie from 'cookie';
 import crypto from 'crypto';
-import { safeNextPath } from './redirects.js';
+import { safePostAuthPath } from './redirects.js';
 
 /**
  * OAuth `state` — CSRF protection for the authorization-code flow.
@@ -86,7 +86,7 @@ export function clearOAuthState(res, provider) {
 }
 
 export function setOAuthReturnPath(res, provider, rawPath) {
-  const path = safeNextPath(rawPath, '');
+  const path = safePostAuthPath(rawPath, '');
   if (!path) return;
   const name = `${RETURN_COOKIE_PREFIX}${String(provider).replace(/[^a-z0-9_]/gi, '')}`;
   appendSetCookie(res, cookie.serialize(name, path, cookieOptions(STATE_MAX_AGE_SEC)));
@@ -96,5 +96,5 @@ export function consumeOAuthReturnPath(req, res, provider) {
   const name = `${RETURN_COOKIE_PREFIX}${String(provider).replace(/[^a-z0-9_]/gi, '')}`;
   const rawPath = cookie.parse(req.headers.cookie || '')[name];
   appendSetCookie(res, cookie.serialize(name, '', cookieOptions(0)));
-  return safeNextPath(rawPath, '');
+  return safePostAuthPath(rawPath, '');
 }

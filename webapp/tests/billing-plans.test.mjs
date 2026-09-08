@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   getBillingPriceId,
+  getPublicCheckoutPath,
   getTierFromPriceId,
   normalizeStripePriceId,
 } from '../lib/billingPlans.js';
@@ -26,4 +27,17 @@ test('Stripe price ids are trimmed before checkout and tier lookup', () => {
     assert.equal(getBillingPriceId('coach_annual'), 'price_1TJOozLs6h9nimdMy7EuSdY0');
     assert.equal(getTierFromPriceId('price_1TJOozLs6h9nimdMy7EuSdY0\r\n'), 'coach');
   });
+});
+
+test('public signup resumes only non-coach checkout plans', () => {
+  assert.equal(
+    getPublicCheckoutPath('individual_annual'),
+    '/api/billing/checkout?plan=individual_annual'
+  );
+  assert.equal(
+    getPublicCheckoutPath('research_monthly'),
+    '/api/billing/checkout?plan=research_monthly'
+  );
+  assert.equal(getPublicCheckoutPath('coach_monthly'), null);
+  assert.equal(getPublicCheckoutPath('unknown'), null);
 });

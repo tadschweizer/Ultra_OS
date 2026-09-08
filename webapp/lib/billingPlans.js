@@ -38,6 +38,17 @@ export function getBillingPlan(planId) {
   return BILLING_PLANS[planId] || null;
 }
 
+/**
+ * Returns the same-site checkout destination allowed to survive public signup.
+ * Coach billing stays out of this path while the coach product is a closed,
+ * administrator-approved pilot.
+ */
+export function getPublicCheckoutPath(planId) {
+  const plan = getBillingPlan(planId);
+  if (!plan || plan.tier === 'coach') return null;
+  return `/api/billing/checkout?plan=${encodeURIComponent(plan.id)}`;
+}
+
 export function normalizeStripePriceId(priceId) {
   return typeof priceId === 'string' ? priceId.trim() : priceId;
 }

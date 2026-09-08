@@ -139,3 +139,23 @@ billing/roster limit.
 - A final read-only production database check found zero pilot grants and zero rate-bucket rows, so
   the release did not provision a coach or create synthetic check-ins. Real-account staging gates
   remain unchecked and the scoped P0 items remain open accordingly.
+- A delayed automated review on PR #117 identified two additional edge cases after deployment. The
+  generic protected-page gate could render a page with no athlete during a cold 503, and signup did
+  not resume a selected paid Individual/Research checkout after onboarding. The follow-up makes the
+  gate own a generic fail-closed retry screen, carries only validated non-coach billing plans through
+  email/OAuth onboarding, and keeps public coach billing outside that continuation path.
+- Follow-up verification on Node 22: billing-plan tests 2/2, full authorization suite 249/249,
+  production build 36 pages, and pilot Playwright 12/12 across desktop and mobile. The browser check
+  covers `/dashboard` during a cold entitlement 503 and confirms coach billing cannot be introduced
+  through the public signup `plan` parameter.
+- The delayed follow-up itself received three authorization-flow findings. [PR #119](https://github.com/tadschweizer/Ultra_OS/pull/119)
+  now applies one canonical post-auth destination policy to signup, login, Google callback, Strava
+  return cookies/callback, and onboarding. Public Individual/Research checkout intents survive an
+  incomplete-account or Strava round-trip; coach and unknown checkout intents fail closed.
+- The billing endpoint independently rejects coach checkout before authentication or Stripe access,
+  so a crafted `next=/api/billing/checkout?plan=coach_monthly` cannot bypass administrator pilot
+  approval. The generic cold-503 protected-page gate from the same PR remains fail closed.
+- Final Node 22 verification after all review fixes: focused redirect/billing/OAuth tests 20/20,
+  `npm run test:auth:full` 251/251, `npm run build` 36 pages, `git diff --check`, and pilot Playwright
+  12/12 across desktop and 390 px mobile. Browser evidence is local/mocked; isolated real-account
+  staging acceptance remains open.
