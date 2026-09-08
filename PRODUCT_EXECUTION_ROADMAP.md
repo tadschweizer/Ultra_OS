@@ -1,7 +1,7 @@
 # Threshold Product Execution Roadmap
 
 Last updated: 2026-09-07<br>
-Status: Research/pilot production release is active; delayed review repairs passed the full local release suite; real-account staging gates remain open<br>
+Status: Scoped research/pilot source, schema, and delayed review repairs are active in production; real-account staging gates remain open<br>
 Current milestone: M0 — make the closed coach pilot work end to end<br>
 Next item: Complete isolated real-account acceptance for P0-003, P0-013B, and P0-004/P0-005 before P0-013C/D readiness work.
 
@@ -135,6 +135,8 @@ athlete, and use the experience on a phone without Tad or an administrator repai
     path now fails closed, while approved public checkout intents survive incomplete-account and
     Strava onboarding. Node 22 authorization tests pass 251/251 and pilot browser journeys pass
     12/12 across desktop and mobile.
+    It merged as `b4339f1` and production deployment `dpl_Fw9hoWzgs6fS5mDNLwsMJef7uuWv`
+    reached READY with both public domains attached. Live desktop/mobile public routing passed 2/2.
 
 - [ ] **P0-004 — Give pilot coaches honest access**
   - Review: [PR #115](https://github.com/tadschweizer/Ultra_OS/pull/115), code `fceb053`.
@@ -143,6 +145,8 @@ athlete, and use the experience on a phone without Tad or an administrator repai
   - Review hardening in [PR #119](https://github.com/tadschweizer/Ultra_OS/pull/119) rejects coach
     checkout at both the post-auth return-path boundary and server checkout endpoint. Choosing coach
     or crafting a billing URL cannot grant pilot or paid access.
+    Production returns 403 for anonymous coach checkout while Individual Annual returns the expected
+    307 signup redirect.
   - Implement an explicit pilot/beta entitlement or manually provisioned pilot state.
   - Signup, landing, pricing, and upgrade copy match the actual entitlement.
   - Do not conflate a closed pilot entitlement with the later Stripe public trial.
