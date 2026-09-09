@@ -1,6 +1,6 @@
-# Next execution session — isolated staging acceptance
+# Next execution session — no-cost real-user acceptance
 
-Updated 2026-09-07. The previous baseline/research-only prompt was expanded by the owner to include
+Updated 2026-09-09. The previous baseline/research-only prompt was expanded by the owner to include
 P0-003 verification and P0-004/P0-005. Implementation is now recorded in PILOT_ACCESS_EXECUTION.md;
 use that record and the linked PRs rather than repeating completed local work.
 
@@ -20,23 +20,19 @@ exact source. It fails closed on cold entitlement errors, preserves only approve
 Individual/Research checkout intent through login and Google/Strava onboarding, and denies coach
 checkout at the server endpoint. Final Node 22 local evidence is 251/251 authorization tests, a
 36-page build, and 12/12 pilot browser journeys across desktop and mobile. Production read-only
-checks passed, but they do not replace the real-account staging gates below.
+checks passed, but they do not replace the real-user gates below.
 
-Identify an already isolated Supabase/Vercel staging environment and verify its identity before
-any write. The previous connected account exposed only production and no Supabase branches.
-If none exists, identify the exact provisioning/configuration authorization needed; do not
-create paid services, deploy, or use production accounts as substitutes.
+Do not create a paid Supabase branch or other paid staging service. The owner declined additional
+spend on 2026-09-09. Use local tests for synthetic, forged, expiry, and destructive cases. Use
+production only for normal activity by specifically approved pilot participants.
 
-When isolated staging is available within the owner's authorization, apply only the reviewed
-20260907025635_pilot_coach_entitlements.sql migration there, with prerequisite schema verified.
-Never use broad supabase db push. Use real staging coach/athlete/admin accounts without sending
-real emails. Complete every unchecked runbook gate: role signup/refresh/new session, forged
-privilege denial, research CRUD authorization for all four roles/methods, administrator pilot
-provision/revoke, entitlement matrix, seven controlled daily check-ins, and desktop/mobile.
-Preserve historical data and independent paid access. Test actual RLS with Supabase tokens.
+Complete the unchecked no-cost runbook gates as specifically approved pilot participants become
+available: role signup/refresh/new session, administrator pilot provision/revoke, seven normal daily
+check-ins, and desktop/mobile. Preserve historical data and independent paid access. Keep forged
+privilege, expiry, abuse, and destructive research CRUD checks in local automated tests.
 
 Fix concrete defects with focused tests, keep reviewable commits, and update roadmap statuses
-and the execution checkpoint. Mark items complete only after their required staging gates pass.
+and the execution checkpoint. Mark items complete only after their required real-account gates pass.
 Keep P0-013C/D broader work, workouts, messaging, AI removal, integrations, public trial and
 billing overhaul outside scope. Do not create paid infrastructure or provision a named pilot coach
 without explicit authorization.

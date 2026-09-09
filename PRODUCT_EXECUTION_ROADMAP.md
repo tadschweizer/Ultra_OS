@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
-Last updated: 2026-09-07<br>
-Status: Scoped research/pilot source, schema, and delayed review repairs are active in production; real-account staging gates remain open<br>
+Last updated: 2026-09-09<br>
+Status: Scoped research/pilot source and schema are active in production; paid staging is deferred and real-user acceptance remains open<br>
 Current milestone: M0 — make the closed coach pilot work end to end<br>
-Next item: Complete isolated real-account acceptance for P0-003, P0-013B, and P0-004/P0-005 before P0-013C/D readiness work.
+Next item: Complete safe real-user acceptance for P0-003, P0-013B, and P0-004/P0-005 during normal pilot enrollment; continue no-cost local M0 work while waiting.
 
 ## Purpose
 
@@ -54,8 +54,10 @@ workflows for the functionality it introduces.
   or downgrade without manual intervention.
 - **TrainingPeaks parity:** The core coach/athlete workflow can be completed at comparable speed and
   reliability. A feature existing somewhere in the interface is not parity.
-- **Complete:** Acceptance criteria pass in a production-like staging environment, automated tests
-  pass, mobile and desktop are verified, and evidence is linked below.
+- **Complete:** Acceptance criteria pass in an isolated environment or a controlled real pilot,
+  automated tests pass, mobile and desktop are verified, and evidence is linked below. A controlled
+  production pilot uses normal participant data only; it never creates synthetic production records
+  or performs destructive test operations.
 
 ## How to use this document
 
@@ -137,6 +139,8 @@ athlete, and use the experience on a phone without Tad or an administrator repai
     12/12 across desktop and mobile.
     It merged as `b4339f1` and production deployment `dpl_Fw9hoWzgs6fS5mDNLwsMJef7uuWv`
     reached READY with both public domains attached. Live desktop/mobile public routing passed 2/2.
+  - No-cost decision 2026-09-09: accept role persistence during normal coach/athlete enrollment in
+    the controlled production pilot. Keep synthetic, forged, and destructive cases local.
 
 - [ ] **P0-004 — Give pilot coaches honest access**
   - Review: [PR #115](https://github.com/tadschweizer/Ultra_OS/pull/115), code `fceb053`.
@@ -147,6 +151,8 @@ athlete, and use the experience on a phone without Tad or an administrator repai
     or crafting a billing URL cannot grant pilot or paid access.
     Production returns 403 for anonymous coach checkout while Individual Annual returns the expected
     307 signup redirect.
+  - Remaining acceptance will use a specifically approved real pilot coach in production. Signup
+    alone remains insufficient; an administrator must verify the person before granting access.
   - Implement an explicit pilot/beta entitlement or manually provisioned pilot state.
   - Signup, landing, pricing, and upgrade copy match the actual entitlement.
   - Do not conflate a closed pilot entitlement with the later Stripe public trial.
@@ -158,6 +164,8 @@ athlete, and use the experience on a phone without Tad or an administrator repai
     abuse limit. 30 pilot tests and combined 248-test suite passed; isolated SQL validated. Staging open.
   - Final local release verification after review hardening: 251/251 authorization tests, a 36-page
     production build, and 12/12 pilot browser journeys including seven controlled daily dates.
+  - Seven synthetic dates remain local. Production acceptance will come from seven normal daily
+    check-ins by a linked pilot athlete; no production clock override or synthetic rows are allowed.
   - An athlete attached to an active pilot/paid coach can complete the daily check-in needed by the
     coach product.
   - Abuse protection operates separately from product limits.
@@ -204,6 +212,9 @@ athlete, and use the experience on a phone without Tad or an administrator repai
   - CI runs build, unit/regression tests, browser E2E, and accessibility smoke tests.
   - Seed the existing demo coach/athlete dataset from `lib/adminDemo.js` safely in staging.
   - M0 has a repeatable phone and desktop test script.
+  - Cost decision 2026-09-09: do not create the quoted paid Supabase branch. Continue local database,
+    handler, and browser checks plus a controlled production pilot. Revisit hosted staging only when
+    it is already included or additional spend is approved.
 
 ### September launch additions
 
@@ -240,6 +251,8 @@ in place. Existing milestones remain the larger parity roadmap.
     [baseline PR #113](https://github.com/tadschweizer/Ultra_OS/pull/113). Pilot PR #115 follows.
     Combined release hardening and regression evidence is in
     [PR #119](https://github.com/tadschweizer/Ultra_OS/pull/119).
+    Non-admin denial may be checked read-only in production. Admin create/update/delete remains
+    local until an isolated environment exists; do not mutate the production research library for a test.
   - [ ] **P0-013C — Dependency readiness and alerting.** Add bounded readiness checks separate
     from liveness, safe error contracts, and actionable operational alerts. Verify dependency failure.
   - [ ] **P0-013D — Relationship and data-isolation verification.** Verify cross-athlete denial,
@@ -581,6 +594,7 @@ accounts are unavailable; the previous INACTIVE observation below is historical.
 | 2026-08-19 | Calendar, then plans, then structured workouts/device delivery | This follows the coach's daily planning dependency chain |
 | 2026-08-19 | Treat mobile as a requirement in every milestone | A separate late mobile pass would preserve broken coach workflows for too long |
 | 2026-08-19 | Keep Vercel as the primary app runtime for now | Avoid maintaining two Next.js deployment paths while product risk is higher than hosting risk |
+| 2026-09-09 | Do not purchase hosted staging now | Continue free local verification and use normal controlled-pilot activity for real-user acceptance; keep synthetic and destructive tests out of production |
 
 ## Progress log
 

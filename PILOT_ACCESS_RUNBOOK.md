@@ -107,18 +107,21 @@ PGlite uses PostgreSQL in WASM with minimal prerequisite tables. This validates 
 grants/RLS and the rate-limit function; it does not replace Supabase Auth, actual staging RLS,
 the complete legacy migration chain, or real browser persistence.
 
-## Required real staging acceptance (unchecked)
+## Required real-account acceptance (no-cost path, unchecked)
 
-- [ ] Verify staging database identity is isolated; disable real email sending and use test auth.
-- [ ] Fresh coach and athlete signup persist correct roles through refresh, logout/login and a new
+Hosted Supabase staging is deferred while additional spending is paused. Use local automated/database
+tests for forged, synthetic, expiry, and destructive cases. Use production only for normal activity by
+a specifically approved pilot coach and athletes. Never create synthetic production records or modify
+the production research library merely to prove a test.
+
+- [ ] Fresh real coach and athlete signup persist correct roles through refresh, logout/login and a new
   browser context; old accounts keep safe defaults. Client body/cookie/metadata cannot elevate roles.
-- [ ] Administrator grants and revokes pilot via the UI; non-admin direct API and direct Data API
-  CRUD are denied. Inspect status after refresh/new session. Verify RLS with actual Supabase tokens.
-- [ ] Real anonymous/athlete/coach/admin research GET/POST/PUT/DELETE requests show denied callers
-  make no privileged operation, and the admin can create/read/update/delete a staging-only entry.
-- [ ] Active pilot-linked and paid-coach-linked athletes persist seven daily check-ins using a
-  controlled staging test clock/fixture runner, then reload and inspect the coach's view. Do not
-  create synthetic records in production. Local handler test already covers controlled dates.
+- [ ] Administrator grants and later revokes the approved pilot via the UI; inspect status after
+  refresh/new session. Keep forged/direct Data API cases in the local suite.
+- [ ] Read-only production requests confirm anonymous/athlete/coach research-admin denial. Keep admin
+  create/update/delete in local tests until an isolated environment exists.
+- [ ] An active pilot-linked athlete completes seven normal daily check-ins, then reloads while the
+  coach inspects the signals. Local handler tests retain the controlled-date matrix.
 - [ ] Pending, paused, expired and removed relationships, revoked/expired pilot, and independently
   paid athletes match the matrix; removal preserves history and unrelated premium gates.
 - [ ] Desktop and 390 px mobile: signup copy, approval, coach workspace, athlete check-in save,

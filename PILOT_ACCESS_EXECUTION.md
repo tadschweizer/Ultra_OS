@@ -168,3 +168,17 @@ billing/roster limit.
   post-deploy window. Supabase remained ACTIVE_HEALTHY; both new tables exist, their row counts remain
   zero, anon/authenticated cannot execute the rate-limit function, and `service_role` can. This is
   production read-only evidence, not the outstanding isolated real-account staging acceptance.
+
+## No-cost acceptance checkpoint — 2026-09-09
+
+- The owner declined additional staging spend. The quoted Supabase branch rate was $0.01344/hour;
+  no branch or paid service was created.
+- Docker Desktop was installed but its Linux engine could not start because Docker's private
+  `sailor-ingest.sock` reparse point was inaccessible. WSL shutdown/restart did not repair it. No
+  Docker factory reset or deletion of Docker data was performed.
+- The free PGlite integration was recreated and passed on Node 22: migration execution, 18
+  anon/authenticated permission denials, both RLS flags, service-role operations, expiry constraint,
+  30/31 abuse boundary, next-window recovery, and SECURITY INVOKER behavior.
+- Acceptance policy now permits normal activity in a controlled production pilot as real-user
+  evidence. Synthetic, forged, expiry, and destructive research CRUD checks remain local. This
+  changes the path to acceptance, not the entitlement or authorization implementation.
