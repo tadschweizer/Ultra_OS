@@ -1,5 +1,6 @@
 import { getSupabaseAdminClient } from '../../lib/authServer';
-import { buildUsageSnapshot, getSubscriptionTierLabel, normalizeSubscriptionTier } from '../../lib/subscriptionTiers';
+import { canLogCheckIn, buildUsageSnapshot, getSubscriptionTierLabel, normalizeSubscriptionTier } from '../../lib/subscriptionTiers';
+import { isFastCheckIn } from '../../lib/checkIn';
 import { buildLoadMetrics, buildLoadStatus } from '../../lib/loadRollups';
 import { clearAthleteCookie, renewAthleteCookieIfStale } from '../../lib/auth/sessionCookies.js';
 import { resolveEffectiveAthleteId } from '../../lib/auth/requireAthlete.js';
@@ -77,16 +78,18 @@ export default async function handler(req, res) {
   }
 
 
-  const { data: lastCheckIn, error: lastCheckInError } = await admin
+  // Only fast check-ins (legs, energy, RPE) count as today's daily check-in;
+  // lightweight session logs share the intervention type but lack the scores.
+  const { data: recentCheckIns, error: lastCheckInError } = await admin
     .from('interventions')
-    .select('date')
+    .select('date, inserted_at, intervention_type, protocol_payload')
     .eq('athlete_id', athleteId)
     .eq('intervention_type', 'Workout Check-in')
     .not('date', 'is', null)
     .order('date', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(30);
   if (lastCheckInError) console.error(lastCheckInError);
+  const lastCheckIn = (recentCheckIns || []).find(isFastCheckIn) || null;
 
   const [interventionLoadRes, activityLoadRes] = await Promise.all([
     admin
@@ -148,6 +151,7 @@ export default async function handler(req, res) {
     interventionCount: count ?? 0,
     weeklyCheckIns: weeklyCheckIns ?? 0,
     lastCheckInDate: lastCheckIn?.date || null,
+    checkInGate: canLogCheckIn(normalizedAthlete, weeklyCheckIns ?? 0, checkInEntitlement),
     load_metrics: loadMetrics,
     load_status: loadStatus,
     usage: buildUsageSnapshot({

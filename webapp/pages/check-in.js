@@ -43,18 +43,23 @@ export default function CheckInPage() {
   const [status, setStatus] = useState({ kind: '', text: '' });
   const [busy, setBusy] = useState(false);
   const [lastCheckInDate, setLastCheckInDate] = useState(() => getCachedMe()?.lastCheckInDate || null);
+  const [gate, setGate] = useState(() => getCachedMe()?.checkInGate || null);
   const submitting = useRef(false);
 
   useEffect(() => {
-    fetchMe({ force: true }).then((me) => setLastCheckInDate(me?.lastCheckInDate || null)).catch(() => {});
+    fetchMe({ force: true }).then((me) => {
+      setLastCheckInDate(me?.lastCheckInDate || null);
+      setGate(me?.checkInGate || null);
+    }).catch(() => {});
   }, []);
 
   const complete = useMemo(() => SCORES.every((s) => values[s.key] !== null), [values]);
+  const blocked = gate?.allowed === false;
   const alreadyDone = hasCheckedInOn(lastCheckInDate, date);
 
   const submit = async (event) => {
     event.preventDefault();
-    if (!complete || submitting.current) return;
+    if (!complete || blocked || submitting.current) return;
     submitting.current = true;
     setBusy(true);
     setStatus({ kind: '', text: '' });
@@ -82,7 +87,7 @@ export default function CheckInPage() {
       setLastCheckInDate(date);
       setValues({ legs_feel: null, energy_feel: null, perceived_effort: null });
       setNotes('');
-      fetchMe({ force: true }).catch(() => {});
+      fetchMe({ force: true }).then((me) => setGate(me?.checkInGate || null)).catch(() => {});
       setStatus({ kind: 'success', text: 'Check-in saved. Thanks — your coach can see it.' });
     } catch {
       setStatus({ kind: 'error', text: 'Network problem. Your answers are still here; try again.' });
@@ -99,13 +104,21 @@ export default function CheckInPage() {
         <h1 className="font-display mt-2 text-4xl leading-tight">How did today feel?</h1>
         <p className="mt-2 text-sm text-ink/70">Three taps and you are done. It takes about 30 seconds.</p>
 
-        {alreadyDone ? (
+        {blocked ? (
+          <div role="status" className="mt-4 rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink/80">
+            <p>{gate.reason || 'Check-ins are not available on your current plan.'}</p>
+            <Link href="/pricing" className="mt-2 inline-block font-semibold text-ink underline">See plans</Link>
+          </div>
+        ) : null}
+
+        {alreadyDone && !blocked ? (
           <p role="status" className="mt-4 rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink/80">
             You already checked in for this date. You can add another if something changed.
           </p>
         ) : null}
 
-        <form onSubmit={submit} className="mt-5 grid gap-4">
+        <form onSubmit={submit} className="mt-5 grid gap-4" aria-disabled={blocked}>
+          <fieldset disabled={blocked || busy} className="contents">
           <label className="block text-sm font-semibold text-ink">
             Date
             <input
@@ -147,11 +160,12 @@ export default function CheckInPage() {
 
           <button
             type="submit"
-            disabled={!complete || busy}
+            disabled={!complete || busy || blocked}
             className="h-14 rounded-full bg-ink text-base font-semibold text-paper disabled:opacity-40"
           >
             {busy ? 'Saving…' : complete ? 'Save check-in' : 'Pick all three to save'}
           </button>
+          </fieldset>
           <Link href="/log-intervention" className="text-center text-sm text-ink/60 underline">
             Need to log a session or intervention instead?
           </Link>

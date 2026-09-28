@@ -1,4 +1,5 @@
 import { getSupabaseAdminClient } from '../../../lib/authServer';
+import { checkInReadinessScore, latestFastCheckIn } from '../../../lib/checkIn';
 import { buildAthleteImportHealth } from '../../../lib/importHealth';
 import {
   requireActiveCoachRelationship,
@@ -90,13 +91,14 @@ export default async function handler(req, res) {
 
   const reconciliationStart = new Date(Date.now() - 28 * 86400000).toISOString().slice(0, 10);
 
-  const [athleteRes, racesRes, protocolsRes, interventionsRes, activitiesRes, checkinsRes, notesRes, plannedWorkoutsRes, reconActivitiesRes, importJobsRes] = await Promise.all([
+  const [athleteRes, racesRes, protocolsRes, interventionsRes, activitiesRes, checkinsRes, fastCheckinsRes, notesRes, plannedWorkoutsRes, reconActivitiesRes, importJobsRes] = await Promise.all([
     supabase.from('athletes').select('id, name, email, primary_sports').eq('id', athleteId).single(),
     supabase.from('races').select('id, name, event_date, race_type').eq('athlete_id', athleteId).gte('event_date', new Date().toISOString().slice(0, 10)).order('event_date', { ascending: true }).limit(1),
     supabase.from('coach_protocol_assignments').select('*').eq('athlete_id', athleteId).order('created_at', { ascending: false }),
     supabase.from('interventions').select('*').eq('athlete_id', athleteId).order('inserted_at', { ascending: false }).limit(8),
     supabase.from('strava_activities').select('*').eq('athlete_id', athleteId).order('start_date', { ascending: false }).limit(8),
     supabase.from('daily_checkins').select('*').eq('athlete_id', athleteId).order('created_at', { ascending: false }).limit(8),
+    supabase.from('interventions').select('date, inserted_at, intervention_type, protocol_payload').eq('athlete_id', athleteId).eq('intervention_type', 'Workout Check-in').order('inserted_at', { ascending: false }).limit(30),
     supabase.from('coach_notes').select('*').eq('coach_id', coachProfile.id).eq('athlete_id', athleteId).order('created_at', { ascending: false }).limit(10),
     supabase.from('planned_workouts').select('*').eq('athlete_id', athleteId).gte('workout_date', reconciliationStart).order('workout_date', { ascending: true }),
     supabase.from('strava_activities').select('*').eq('athlete_id', athleteId).gte('start_date', reconciliationStart).order('start_date', { ascending: true }),
@@ -113,7 +115,9 @@ export default async function handler(req, res) {
     target: p.compliance_target || 80,
     actual: Math.min(100, Math.round((interventions.length / Math.max(1, 7)) * 100)),
   }));
-  const latestReadiness = checkins[0]?.readiness_score ?? null;
+  const latestFast = latestFastCheckIn(fastCheckinsRes.data || []);
+  const latestReadiness = checkins[0]?.readiness_score
+    ?? (latestFast ? checkInReadinessScore(latestFast.protocol_payload) : null);
   const riskLevel = latestReadiness === null ? 'yellow' : latestReadiness < 45 ? 'red' : latestReadiness < 70 ? 'yellow' : 'green';
   const raceReadiness = buildRaceReadiness({ upcomingRace: (racesRes.data || [])[0] || null, activeProtocols, compliance, activities: activitiesRes.data || [], checkins, interventions });
 

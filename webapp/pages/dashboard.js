@@ -574,6 +574,7 @@ export default function Dashboard() {
   const [heatmapDay, setHeatmapDay] = useState(null);
   const [loadMetrics, setLoadMetrics] = useState(() => getCachedMe()?.load_metrics || null);
   const [loadStatus, setLoadStatus] = useState(() => getCachedMe()?.load_status || null);
+  const [checkInGate, setCheckInGate] = useState(() => getCachedMe()?.checkInGate || null);
   const [lastCheckInDate, setLastCheckInDate] = useState(() => getCachedMe()?.lastCheckInDate || null);
   const [raceForm, setRaceForm] = useState(emptyRaceForm);
   const [raceSaving, setRaceSaving] = useState(false);
@@ -606,6 +607,7 @@ export default function Dashboard() {
         setAthlete(me.athlete);
         setInterventionCount(me.interventionCount);
         setLastCheckInDate(me.lastCheckInDate || null);
+        setCheckInGate(me.checkInGate || null);
         setLoadMetrics((current) => current || me.load_metrics || null);
         setLoadStatus((current) => current || me.load_status || null);
         setLoading(false);
@@ -837,7 +839,7 @@ export default function Dashboard() {
 
         <DashboardTabs activeHref="/dashboard" />
 
-        {!loading && !hasCheckedInOn(lastCheckInDate, localDateString()) ? (
+        {!loading && checkInGate?.allowed !== false && !hasCheckedInOn(lastCheckInDate, localDateString()) ? (
           <a href="/check-in" className="mb-6 flex items-center justify-between gap-3 rounded-[24px] border border-ink/10 bg-white px-5 py-4 text-sm shadow-warm">
             <span>
               <span className="block font-semibold text-ink">Today&apos;s check-in</span>

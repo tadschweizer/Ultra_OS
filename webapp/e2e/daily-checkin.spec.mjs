@@ -80,3 +80,19 @@ test('athlete mobile nav links to check-in and the page fits 390 px', async ({ p
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
   expect(overflow).toBe(false);
 });
+
+test('an athlete who cannot check in sees the limit up front and cannot enter answers', async ({ page }) => {
+  await page.route('**/api/**', async (route) => {
+    const url = new URL(route.request().url());
+    const body = url.pathname === '/api/me'
+      ? { ...me, checkInGate: { allowed: false, reason: 'Free accounts can log 3 check-ins per week.' } }
+      : {};
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
+  });
+  await page.goto('/check-in');
+  await expect(page.getByText('Free accounts can log 3 check-ins per week.')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'See plans' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Legs 5 of 10' })).toBeDisabled();
+  await page.goto('/dashboard');
+  await expect(page.getByText("Today's check-in")).toHaveCount(0);
+});

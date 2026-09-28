@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { hasCheckedInOn, localDateString, validateCheckInScores } from '../lib/checkIn.js';
+import { checkInReadinessScore, hasCheckedInOn, isFastCheckIn, latestFastCheckIn, localDateString, validateCheckInScores } from '../lib/checkIn.js';
 import { createLogInterventionHandler } from '../pages/api/log-intervention.js';
 import { getMobileTabs, protectedRoutes } from '../lib/siteNavigation.js';
 
@@ -35,4 +35,22 @@ test('API rejects fast check-in with missing or out-of-range scores before any d
   await handler({ method: 'GET' }, res);
   assert.equal(res.statusCode, 405);
   assert.equal(touched, false);
+});
+
+test('lightweight session logs are not fast check-ins', () => {
+  const light = { intervention_type: 'Workout Check-in', protocol_payload: { session_type: 'Run', session_load: 300 } };
+  const fast = { intervention_type: 'Workout Check-in', inserted_at: '2026-09-28T10:00:00Z', protocol_payload: { legs_feel: 8, energy_feel: 8, perceived_effort: 3 } };
+  assert.equal(isFastCheckIn(light), false);
+  assert.equal(isFastCheckIn(fast), true);
+  assert.equal(isFastCheckIn({ ...fast, intervention_type: 'Sauna - Recovery' }), false);
+  assert.equal(latestFastCheckIn([light, fast]), fast);
+  assert.equal(latestFastCheckIn([light]), null);
+});
+
+test('readiness maps to the coach triage scale: hard/tired is red, fresh is green', () => {
+  assert.equal(checkInReadinessScore({ legs_feel: 1, energy_feel: 1, perceived_effort: 10 }), 10);
+  assert.ok(checkInReadinessScore({ legs_feel: 1, energy_feel: 1, perceived_effort: 10 }) < 45);
+  assert.ok(checkInReadinessScore({ legs_feel: 5, energy_feel: 5, perceived_effort: 6 }) >= 45);
+  assert.ok(checkInReadinessScore({ legs_feel: 9, energy_feel: 9, perceived_effort: 3 }) >= 70);
+  assert.equal(checkInReadinessScore({ legs_feel: 9 }), null);
 });

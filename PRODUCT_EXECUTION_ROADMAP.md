@@ -181,8 +181,10 @@ athlete, and use the experience on a phone without Tad or an administrator repai
     local day, one-tap 1-10 legs/energy/RPE, optional note, retained answers and retry on failure,
     double-submit guard); athlete mobile tab and sidebar entry; dashboard prompt when today has no
     check-in (`/api/me` now returns `lastCheckInDate`); server rejects out-of-range scores and, for
-    the fast path, requires all three. Full suite 264/264, production build, and daily-check-in
-    browser journeys pass on desktop and 390 px. Open: a real athlete timing the flow at 30 s or less.
+    the fast path, requires all three. Review hardening: coach triage now derives readiness from fast check-ins
+    (legs/energy/RPE) since nothing writes `daily_checkins`; lightweight logs no longer count as the
+    daily check-in; the page shows the entitlement limit before accepting answers. Full suite 266/266,
+    production build, and daily-check-in browser journeys pass on desktop and 390 px. Open: a real athlete timing the flow at 30 s or less.
 
 - [ ] **P0-007 — Give coaches a complete mobile path**
   - Coach mobile navigation includes Roster, Calendar, Messages, and Profile.
