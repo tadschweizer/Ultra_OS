@@ -607,7 +607,7 @@ accounts are unavailable; the previous INACTIVE observation below is historical.
 | 2026-08-19 | Treat mobile as a requirement in every milestone | A separate late mobile pass would preserve broken coach workflows for too long |
 | 2026-08-19 | Keep Vercel as the primary app runtime for now | Avoid maintaining two Next.js deployment paths while product risk is higher than hosting risk |
 | 2026-09-09 | Do not purchase hosted staging now | Continue free local verification and use normal controlled-pilot activity for real-user acceptance; keep synthetic and destructive tests out of production |
-| 2026-09-28 | Decision | Do not add a Sentry alert rule or uptime monitor | Owner declined; keep the readiness check manual for the closed pilot |
+| 2026-09-28 | Do not add a Sentry alert rule or uptime monitor | Owner declined; keep the readiness check manual for the closed pilot |
 
 ## Progress log
 
