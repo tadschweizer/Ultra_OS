@@ -2,6 +2,7 @@ import { getSupabaseAdminClient } from '../../lib/authServer.js';
 import { inferLegacyScores, normalizeProtocolPayload } from '../../lib/interventionCatalog.js';
 import { canLogCheckIn, canLogIntervention, normalizeSubscriptionTier } from '../../lib/subscriptionTiers.js';
 import { requireLiveAthleteId } from '../../lib/auth/requireAthlete.js';
+import { validateCheckInScores } from '../../lib/checkIn.js';
 import { loadCheckInEntitlement, EntitlementLookupError } from '../../lib/pilotEntitlementsServer.js';
 
 // Server-side routes cannot use the anon client: it carries no Supabase
@@ -49,6 +50,14 @@ export function createLogInterventionHandler({ getClient = getSupabaseAdminClien
         console.error(interventionCountError);
         res.status(500).json({ error: interventionCountError.message });
         return;
+      }
+
+      if (body.intervention_type === 'Workout Check-in') {
+        const scores = validateCheckInScores(body.protocol_payload || {}, { requireAll: body.checkin_fast === true });
+        if (!scores.ok) {
+          res.status(400).json({ error: 'Legs, energy, and effort must each be a whole number from 1 to 10.' });
+          return;
+        }
       }
 
       let gate = canLogIntervention(athlete, interventionCount ?? 0);

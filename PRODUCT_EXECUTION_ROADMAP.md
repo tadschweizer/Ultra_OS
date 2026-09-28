@@ -3,7 +3,7 @@
 Last updated: 2026-09-28<br>
 Status: Scoped research/pilot source and schema are active in production; paid staging is deferred and real-user acceptance remains open<br>
 Current milestone: M0 — make the closed coach pilot work end to end<br>
-Next item: Merge PR #122, deploy and probe `/api/ready` live, then complete safe real-user acceptance for P0-003, P0-013B, and P0-004/P0-005 during normal pilot enrollment; continue no-cost local M0 work while waiting.
+Next item: Complete safe real-user acceptance for P0-003, P0-013B, and P0-004/P0-005 during normal pilot enrollment (coach sign-up in progress; PR #122 is merged and `/api/ready` deploy/alert configuration remains an owner-authorized step); continue no-cost local M0 work: P0-006 real-athlete 30-second timing, then P0-007 coach mobile path.
 
 ## Purpose
 
@@ -177,6 +177,12 @@ athlete, and use the experience on a phone without Tad or an administrator repai
   - The fast path captures legs, energy, and RPE, which are required by coach triage/correlation.
   - A missing-today prompt appears without becoming a guilt-inducing dark pattern.
   - Completion target: a returning athlete can submit a useful check-in in 30 seconds or less.
+  - Local implementation checkpoint 2026-09-28: `/check-in` page (date prefilled from the athlete's
+    local day, one-tap 1-10 legs/energy/RPE, optional note, retained answers and retry on failure,
+    double-submit guard); athlete mobile tab and sidebar entry; dashboard prompt when today has no
+    check-in (`/api/me` now returns `lastCheckInDate`); server rejects out-of-range scores and, for
+    the fast path, requires all three. Full suite 264/264, production build, and daily-check-in
+    browser journeys pass on desktop and 390 px. Open: a real athlete timing the flow at 30 s or less.
 
 - [ ] **P0-007 — Give coaches a complete mobile path**
   - Coach mobile navigation includes Roster, Calendar, Messages, and Profile.

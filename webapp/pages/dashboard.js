@@ -19,6 +19,7 @@ import {
 } from '../lib/activityInsights';
 import { getLoadMetrics } from '../lib/trainingLoad';
 import { fetchMe, getCachedMe } from '../lib/meClient';
+import { hasCheckedInOn, localDateString } from '../lib/checkIn';
 import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
 import EmptyStateCard from '../components/EmptyStateCard';
@@ -573,6 +574,7 @@ export default function Dashboard() {
   const [heatmapDay, setHeatmapDay] = useState(null);
   const [loadMetrics, setLoadMetrics] = useState(() => getCachedMe()?.load_metrics || null);
   const [loadStatus, setLoadStatus] = useState(() => getCachedMe()?.load_status || null);
+  const [lastCheckInDate, setLastCheckInDate] = useState(() => getCachedMe()?.lastCheckInDate || null);
   const [raceForm, setRaceForm] = useState(emptyRaceForm);
   const [raceSaving, setRaceSaving] = useState(false);
   const [raceStatus, setRaceStatus] = useState('');
@@ -603,6 +605,7 @@ export default function Dashboard() {
         }
         setAthlete(me.athlete);
         setInterventionCount(me.interventionCount);
+        setLastCheckInDate(me.lastCheckInDate || null);
         setLoadMetrics((current) => current || me.load_metrics || null);
         setLoadStatus((current) => current || me.load_status || null);
         setLoading(false);
@@ -833,6 +836,16 @@ export default function Dashboard() {
         </div>
 
         <DashboardTabs activeHref="/dashboard" />
+
+        {!loading && !hasCheckedInOn(lastCheckInDate, localDateString()) ? (
+          <a href="/check-in" className="mb-6 flex items-center justify-between gap-3 rounded-[24px] border border-ink/10 bg-white px-5 py-4 text-sm shadow-warm">
+            <span>
+              <span className="block font-semibold text-ink">Today&apos;s check-in</span>
+              <span className="text-ink/65">Legs, energy, and effort in about 30 seconds.</span>
+            </span>
+            <span className="rounded-full bg-ink px-4 py-2 text-xs font-semibold text-paper">Check in</span>
+          </a>
+        ) : null}
 
 
         <section className="mb-8 rounded-[30px] border border-ink/10 bg-white p-6 shadow-warm">

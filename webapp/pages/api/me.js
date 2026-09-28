@@ -77,6 +77,17 @@ export default async function handler(req, res) {
   }
 
 
+  const { data: lastCheckIn, error: lastCheckInError } = await admin
+    .from('interventions')
+    .select('date')
+    .eq('athlete_id', athleteId)
+    .eq('intervention_type', 'Workout Check-in')
+    .not('date', 'is', null)
+    .order('date', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (lastCheckInError) console.error(lastCheckInError);
+
   const [interventionLoadRes, activityLoadRes] = await Promise.all([
     admin
       .from('interventions')
@@ -136,6 +147,7 @@ export default async function handler(req, res) {
     impersonating: isImpersonating ? { athleteId: athlete.id, name: athlete.name } : null,
     interventionCount: count ?? 0,
     weeklyCheckIns: weeklyCheckIns ?? 0,
+    lastCheckInDate: lastCheckIn?.date || null,
     load_metrics: loadMetrics,
     load_status: loadStatus,
     usage: buildUsageSnapshot({
