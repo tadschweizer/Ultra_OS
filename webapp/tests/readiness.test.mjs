@@ -79,3 +79,20 @@ test('runCheck reports latency', async () => {
   const result = await runCheck(async () => { t = 40; }, { now: () => t });
   assert.deepEqual(result, { status: 'ok', latencyMs: 40 });
 });
+
+test('default client requires the service-role key, so misconfiguration is not reported as an outage', async () => {
+  const saved = { url: process.env.NEXT_PUBLIC_SUPABASE_URL, anon: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, role: process.env.SUPABASE_SERVICE_ROLE_KEY };
+  process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.invalid';
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'anon-key';
+  delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+  try {
+    const res = response();
+    await createReadinessHandler({ alert() {} })({ method: 'GET' }, res);
+    assert.equal(res.code, 503);
+    assert.equal(res.body.checks.database.status, 'unconfigured');
+  } finally {
+    for (const [k, v] of [['NEXT_PUBLIC_SUPABASE_URL', saved.url], ['NEXT_PUBLIC_SUPABASE_ANON_KEY', saved.anon], ['SUPABASE_SERVICE_ROLE_KEY', saved.role]]) {
+      if (v === undefined) delete process.env[k]; else process.env[k] = v;
+    }
+  }
+});
