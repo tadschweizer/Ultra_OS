@@ -3,7 +3,7 @@
 Last updated: 2026-09-28<br>
 Status: Scoped research/pilot source and schema are active in production; paid staging is deferred and real-user acceptance remains open<br>
 Current milestone: M0 — make the closed coach pilot work end to end<br>
-Next item: Merge PR #122, deploy and probe `/api/ready` live, then complete safe real-user acceptance for P0-003, P0-013B, and P0-004/P0-005 during normal pilot enrollment; continue no-cost local M0 work while waiting.
+Next item: Run safe real-user acceptance by following `PILOT_ACCESS_RUNBOOK.md` with one approved pilot coach (confirm `NEXT_PUBLIC_SITE_URL` and admin access first) for P0-003, P0-013B, and P0-004/P0-005 during normal pilot enrollment; continue no-cost local M0 work while waiting.
 
 ## Purpose
 
@@ -259,8 +259,14 @@ in place. Existing milestones remain the larger parity roadmap.
     database probe (3 s), returns 200/503 with status and latency only, and raises a structured log and
     Sentry message on failure; `/api/health` stays a liveness check. 8 new tests cover healthy, error,
     thrown, unconfigured, hung (timeout), non-GET, and no-leak cases; the auth suite passes 259/259 and
-    the production build succeeds. Remaining: deploy, probe live, and configure a Sentry alert rule
-    on the `area:readiness` tag (production service change; needs owner authorization).
+    the production build succeeds. Merged in [PR #122](https://github.com/tadschweizer/Ultra_OS/pull/122)
+    (`ab4fa36`). Production deploy `dpl_F7ERQSqB8QFHasfmrHozbegB9raZ` is READY; live probe on
+    2026-09-28 returned 200 `{"status":"ready","checks":{"database":{"status":"ok","latencyMs":1008}}}`
+    with `Cache-Control: no-store`, and `/api/health` returned 200. The first fetch failed at Vercel's access
+    layer before reaching the app and the immediate retry succeeded; the runtime log search found no
+    `readiness_failed` event. Remaining: a live dependency-failure check is local-test only. Decision 2026-09-28: no Sentry alert rule or external uptime monitor for the pilot;
+    failures still log and send a tagged Sentry message, and `/api/ready` is checked by hand. This
+    reduces the "actionable alerts" criterion, so P0-013C stays open until that is accepted explicitly.
   - [ ] **P0-013D — Relationship and data-isolation verification.** Verify cross-athlete denial,
     revoked coach access, privileged routes, staging RLS, and outstanding P0-003 real-account tests.
     Record evidence and complete the parent only after every remaining criterion passes.
@@ -601,6 +607,7 @@ accounts are unavailable; the previous INACTIVE observation below is historical.
 | 2026-08-19 | Treat mobile as a requirement in every milestone | A separate late mobile pass would preserve broken coach workflows for too long |
 | 2026-08-19 | Keep Vercel as the primary app runtime for now | Avoid maintaining two Next.js deployment paths while product risk is higher than hosting risk |
 | 2026-09-09 | Do not purchase hosted staging now | Continue free local verification and use normal controlled-pilot activity for real-user acceptance; keep synthetic and destructive tests out of production |
+| 2026-09-28 | Decision | Do not add a Sentry alert rule or uptime monitor | Owner declined; keep the readiness check manual for the closed pilot |
 
 ## Progress log
 
