@@ -61,7 +61,8 @@ begin
   if lease.lease_token is distinct from p_lease_token or lease.event_id is distinct from p_event_id
       or lease.expires_at <= clock_timestamp() then raise exception 'Billing lease expired'; end if;
   if p_athlete_id is not null and p_snapshot is not null then
-    if p_snapshot->>'tier' is null or p_snapshot->>'tier' not in ('free', 'research', 'individual', 'coach') then
+    if p_snapshot->>'tier' is null or p_snapshot->>'tier' not in
+      ('free', 'core', 'pro', 'coach_essentials', 'coach_pro', 'research', 'individual', 'coach') then
       raise exception 'Invalid subscription tier';
     end if;
     update public.athletes set

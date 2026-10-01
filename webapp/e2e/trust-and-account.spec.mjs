@@ -9,7 +9,7 @@ async function accountMock(page, { deleteFails = false, authFails = false } = {}
     if(path==='/api/coach-connection')body={connections:[]};
     if(path==='/api/account-export'){calls.push(['export',route.request().method()]);body={format:'threshold-personal-training-v1',unavailableSections:[],sections:{profile:{name:'Test Athlete'},interventions:[]}};}
     if(path==='/api/delete-account'){calls.push(['delete',route.request().method(),route.request().postDataJSON()]);status=deleteFails?503:200;body=deleteFails?{error:'We could not stop billing, so your account has not been deleted.'}:{success:true,auth_cleanup:authFails?'failed':'done',stripe_cleanup:'done'};}
-    if(path==='/api/billing/preview')body={plan:{id:'individual_annual',label:'Individual Annual'},price:{amount:14400,currency:'usd',interval:'year',intervalCount:1},changing:false,intent:'review'};
+    if(path==='/api/billing/preview')body={plan:{id:'pro_annual',label:'Athlete Pro Annual'},price:{amount:14400,currency:'usd',interval:'year',intervalCount:1},changing:false,intent:'review'};
     await route.fulfill({status,contentType:'application/json',body:JSON.stringify(body)});
   });return calls;
 }
@@ -74,7 +74,7 @@ for(const path of ['/privacy','/terms','/support'])test(`WCAG smoke: public ${pa
   expect(results.violations).toEqual([]);
 });
 test('WCAG smoke: billing review and typed account deletion controls',async({page})=>{
-  await accountMock(page);await page.goto('/billing/checkout?plan=individual_annual');await expect(page.getByRole('button',{name:'Continue to Stripe for confirmation'})).toBeVisible();
+  await accountMock(page);await page.goto('/billing/checkout?plan=pro_annual');await expect(page.getByRole('button',{name:'Continue to Stripe for confirmation'})).toBeVisible();
   let results=await new AxeBuilder({page}).include('main').withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();expect(results.violations).toEqual([]);
   await page.goto('/account');await page.getByRole('button',{name:'Review account deletion'}).click();
   results=await new AxeBuilder({page}).include('section[aria-labelledby="your-data-heading"]').withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();expect(results.violations).toEqual([]);

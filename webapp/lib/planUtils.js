@@ -1,17 +1,23 @@
 import { useEffect, useState } from 'react';
 import {
-  canAccessExplorer,
+  getFeatureList,
   getSubscriptionTierLabel,
   normalizeSubscriptionTier,
 } from './subscriptionTiers';
 import { fetchMe, getCachedMe, subscribeMe } from './meClient';
 
-export const planOptions = [
-  { id: 'free', label: 'Free', price: '$0' },
-  { id: 'research', label: 'Research Feed', price: '$7/mo' },
-  { id: 'individual', label: 'Individual', price: '$15/mo' },
-  { id: 'coach', label: 'Coach', price: '$69/mo' },
-];
+/**
+ * Features the server granted this account (`/api/me` account.features), which
+ * include coach-derived grants. Falls back to the stored tier alone.
+ */
+export function getMeFeatures(me) {
+  if (Array.isArray(me?.account?.features)) return me.account.features;
+  return getFeatureList(me?.athlete?.subscription_tier);
+}
+
+export function meHasFeature(me, feature) {
+  return getMeFeatures(me).includes(feature);
+}
 
 export function getPlanLabel(planId) {
   return getSubscriptionTierLabel(planId);
@@ -40,7 +46,7 @@ export function usePlan() {
   const { me, loading } = useMe();
 
   const planId = normalizeSubscriptionTier(me?.athlete?.subscription_tier);
-  const athlete = { subscription_tier: planId };
+  const features = getMeFeatures(me);
 
   return {
     planId,
@@ -51,7 +57,9 @@ export function usePlan() {
     planLabel: getPlanLabel(planId),
     entitlementError: me?.entitlementError || null,
     coachAccess: me?.account?.coach_access || null,
-    explorerUnlocked: canAccessExplorer(athlete).allowed,
+    features,
+    hasFeature: (feature) => features.includes(feature),
+    explorerUnlocked: features.includes('explorer'),
     coachFeatures: me?.account?.capabilities?.coach === true && me?.account?.coach_access?.eligible === true,
   };
 }

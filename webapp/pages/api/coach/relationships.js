@@ -2,6 +2,8 @@ import { getSupabaseAdminClient } from '../../../lib/authServer';
 import { checkInReadinessScore, latestFastCheckIn } from '../../../lib/checkIn';
 import { buildLoadMetrics, buildLoadStatus } from '../../../lib/loadRollups';
 import { requireCoachAccess } from '../../../lib/auth/roleAccessServer.js';
+import { loadCoachEntitlement } from '../../../lib/pilotEntitlementsServer.js';
+import { hasFeature } from '../../../lib/subscriptionTiers.js';
 
 // Coach tables are no longer reachable with the public anon key (RLS is on and
 // the anon grants are revoked), so this route uses the service-role client.
@@ -28,6 +30,16 @@ export default async function handler(req, res) {
         .order('created_at', { ascending: true });
 
       if (error) { res.status(500).json({ error: error.message }); return; }
+
+      // Per-athlete fitness/fatigue series are a Coach Pro metric; Essentials
+      // coaches get the plain-language load status only. Fails closed.
+      let advancedMetrics = false;
+      try {
+        const entitlement = await loadCoachEntitlement(supabase, profile);
+        advancedMetrics = hasFeature(access.athlete, 'coach_advanced_metrics', { coachPilot: entitlement.pilot === true });
+      } catch {
+        advancedMetrics = false;
+      }
 
       const athleteIds = (relationships || [])
         .filter((relationship) => relationship.status === 'active')
@@ -121,7 +133,7 @@ export default async function handler(req, res) {
           flagReasons,
           flagSuggestion,
           communicationSlaHours: daysSinceCoachNote === null ? null : daysSinceCoachNote * 24,
-          loadMetrics,
+          loadMetrics: advancedMetrics ? loadMetrics : null,
           loadStatus: buildLoadStatus(loadMetrics),
         };
       });

@@ -22,7 +22,7 @@ export default function BlurredInsightPreview({ title = 'Premium insight preview
           <p className="text-sm uppercase tracking-[0.22em] text-accent">{title}</p>
           <p className="mt-3 text-xl font-semibold text-ink">Unlock the full signal layer</p>
           <p className="mt-3 text-sm leading-6 text-ink/65">
-            {body || 'Upgrade to Individual to unlock full insights, race blueprints, and deeper pattern detection across your training history.'}
+            {body || 'Upgrade to Athlete Pro to unlock full insights, race blueprints, and deeper pattern detection across your training history.'}
           </p>
           <a href="/pricing" className="mt-5 inline-flex rounded-full bg-ink px-6 py-3 text-sm font-semibold text-paper">
             {ctaLabel} →

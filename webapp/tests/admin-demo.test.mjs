@@ -22,9 +22,12 @@ function makeRes() {
 }
 
 test('isKnownTier accepts only real tiers', () => {
-  assert.equal(isKnownTier('coach'), true);
-  assert.equal(isKnownTier('free'), true);
-  assert.equal(isKnownTier('pro'), false);
+  for (const tier of ['free', 'core', 'pro', 'coach_essentials', 'coach_pro']) {
+    assert.equal(isKnownTier(tier), true);
+  }
+  // Legacy values are read-only aliases; admins set canonical tiers.
+  assert.equal(isKnownTier('coach'), false);
+  assert.equal(isKnownTier('individual'), false);
   assert.equal(isKnownTier(''), false);
   assert.equal(isKnownTier(null), false);
 });

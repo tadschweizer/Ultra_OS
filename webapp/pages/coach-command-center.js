@@ -429,7 +429,8 @@ function AthleteDrawer({ athlete, relationship, protocols, notes, docs = [], onC
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function CoachCommandCenter() {
-  const { coachFeatures, planReady, entitlementError, coachAccess } = usePlan();
+  const { coachFeatures, planReady, entitlementError, coachAccess, hasFeature } = usePlan();
+  const advancedMetrics = hasFeature('coach_advanced_metrics');
 
   // Data state
   const [profile, setProfile] = useState(null);
@@ -872,7 +873,7 @@ export default function CoachCommandCenter() {
             {entitlementError && <p role="alert" className="mb-4 text-red-700">{entitlementError}</p>}
             <UpgradePrompt
               featureName="Coach Command Center"
-              unlockTier="Coach Monthly or Coach Annual"
+              unlockTier="Coach Essentials or Coach Pro"
               body="The Coach Command Center is available on Coach Monthly and Coach Annual plans."
             />
           </section>
@@ -1237,7 +1238,9 @@ export default function CoachCommandCenter() {
                                       </span>
                                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${toneClass(rel.loadStatus?.tone)}`}>{rel.loadStatus?.label || 'Unknown'}</span>
                                     </div>
-                                    <div className="mt-2"><MiniSparkline points={rel.loadMetrics?.sparkline || []} /></div>
+                                    {advancedMetrics ? (
+                                      <div className="mt-2"><MiniSparkline points={rel.loadMetrics?.sparkline || []} /></div>
+                                    ) : null}
                                   </td>
                                   <td className="py-4 text-ink/65">
                                     <div>{activeProto?.protocol_name || '—'}</div>

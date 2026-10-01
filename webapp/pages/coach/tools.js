@@ -491,7 +491,7 @@ function RampPlanner() {
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function CoachToolsPage() {
-  const { coachFeatures, planReady } = usePlan();
+  const { coachFeatures, planReady, hasFeature } = usePlan();
 
   if (!planReady) {
     return (
@@ -512,7 +512,7 @@ export default function CoachToolsPage() {
           <section className="mt-12">
             <UpgradePrompt
               featureName="Coach Tools"
-              unlockTier="Coach Monthly or Coach Annual"
+              unlockTier="Coach Essentials or Coach Pro"
               body="Zone calculators, race predictors, and load-planning tools for every endurance discipline are part of the Coach plan."
             />
           </section>
@@ -553,7 +553,15 @@ export default function CoachToolsPage() {
           <PowerZones />
           <SwimCss />
           <PaceConverter />
-          <RampPlanner />
+          {hasFeature('coach_advanced_metrics') ? <RampPlanner /> : (
+            <ToolCard
+              eyebrow="Coach Pro"
+              title="Fitness ramp planner"
+              blurb="Plan weekly load to reach a target fitness (CTL) by race day. Part of Coach Pro's advanced metrics."
+            >
+              <a href="/pricing" className="ui-button-primary">View Coach Pro</a>
+            </ToolCard>
+          )}
         </section>
       </div>
     </main>

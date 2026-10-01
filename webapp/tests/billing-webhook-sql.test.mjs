@@ -6,6 +6,7 @@ import Stripe from 'stripe';
 import { Readable } from 'node:stream';
 import { createBillingWebhookHandler } from '../pages/api/billing/webhook.js';
 const migration = readFileSync(new URL('../supabase/migrations/20261001231152_billing_webhook_reconciliation.sql', import.meta.url), 'utf8');
+const tierMigration = readFileSync(new URL('../supabase/migrations/20261001120000_tiered_athlete_coach_plans.sql', import.meta.url), 'utf8');
 const owner = '11111111-1111-4111-8111-111111111111';
 const other = '22222222-2222-4222-8222-222222222222';
 async function db() {
@@ -15,13 +16,14 @@ async function db() {
     stripe_price_id text, stripe_subscription_status text, subscription_tier text not null default 'free', subscription_activated_at timestamptz);
     grant select, update on public.athletes to service_role;
     insert into public.athletes(id,stripe_customer_id) values('${owner}','cus_1'),('${other}','cus_2');`);
+  await pg.exec(tierMigration);
   await pg.exec(migration);
   return pg;
 }
 async function claim(pg, event = 'evt_1', customer = 'cus_1') {
   return (await pg.query('select public.claim_billing_webhook($1,$2,$3) as claim', [event,customer,'customer.subscription.updated'])).rows[0].claim;
 }
-const snapshot = { subscription_id: 'sub_new', price_id: 'price_1', status: 'active', tier: 'individual', activated_at: '2026-10-01T00:00:00Z' };
+const snapshot = { subscription_id: 'sub_new', price_id: 'price_1', status: 'active', tier: 'pro', activated_at: '2026-10-01T00:00:00Z' };
 async function finish(pg, lease, athlete = owner, event = 'evt_1') {
   return pg.query('select public.finish_billing_webhook($1,$2,$3,$4,$5)', [event,'cus_1',lease.lease_token,athlete,JSON.stringify(snapshot)]);
 }
@@ -31,7 +33,7 @@ test('real PostgreSQL: durable duplicate receipt, exclusive customer lease, atom
     const lease = await claim(pg); assert.ok(lease.lease_token);
     assert.deepEqual(await claim(pg, 'evt_2'), { busy: true });
     await finish(pg, lease); assert.deepEqual(await claim(pg), { duplicate: true });
-    assert.equal((await pg.query('select subscription_tier from athletes where id=$1',[owner])).rows[0].subscription_tier, 'individual');
+    assert.equal((await pg.query('select subscription_tier from athletes where id=$1',[owner])).rows[0].subscription_tier, 'pro');
     assert.ok((await claim(pg,'evt_2')).lease_token);
   } finally { await pg.close(); }
 });
@@ -90,7 +92,7 @@ test('real PostgreSQL: migration rerun preserves processed receipts and security
 test('signed webhook integrates with real PostgreSQL receipts, current-state updates and lease retry', async () => {
   const pg = await db();
   try {
-    process.env.STRIPE_PRICE_INDIVIDUAL_MONTHLY = 'price_1';
+    process.env.STRIPE_PRICE_PRO_MONTHLY = 'price_1';
     const secret = 'whsec_postgres_integration';
     const stripe = new Stripe('sk_test_isolated_fixture');
     let providerReads = 0;
@@ -124,7 +126,7 @@ test('signed webhook integrates with real PostgreSQL receipts, current-state upd
       await handler(request, response); return response;
     }
     assert.equal((await deliver('evt_signed_1')).statusCode, 200);
-    assert.equal((await pg.query('select subscription_tier from public.athletes where id=$1', [owner])).rows[0].subscription_tier, 'individual');
+    assert.equal((await pg.query('select subscription_tier from public.athletes where id=$1', [owner])).rows[0].subscription_tier, 'pro');
     assert.equal((await deliver('evt_signed_1')).body.duplicate, true); assert.equal(providerReads, 1);
     current = { ...current, status: 'canceled' };
     const held = await claim(pg, 'evt_held');

@@ -1,35 +1,95 @@
+import { isCoachTier } from './subscriptionTiers.js';
+
+/**
+ * Purchasable plans. `legacy` plans are no longer sold but stay listed so
+ * existing subscriptions on their prices keep resolving to a tier (their old
+ * tier values are mapped forward by normalizeSubscriptionTier).
+ */
 export const BILLING_PLANS = {
+  core_monthly: {
+    id: 'core_monthly',
+    tier: 'core',
+    label: 'Athlete Core Monthly',
+    envKeys: ['STRIPE_PRICE_CORE_MONTHLY'],
+  },
+  core_annual: {
+    id: 'core_annual',
+    tier: 'core',
+    label: 'Athlete Core Annual',
+    envKeys: ['STRIPE_PRICE_CORE_ANNUAL'],
+  },
+  pro_monthly: {
+    id: 'pro_monthly',
+    tier: 'pro',
+    label: 'Athlete Pro Monthly',
+    envKeys: ['STRIPE_PRICE_PRO_MONTHLY'],
+  },
+  pro_annual: {
+    id: 'pro_annual',
+    tier: 'pro',
+    label: 'Athlete Pro Annual',
+    envKeys: ['STRIPE_PRICE_PRO_ANNUAL'],
+  },
+  coach_essentials_monthly: {
+    id: 'coach_essentials_monthly',
+    tier: 'coach_essentials',
+    label: 'Coach Essentials Monthly',
+    envKeys: ['STRIPE_PRICE_COACH_ESSENTIALS_MONTHLY'],
+  },
+  coach_essentials_annual: {
+    id: 'coach_essentials_annual',
+    tier: 'coach_essentials',
+    label: 'Coach Essentials Annual',
+    envKeys: ['STRIPE_PRICE_COACH_ESSENTIALS_ANNUAL'],
+  },
+  coach_pro_monthly: {
+    id: 'coach_pro_monthly',
+    tier: 'coach_pro',
+    label: 'Coach Pro Monthly',
+    envKeys: ['STRIPE_PRICE_COACH_PRO_MONTHLY'],
+  },
+  coach_pro_annual: {
+    id: 'coach_pro_annual',
+    tier: 'coach_pro',
+    label: 'Coach Pro Annual',
+    envKeys: ['STRIPE_PRICE_COACH_PRO_ANNUAL'],
+  },
   research_monthly: {
     id: 'research_monthly',
-    tier: 'research',
-    label: 'Research Feed Monthly',
+    tier: 'core',
+    label: 'Research Feed Monthly (legacy)',
+    legacy: true,
     envKeys: ['STRIPE_PRICE_RESEARCH_MONTHLY', 'STRIPE_PRICE_RESEARCH'],
   },
   individual_monthly: {
     id: 'individual_monthly',
-    tier: 'individual',
-    label: 'Individual Monthly',
+    tier: 'pro',
+    label: 'Individual Monthly (legacy)',
+    legacy: true,
     envKeys: ['STRIPE_PRICE_INDIVIDUAL_MONTHLY', 'STRIPE_PRICE_INDIVIDUAL'],
     // Earlier price points that may still be attached to live subscriptions.
     legacyPriceIds: ['price_1TG9MNLs6h9nimdMijXTxWpC'],
   },
   individual_annual: {
     id: 'individual_annual',
-    tier: 'individual',
-    label: 'Individual Annual',
+    tier: 'pro',
+    label: 'Individual Annual (legacy)',
+    legacy: true,
     envKeys: ['STRIPE_PRICE_INDIVIDUAL_ANNUAL'],
     legacyPriceIds: ['price_1TG9MOLs6h9nimdMmgLvmC23'],
   },
   coach_monthly: {
     id: 'coach_monthly',
-    tier: 'coach',
-    label: 'Coach Monthly',
+    tier: 'coach_pro',
+    label: 'Coach Monthly (legacy)',
+    legacy: true,
     envKeys: ['STRIPE_PRICE_COACH_MONTHLY', 'STRIPE_PRICE_COACH'],
   },
   coach_annual: {
     id: 'coach_annual',
-    tier: 'coach',
-    label: 'Coach Annual',
+    tier: 'coach_pro',
+    label: 'Coach Annual (legacy)',
+    legacy: true,
     envKeys: ['STRIPE_PRICE_COACH_ANNUAL'],
   },
 };
@@ -41,11 +101,11 @@ export function getBillingPlan(planId) {
 /**
  * Returns the same-site checkout destination allowed to survive public signup.
  * Coach billing stays out of this path while the coach product is a closed,
- * administrator-approved pilot.
+ * administrator-approved pilot, and legacy plans are no longer sold.
  */
 export function getPublicCheckoutPath(planId) {
   const plan = getBillingPlan(planId);
-  if (!plan || plan.tier === 'coach') return null;
+  if (!plan || plan.legacy || isCoachTier(plan.tier)) return null;
   return `/api/billing/checkout?plan=${encodeURIComponent(plan.id)}`;
 }
 

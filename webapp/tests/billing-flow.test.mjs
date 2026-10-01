@@ -6,9 +6,9 @@ import { getTierFromSubscription } from '../lib/billingPlans.js';
 
 process.env.SESSION_COOKIE_SECRET = 'billing-tests-secret-at-least-32-characters';
 process.env.NEXT_PUBLIC_SITE_URL = 'https://threshold.example';
-process.env.STRIPE_PRICE_INDIVIDUAL_MONTHLY = 'price_month';
-process.env.STRIPE_PRICE_INDIVIDUAL_ANNUAL = 'price_year';
-process.env.STRIPE_PRICE_RESEARCH_MONTHLY = 'price_research';
+process.env.STRIPE_PRICE_PRO_MONTHLY = 'price_month';
+process.env.STRIPE_PRICE_PRO_ANNUAL = 'price_year';
+process.env.STRIPE_PRICE_CORE_MONTHLY = 'price_core';
 const fixedNow = 1800000000000;
 function response() {
   return { code: null, body: null, headers: {}, setHeader(k,v) { this.headers[k] = v; },
@@ -19,7 +19,7 @@ function response() {
 function price(id = 'price_year') { return { id, active: true, type: 'recurring', unit_amount: id === 'price_year' ? 14400 : 1500,
   currency: 'usd', recurring: { interval: id === 'price_year' ? 'year' : 'month', interval_count: 1, usage_type: 'licensed' } }; }
 function subscription(priceId = 'price_month', status = 'active') { return { id: 'sub_1', customer: 'cus_1', status,
-  created: 1750000000, metadata: { athlete_id: 'athlete-1', subscription_tier: 'individual' },
+  created: 1750000000, metadata: { athlete_id: 'athlete-1', subscription_tier: 'pro' },
   items: { data: [{ id: 'item_1', quantity: 1, price: price(priceId) }] } }; }
 function harness({ existing = false, signedIn = true } = {}) {
   const calls = [];
@@ -53,18 +53,18 @@ function harness({ existing = false, signedIn = true } = {}) {
       return { url: 'https://billing.stripe.com/test' }; } } },
   };
   const deps = { getClient: () => client, getAthlete: async () => signedIn ? account : null, getStripe: () => stripe, now: () => state.now };
-  const req = (method = 'POST', body = {}) => ({ method, body, query: { plan: 'individual_annual' }, headers: {
+  const req = (method = 'POST', body = {}) => ({ method, body, query: { plan: 'pro_annual' }, headers: {
     origin: 'https://threshold.example', 'content-type': 'application/json', 'sec-fetch-site': 'same-origin' } });
   const run = async (action, request) => { const res = response(); await createBillingFlowHandler(action, deps)(request, res); return res; };
   const preview = () => run('preview', req('GET'));
-  const submit = intent => run('checkout', req('POST', { plan: 'individual_annual', intent }));
+  const submit = intent => run('checkout', req('POST', { plan: 'pro_annual', intent }));
   const sync = async request => { const res = response(); await createBillingSyncHandler(deps)(request, res); return res; };
   return { calls, state, account, req, run, preview, submit, sync };
 }
 
 test('legacy checkout GET is a read-only redirect with no auth, Stripe, or database calls', async () => {
   const h = harness(); const res = await h.run('checkout', h.req('GET'));
-  assert.equal(res.code, 303); assert.equal(res.body.url, '/billing/checkout?plan=individual_annual'); assert.deepEqual(h.calls, []);
+  assert.equal(res.code, 303); assert.equal(res.body.url, '/billing/checkout?plan=pro_annual'); assert.deepEqual(h.calls, []);
 });
 for (const action of ['checkout', 'portal']) {
   for (const [name, headers, code] of [
@@ -80,12 +80,24 @@ for (const action of ['checkout', 'portal']) {
     const h = harness(); const res = await h.run(action, h.req('DELETE')); assert.equal(res.code, 405); assert.deepEqual(h.calls, []);
   });
   test(`${action}: unauthenticated request rejected`, async () => {
-    const h = harness({ signedIn: false }); const res = await h.run(action, h.req('POST', { plan: 'individual_annual' })); assert.equal(res.code, 401);
+    const h = harness({ signedIn: false }); const res = await h.run(action, h.req('POST', { plan: 'pro_annual' })); assert.equal(res.code, 401);
   });
 }
 test('coach plan remains unavailable before authentication and Stripe calls', async () => {
-  const h = harness(); const res = await h.run('checkout', h.req('POST', { plan: 'coach_monthly' })); assert.equal(res.code, 403); assert.deepEqual(h.calls, []);
+  for (const plan of ['coach_monthly', 'coach_essentials_monthly', 'coach_pro_annual', 'individual_annual', 'research_monthly']) {
+    const h = harness(); const res = await h.run('checkout', h.req('POST', { plan })); assert.equal(res.code, 403); assert.deepEqual(h.calls, []);
+  }
 });
+for (const [name, from, to, plan] of [['Core to Pro upgrade', 'price_core', 'price_year', 'pro_annual'], ['Pro to Core downgrade', 'price_year', 'price_core', 'core_monthly']]) {
+  test(`${name} requires hosted confirmation without changing the saved tier`, async () => {
+    const h = harness({ existing: true }); h.state.sub = subscription(from); h.state.price = price(to);
+    const request = h.req('GET'); request.query.plan = plan;
+    const review = await h.run('preview', request); assert.equal(review.code, 200);
+    const result = await h.run('checkout', h.req('POST', { plan, intent: review.body.intent })); assert.equal(result.code, 200);
+    assert.equal(h.calls.find(call => call[0] === 'portal')[1].flow_data.subscription_update_confirm.items[0].price, to);
+    assert.equal(h.calls.some(call => call[0] === 'write'), false);
+  });
+}
 test('preview shows server price and never creates sessions or writes entitlement', async () => {
   const h = harness({ existing: true }); const res = await h.preview(); assert.equal(res.code, 200);
   assert.equal(res.body.price.amount, 14400); assert.equal(res.body.currentPrice.amount, 1500);
@@ -94,7 +106,7 @@ test('preview shows server price and never creates sessions or writes entitlemen
 for (const [name, from, to] of [['upgrade', 'price_month', 'price_year'], ['downgrade', 'price_year', 'price_month']]) {
   test(`${name} opens explicit hosted confirmation; no subscription mutation or tier write`, async () => {
     const h = harness({ existing: true }); h.state.sub = subscription(from); h.state.price = price(to);
-    const plan = to === 'price_year' ? 'individual_annual' : 'individual_monthly';
+    const plan = to === 'price_year' ? 'pro_annual' : 'pro_monthly';
     const req = h.req('GET'); req.query.plan = plan;
     const review = await h.run('preview', req);
     const res = await h.run('checkout', h.req('POST', { plan, intent: review.body.intent }));
@@ -129,7 +141,7 @@ test('failed provider call is sanitized and cannot grant paid access', async () 
   assert.equal(res.code, 503); assert.equal(JSON.stringify(res.body).includes('sk_live'), false); assert.equal(h.calls.some(c => c[0] === 'write'), false);
 });
 test('unfinished checkout is reused rather than creating another', async () => {
-  const h = harness(); const review = await h.preview(); h.state.open = [{ mode: 'subscription', metadata: { athlete_id: h.account.id, billing_plan: 'individual_annual' }, url: 'https://checkout.stripe.com/original' }];
+  const h = harness(); const review = await h.preview(); h.state.open = [{ mode: 'subscription', metadata: { athlete_id: h.account.id, billing_plan: 'pro_annual' }, url: 'https://checkout.stripe.com/original' }];
   const res = await h.submit(review.body.intent); assert.equal(res.body.url, h.state.open[0].url); assert.equal(h.calls.some(c => c[0] === 'checkout'), false);
 });
 test('customer is persisted before a new checkout and no customer is discovered by email', async () => {
@@ -158,7 +170,7 @@ for (const kind of ['missing owner', 'other owner', 'incomplete', 'unpaid', 'wro
 }
 test('sync writes verified current price, preserving past_due grace; stale metadata cannot select tier', async () => {
   const h = harness({ existing: true }); h.state.sub.status = 'past_due'; h.state.sub.metadata.subscription_tier = 'coach';
-  const res = await h.sync(h.req()); assert.equal(res.code, 200); assert.equal(res.body.athlete.subscription_tier, 'individual');
+  const res = await h.sync(h.req()); assert.equal(res.code, 200); assert.equal(res.body.athlete.subscription_tier, 'pro');
   assert.equal(res.headers['Set-Cookie'].some(c => c.startsWith('athlete_id=')), false);
 });
 test('sync database failure is retryable and sanitized', async () => {
@@ -181,7 +193,7 @@ for (const status of ['incomplete', 'unpaid', 'paused']) test(`${status} subscri
   const res = await h.preview(); assert.equal(res.code, 503); assert.equal(h.calls.some(c => ['checkout', 'portal', 'write'].includes(c[0])), false);
 });
 test('pending checkout for another plan cannot start a duplicate', async () => {
-  const h = harness(); const review = await h.preview(); h.state.open = [{ mode: 'subscription', metadata: { athlete_id: h.account.id, billing_plan: 'individual_monthly' } }];
+  const h = harness(); const review = await h.preview(); h.state.open = [{ mode: 'subscription', metadata: { athlete_id: h.account.id, billing_plan: 'pro_monthly' } }];
   const res = await h.submit(review.body.intent); assert.equal(res.code, 409); assert.equal(h.calls.some(c => c[0] === 'checkout'), false);
 });
 test('separate concurrent reviews in one window share the new-checkout key', async () => {
@@ -203,7 +215,7 @@ test('multi-item or multi-quantity subscriptions fail closed', async () => {
   }
 });
 test('return URLs use configured origin and ignore attacker-controlled forwarded hosts', async () => {
-  const h = harness(); const review = await h.preview(); const req = h.req('POST', { plan: 'individual_annual', intent: review.body.intent });
+  const h = harness(); const review = await h.preview(); const req = h.req('POST', { plan: 'pro_annual', intent: review.body.intent });
   req.headers['x-forwarded-host'] = 'attacker.example'; req.headers['x-forwarded-proto'] = 'https';
   await h.run('checkout', req);
   const params = h.calls.find(c => c[0] === 'checkout')[1]; assert.match(params.success_url, /^https:\/\/threshold.example\//);

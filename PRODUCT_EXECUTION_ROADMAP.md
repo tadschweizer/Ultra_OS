@@ -552,6 +552,16 @@ without surprises.
 - [ ] **TRIAL-001 — Finalize product tiers**
   - One canonical entitlement matrix drives UI, API, pricing, and tests.
   - Decide whether Research Feed is truly premium or remove the separate paid SKU.
+  - 2026-10-01 status: implemented on branch `claude/modest-ramanujan-2xlait` (owner-prioritized).
+    Tiers are Free / Athlete Core / Athlete Pro and Coach Essentials / Coach Pro; the feature
+    matrix lives in `webapp/lib/subscriptionTiers.js` (`TIER_FEATURES`, `hasFeature`). Research
+    Feed is retired as a paid SKU (existing subscribers map to Core). Pro is deterministic analytics
+    only; AI is listed as `COMING_SOON_FEATURES` and granted to no tier. Remaining before this can
+    be checked: apply migration `20261001120000_tiered_athlete_coach_plans.sql` before deploying,
+    create the eight Stripe prices and set the `STRIPE_PRICE_CORE_*`, `STRIPE_PRICE_PRO_*`,
+    `STRIPE_PRICE_COACH_ESSENTIALS_*`, `STRIPE_PRICE_COACH_PRO_*` env vars, then verify
+    checkout and webhook tier writes in production. Coach checkout stays closed during the pilot,
+    and roster-size enforcement and per-extra-athlete billing are not built yet.
 
 - [ ] **TRIAL-002 — Athlete trial**
   - Proposed starting point: 21 days, no card required.
@@ -653,14 +663,15 @@ accounts are unavailable; the previous INACTIVE observation below is historical.
 | 2026-08-19 | Treat mobile as a requirement in every milestone | A separate late mobile pass would preserve broken coach workflows for too long |
 | 2026-08-19 | Keep Vercel as the primary app runtime for now | Avoid maintaining two Next.js deployment paths while product risk is higher than hosting risk |
 | 2026-09-09 | Do not purchase hosted staging now | Continue free local verification and use normal controlled-pilot activity for real-user acceptance; keep synthetic and destructive tests out of production |
+| 2026-10-01 | Adopt Free / Core / Pro athlete tiers and Coach Essentials / Coach Pro; launch Pro without AI | Owner decision: ship robust deterministic analytics first and add AI to the Pro tiers later. Paid-coach athletes get Core; pilot-linked athletes keep check-ins only, per the pilot runbook |
 | 2026-09-28 | Do not add a Sentry alert rule or uptime monitor | Owner declined; keep the readiness check manual for the closed pilot |
 
 ## Progress log
 
 October 1 expanded checkpoint: [draft PR #127](https://github.com/tadschweizer/Ultra_OS/pull/127)
 now includes P0-010B, P0-011 local account/trust controls and P0-012 CI/demo safeguards. Node 22
-regression **346/346**, integration checks **4/4**, production build and final critical browser suite
-**75 passed / 3 intentional viewport skips** pass. Eight actual PostgreSQL cases include signed
+regression **364/364**, integration checks **4/4**, production build and final critical browser suite
+**79 passed / 3 intentional viewport skips** pass. Merged current plans from PR #126 (`39cc8ca`), resolving checkout/tier conflicts and verifying Core/Pro confirmation plus legacy-price mapping. Eight actual PostgreSQL cases include signed
 handler/RPC integration; browser checks include axe and keyboard cancellation. Evidence and remaining
 external gates: `P0_010_012_EXECUTION.md`. No production service writes, hosted staging provisioning
 or paid branch creation. Parent items remain unchecked.

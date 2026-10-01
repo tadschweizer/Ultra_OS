@@ -9,7 +9,7 @@ create table if not exists public.athletes (
   access_token text,
   refresh_token text,
   token_expires_at timestamptz,
-  subscription_tier text not null default 'free' check (subscription_tier in ('free', 'research', 'individual', 'coach')),
+  subscription_tier text not null default 'free' check (subscription_tier in ('free', 'core', 'pro', 'coach_essentials', 'coach_pro', 'research', 'individual', 'coach')),
   subscription_activated_at timestamptz,
   stripe_customer_id text unique,
   stripe_subscription_id text unique,

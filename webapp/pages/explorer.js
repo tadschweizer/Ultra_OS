@@ -98,7 +98,7 @@ export default function ExplorerPage() {
               <div className="absolute inset-0 flex items-center justify-center rounded-[30px]">
                 <div className="rounded-[28px] border border-ink/10 bg-white p-8 text-center shadow-[0_24px_60px_rgba(19,24,22,0.14)]">
                   <p className="text-sm uppercase tracking-[0.22em] text-accent">Explorer</p>
-                  <p className="mt-3 text-xl font-semibold text-ink">Unlocks on Individual Annual or any Coach plan</p>
+                  <p className="mt-3 text-xl font-semibold text-ink">Unlocks on Athlete Pro or Coach Pro</p>
                   <p className="mt-3 max-w-sm text-sm leading-6 text-ink/65">
                     Pick any input variable, any outcome, and see the relationship across your own history. Your data, your chart.
                   </p>

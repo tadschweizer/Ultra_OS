@@ -19,11 +19,18 @@ Science-forward serious amateur endurance athlete. Races 2-4 times/year at 50k-1
 400-500 paying subscribers = ~$120k ARR = owner salary replacement at ~85% gross margin.
 
 ## Pricing Tiers
-- Research Feed Only: $7/month (email digest only, no logging - entry funnel)
-- Individual Monthly: $29/month (full platform access)
-- Individual Annual: $240/year ($20/month - push this, 51% less churn than monthly)
-- Coach Monthly: $69/month (multi-athlete dashboard, up to 25 athletes)
-- Coach Annual: $580/year ($48/month)
+Feature gating lives in `webapp/lib/subscriptionTiers.js`; prices in `webapp/pages/pricing.js`.
+
+Athletes:
+- Free: $0. Strava sync, coach connection, activity log, coach messaging, this week's totals, 3 check-ins/week (daily when coach-linked), 15 intervention logs, research library.
+- Athlete Core: $7/month or $60/year. 12-week distance/time/elevation trends, 4-week block comparison, longest session, unlimited check-ins and logging. Free for athletes coached on a paid Coach plan.
+- Athlete Pro: $18/month or $159/year. CTL/ATL/TSB, training load, ramp rate, monotony, HR drift and aerobic decoupling, training-response correlations, Explorer, Race Blueprint. AI review and suggestions are added later at no extra cost.
+
+Coaches (billing opens after the closed pilot):
+- Coach Essentials: $29/month or $290/year, up to 10 athletes. Command Center, calendar and assignments, protocols, compliance views, messaging, coach tools; roster athletes get Core.
+- Coach Pro: $79/month or $790/year, up to 25 athletes. Adds per-athlete load trends, the CTL ramp planner, and Athlete Pro for the coach's own training. AI triage and drafted summaries are added later.
+
+Legacy subscribers keep their price: Research Feed → Core, Individual → Pro, Coach → Coach Pro.
 
 ## Current Phase
 Phase 1 - Intervention Intelligence MVP

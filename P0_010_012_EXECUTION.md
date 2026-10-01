@@ -4,6 +4,16 @@ October 1, 2026 · draft [PR #127](https://github.com/tadschweizer/Ultra_OS/pull
 This continues the P0-010A confirmation work with the related trust and verification gates.
 The parent roadmap items remain open until their external acceptance gates are complete.
 
+Integration checkpoint: PR #126 landed on `main` as `39cc8ca` during this batch. Its current
+Core/Pro and Coach Essentials/Pro plans were merged into this branch. Public review/sales fixtures
+use current Core/Pro plans; retired plans stay denied for new checkout, while their existing prices
+map to successor tiers. Subscription metadata still cannot override the current Stripe price.
+The reconciliation SQL accepts the new canonical tiers and is tested after the prerequisite tier
+constraint migration. The demo coach role and account coach-activation checks use `isCoachTier`.
+New tests verify Core-to-Pro upgrades and Pro-to-Core downgrades require hosted confirmation.
+Free-tier accounts with a linked failed/cancelled subscription retain access to Manage Billing;
+losing paid access no longer hides the recovery/cancellation route.
+
 ## What changed
 
 **P0-010B — durable billing reconciliation.** Signed Stripe events now claim a persistent receipt
@@ -57,12 +67,12 @@ HTML document declares English. Typed deletion supports keyboard review/cancella
 
 | Check | Result | Evidence scope |
 | --- | --- | --- |
-| Full Node 22 regression | 346/346 passed | Handler/domain fixtures and actual isolated PostgreSQL migration tests |
-| Billing cases within full regression | 73/73 passed | Signed Stripe fixture headers; current-state provider fixtures; 8 PGlite PostgreSQL cases |
+| Full Node 22 regression after PR #126 integration | 364/364 passed | Handler/domain fixtures and actual isolated PostgreSQL migration tests |
+| Billing cases within full regression | 77/77 passed | Signed Stripe fixture headers; current-state provider fixtures; 8 PGlite PostgreSQL cases |
 | Trust/deletion/staging safety handlers | 20/20 passed | Isolated account/provider/database adapters; no destructive live operations |
 | Integration availability | 4/4 passed | Configuration-boundary regression |
-| Final critical browser suite | 75 passed, 3 intentional viewport skips | Real desktop/mobile UI, isolated API responses and pilot handler adapters |
-| Final trust/keyboard/accessibility browser slice | 18/18 passed | WCAG 2 A/AA + 2.1 AA smoke on public pages, billing main and Your data; keyboard cancellation |
+| Final critical browser suite after PR #126 integration | 79 passed, 3 intentional viewport skips | Real desktop/mobile UI, isolated API responses and pilot handler adapters |
+| Final trust/keyboard/accessibility browser slice | 20/20 passed | WCAG 2 A/AA + 2.1 AA smoke on public pages, billing main, deletion controls/result; keyboard cancellation and partial cleanup |
 | Final messaging browser slice | 6/6 passed | Coach follow-up, athlete reply, reload, pending locks, failed-send retry and disconnected state |
 | Final production build | Passed | Includes prerendered Privacy/Terms/Support and account-export API |
 | Git whitespace check | Passed | Scoped local diff |
@@ -86,7 +96,9 @@ see [STAGING_AND_CRITICAL_PATH_VERIFICATION.md](STAGING_AND_CRITICAL_PATH_VERIFI
 ## Remaining release gates
 
 1. Apply/verify the specific migration in an isolated Supabase environment and exercise service-role
-   RPCs via PostgREST. Docker was installed but its daemon was unavailable during this batch.
+   RPCs via PostgREST. First verify prerequisite `20261001120000_tiered_athlete_coach_plans.sql`
+   is applied; the local SQL suite executes both relevant migrations in that order.
+   Docker was installed but its daemon was unavailable during this batch.
    Migration-history drift still precludes a broad remote database push.
 2. Verify real Stripe sandbox invoices, hosted plan-change confirmation, 3DS, declines, asynchronous
    settlement, renewal failure, cancellation and delayed/out-of-order delivery. Check the portal

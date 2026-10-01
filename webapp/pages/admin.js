@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import NavMenu from '../components/NavMenu';
 import { clearMe } from '../lib/meClient';
 import { getInterventionMonogram } from '../lib/interventionCatalog';
+import { SUBSCRIPTION_TIERS, getSubscriptionTierLabel, normalizeSubscriptionTier } from '../lib/subscriptionTiers';
 
 /**
  * /admin — Admin dashboard
@@ -384,7 +385,7 @@ export default function AdminPage() {
                               <span className="ml-2 rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold text-violet-700">Demo</span>
                             ) : null}
                             {athlete.subscription_tier && athlete.subscription_tier !== 'free' ? (
-                              <span className="ml-2 rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-semibold capitalize text-sky-700">{athlete.subscription_tier}</span>
+                              <span className="ml-2 rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-semibold text-sky-700">{getSubscriptionTierLabel(athlete.subscription_tier)}</span>
                             ) : null}
                           </p>
                           <p className="mt-0.5 text-xs text-ink/40">
@@ -431,15 +432,14 @@ export default function AdminPage() {
                             <label className="flex items-center gap-1.5 text-xs text-ink/45">
                               Tier
                               <select
-                                value={athlete.subscription_tier || 'free'}
+                                value={normalizeSubscriptionTier(athlete.subscription_tier)}
                                 disabled={tierSaving === athlete.id}
                                 onChange={(e) => setTier(athlete.id, e.target.value)}
                                 className="rounded-full border border-ink/10 bg-white px-3 py-1.5 text-xs font-semibold text-ink disabled:opacity-40"
                               >
-                                <option value="free">Free</option>
-                                <option value="research">Research</option>
-                                <option value="individual">Individual</option>
-                                <option value="coach">Coach</option>
+                                {Object.values(SUBSCRIPTION_TIERS).map((tier) => (
+                                  <option key={tier.id} value={tier.id}>{tier.label}</option>
+                                ))}
                               </select>
                             </label>
                             <button
@@ -596,7 +596,7 @@ export default function AdminPage() {
                   <div key={account.id} className="flex items-center justify-between rounded-[16px] border border-ink/10 bg-paper px-4 py-3">
                     <div>
                       <p className="text-sm font-semibold text-ink">{account.name}</p>
-                      <p className="text-xs text-ink/45">{account.email} · <span className="capitalize">{account.subscription_tier}</span> tier</p>
+                      <p className="text-xs text-ink/45">{account.email} · {getSubscriptionTierLabel(account.subscription_tier)} tier</p>
                     </div>
                     <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold text-violet-700">Demo</span>
                   </div>

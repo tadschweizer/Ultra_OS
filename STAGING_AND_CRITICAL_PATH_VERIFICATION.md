@@ -56,12 +56,14 @@ demo reset, billing tests, or deletion tests at production.
    verify the target project and existing migration history first; this repository has known
    history drift, so do not run a broad remote `supabase db push` as a shortcut.
    The specific file is `webapp/supabase/migrations/20261001231152_billing_webhook_reconciliation.sql`.
+   Verify the prerequisite `20261001120000_tiered_athlete_coach_plans.sql` from merged PR #126
+   is applied first, so current Core/Pro/Coach tier values satisfy the athletes constraint.
 6. Verify anonymous and authenticated users cannot call the three billing reconciliation RPCs;
    the service role must be able to claim, finish and release a receipt. The private tables must
    remain outside exposed schemas. Exercise a signed event and confirm one receipt and one
    canonical account update. Replay it and confirm the second response reports a duplicate.
 
-The local SQL suite executes the actual migration against PGlite PostgreSQL with a minimal
+The local SQL suite executes both relevant migrations against PGlite PostgreSQL with a minimal
 athletes fixture. It verifies transaction rollback, privileges, duplicate receipts, customer
 lease contention/expiry and migration reruns. It does not apply the entire historical Supabase
 migration chain or test PostgREST. Docker was unavailable during this batch; a full local/hosted

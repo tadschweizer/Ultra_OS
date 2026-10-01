@@ -4,7 +4,7 @@ import { Readable } from 'node:stream';
 import Stripe from 'stripe';
 import { createBillingWebhookHandler } from '../pages/api/billing/webhook.js';
 const secret = 'whsec_local_webhook_tests';
-process.env.STRIPE_PRICE_INDIVIDUAL_MONTHLY = 'price_live';
+process.env.STRIPE_PRICE_PRO_MONTHLY = 'price_live';
 const owner = '11111111-1111-4111-8111-111111111111';
 function res() { return { code:null, body:null, headers:{}, setHeader(k,v){this.headers[k]=v;}, status(c){this.code=c;return this;},json(b){this.body=b;return this;} }; }
 function harness() {
@@ -32,7 +32,7 @@ function harness() {
 }
 test('signed older cancellation reconciles CURRENT subscription instead of downgrading from event snapshot', async()=>{
   const h=harness(); assert.equal((await h.run(h.event('customer.subscription.deleted'))).code,200);
-  assert.equal(h.state.writes[0].subscription_id,'sub_current'); assert.equal(h.state.writes[0].tier,'individual');
+  assert.equal(h.state.writes[0].subscription_id,'sub_current'); assert.equal(h.state.writes[0].tier,'pro');
 });
 test('signed duplicate event is durable and does not reread provider or rewrite entitlement', async()=>{
   const h=harness(); const event=h.event(); await h.run(event); const duplicate=await h.run(event);
@@ -53,14 +53,14 @@ test('unsettled checkout completion does not grant access; later async success s
   const h=harness(); const pending=h.event('checkout.session.completed'); pending.data.object.payment_status='unpaid';
   assert.equal((await h.run(pending)).body.pending,true);assert.equal(h.state.writes.length,0);
   const settled=h.event('checkout.session.async_payment_succeeded','evt_settled'); settled.data.object.payment_status='paid';
-  await h.run(settled); assert.equal(h.state.writes[0].tier,'individual');
+  await h.run(settled); assert.equal(h.state.writes[0].tier,'pro');
 });
 test('asynchronous failed payment reconciles an incomplete subscription without granting paid access',async()=>{
   const h=harness();h.state.live.status='incomplete';const failed=h.event('checkout.session.async_payment_failed');failed.data.object.payment_status='unpaid';
   await h.run(failed);assert.equal(h.state.writes[0].tier,'free');
 });
 for(const type of ['invoice.payment_failed','invoice.paid']) test(`${type} reconciles status and preserves established past_due grace`,async()=>{
-  const h=harness();h.state.live.status='past_due';await h.run(h.event(type));assert.equal(h.state.writes[0].status,'past_due');assert.equal(h.state.writes[0].tier,'individual');
+  const h=harness();h.state.live.status='past_due';await h.run(h.event(type));assert.equal(h.state.writes[0].status,'past_due');assert.equal(h.state.writes[0].tier,'pro');
 });
 test('foreign subscription owner fails closed and remains retryable',async()=>{
   const h=harness();h.state.live.metadata.athlete_id='another-account';assert.equal((await h.run(h.event())).code,503);assert.equal(h.state.writes.length,0);

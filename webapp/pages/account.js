@@ -3,6 +3,7 @@ import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
 import { createClient } from '@supabase/supabase-js';
 import { usePlan } from '../lib/planUtils';
+import { isCoachTier } from '../lib/subscriptionTiers';
 import { clearMe, fetchMe, getCachedMe } from '../lib/meClient';
 import SecuritySection from '../components/SecuritySection';
 import AccountDataSection from '../components/AccountDataSection';
@@ -166,7 +167,7 @@ export default function AccountPage() {
 
       if (data.synced) {
         let coachWorkspaceReady = false;
-        if (data.athlete?.subscription_tier === 'coach') {
+        if (isCoachTier(data.athlete?.subscription_tier)) {
           const profileRes = await fetch('/api/coach-profile', { method: 'POST' });
           coachWorkspaceReady = profileRes.ok;
         }
@@ -265,7 +266,7 @@ export default function AccountPage() {
             <a href="/pricing" className="mt-5 inline-flex rounded-full bg-ink px-5 py-3 text-sm font-semibold text-paper">
               View Pricing
             </a>
-            {planId !== 'free' ? (
+            {planId !== 'free' || athlete?.stripe_subscription_id ? (
               <button type="button" disabled={billingBusy} onClick={openBillingPortal} className="mt-3 inline-flex rounded-full border border-ink/10 px-5 py-3 text-sm font-semibold text-ink disabled:opacity-60">
                 {billingBusy ? 'Opening billing…' : 'Manage Billing'}
               </button>
@@ -273,7 +274,7 @@ export default function AccountPage() {
             <button type="button" disabled={syncBusy} onClick={() => syncBilling()} className="mt-3 inline-flex rounded-full border border-ink/10 px-5 py-3 text-sm font-semibold text-ink disabled:opacity-60">
               {syncBusy ? 'Refreshing billing…' : 'Refresh billing status'}
             </button>
-            {planId === 'coach' && account && !account.capabilities?.coach ? (
+            {isCoachTier(planId) && account && !account.capabilities?.coach ? (
               <button
                 type="button"
                 onClick={activateCoachWorkspace}

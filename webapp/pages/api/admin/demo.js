@@ -3,6 +3,7 @@ import { requireAdminAthleteId } from '../../../lib/auth/requireAthlete.js';
 import { canSeedDemo } from '../../../lib/stagingSafety.js';
 import { requireSameOriginJson } from '../../../lib/billingSecurity.js';
 import { generateCoachCode } from '../../../lib/coachProtocols.js';
+import { isCoachTier } from '../../../lib/subscriptionTiers.js';
 import {
   DEMO_ATHLETE_EMAIL,
   DEMO_ATHLETE_NAME,
@@ -103,7 +104,7 @@ async function createDemoAccount(supabase, { email, name, password, tier }) {
       email,
       supabase_user_id: authData.user.id,
       subscription_tier: tier,
-      primary_role: tier === 'coach' ? 'coach' : 'athlete',
+      primary_role: isCoachTier(tier) ? 'coach' : 'athlete',
       subscription_activated_at: new Date().toISOString(),
       onboarding_complete: true,
       is_demo: true,
@@ -123,10 +124,10 @@ async function createDemoPair(supabase) {
   const athletePassword = generateDemoPassword();
 
   const coach = await createDemoAccount(supabase, {
-    email: DEMO_COACH_EMAIL, name: DEMO_COACH_NAME, password: coachPassword, tier: 'coach',
+    email: DEMO_COACH_EMAIL, name: DEMO_COACH_NAME, password: coachPassword, tier: 'coach_pro',
   });
   const athlete = await createDemoAccount(supabase, {
-    email: DEMO_ATHLETE_EMAIL, name: DEMO_ATHLETE_NAME, password: athletePassword, tier: 'individual',
+    email: DEMO_ATHLETE_EMAIL, name: DEMO_ATHLETE_NAME, password: athletePassword, tier: 'pro',
   });
 
   const [coachProfile] = await insertOrThrow(supabase, 'coach_profiles', {
