@@ -60,7 +60,7 @@ export default function CoachTrainingCalendarPage() {
           <section className="mt-12">
             <UpgradePrompt
               featureName="Coach Training Calendar"
-              unlockTier="Coach Monthly or Coach Annual"
+              unlockTier="Coach Essentials or Coach Pro"
               body="Plan structured workouts on your athletes' calendars, track compliance, and build a reusable workout library on the Coach plan."
             />
           </section>

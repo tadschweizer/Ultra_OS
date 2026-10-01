@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import NavMenu from '../components/NavMenu';
 import UpgradePrompt from '../components/UpgradePrompt';
 import RaceSearchInput from '../components/RaceSearchInput';
-import { canAccessRaceBlueprint } from '../lib/subscriptionTiers';
+import { meHasFeature } from '../lib/planUtils';
 import { fetchMe } from '../lib/meClient';
 
 const SPORT_TO_RACE_TYPE = {
@@ -287,7 +287,7 @@ export default function RacePlanPage() {
           setBlueprintAllowed(false);
           return;
         }
-        setBlueprintAllowed(canAccessRaceBlueprint(data.athlete).allowed);
+        setBlueprintAllowed(meHasFeature(data, 'race_blueprint'));
       })
       .catch(() => setBlueprintAllowed(false));
   }, []);
@@ -393,8 +393,8 @@ export default function RacePlanPage() {
             <div className="lg:col-span-2">
               <UpgradePrompt
                 featureName="Race Blueprint"
-                unlockTier="Individual or Coach"
-                body="Race Blueprint uses your training and race data to generate personalized fueling, hydration, and race-week timing. Upgrade to Individual to unlock it."
+                unlockTier="Athlete Pro"
+                body="Race Blueprint uses your training and race data to generate personalized fueling, hydration, and race-week timing. Upgrade to Athlete Pro to unlock it."
               />
             </div>
           ) : null}

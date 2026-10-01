@@ -81,31 +81,32 @@ test('next= cannot bounce back into the auth screens', () => {
 
 test('post-auth destinations preserve public checkout but reject coach checkout', () => {
   assert.equal(
-    safePostAuthPath('/api/billing/checkout?plan=individual_annual'),
-    '/api/billing/checkout?plan=individual_annual'
+    safePostAuthPath('/api/billing/checkout?plan=pro_annual'),
+    '/api/billing/checkout?plan=pro_annual'
   );
   assert.equal(
-    safePostAuthPath('/api/billing/checkout?plan=research_monthly'),
-    '/api/billing/checkout?plan=research_monthly'
+    safePostAuthPath('/api/billing/checkout?plan=core_monthly'),
+    '/api/billing/checkout?plan=core_monthly'
   );
-  assert.equal(safePostAuthPath('/api/billing/checkout?plan=coach_monthly'), '/dashboard');
+  assert.equal(safePostAuthPath('/api/billing/checkout?plan=coach_pro_monthly'), '/dashboard');
+  assert.equal(safePostAuthPath('/api/billing/checkout?plan=individual_annual'), '/dashboard');
   assert.equal(safePostAuthPath('/api/billing/checkout?plan=unknown'), '/dashboard');
 });
 
 test('onboarding keeps safe checkout intent through ordinary and Strava auth', () => {
   assert.equal(
-    buildOnboardingPath('/api/billing/checkout?plan=individual_annual'),
-    '/onboarding?next=%2Fapi%2Fbilling%2Fcheckout%3Fplan%3Dindividual_annual'
+    buildOnboardingPath('/api/billing/checkout?plan=pro_annual'),
+    '/onboarding?next=%2Fapi%2Fbilling%2Fcheckout%3Fplan%3Dpro_annual'
   );
   assert.equal(
-    buildOnboardingPath('/api/billing/checkout?plan=individual_annual', {
+    buildOnboardingPath('/api/billing/checkout?plan=pro_annual', {
       strava: 'connected',
       name: 'Trail Runner',
     }),
-    '/onboarding?strava=connected&name=Trail+Runner&next=%2Fapi%2Fbilling%2Fcheckout%3Fplan%3Dindividual_annual'
+    '/onboarding?strava=connected&name=Trail+Runner&next=%2Fapi%2Fbilling%2Fcheckout%3Fplan%3Dpro_annual'
   );
   assert.equal(
-    buildOnboardingPath('/api/billing/checkout?plan=coach_monthly', { strava: 'connected' }),
+    buildOnboardingPath('/api/billing/checkout?plan=coach_pro_monthly', { strava: 'connected' }),
     '/onboarding?strava=connected'
   );
 });

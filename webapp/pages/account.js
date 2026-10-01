@@ -3,6 +3,7 @@ import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
 import { createClient } from '@supabase/supabase-js';
 import { usePlan } from '../lib/planUtils';
+import { isCoachTier } from '../lib/subscriptionTiers';
 import { clearMe, fetchMe, getCachedMe } from '../lib/meClient';
 import SecuritySection from '../components/SecuritySection';
 
@@ -139,7 +140,7 @@ export default function AccountPage() {
 
       if (data.synced) {
         let coachWorkspaceReady = false;
-        if (data.athlete?.subscription_tier === 'coach') {
+        if (isCoachTier(data.athlete?.subscription_tier)) {
           const profileRes = await fetch('/api/coach-profile', { method: 'POST' });
           coachWorkspaceReady = profileRes.ok;
         }
@@ -219,7 +220,7 @@ export default function AccountPage() {
                 Manage Billing
               </a>
             ) : null}
-            {planId === 'coach' && account && !account.capabilities?.coach ? (
+            {isCoachTier(planId) && account && !account.capabilities?.coach ? (
               <button
                 type="button"
                 onClick={activateCoachWorkspace}

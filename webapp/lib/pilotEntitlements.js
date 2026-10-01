@@ -1,4 +1,4 @@
-import { normalizeSubscriptionTier } from './subscriptionTiers.js';
+import { COACH_TIERS, PAID_ATHLETE_TIERS, normalizeSubscriptionTier } from './subscriptionTiers.js';
 import { isEntitledSubscriptionStatus } from './billingPlans.js';
 
 export function hasActivePilot(grant, now = new Date()) {
@@ -9,7 +9,7 @@ export function hasActivePilot(grant, now = new Date()) {
 
 // Preserve the existing administrator-provisioned paid-tier pattern. Stripe-owned
 // accounts additionally require the canonical active/trialing/past_due status.
-export function hasPaidAccess(athlete, tiers = ['individual', 'coach']) {
+export function hasPaidAccess(athlete, tiers = [...PAID_ATHLETE_TIERS, ...COACH_TIERS]) {
   return tiers.includes(normalizeSubscriptionTier(athlete?.subscription_tier))
     && (!athlete?.stripe_subscription_id || isEntitledSubscriptionStatus(athlete.stripe_subscription_status));
 }
@@ -21,6 +21,6 @@ export function isActiveCoachingRelationship(relationship, now = new Date()) {
 
 export function coachEntitlement({ athlete, profile, grant, now = new Date() }) {
   const pilot = Boolean(profile?.id) && hasActivePilot(grant, now);
-  const paid = Boolean(profile?.id) && hasPaidAccess(athlete, ['coach']);
+  const paid = Boolean(profile?.id) && hasPaidAccess(athlete, COACH_TIERS);
   return { eligible: pilot || paid, pilot, paid, source: paid ? 'paid_coach' : pilot ? 'pilot_coach' : null };
 }

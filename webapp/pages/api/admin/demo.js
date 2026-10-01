@@ -120,10 +120,10 @@ async function createDemoPair(supabase) {
   const athletePassword = generateDemoPassword();
 
   const coach = await createDemoAccount(supabase, {
-    email: DEMO_COACH_EMAIL, name: DEMO_COACH_NAME, password: coachPassword, tier: 'coach',
+    email: DEMO_COACH_EMAIL, name: DEMO_COACH_NAME, password: coachPassword, tier: 'coach_pro',
   });
   const athlete = await createDemoAccount(supabase, {
-    email: DEMO_ATHLETE_EMAIL, name: DEMO_ATHLETE_NAME, password: athletePassword, tier: 'individual',
+    email: DEMO_ATHLETE_EMAIL, name: DEMO_ATHLETE_NAME, password: athletePassword, tier: 'pro',
   });
 
   const [coachProfile] = await insertOrThrow(supabase, 'coach_profiles', {
