@@ -24,7 +24,7 @@ const athletePlans = [
       'Activity history with per-session stats',
       'Workout comments + coach messaging',
       'This week’s distance, time, and elevation',
-      '3 check-ins a week (daily when coach-linked)',
+      '3 check-ins a week (daily with an eligible paid or pilot coach)',
       '15 intervention logs',
       'Research library',
     ],

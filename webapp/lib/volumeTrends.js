@@ -1,8 +1,11 @@
 import { metersToFeet, metersToMiles, secondsToHours } from './activityInsights.js';
+import { activityDateKey } from './workoutCompliance.js';
 
 /**
  * Weekly volume rollups (distance, time, elevation, longest session) for the
- * Athlete Core trend charts. Weeks start on Monday in the viewer's local time.
+ * Athlete Core trend charts. Weeks start on Monday. Activities are bucketed by
+ * the athlete's recorded local day (local_date / start_date_local), so a late
+ * session stays in its own week wherever the viewer is.
  */
 
 function localDateKey(date) {
@@ -13,11 +16,20 @@ function localDateKey(date) {
 }
 
 export function weekStartOf(dateLike) {
+  if (!dateLike) return null;
   const date = new Date(dateLike);
   if (Number.isNaN(date.getTime())) return null;
   date.setHours(0, 0, 0, 0);
   date.setDate(date.getDate() - ((date.getDay() + 6) % 7));
   return date;
+}
+
+// Parses the activity's local calendar day as a local-midnight Date.
+function localDayOf(activity) {
+  const key = activityDateKey(activity);
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(key || '');
+  if (!match) return null;
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
 }
 
 function emptyWeek(start) {
@@ -43,7 +55,7 @@ export function buildVolumeTrend(activities = [], { weeks = 12, now = new Date()
   const byKey = new Map(buckets.map((week) => [week.weekStart, week]));
 
   for (const activity of activities || []) {
-    const start = weekStartOf(activity?.start_date);
+    const start = weekStartOf(localDayOf(activity));
     if (!start) continue;
     const week = byKey.get(localDateKey(start));
     if (!week) continue;

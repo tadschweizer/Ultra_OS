@@ -6,11 +6,16 @@ import { buildVolumeTrend, compareVolumeBlocks, weekStartOf } from '../lib/volum
 // Wednesday, local time.
 const now = new Date(2026, 8, 30, 12, 0, 0);
 
+function localKey(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
 function activity(daysAgo, { miles = 5, minutes = 45, feet = 300 } = {}) {
   const date = new Date(now);
   date.setDate(now.getDate() - daysAgo);
   return {
     start_date: date.toISOString(),
+    local_date: localKey(date),
     distance: miles * 1609.34,
     moving_time: minutes * 60,
     total_elevation_gain: feet / 3.28084,
@@ -52,4 +57,22 @@ test('compareVolumeBlocks excludes the in-progress week and needs four prior wee
 
   const short = compareVolumeBlocks(buildVolumeTrend(recent, { weeks: 6, now }));
   assert.equal(short.miles.changePct, null);
+});
+
+test('activities bucket by recorded local day, not the UTC instant', () => {
+  // Sunday 7pm in UTC-7 is Monday 02:00 UTC; it belongs to the week ending Sunday.
+  const sundayEvening = {
+    start_date: '2026-09-28T02:00:00Z',
+    start_date_local: '2026-09-27T19:00:00Z',
+    local_date: '2026-09-27',
+    distance: 10 * 1609.34,
+    moving_time: 3600,
+  };
+  const trend = buildVolumeTrend([sundayEvening], { weeks: 2, now });
+  assert.equal(trend.at(-1).count, 0);
+  assert.equal(trend.at(-2).count, 1);
+  assert.equal(trend.at(-2).weekStart, '2026-09-21');
+
+  const legacyLocalOnly = { start_date_local: '2026-09-27T19:00:00Z', distance: 1609.34 };
+  assert.equal(buildVolumeTrend([legacyLocalOnly], { weeks: 2, now }).at(-2).count, 1);
 });
