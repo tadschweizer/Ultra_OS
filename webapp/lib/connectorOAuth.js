@@ -1,5 +1,5 @@
-import { getConnector } from './connectors';
-import { createOAuthState, clearOAuthState, verifyOAuthState } from './auth/oauthState.js';
+import { getConnector } from './connectors.js';
+import { clearOAuthState, verifyOAuthState } from './auth/oauthState.js';
 import { getAthleteIdFromRequest } from './auth/sessionCookies.js';
 
 /**
@@ -28,12 +28,7 @@ function requireConfiguredConnector(provider, res) {
   const connector = getConnector(provider);
   if (!connector?.isConfigured()) {
     res.status(503).json({
-      error: `${provider} connector not configured`,
-      missing_env: [
-        `${provider.toUpperCase()}_CLIENT_ID`,
-        `${provider.toUpperCase()}_CLIENT_SECRET`,
-        `${provider.toUpperCase()}_REDIRECT_URI`,
-      ],
+      error: 'This connection is not available yet. You can still log training manually.',
     });
     return null;
   }
@@ -52,13 +47,9 @@ export function handleConnectorLogin(provider, req, res) {
     return;
   }
 
-  const connector = requireConfiguredConnector(provider, res);
-  if (!connector) return;
-
-  const state = createOAuthState(res, provider);
-  res.setHeader('Location', connector.buildLoginUrl(state));
-  res.statusCode = 302;
-  res.end();
+  // Credentials alone do not make an integration usable: token persistence
+  // and activity ingestion are unfinished for all four wearable providers.
+  res.status(501).json({ error: 'This connection is coming soon. You can still log training manually.' });
 }
 
 /**

@@ -21,7 +21,11 @@ jobs:
         run: npm ci
       - name: Run fast auth smoke checks
         run: npm run test:auth:smoke
+      - name: Run integration availability checks
+        run: npm run test:integrations
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Run coach invitation browser journey
         run: npm run test:e2e:coach-invitations
+      - name: Run pilot mobile and onboarding journeys
+        run: npm run test:e2e:pilot-ux

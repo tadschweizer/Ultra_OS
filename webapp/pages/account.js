@@ -255,11 +255,11 @@ export default function AccountPage() {
 
         <SecuritySection athlete={athlete} />
 
-        <section className="mt-6 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+        <section id="coach-connection" className="mt-6 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
           <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
             <p className="text-sm uppercase tracking-[0.25em] text-accent">Coach Connection</p>
             <p className="mt-4 text-sm leading-7 text-ink/76">
-              Enter a coach code to connect a primary or secondary coach to your account.
+              Enter a coach code to request a primary or secondary coach. Your coach must approve the request before they can see your training.
             </p>
             <p className="mt-2 text-xs uppercase tracking-[0.18em] text-ink/45">Coach role</p>
             <form onSubmit={connectCoach} className="mt-5 space-y-4">

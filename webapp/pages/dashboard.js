@@ -857,8 +857,9 @@ export default function Dashboard() {
               <p className="mt-2 text-sm text-ink/65">
                 {coachConnections.length
                   ? `Coached by ${coachConnections.map((c) => c.coach?.display_name).filter(Boolean).join(', ') || 'your coach'} — here is what's assigned and what to do today.`
-                  : 'Self-coached for now. Connect a coach with their code from onboarding or Settings, and assignments will land here.'}
+                  : 'Self-coached for now. Enter your coach code in Account Settings → Coach Connection. Assignments appear after your coach approves the request.'}
               </p>
+              {!coachConnections.length && <a href="/account#coach-connection" className="mt-3 inline-block text-sm font-semibold text-accent hover:underline">Connect with a coach →</a>}
             </div>
             {coachConnections.length ? (
               <a href="/messages" className="shrink-0 rounded-full border border-ink/15 px-4 py-2 text-xs font-semibold text-ink/75 transition hover:bg-paper">

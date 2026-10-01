@@ -472,6 +472,12 @@ export default function CoachCommandCenter() {
   const [profileMsg, setProfileMsg] = useState('');
   const [profileEditing, setProfileEditing] = useState(false);
 
+  function openInvitations() {
+    setViewMode('advanced');
+    setAdvancedOpen('invitations');
+    setTimeout(() => document.getElementById('coach-invitations')?.scrollIntoView({ behavior: 'smooth' }), 0);
+  }
+
   // ── Load everything on mount ──────────────────────────────────────────────
   useEffect(() => {
     if (!coachFeatures) return;
@@ -974,6 +980,11 @@ export default function CoachCommandCenter() {
             </div>
           </section>
 
+          <div className="mt-6 flex flex-wrap gap-3">
+            <button type="button" onClick={openInvitations} className="ui-button-primary">Invite an athlete</button>
+            <a href="/coach/groups" className="ui-button-secondary">Manage groups</a>
+          </div>
+
           {/* Tab bar */}
           <div className="mt-8 flex gap-2 overflow-x-auto">
             {TABS.map((t) => (
@@ -1038,7 +1049,7 @@ export default function CoachCommandCenter() {
                 <EmptyStateCard
                   icon="network"
                   title="No active athletes yet."
-                  body="Send invitations in the Invitations tab to grow your roster."
+                  body="Choose Invite an athlete above to send an invitation or share your coach code."
                 />
               ) : (
                 <>
@@ -1296,7 +1307,7 @@ export default function CoachCommandCenter() {
           {viewMode === 'advanced' && advancedOpen === 'protocols' && (
             <div className="mt-8 space-y-6">
               {protocols.length === 0 ? (
-                <EmptyStateCard icon="clipboard" title="No protocols assigned yet." body="Open an athlete from the Roster tab to assign their first protocol." />
+                <EmptyStateCard icon="clipboard" title="No protocols assigned yet." body="Open an athlete from Triage to assign a protocol. If your roster is empty, choose Invite an athlete above." />
               ) : (
                 <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
                   <p className="text-sm uppercase tracking-[0.25em] text-accent">All assigned protocols</p>
@@ -1337,7 +1348,7 @@ export default function CoachCommandCenter() {
 
           {/* ── INVITATIONS ADVANCED PANEL ────────────────────────────────── */}
           {viewMode === 'advanced' && advancedOpen === 'invitations' && (
-            <div className="mt-8 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+            <div id="coach-invitations" className="mt-8 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
               {/* Send invite form */}
               <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
                 <p className="text-sm uppercase tracking-[0.25em] text-accent">Send invitation</p>
@@ -1345,6 +1356,7 @@ export default function CoachCommandCenter() {
                   <input
                     required
                     type="email"
+                    aria-label="Athlete email"
                     placeholder="athlete@example.com"
                     value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
@@ -1358,7 +1370,7 @@ export default function CoachCommandCenter() {
                 <div className="mt-6 rounded-2xl border border-ink/10 bg-paper p-4">
                   <p className="text-xs uppercase tracking-[0.25em] text-accent">Coach code</p>
                   <p className="mt-2 text-xl font-semibold text-ink">{profile?.coach_code}</p>
-                  <p className="mt-1 text-xs text-ink/55">Athletes can use this code on the connections page.</p>
+                  <p className="mt-1 text-xs text-ink/55">Athletes can enter this code in Account Settings → Coach Connection.</p>
                 </div>
               </div>
 

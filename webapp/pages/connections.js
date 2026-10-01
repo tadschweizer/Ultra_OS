@@ -4,82 +4,12 @@ import DashboardTabs from '../components/DashboardTabs';
 import EmptyStateCard from '../components/EmptyStateCard';
 import { fetchMe } from '../lib/meClient';
 
-const sources = [
-  {
-    name: 'Strava',
-    status: 'Available now',
-    href: '/api/strava/login',
-    action: 'Connect',
-    enabled: true,
-  },
-  {
-    name: 'Garmin',
-    status: 'Placeholder ready',
-    href: '/api/garmin/login',
-    action: 'Connect (placeholder)',
-    enabled: true,
-  },
-  {
-    name: 'COROS',
-    status: 'Placeholder ready',
-    href: '/api/coros/login',
-    action: 'Connect (placeholder)',
-    enabled: true,
-  },
-  {
-    name: 'Oura',
-    status: 'Placeholder ready',
-    href: '/api/oura/login',
-    action: 'Connect (placeholder)',
-    enabled: true,
-  },
-  {
-    name: 'Ultrahuman',
-    status: 'Placeholder ready',
-    href: '/api/ultrahuman/login',
-    action: 'Connect (placeholder)',
-    enabled: true,
-  },
-  {
-    name: 'Zwift',
-    status: 'Coming soon',
-    href: '#',
-    action: 'Coming soon',
-    enabled: false,
-  },
-  {
-    name: 'TrainingPeaks',
-    status: 'Beta import',
-    href: '#tp-import',
-    action: 'Review import',
-    enabled: true,
-  },
-  {
-    name: 'Oura',
-    status: 'Coming soon',
-    href: '#',
-    action: 'Coming soon',
-    enabled: false,
-  },
-  {
-    name: 'Ultrahuman',
-    status: 'Coming soon',
-    href: '#',
-    action: 'Coming soon',
-    enabled: false,
-  },
-  {
-    name: 'CORE Body Temp',
-    status: 'Coming soon',
-    href: '#',
-    action: 'Coming soon',
-    enabled: false,
-  },
-];
+const sources = ['Garmin', 'COROS', 'Oura', 'Ultrahuman', 'Zwift', 'TrainingPeaks', 'CORE Body Temp'];
 
 export default function Connections() {
   const [athleteId, setAthleteId] = useState(null);
   const [athlete, setAthlete] = useState(null);
+  const [availability, setAvailability] = useState({ strava: false });
   const [notifyEmails, setNotifyEmails] = useState({});
   const [notifyStatus, setNotifyStatus] = useState({});
   const navLinks = athleteId
@@ -120,22 +50,15 @@ export default function Connections() {
 
   const hasAnyConnections = Boolean(athlete?.strava_id);
   const stravaLastSeen = athlete?.token_expires_at || null;
-  const migrationSections = [
-    {
-      label: 'Athlete history ingestion',
-      status: 'transferred',
-      detail: 'Historical workouts and key metadata imported from TrainingPeaks.',
-    },
-    {
-      label: 'Planned workouts / protocol mapping',
-      status: 'partial',
-      detail: 'Mapped core workout types. Some custom TP fields require manual mapping.',
-    },
-    {
-      label: 'Custom fields + tags',
-      status: 'manual',
-      detail: 'Manual mapping needed for custom fields before they can be used in insights.',
-    },
+  useEffect(() => {
+    fetch('/api/integrations/status').then((res) => res.ok ? res.json() : {})
+      .then((data) => setAvailability({ strava: data.strava === true })).catch(() => {});
+  }, []);
+
+  const visibleSources = [
+    { name: 'Strava', enabled: availability.strava, href: '/api/strava/login',
+      status: hasAnyConnections ? 'Connected' : availability.strava ? 'Available now' : 'Currently unavailable' },
+    ...sources.map((name) => ({ name, enabled: false, status: 'Coming soon' })),
   ];
 
   async function handleNotifySubmit(sourceName) {
@@ -199,55 +122,21 @@ export default function Connections() {
           </div>
         </div>
 
-        <section id="tp-import" className="mb-8 rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="text-sm uppercase tracking-[0.22em] text-accent">TrainingPeaks Migration</p>
-              <h2 className="mt-2 text-2xl font-semibold">Migration completeness</h2>
-              <p className="mt-2 max-w-3xl text-sm text-ink/70">
-                Review exactly what transferred from TrainingPeaks and what still needs manual mapping before data is used in planning and insights.
-              </p>
-            </div>
-            <span className="rounded-full bg-paper px-4 py-2 text-xs uppercase tracking-[0.18em] text-ink/70">
-              2 of 3 sections complete
-            </span>
-          </div>
-          <div className="mt-5 space-y-3">
-            {migrationSections.map((section) => {
-              const isDone = section.status === 'transferred';
-              const isPartial = section.status === 'partial';
-              const badge = isDone ? 'Transferred' : isPartial ? 'Needs review' : 'Manual mapping required';
-              return (
-                <div key={section.label} className="rounded-2xl border border-ink/10 bg-paper/60 p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="font-semibold text-ink">{section.label}</p>
-                    <span className="rounded-full bg-white px-3 py-1 text-xs text-ink/70">{badge}</span>
-                  </div>
-                  <p className="mt-2 text-sm text-ink/70">{section.detail}</p>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
         {!hasAnyConnections && athleteId ? (
-          <section className="mt-2">
-            <EmptyStateCard
-              icon="network"
-              title="No connections yet."
-              body="Connect Strava or Garmin to pull activity context into your intervention log."
-              ctaLabel="Add a Connection"
-              ctaHref="/api/strava/login"
-            />
+          <section className="mb-6">
+            <EmptyStateCard icon="network" title="No connections yet."
+              body="You can log training manually. Connect Strava when it is available; other integrations are coming soon."
+              ctaLabel="Log training" ctaHref="/log-intervention" />
           </section>
-        ) : (
+        ) : null}
+
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {sources.map((source) => (
+            {visibleSources.map((source) => (
               <article key={source.name} className="rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm uppercase tracking-[0.22em] text-accent">{source.name}</p>
                   <span className="rounded-full bg-paper px-3 py-1 text-xs text-ink/70">
-                    {source.name === 'Strava' && hasAnyConnections ? 'Connected' : source.status}
+                    {source.status}
                   </span>
                 </div>
                 {source.name === 'Strava' && hasAnyConnections && stravaLastSeen ? (
@@ -257,7 +146,7 @@ export default function Connections() {
                 ) : null}
                 {source.enabled ? (
                   <a href={source.href} className="mt-6 inline-flex rounded-full bg-ink px-5 py-3 text-sm font-semibold text-paper">
-                    {source.name === 'Strava' && hasAnyConnections ? 'Reconnect' : source.action}
+                    {source.name === 'Strava' && hasAnyConnections ? 'Reconnect' : 'Connect'}
                   </a>
                 ) : (
                   <div className="mt-4">
@@ -265,6 +154,7 @@ export default function Connections() {
                     <div className="flex gap-2">
                       <input
                         type="email"
+                        aria-label={`${source.name} notification email`}
                         placeholder="your@email.com"
                         value={notifyEmails[source.name] || ''}
                         onChange={(e) => setNotifyEmails((prev) => ({ ...prev, [source.name]: e.target.value }))}
@@ -288,7 +178,6 @@ export default function Connections() {
               </article>
             ))}
           </section>
-        )}
       </div>
     </main>
   );

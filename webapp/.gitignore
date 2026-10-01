@@ -2,3 +2,4 @@
 .env*
 test-results/
 playwright-report/
+.qa-private/
