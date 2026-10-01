@@ -3,7 +3,7 @@
 Last updated: 2026-10-01<br>
 Status: P0-010A billing review/request safety locally implemented and verified; Stripe sandbox acceptance and P0-010B webhook hardening remain open. Earlier pilot live/schema acceptance gates remain open.<br>
 Current milestone: M0 — make the closed coach pilot work end to end<br>
-Next item: Continue P0-010 with P0-010B webhook replay/order, retry safety and asynchronous-payment tests; then verify the P0-010A hosted confirmation flow in an isolated Stripe sandbox before release. See `P0_010_BILLING_VERIFICATION.md`. PR #125 is now merged (`4ae8cdf`); its pilot live/schema gates, P0-006 human timing and earlier real-user acceptance remain open. Production release/schema/configuration changes need separate authorization.
+Next item: Review P0-010A in [draft PR #127](https://github.com/tadschweizer/Ultra_OS/pull/127), code `5392ffd`; continue P0-010B webhook replay/order, retry safety and asynchronous-payment tests, then verify hosted confirmation in an isolated Stripe sandbox before release. See `P0_010_BILLING_VERIFICATION.md`. PR #125 is merged (`4ae8cdf`); its pilot live/schema gates, P0-006 human timing and earlier real-user acceptance remain open. Production release/schema/configuration changes need separate authorization.
 
 ## Purpose
 
@@ -225,6 +225,7 @@ athlete, and use the experience on a phone without Tad or an administrator repai
     are never updated or granted a new tier by selecting a pricing link. Full regression 311/311,
     production build and billing desktop/mobile journeys 10/10 pass. See
     `P0_010_BILLING_VERIFICATION.md` for evidence and release gates. Sandbox acceptance remains open.
+    Review: [draft PR #127](https://github.com/tadschweizer/Ultra_OS/pull/127), code `5392ffd`.
   - Next slice P0-010B: durable webhook deduplication, replay/order reconciliation, retryable database
     failures and asynchronous-payment tests. Existing webhook behavior is not yet release-verified.
   - Subscription mutations use `POST`, not `GET`.
@@ -647,6 +648,7 @@ criteria.
 
 | Date | Item | PR/commit | Verification evidence | Notes |
 | --- | --- | --- | --- | --- |
+| 2026-10-01 | P0-010A local billing request/confirmation slice | [Draft PR #127](https://github.com/tadschweizer/Ultra_OS/pull/127) / `5392ffd` | Node 22 regression 311/311; build; billing browser journeys 10/10; combined billing/pilot browser regression 32/32 with one worker; diff checks. See `P0_010_BILLING_VERIFICATION.md`. | Local handler and mocked browser gates verified. P0-010 remains open pending webhook replay/order/retry work and isolated Stripe hosted-payment acceptance. No production service writes. |
 | 2026-08-19 | Roadmap created | Local branch `agent/product-execution-roadmap` | Reconciled PR #104, current source audit, and existing roadmaps | No implementation items completed |
 | 2026-08-20 | P0-001 | [PR #106](https://github.com/tadschweizer/Ultra_OS/pull/106) / `cc3c1da` | Production on `mythreshold.co`: canonical `coach_invite` links displayed invalid (404), expired (410), already-connected/used (409), and accepted states; acceptance POST returned 200; active records were confirmed in both relationship tables and appeared in the athlete account and coach roster. [Auth Smoke run #99](https://github.com/tadschweizer/Ultra_OS/actions/runs/32390037510) passed 41/41 auth tests and 12/12 Playwright tests in desktop Chromium and 390 px mobile Chromium; local invitation API tests passed 7/7 and the full suite passed 179/179. | A fresh athlete accepted the production invitation. PR #107 review later identified that the logged-out browser test stopped at auth-link inspection, so this item was reopened for the complete transition and repaired in PR #108. |
 | 2026-08-20 | P0-002 | [PR #106](https://github.com/tadschweizer/Ultra_OS/pull/106) / `cc3c1da` | A production invitation sent through the existing transactional layer arrived in a real recipient inbox from `Threshold <hello@mythreshold.co>`. The message identified the coach, explained the relationship, stated the expiration, and linked to the canonical `https://mythreshold.co/join?coach_invite=...` URL. Command Center retained the copy-link control and displayed `Copied`. Automated API/regression coverage verified honest 502 failure handling while retaining the fallback link. | Live successful delivery was verified. PR #107 review later identified that failed delivery was response-only and disappeared after refresh, so this item was reopened for persistence and repaired in PR #108. |

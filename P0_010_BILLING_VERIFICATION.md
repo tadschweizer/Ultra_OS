@@ -2,6 +2,7 @@
 
 Date: 2026-10-01
 Branch: `feature/p0-010-billing-confirmation`
+Review: [draft PR #127](https://github.com/tadschweizer/Ultra_OS/pull/127), implementation `5392ffd`.
 Base: current `origin/main` (`4ae8cdf`, including merged PR #125).
 Status: local implementation verified; Stripe sandbox and production acceptance remain open.
 
