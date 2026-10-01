@@ -3,6 +3,7 @@ const athleteTrainingItems = [
   { href: '/calendar', label: 'Training Calendar' },
   { href: '/races', label: 'Race Calendar' },
   { href: '/race-plan', label: 'Race Blueprint' },
+  { href: '/check-in', label: 'Daily Check-in' },
   { href: '/log-intervention', label: 'Log Intervention' },
   { href: '/history', label: 'Intervention History' },
   { href: '/insights', label: 'Insights' },
@@ -82,9 +83,9 @@ export function getMobileTabs(account = null) {
 
   return [
     { href: '/dashboard', label: 'Home' },
+    { href: '/check-in', label: 'Check-in' },
     { href: '/log-intervention', label: 'Log', primary: true },
     { href: '/history', label: 'History' },
-    { href: '/content', label: 'Research' },
     { href: '/settings', label: 'Profile' },
   ];
 }
@@ -119,6 +120,7 @@ export const protectedRoutes = [
   '/races',
   '/race-plan',
   '/race-outcome',
+  '/check-in',
   '/log-intervention',
   '/history',
   '/insights',

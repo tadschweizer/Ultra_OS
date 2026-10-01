@@ -1,4 +1,5 @@
 import { getSupabaseAdminClient } from '../../../lib/authServer';
+import { checkInReadinessScore, latestFastCheckIn } from '../../../lib/checkIn';
 import { buildLoadMetrics, buildLoadStatus } from '../../../lib/loadRollups';
 import { requireCoachAccess } from '../../../lib/auth/roleAccessServer.js';
 
@@ -38,7 +39,7 @@ export default async function handler(req, res) {
 
       const [athleteRes, interventionsRes, raceRes, protocolRes, noteRes, checkinRes, loadInterventionRes, loadActivityRes] = await Promise.all([
         supabase.from('athletes').select('id, name, email, primary_sports, target_race_id').in('id', athleteIds),
-        supabase.from('interventions').select('athlete_id, date, inserted_at').in('athlete_id', athleteIds).order('inserted_at', { ascending: false }),
+        supabase.from('interventions').select('athlete_id, date, inserted_at, intervention_type, protocol_payload').in('athlete_id', athleteIds).order('inserted_at', { ascending: false }),
         supabase.from('races').select('id, athlete_id, name, event_date').in('athlete_id', athleteIds).gte('event_date', new Date().toISOString().slice(0, 10)).order('event_date', { ascending: true }),
         supabase.from('coach_protocol_assignments').select('athlete_id, protocol_name, planned_sessions, status, start_date, target_completion_date').in('athlete_id', athleteIds),
         supabase.from('coach_notes').select('athlete_id, created_at').eq('coach_id', profile.id).in('athlete_id', athleteIds).order('created_at', { ascending: false }),
@@ -80,7 +81,9 @@ export default async function handler(req, res) {
           : 0;
 
         let readiness = 'green';
-        const latestReadiness = lastCheckin?.readiness_score;
+        const latestFast = latestFastCheckIn(athleteInterventions);
+        const latestReadiness = lastCheckin?.readiness_score
+          ?? (latestFast ? checkInReadinessScore(latestFast.protocol_payload) : null);
         if (latestReadiness !== undefined && latestReadiness !== null) {
           readiness = latestReadiness < 45 ? 'red' : latestReadiness < 70 ? 'yellow' : 'green';
         } else if (daysSinceLog === null || daysSinceLog > 6) readiness = 'red';
@@ -112,7 +115,7 @@ export default async function handler(req, res) {
           daysSinceLog,
           missedProtocolLogs,
           protocolComplianceGap,
-          lastCheckinAt: lastCheckin?.created_at || null,
+          lastCheckinAt: lastCheckin?.created_at || latestFast?.inserted_at || null,
           readiness,
           alertLevel: readiness,
           flagReasons,

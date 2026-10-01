@@ -362,6 +362,6 @@ test('desktop and mobile navigation are role-aware without hiding athlete traini
   assert.equal(athleteCoachSections[0].title, 'Training');
   assert.equal(athleteCoachSections.some((section) => section.title === 'Coaching'), true);
 
-  assert.deepEqual(getMobileTabs(athleteAccount).map((tab) => tab.label), ['Home', 'Log', 'History', 'Research', 'Profile']);
+  assert.deepEqual(getMobileTabs(athleteAccount).map((tab) => tab.label), ['Home', 'Check-in', 'Log', 'History', 'Profile']);
   assert.deepEqual(getMobileTabs(coachAccount).map((tab) => tab.label), ['Roster', 'Calendar', 'Messages', 'Train', 'Profile']);
 });
