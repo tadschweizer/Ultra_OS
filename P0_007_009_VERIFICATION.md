@@ -1,6 +1,7 @@
 # P0-007, P0-008, P0-009 implementation checkpoint
 
 Date: October 1, 2026. Branch: `feature/p0-007-009-mobile-onboarding`.
+Review: [draft PR #125](https://github.com/tadschweizer/Ultra_OS/pull/125), implementation `0441c6b`.
 
 ## Verified GitHub baseline
 

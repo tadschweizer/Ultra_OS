@@ -3,7 +3,7 @@
 Last updated: 2026-10-01<br>
 Status: P0-007/008/009 locally implemented and verified; approved live QA confirms login/linking/check-in, but messaging and dashboard schema failures block full acceptance<br>
 Current milestone: M0 — make the closed coach pilot work end to end<br>
-Next item: Review P0-007/008/009 on `feature/p0-007-009-mobile-onboarding`; prepare a targeted P0-013D repair for the live missing coach_messages/coach_shared_docs tables and obsolete target_race query before full coach-path acceptance. Use the approved QA pair in `QA_ACCOUNTS.md` for repeatable logins; retain P0-006 human 30-second timing and earlier real-user gates. Production release/schema changes need separate authorization.
+Next item: Review P0-007/008/009 in [draft PR #125](https://github.com/tadschweizer/Ultra_OS/pull/125), implementation `0441c6b`; prepare a targeted repair for the live missing coach_messages/coach_shared_docs tables and obsolete target_race query before full coach-path acceptance. Use the approved QA pair in `QA_ACCOUNTS.md` for repeatable logins; retain P0-006 human 30-second timing and earlier real-user gates. Production release/schema changes need separate authorization.
 
 ## Purpose
 
