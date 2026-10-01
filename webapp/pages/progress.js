@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
 import { getLoadMetrics } from '../lib/trainingLoad';
+import { buildVolumeTrend, compareVolumeBlocks } from '../lib/volumeTrends';
+import { usePlan } from '../lib/planUtils';
 
 function startOfDay(dateLike) { const d = new Date(dateLike); d.setHours(0, 0, 0, 0); return d; }
 
@@ -188,7 +190,7 @@ function FormChart({ formSeries }) {
 }
 
 /** Weekly volume bars with value labels on hover. */
-function WeeklyBars({ weeks }) {
+function WeeklyBars({ weeks, format = (value) => value.toFixed(0) }) {
   const [hover, setHover] = useState(null);
   const max = Math.max(...weeks.map((w) => w.load), 1);
   return (
@@ -203,7 +205,7 @@ function WeeklyBars({ weeks }) {
           >
             {hover === i && (
               <div className="pointer-events-none absolute -top-9 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-lg border border-ink/10 bg-white px-2 py-1 text-[10px] shadow">
-                <span className="font-semibold text-ink">{week.load.toFixed(0)}</span> <span className="text-ink/50">wk of {week.label}</span>
+                <span className="font-semibold text-ink">{format(week.load)}</span> <span className="text-ink/50">wk of {week.label}</span>
               </div>
             )}
             <div
@@ -225,18 +227,45 @@ function WeeklyBars({ weeks }) {
   );
 }
 
+const VOLUME_METRICS = [
+  { id: 'miles', label: 'Distance', unit: 'mi', format: (v) => v.toFixed(1) },
+  { id: 'hours', label: 'Time', unit: 'h', format: (v) => v.toFixed(1) },
+  { id: 'elevationFt', label: 'Elevation', unit: 'ft', format: (v) => Math.round(v).toLocaleString() },
+];
+
+function changeLabel(changePct) {
+  if (changePct === null) return 'Needs 8 weeks of history';
+  if (changePct === 0) return 'Same as the prior 4 weeks';
+  return `${changePct > 0 ? '+' : ''}${changePct}% vs the prior 4 weeks`;
+}
+
+function LockedSection({ title, body, plan }) {
+  return (
+    <section className="mt-6 rounded-[28px] border border-dashed border-ink/15 bg-white p-6">
+      <p className="text-xs uppercase tracking-[0.18em] text-accent">{plan}</p>
+      <h2 className="mt-2 text-lg font-semibold text-ink">{title}</h2>
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-ink/65">{body}</p>
+      <a href="/pricing" className="ui-button-primary mt-4">View plans</a>
+    </section>
+  );
+}
+
 export default function ProgressPage() {
   const [activities, setActivities] = useState([]);
   const [interventions, setInterventions] = useState([]);
   const [settings, setSettings] = useState({});
   const [loading, setLoading] = useState(true);
+  const [volumeMetric, setVolumeMetric] = useState('miles');
+  const { hasFeature, planReady } = usePlan();
+  const showTrends = hasFeature('volume_trends');
+  const showFitness = hasFeature('fitness_fatigue');
 
   useEffect(() => {
     let active = true;
     (async () => {
       try {
         const [activitiesRes, interventionsRes, settingsRes] = await Promise.all([
-          fetch('/api/activities'),
+          fetch('/api/activities?days=84'),
           fetch('/api/interventions'),
           fetch('/api/settings'),
         ]);
@@ -284,6 +313,14 @@ export default function ProgressPage() {
     return std > 0 ? avg / std : 0;
   }, [dailyLoad]);
 
+  const volumeTrend = useMemo(() => buildVolumeTrend(activities, { weeks: 12 }), [activities]);
+  const volumeBlocks = useMemo(() => compareVolumeBlocks(volumeTrend), [volumeTrend]);
+  const thisWeek = volumeTrend[volumeTrend.length - 1];
+  const longestRecent = useMemo(
+    () => Math.max(0, ...volumeTrend.slice(-4).map((week) => week.longestMiles)),
+    [volumeTrend]
+  );
+
   const compliance = useMemo(() => {
     const last28 = startOfDay(new Date());
     last28.setDate(last28.getDate() - 27);
@@ -308,77 +345,154 @@ export default function ProgressPage() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-4">
-          {[
-            { label: 'Fitness (CTL)', value: chronic, help: '42-day exponentially-weighted training load — your engine.', color: COLOR_CTL },
-            { label: 'Fatigue (ATL)', value: acute, help: '7-day exponentially-weighted training load — recent stress.', color: COLOR_ATL },
-            { label: 'Form (TSB)', value: form, help: 'Fitness minus fatigue. Negative = building, positive = fresh.', color: COLOR_TSB },
-          ].map((m) => (
-            <article key={m.label} className="rounded-[22px] border border-ink/10 bg-white p-5">
-              <p className="text-xs uppercase tracking-[0.18em]" style={{ color: m.color }}>{m.label}</p>
-              <p className="mt-2 text-3xl font-semibold text-ink" title={m.help}>{m.value.toFixed(1)}</p>
-              <p className="mt-1 text-xs leading-4 text-ink/50">{m.help}</p>
+          {VOLUME_METRICS.map((metric) => (
+            <article key={metric.id} className="rounded-[22px] border border-ink/10 bg-white p-5">
+              <p className="text-xs uppercase tracking-[0.18em] text-accent">This week · {metric.label}</p>
+              <p className="mt-2 text-3xl font-semibold text-ink">
+                {thisWeek ? metric.format(thisWeek[metric.id]) : '0'} <span className="text-base text-ink/50">{metric.unit}</span>
+              </p>
             </article>
           ))}
-          <article className={`rounded-[22px] border p-5 ${status.tone}`}>
-            <p className="text-xs uppercase tracking-[0.18em]">Load status</p>
-            <p className="mt-2 text-2xl font-semibold">{status.label}</p>
+          <article className="rounded-[22px] border border-ink/10 bg-white p-5">
+            <p className="text-xs uppercase tracking-[0.18em] text-accent">This week · Sessions</p>
+            <p className="mt-2 text-3xl font-semibold text-ink">{thisWeek?.count || 0}</p>
           </article>
         </div>
 
-        <section className="mt-6 rounded-[28px] border border-ink/10 bg-white p-6">
-          <div className="flex items-baseline justify-between gap-3">
-            <h2 className="text-lg font-semibold text-ink">Fitness & fatigue — last 84 days</h2>
-            <span className="text-xs text-ink/45">Hover for daily detail</span>
-          </div>
-          <div className="mt-3">
-            <LoadChart dailyLoad={dailyLoad} acuteSeries={acuteSeries} chronicSeries={chronicSeries} formSeries={formSeries} />
-          </div>
-        </section>
+        {planReady && showTrends ? (
+          <>
+            <section className="mt-6 rounded-[28px] border border-ink/10 bg-white p-6">
+              <div className="flex flex-wrap items-baseline justify-between gap-3">
+                <h2 className="text-lg font-semibold text-ink">Weekly volume — last 12 weeks</h2>
+                <div className="inline-flex rounded-full border border-ink/10 bg-paper p-1">
+                  {VOLUME_METRICS.map((metric) => (
+                    <button
+                      key={metric.id}
+                      type="button"
+                      onClick={() => setVolumeMetric(metric.id)}
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${volumeMetric === metric.id ? 'bg-ink text-paper' : 'text-ink/60'}`}
+                    >
+                      {metric.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-4">
+                <WeeklyBars
+                  weeks={volumeTrend.map((week) => ({ label: week.label, load: week[volumeMetric] }))}
+                  format={VOLUME_METRICS.find((metric) => metric.id === volumeMetric).format}
+                />
+              </div>
+            </section>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-[1.5fr_1fr]">
-          <section className="rounded-[28px] border border-ink/10 bg-white p-6">
-            <h2 className="text-lg font-semibold text-ink">Form (TSB)</h2>
-            <div className="mt-3">
-              <FormChart formSeries={formSeries} />
+            <section className="mt-6 grid gap-4 md:grid-cols-4">
+              {VOLUME_METRICS.map((metric) => (
+                <article key={metric.id} className="rounded-[24px] border border-ink/10 bg-white p-5">
+                  <p className="text-xs uppercase tracking-[0.18em] text-accent">4-week avg · {metric.label}</p>
+                  <p className="mt-2 text-3xl font-semibold text-ink">
+                    {metric.format(volumeBlocks[metric.id].recentAvg)} <span className="text-base text-ink/50">{metric.unit}/wk</span>
+                  </p>
+                  <p className="mt-1 text-xs text-ink/55">{changeLabel(volumeBlocks[metric.id].changePct)}</p>
+                </article>
+              ))}
+              <article className="rounded-[24px] border border-ink/10 bg-white p-5">
+                <p className="text-xs uppercase tracking-[0.18em] text-accent">Longest session (4 wk)</p>
+                <p className="mt-2 text-3xl font-semibold text-ink">{longestRecent.toFixed(1)} <span className="text-base text-ink/50">mi</span></p>
+              </article>
+            </section>
+          </>
+        ) : null}
+
+        {planReady && !showTrends ? (
+          <LockedSection
+            plan="Athlete Core"
+            title="Weekly volume trends"
+            body="See 12 weeks of distance, time, and elevation, your 4-week averages against the block before, and your longest sessions."
+          />
+        ) : null}
+
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          <article className="rounded-[24px] border border-ink/10 bg-white p-5">
+            <p className="text-xs uppercase tracking-[0.18em] text-accent">Consistency</p>
+            <p className="mt-2 text-3xl font-semibold text-ink">{compliance}%</p>
+            <p className="mt-1 text-sm text-ink/65">Days with training in last 28 days.</p>
+          </article>
+          <article className="rounded-[24px] border border-ink/10 bg-white p-5">
+            <p className="text-xs uppercase tracking-[0.18em] text-accent">Interventions (30d)</p>
+            <p className="mt-2 text-3xl font-semibold text-ink">
+              {interventions.filter((i) => i.date && (new Date(i.date) >= new Date(Date.now() - 30 * 86400000))).length}
+            </p>
+            <p className="mt-1 text-sm text-ink/65">Recovery + fueling work logged this month.</p>
+          </article>
+        </div>
+
+        {planReady && showFitness ? (
+          <>
+            <div className="mt-6 grid gap-4 md:grid-cols-4">
+              {[
+                { label: 'Fitness (CTL)', value: chronic, help: '42-day exponentially-weighted training load — your engine.', color: COLOR_CTL },
+                { label: 'Fatigue (ATL)', value: acute, help: '7-day exponentially-weighted training load — recent stress.', color: COLOR_ATL },
+                { label: 'Form (TSB)', value: form, help: 'Fitness minus fatigue. Negative = building, positive = fresh.', color: COLOR_TSB },
+              ].map((m) => (
+                <article key={m.label} className="rounded-[22px] border border-ink/10 bg-white p-5">
+                  <p className="text-xs uppercase tracking-[0.18em]" style={{ color: m.color }}>{m.label}</p>
+                  <p className="mt-2 text-3xl font-semibold text-ink" title={m.help}>{m.value.toFixed(1)}</p>
+                  <p className="mt-1 text-xs leading-4 text-ink/50">{m.help}</p>
+                </article>
+              ))}
+              <article className={`rounded-[22px] border p-5 ${status.tone}`}>
+                <p className="text-xs uppercase tracking-[0.18em]">Load status</p>
+                <p className="mt-2 text-2xl font-semibold">{status.label}</p>
+              </article>
             </div>
-          </section>
 
-          <section className="space-y-4">
-            <article className="rounded-[24px] border border-ink/10 bg-white p-5">
-              <p className="text-xs uppercase tracking-[0.18em] text-accent">Consistency</p>
-              <p className="mt-2 text-3xl font-semibold text-ink">{compliance}%</p>
-              <p className="mt-1 text-sm text-ink/65">Days with training in last 28 days.</p>
-            </article>
-            <article className="rounded-[24px] border border-ink/10 bg-white p-5">
-              <p className="text-xs uppercase tracking-[0.18em] text-accent">Interventions (30d)</p>
-              <p className="mt-2 text-3xl font-semibold text-ink">
-                {interventions.filter((i) => i.date && (new Date(i.date) >= new Date(Date.now() - 30 * 86400000))).length}
-              </p>
-              <p className="mt-1 text-sm text-ink/65">Recovery + fueling work logged this month.</p>
-            </article>
-          </section>
-        </div>
+            <section className="mt-6 rounded-[28px] border border-ink/10 bg-white p-6">
+              <div className="flex items-baseline justify-between gap-3">
+                <h2 className="text-lg font-semibold text-ink">Fitness & fatigue — last 84 days</h2>
+                <span className="text-xs text-ink/45">Hover for daily detail</span>
+              </div>
+              <div className="mt-3">
+                <LoadChart dailyLoad={dailyLoad} acuteSeries={acuteSeries} chronicSeries={chronicSeries} formSeries={formSeries} />
+              </div>
+            </section>
 
-        <section className="mt-6 rounded-[28px] border border-ink/10 bg-white p-6">
-          <div className="flex items-baseline justify-between gap-3">
-            <h2 className="text-lg font-semibold text-ink">Weekly training load</h2>
-            <span className="text-xs text-ink/45">Sum of daily TRIMP per week</span>
-          </div>
-          <div className="mt-4">
-            <WeeklyBars weeks={weeklyVolume} />
-          </div>
-        </section>
+            <section className="mt-6 rounded-[28px] border border-ink/10 bg-white p-6">
+              <h2 className="text-lg font-semibold text-ink">Form (TSB)</h2>
+              <div className="mt-3">
+                <FormChart formSeries={formSeries} />
+              </div>
+            </section>
 
-        <section className="mt-6 grid gap-4 md:grid-cols-2">
-          <article className="rounded-[24px] border border-ink/10 bg-white p-5">
-            <p className="text-xs uppercase tracking-[0.18em] text-accent">Ramp rate <span className="cursor-help text-ink/50" title="Week-over-week change in total load. Use to avoid aggressive spikes.">ⓘ</span></p>
-            <p className="mt-2 text-3xl font-semibold text-ink">{rampRate.toFixed(1)}%</p>
-          </article>
-          <article className="rounded-[24px] border border-ink/10 bg-white p-5">
-            <p className="text-xs uppercase tracking-[0.18em] text-accent">Monotony <span className="cursor-help text-ink/50" title="7-day mean load divided by 7-day standard deviation. Above ~2.0 with high load raises overtraining risk (Foster).">ⓘ</span></p>
-            <p className="mt-2 text-3xl font-semibold text-ink">{monotony.toFixed(2)}</p>
-          </article>
-        </section>
+            <section className="mt-6 rounded-[28px] border border-ink/10 bg-white p-6">
+              <div className="flex items-baseline justify-between gap-3">
+                <h2 className="text-lg font-semibold text-ink">Weekly training load</h2>
+                <span className="text-xs text-ink/45">Sum of daily TRIMP per week</span>
+              </div>
+              <div className="mt-4">
+                <WeeklyBars weeks={weeklyVolume} />
+              </div>
+            </section>
+
+            <section className="mt-6 grid gap-4 md:grid-cols-2">
+              <article className="rounded-[24px] border border-ink/10 bg-white p-5">
+                <p className="text-xs uppercase tracking-[0.18em] text-accent">Ramp rate <span className="cursor-help text-ink/50" title="Week-over-week change in total load. Use to avoid aggressive spikes.">ⓘ</span></p>
+                <p className="mt-2 text-3xl font-semibold text-ink">{rampRate.toFixed(1)}%</p>
+              </article>
+              <article className="rounded-[24px] border border-ink/10 bg-white p-5">
+                <p className="text-xs uppercase tracking-[0.18em] text-accent">Monotony <span className="cursor-help text-ink/50" title="7-day mean load divided by 7-day standard deviation. Above ~2.0 with high load raises overtraining risk (Foster).">ⓘ</span></p>
+                <p className="mt-2 text-3xl font-semibold text-ink">{monotony.toFixed(2)}</p>
+              </article>
+            </section>
+          </>
+        ) : null}
+
+        {planReady && !showFitness ? (
+          <LockedSection
+            plan="Athlete Pro"
+            title="Fitness, fatigue, and form"
+            body="Track fitness (CTL), fatigue (ATL), and form (TSB) over 84 days, plus weekly training load, ramp rate, and monotony."
+          />
+        ) : null}
 
         {loading ? <p className="mt-4 text-sm text-ink/55">Loading progress metrics…</p> : null}
       </section>

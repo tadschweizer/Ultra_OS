@@ -4,7 +4,7 @@ import NavMenu from '../components/NavMenu';
 import BlurredInsightPreview from '../components/BlurredInsightPreview';
 import { sortActivitiesMostRecentFirst } from '../lib/activityInsights';
 import { deriveRaceType } from '../lib/raceTypes';
-import { canAccessFullInsights } from '../lib/subscriptionTiers';
+import { meHasFeature } from '../lib/planUtils';
 import { fetchMe } from '../lib/meClient';
 import { buildTrainingResponseCorrelations, buildCheckInTimeSeries, buildCheckInSummary } from '../lib/trainingInsights';
 import { detectLoadSpikes } from '../lib/trainingLoad';
@@ -262,7 +262,7 @@ export default function InsightsPage() {
         if (me?.athlete) {
           setAthlete(me.athlete);
           setInterventionCount(me.interventionCount || 0);
-          setInsightsAllowed(canAccessFullInsights(me.athlete).allowed);
+          setInsightsAllowed(meHasFeature(me, 'training_correlations'));
         }
 
         if (settingsRes?.ok) {
@@ -389,7 +389,7 @@ export default function InsightsPage() {
         <section className="mt-12 grid gap-4 lg:grid-cols-2">
           {!loading && !insightsAllowed ? (
             <div className="lg:col-span-2">
-              <BlurredInsightPreview body="The free tier lets you collect the data. Upgrade to Individual to unlock the full correlation engine and insight cards." />
+              <BlurredInsightPreview body="The free tier lets you collect the data. Upgrade to Athlete Pro to unlock the full correlation engine and insight cards." />
             </div>
           ) : null}
 

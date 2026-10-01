@@ -46,22 +46,22 @@ test('public coach signup and pricing explain separate pilot approval', async ({
   await page.goto('/signup?role=coach');
   await expect(page.getByText(/Choosing Coach does not activate a pilot or paid plan/)).toBeVisible();
   await page.goto('/pricing');
-  await expect(page.getByRole('heading', { name: /Closed coach pilot/ })).toBeVisible();
-  await expect(page.getByRole('link', { name: /Create coach account/ })).toHaveAttribute('href', '/signup?role=coach');
-  await expect(page.locator('a[href="/api/billing/checkout?plan=individual_annual"]')).toHaveCount(1);
-  await expect(page.locator('a[href="/api/billing/checkout?plan=research_monthly"]')).toHaveCount(1);
-  await expect(page.getByText('During your approved pilot period')).toBeVisible();
-  await page.goto('/signup?plan=individual_annual');
+  await expect(page.getByText('Coach billing opens after the closed pilot.', { exact: false })).toBeVisible();
+  await expect(page.locator('a[href="/signup?role=coach"]', { hasText: /Join the coach pilot/ })).toHaveCount(2);
+  await expect(page.locator('a[href^="/api/billing/checkout?plan=coach"]')).toHaveCount(0);
+  await expect(page.locator('a[href="/api/billing/checkout?plan=pro_annual"]')).toHaveCount(1);
+  await expect(page.locator('a[href="/api/billing/checkout?plan=core_annual"]')).toHaveCount(1);
+  await page.goto('/signup?plan=pro_annual');
   await expect(page.getByRole('link', { name: 'Log in' }).first()).toHaveAttribute(
     'href',
-    /next=%2Fapi%2Fbilling%2Fcheckout%3Fplan%3Dindividual_annual/
+    /next=%2Fapi%2Fbilling%2Fcheckout%3Fplan%3Dpro_annual/
   );
-  await page.goto(`/signup?next=${encodeURIComponent('/api/billing/checkout?plan=coach_monthly')}`);
+  await page.goto(`/signup?next=${encodeURIComponent('/api/billing/checkout?plan=coach_pro_monthly')}`);
   await expect(page.getByRole('link', { name: 'Log in' }).first()).toHaveAttribute(
     'href',
     /next=%2Fdashboard/
   );
-  await page.goto('/signup?plan=coach_monthly');
+  await page.goto('/signup?plan=coach_pro_monthly');
   await expect(page.getByRole('link', { name: 'Log in' }).first()).toHaveAttribute(
     'href',
     '/login?next=%2Fdashboard'

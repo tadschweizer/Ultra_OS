@@ -1,5 +1,5 @@
 import { getSupabaseAdminClient } from '../../lib/authServer';
-import { canLogCheckIn, buildUsageSnapshot, getSubscriptionTierLabel, normalizeSubscriptionTier } from '../../lib/subscriptionTiers';
+import { canLogCheckIn, buildUsageSnapshot, getFeatureList, getIncludedAthletes, getSubscriptionTierLabel, normalizeSubscriptionTier } from '../../lib/subscriptionTiers';
 import { isFastCheckIn } from '../../lib/checkIn';
 import { buildLoadMetrics, buildLoadStatus } from '../../lib/loadRollups';
 import { clearAthleteCookie, renewAthleteCookieIfStale } from '../../lib/auth/sessionCookies.js';
@@ -131,11 +131,18 @@ export default async function handler(req, res) {
   } catch {
     return res.status(503).json({ error: 'Access could not be verified. Please try again.' });
   }
+  const featureOptions = {
+    linkedToPaidCoach: checkInEntitlement.linkedToPaidCoach === true,
+    coachPilot: coachAccess.pilot === true,
+  };
 
   res.status(200).json({
     athlete: normalizedAthlete,
     account: {
       coach_access: coachAccess,
+      features: getFeatureList(normalizedTier, featureOptions),
+      feature_sources: featureOptions,
+      included_athletes: getIncludedAthletes(normalizedTier),
       primary_role: access.primaryRole,
       capabilities: access.capabilities,
       default_path: access.defaultPath,
@@ -159,6 +166,7 @@ export default async function handler(req, res) {
       interventionCount: count ?? 0,
       weeklyCheckIns: weeklyCheckIns ?? 0,
       checkInEntitlement,
+      featureOptions,
     }),
   });
 }

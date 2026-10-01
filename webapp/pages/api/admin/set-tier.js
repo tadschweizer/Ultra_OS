@@ -5,7 +5,7 @@ import { canOverrideTier, isKnownTier } from '../../../lib/adminDemo.js';
 
 /**
  * POST /api/admin/set-tier { athleteId, tier } — admin-only manual override
- * of an athlete's subscription_tier (free/research/individual/coach) without
+ * of an athlete's subscription_tier (free/core/pro/coach_essentials/coach_pro) without
  * going through Stripe. Refused for accounts whose tier is owned by an
  * active Stripe subscription (the billing webhook would revert it).
  */

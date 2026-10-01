@@ -69,6 +69,11 @@ export default async function handler(req, res) {
     return;
   }
 
+  if (plan.legacy) {
+    res.status(410).json({ error: `${plan.label} is no longer offered. See /pricing for current plans.` });
+    return;
+  }
+
   if (!getPublicCheckoutPath(plan.id)) {
     res.status(403).json({
       error: 'Coach access is available only through the administrator-approved pilot.',

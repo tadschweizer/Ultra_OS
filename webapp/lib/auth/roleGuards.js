@@ -1,4 +1,4 @@
-import { normalizeSubscriptionTier } from '../subscriptionTiers.js';
+import { isCoachTier } from '../subscriptionTiers.js';
 
 export const PRIMARY_ROLES = Object.freeze(['athlete', 'coach']);
 export const SIGNUP_ROLE_VALUES = Object.freeze(['coach', 'athlete-with-coach', 'individual']);
@@ -27,7 +27,7 @@ export function buildAccountAccess({ athlete, coachProfile = null } = {}) {
   const primaryRole = normalizePrimaryRole(athlete?.primary_role);
   const hasCoachProfile = Boolean(coachProfile?.id);
   const hasPaidCoachEntitlement =
-    hasCoachProfile && normalizeSubscriptionTier(athlete?.subscription_tier) === 'coach';
+    hasCoachProfile && isCoachTier(athlete?.subscription_tier);
 
   return {
     primaryRole,
@@ -54,7 +54,7 @@ export function canCreateCoachProfile(access) {
   if (!access?.athlete || access.coachProfile) return false;
   const onboardingCoach = access.primaryRole === 'coach'
     && !access.athlete.onboarding_complete;
-  const entitledCoach = normalizeSubscriptionTier(access.athlete.subscription_tier) === 'coach';
+  const entitledCoach = isCoachTier(access.athlete.subscription_tier);
   return onboardingCoach || entitledCoach;
 }
 

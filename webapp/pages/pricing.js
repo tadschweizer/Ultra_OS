@@ -9,79 +9,169 @@ const navLinks = [
   { href: '/login', label: 'Login' },
 ];
 
-const plans = [
+// Prices shown here must match the Stripe prices configured for each plan in
+// lib/billingPlans.js. Coach plans are listed but not sold while the coach
+// product is a closed, administrator-approved pilot.
+const athletePlans = [
   {
-    id: 'coach',
-    name: 'Closed coach pilot',
-    flagship: true,
-    badge: 'Administrator approval required',
-    description: 'A supported pilot for one approved coach and up to five athletes. Pilot access is separate from your account role and any paid subscription.',
+    id: 'free',
+    name: 'Free',
+    badge: 'Connect + track',
+    description: 'Connect to your coach and keep a clean training log. No card needed.',
     includes: [
-      'Coach Command Center with daily roster triage',
-      'Protocol assignments for athletes and groups',
-      'Per-athlete readiness, compliance + missing-data view',
-      'Coach notes, shared resources + athlete messaging',
-      'Race plan + post-race debrief oversight',
-      'Linked athletes receive daily check-ins only; other plan benefits stay separate',
+      'Strava activity sync',
+      'Join a coach and see assigned workouts',
+      'Activity history with per-session stats',
+      'Workout comments + coach messaging',
+      'This week’s distance, time, and elevation',
+      '3 check-ins a week (daily when coach-linked)',
+      '15 intervention logs',
+      'Research library',
     ],
     billing: {
-      monthly: { price: '$0', note: 'During your approved pilot period', cta: 'Create coach account' },
-      annual: { price: '$0', note: 'During your approved pilot period', cta: 'Create coach account' },
+      monthly: { price: '$0', note: 'Free forever', cta: 'Create free account', href: '/signup' },
+      annual: { price: '$0', note: 'Free forever', cta: 'Create free account', href: '/signup' },
     },
   },
   {
-    id: 'individual',
-    name: 'Individual Athlete',
-    flagship: false,
-    badge: 'Self-coached',
-    description: 'Full Threshold for self-coached athletes — log interventions, correlate training response, and build your race plan.',
+    id: 'core',
+    name: 'Athlete Core',
+    badge: 'Training trends',
+    description: 'Strava-style trend analytics without the jargon. Included free when your coach is on a paid Coach plan.',
     includes: [
-      'Free research library included',
-      'Intervention logging (heat, gut, sleep, bicarb…)',
-      'Workout check-ins + training response correlations',
-      'Race blueprint auto-builder',
-      'Insights dashboard + post-race debrief',
-      'Strava activity sync',
+      'Everything in Free',
+      '12-week distance, time, and elevation trends',
+      '4-week averages vs. the block before',
+      'Longest-session tracking',
+      'Unlimited check-ins',
+      'Unlimited intervention logging',
     ],
     billing: {
-      monthly: { price: '$15', checkoutPlan: 'individual_monthly', note: 'Billed monthly — cancel anytime', cta: 'Start Individual' },
-      annual: { price: '$12', checkoutPlan: 'individual_annual', note: '$144 billed annually — save $36/yr', cta: 'Start Individual Annual' },
+      monthly: { price: '$7', checkoutPlan: 'core_monthly', note: 'Billed monthly — cancel anytime', cta: 'Start Core' },
+      annual: { price: '$5', checkoutPlan: 'core_annual', note: '$60 billed annually — save $24/yr', cta: 'Start Core Annual' },
+    },
+  },
+  {
+    id: 'pro',
+    name: 'Athlete Pro',
+    flagship: true,
+    badge: 'Advanced analytics',
+    description: 'The full deterministic analytics stack — every number is computed from your data, not guessed.',
+    includes: [
+      'Everything in Core',
+      'Fitness, fatigue + form (CTL / ATL / TSB), 84 days',
+      'Weekly training load, ramp rate + monotony',
+      'HR drift + aerobic decoupling on every steady session',
+      'Training-response correlations + insight cards',
+      'Training-load spike alerts',
+      'Explorer: chart any input against any outcome',
+      'Race Blueprint fueling, hydration + race-week plan',
+    ],
+    comingSoon: 'AI training review and suggestions are coming later to Pro at no extra cost.',
+    billing: {
+      monthly: { price: '$18', checkoutPlan: 'pro_monthly', note: 'Billed monthly — cancel anytime', cta: 'Start Pro' },
+      annual: { price: '$13.25', checkoutPlan: 'pro_annual', note: '$159 billed annually — save $57/yr', cta: 'Start Pro Annual' },
     },
   },
 ];
 
+const coachPlans = [
+  {
+    id: 'coach_essentials',
+    name: 'Coach Essentials',
+    badge: 'Up to 10 athletes',
+    description: 'Plan, assign, and review — with the volume plots most coaches actually use.',
+    includes: [
+      'Coach Command Center with daily roster triage',
+      'Training calendar + workout assignments',
+      'Protocol assignments for athletes and groups',
+      'Compliance, readiness + missing-sync views',
+      'Coach notes + athlete messaging',
+      'Zone, pace, and race-prediction tools',
+      'Every athlete on your roster gets Athlete Core free',
+    ],
+    billing: {
+      monthly: { price: '$29', note: 'Per month', cta: 'Join the coach pilot' },
+      annual: { price: '$24', note: '$290 billed annually', cta: 'Join the coach pilot' },
+    },
+  },
+  {
+    id: 'coach_pro',
+    name: 'Coach Pro',
+    flagship: true,
+    badge: 'Up to 25 athletes',
+    description: 'Advanced load metrics for coaches who want them — and Athlete Pro for your own training.',
+    includes: [
+      'Everything in Coach Essentials',
+      'Per-athlete fitness + fatigue trend in the roster',
+      'Fitness ramp planner (CTL targets to race day)',
+      'Athlete Pro analytics for your own training',
+      'Every athlete on your roster gets Athlete Core free',
+    ],
+    comingSoon: 'AI roster triage, drafted athlete summaries, and plan suggestions are coming later to Coach Pro.',
+    billing: {
+      monthly: { price: '$79', note: 'Per month', cta: 'Join the coach pilot' },
+      annual: { price: '$66', note: '$790 billed annually', cta: 'Join the coach pilot' },
+    },
+  },
+];
+
+const comparisonColumns = [
+  { id: 'free', label: 'Free' },
+  { id: 'core', label: 'Core' },
+  { id: 'pro', label: 'Pro' },
+  { id: 'coach_essentials', label: 'Coach Ess.' },
+  { id: 'coach_pro', label: 'Coach Pro' },
+];
+
+const comparisonRows = [
+  { label: 'Strava sync, activity history, coach connection', tiers: ['free', 'core', 'pro', 'coach_essentials', 'coach_pro'] },
+  { label: 'Research library', tiers: ['free', 'core', 'pro', 'coach_essentials', 'coach_pro'] },
+  { label: 'This week’s volume totals', tiers: ['free', 'core', 'pro', 'coach_essentials', 'coach_pro'] },
+  { label: 'Unlimited check-ins + intervention logging', tiers: ['core', 'pro', 'coach_essentials', 'coach_pro'] },
+  { label: '12-week volume trends + block comparison', tiers: ['core', 'pro', 'coach_essentials', 'coach_pro'] },
+  { label: 'Fitness / fatigue / form (CTL, ATL, TSB)', tiers: ['pro', 'coach_pro'] },
+  { label: 'HR drift + aerobic decoupling', tiers: ['pro', 'coach_pro'] },
+  { label: 'Training-response correlations + Explorer', tiers: ['pro', 'coach_pro'] },
+  { label: 'Race Blueprint', tiers: ['pro', 'coach_pro'] },
+  { label: 'Coach Command Center, calendar + assignments', tiers: ['coach_essentials', 'coach_pro'] },
+  { label: 'Roster athletes get Athlete Core', tiers: ['coach_essentials', 'coach_pro'] },
+  { label: 'Per-athlete load trends + ramp planner', tiers: ['coach_pro'] },
+  { label: 'AI analysis + suggestions', tiers: [], comingSoon: ['pro', 'coach_pro'] },
+];
+
 const faq = [
   {
-    q: 'How do I get pilot access?',
-    a: 'The closed pilot requires administrator approval and supports up to five athletes. Creating a coach account does not grant pilot or paid access. There is no public trial at this stage.',
+    q: 'Does Pro use AI?',
+    a: 'Not yet. Every Pro metric — fitness, fatigue, form, HR drift, decoupling, correlations — is calculated directly from your synced data with published training-load models. AI review and suggestions will be added to Pro later at no extra cost.',
   },
   {
     q: 'Do my athletes need their own paid plan?',
-    a: 'An active relationship with an eligible pilot or paid coach unlocks daily workout check-ins. It does not unlock unlimited intervention logging, insights, or race tools. Pending, expired, paused, and removed relationships do not qualify. When eligibility ends, your own plan allowance resumes; history and independent paid access remain.',
+    a: 'No. Athletes coached on a paid Coach plan get Athlete Core free for as long as the relationship is active. They can upgrade themselves to Athlete Pro for the advanced analytics. Pilot-linked athletes get daily check-ins.',
   },
   {
-    q: 'Is Threshold free right now?',
-    a: 'Threshold has a real free tier. You can create an account, use the research library, and explore the app before upgrading to unlock unlimited logging, full insights, and coach features.',
+    q: 'How do coaches get access today?',
+    a: 'Coach plans open for purchase after the closed pilot. Pilot coaches are approved individually by an administrator and receive Coach Pro tools during the pilot. Creating a coach account does not grant access on its own.',
+  },
+  {
+    q: 'I already pay for Individual, Research Feed, or Coach. What happens?',
+    a: 'You keep your price and get at least what you had: Individual becomes Athlete Pro, Research Feed becomes Athlete Core, and Coach becomes Coach Pro.',
   },
   {
     q: 'Can I cancel anytime?',
     a: 'Monthly plans can be canceled at any time with no penalty. Annual plans run for the full term and renew unless canceled before the renewal date.',
   },
   {
-    q: 'Is research included for free?',
-    a: 'Yes. The research library is part of the free tier. Paid plans are for deeper logging, insights, race blueprint tools, and coach workflows.',
-  },
-  {
-    q: 'Is this a replacement for TrainingPeaks?',
-    a: 'No — Threshold is an intervention intelligence layer, not a full training-planning platform. Many athletes use both. Threshold tracks the protocols (heat blocks, gut training, bicarb, sleep) that training platforms don\'t capture.',
-  },
-  {
     q: 'Do you integrate with Garmin and Strava?',
     a: 'Strava is live today. Threshold supports both Strava-synced sessions and manual logging.',
   },
   {
+    q: 'Coaching more athletes than the plan includes?',
+    a: 'Contact us during the pilot and we will set up a larger roster. Per-athlete pricing beyond the included roster will be published before coach billing opens.',
+  },
+  {
     q: 'What is a Workout Check-in?',
-    a: 'After each training session you log how your legs felt, energy level, and RPE. Threshold then automatically compares each check-in against every intervention logged in the prior 48 hours and surfaces correlations — like "your legs score 2.1 points higher the day after a sauna session."',
+    a: 'After each session you log how your legs felt, energy, and RPE. Pro compares each check-in with every intervention logged in the prior 48 hours and surfaces correlations — like "your legs score 2.1 points higher the day after a sauna session."',
   },
 ];
 
@@ -90,6 +180,70 @@ function CheckIcon() {
     <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-[10px] font-bold text-emerald-700">
       ✓
     </span>
+  );
+}
+
+function PlanCard({ plan, billingPeriod, coach = false }) {
+  const billing = plan.billing[billingPeriod];
+  const href = coach
+    ? '/signup?role=coach'
+    : billing.checkoutPlan
+      ? `/api/billing/checkout?plan=${encodeURIComponent(billing.checkoutPlan)}`
+      : billing.href;
+  return (
+    <article
+      className={`relative flex flex-col rounded-[28px] border p-7 ${
+        plan.flagship
+          ? 'border-accent/30 bg-[linear-gradient(135deg,#fffbf0_0%,#fdf3d7_100%)] shadow-[0_12px_40px_rgba(245,158,11,0.15)]'
+          : 'border-ink/10 bg-white shadow-[0_8px_24px_rgba(19,24,22,0.05)]'
+      }`}
+    >
+      <span
+        className={`absolute -top-3 left-6 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wide shadow-sm ${
+          plan.flagship ? 'bg-accent text-white' : 'bg-ink text-paper'
+        }`}
+      >
+        {plan.badge}
+      </span>
+
+      <div>
+        <p className={`text-xs font-semibold uppercase tracking-[0.25em] ${plan.flagship ? 'text-accent' : 'text-ink/40'}`}>
+          {plan.name}
+        </p>
+        <div className="mt-4 flex items-end gap-1">
+          <span className="font-mono text-4xl font-semibold text-ink">{billing.price}</span>
+          <span className="mb-1 text-sm text-ink/50">/month</span>
+        </div>
+        <p className={`mt-1 text-xs ${billingPeriod === 'annual' ? 'text-emerald-600' : 'text-ink/45'}`}>{billing.note}</p>
+        <p className="mt-3 text-sm leading-6 text-ink/60">{plan.description}</p>
+      </div>
+
+      <ul className="mt-6 flex-1 space-y-2.5">
+        {plan.includes.map((item) => (
+          <li key={item} className="flex items-start gap-2.5 text-sm text-ink/75">
+            <CheckIcon />
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+
+      {plan.comingSoon ? (
+        <p className="mt-5 rounded-[16px] border border-accent/25 bg-accent/5 px-4 py-3 text-xs leading-5 text-ink/70">
+          <span className="font-semibold text-accent">Coming later · </span>{plan.comingSoon}
+        </p>
+      ) : null}
+
+      <a
+        href={href}
+        className={`mt-7 block rounded-full px-5 py-3 text-center text-sm font-semibold transition ${
+          plan.flagship
+            ? 'bg-ink text-paper shadow-[0_4px_16px_rgba(19,24,22,0.2)] hover:opacity-85'
+            : 'border border-ink/15 bg-paper text-ink hover:bg-ink hover:text-paper'
+        }`}
+      >
+        {billing.cta} →
+      </a>
+    </article>
   );
 }
 
@@ -142,16 +296,16 @@ export default function PricingPage() {
         <section className="mt-10 text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.35em] text-accent">Pricing</p>
           <h1 className="font-display mx-auto mt-5 max-w-2xl text-5xl font-semibold leading-tight text-ink md:text-6xl">
-            Closed coach pilot.<br />Clear access.
+            Start free.<br />Pay for the analytics you use.
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-base leading-8 text-ink/65">
-            Pilot coaches are approved individually. Free athletes have three check-ins per rolling seven days, with daily check-ins available through an active eligible coach. Existing paid plans remain separate.
+            Free connects you to your coach. Core adds training trends. Pro adds the full analytics stack. Coaches pick Essentials for plots and stats, or Pro for advanced load metrics.
           </p>
           {/* Beta banner */}
           <div className="mt-7 inline-flex items-center gap-3 rounded-full border border-accent/30 bg-accent/10 px-6 py-3">
             <span className="h-2 w-2 rounded-full bg-accent" />
             <p className="text-sm font-semibold text-ink">
-              Closed pilot — approval required, no purchase needed
+              Coach plans: closed pilot, approval required
             </p>
           </div>
 
@@ -159,7 +313,7 @@ export default function PricingPage() {
           <div className="mt-8 inline-flex items-center rounded-full border border-ink/10 bg-white p-1 shadow-sm">
             {[
               { id: 'monthly', label: 'Monthly' },
-              { id: 'annual', label: 'Annual — save up to 30%' },
+              { id: 'annual', label: 'Annual — save up to 29%' },
             ].map((option) => (
               <button
                 key={option.id}
@@ -175,140 +329,63 @@ export default function PricingPage() {
           </div>
         </section>
 
-        {/* ── Plan cards ───────────────────────────────────────────── */}
-        <section className="mx-auto mt-10 grid max-w-4xl gap-4 md:grid-cols-2">
-          {plans.map((plan) => {
-            const billing = plan.billing[billingPeriod];
-            return (
-              <article
-                key={plan.id}
-                className={`relative flex flex-col rounded-[28px] border p-7 ${
-                  plan.flagship
-                    ? 'border-accent/30 bg-[linear-gradient(135deg,#fffbf0_0%,#fdf3d7_100%)] shadow-[0_12px_40px_rgba(245,158,11,0.15)]'
-                    : 'border-ink/10 bg-white shadow-[0_8px_24px_rgba(19,24,22,0.05)]'
-                }`}
-              >
-                <span
-                  className={`absolute -top-3 left-6 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wide shadow-sm ${
-                    plan.flagship ? 'bg-accent text-white' : 'bg-ink/80 text-paper'
-                  }`}
-                >
-                  {plan.badge}
-                </span>
-
-                <div>
-                  <p className={`text-xs font-semibold uppercase tracking-[0.25em] ${plan.flagship ? 'text-accent' : 'text-ink/40'}`}>
-                    {plan.name}
-                  </p>
-                  <div className="mt-4 flex items-end gap-1">
-                    <span className="font-mono text-4xl font-semibold text-ink">{billing.price}</span>
-                    <span className="mb-1 text-sm text-ink/50">{plan.id === 'coach' ? 'during pilot' : '/month'}</span>
-                  </div>
-                  <p className={`mt-1 text-xs ${billingPeriod === 'annual' ? 'text-emerald-600' : 'text-ink/45'}`}>{billing.note}</p>
-                  <p className="mt-3 text-sm leading-6 text-ink/60">{plan.description}</p>
-                </div>
-
-                <ul className="mt-6 flex-1 space-y-2.5">
-                  {plan.includes.map((item) => (
-                    <li key={item} className="flex items-start gap-2.5 text-sm text-ink/75">
-                      <CheckIcon />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <a
-                  href={plan.id === 'coach'
-                    ? '/signup?role=coach'
-                    : `/api/billing/checkout?plan=${encodeURIComponent(billing.checkoutPlan)}`}
-                  className={`mt-7 block rounded-full px-5 py-3 text-center text-sm font-semibold transition ${
-                    plan.flagship
-                      ? 'bg-ink text-paper shadow-[0_4px_16px_rgba(19,24,22,0.2)] hover:opacity-85'
-                      : 'border border-ink/15 bg-paper text-ink hover:bg-ink hover:text-paper'
-                  }`}
-                >
-                  {billing.cta} →
-                </a>
-              </article>
-            );
-          })}
+        {/* ── Athlete plans ────────────────────────────────────────── */}
+        <section className="mt-10">
+          <p className="text-center text-xs font-semibold uppercase tracking-[0.3em] text-ink/40">For athletes</p>
+          <div className="mx-auto mt-5 grid max-w-6xl gap-4 md:grid-cols-3">
+            {athletePlans.map((plan) => (
+              <PlanCard key={plan.id} plan={plan} billingPeriod={billingPeriod} />
+            ))}
+          </div>
         </section>
 
-        {/* ── Research Feed add-on ─────────────────────────────────── */}
-        <section className="mx-auto mt-4 max-w-4xl">
-          <div className="flex flex-wrap items-center justify-between gap-4 rounded-[24px] border border-ink/10 bg-white px-7 py-5 shadow-[0_8px_24px_rgba(19,24,22,0.05)]">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-ink/40">Research Feed</p>
-              <p className="mt-1 text-sm text-ink/65">
-                Just want the curated endurance research digest? Get the standalone feed for{' '}
-                <span className="font-mono font-semibold text-ink">$7/mo</span>.
-              </p>
-            </div>
-            <a
-              href="/api/billing/checkout?plan=research_monthly"
-              className="rounded-full border border-ink/15 bg-paper px-5 py-2.5 text-sm font-semibold text-ink transition hover:bg-ink hover:text-paper"
-            >
-              Start Research Feed →
-            </a>
+        {/* ── Coach plans ──────────────────────────────────────────── */}
+        <section className="mt-14">
+          <p className="text-center text-xs font-semibold uppercase tracking-[0.3em] text-ink/40">For coaches</p>
+          <p className="mx-auto mt-3 max-w-xl text-center text-sm leading-6 text-ink/60">
+            Coach billing opens after the closed pilot. Approved pilot coaches use Coach Pro tools at no cost during the pilot.
+          </p>
+          <div className="mx-auto mt-5 grid max-w-4xl gap-4 md:grid-cols-2">
+            {coachPlans.map((plan) => (
+              <PlanCard key={plan.id} plan={plan} billingPeriod={billingPeriod} coach />
+            ))}
           </div>
         </section>
 
         {/* ── Feature comparison ───────────────────────────────────── */}
-        <section className="mt-10">
+        <section className="mt-12">
           <div className="rounded-[28px] border border-ink/10 bg-white p-8 shadow-[0_8px_24px_rgba(19,24,22,0.05)]">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink/40">Existing paid plans</p>
-            <p className="mt-3 text-sm text-ink/65">The table describes paid plans, not the pilot grant. Pilot access adds the Coach Command Center and eligible linked-athlete daily check-ins; it does not include the coach's own Individual toolkit. Free accounts retain 15 intervention logs and three check-ins per rolling seven days unless linked to an eligible coach.</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink/40">Compare plans</p>
             <div className="mt-6 overflow-x-auto">
-              <table className="w-full min-w-[540px] text-sm">
+              <table className="w-full min-w-[640px] text-sm">
                 <thead>
                   <tr className="border-b border-ink/8">
                     <th className="py-3 pr-6 text-left text-xs font-semibold uppercase tracking-[0.18em] text-ink/40">Feature</th>
-                    <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.12em] text-ink/40">Free</th>
-                    <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.12em] text-ink/40">Individual</th>
-                    <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.12em] text-accent">Coach</th>
+                    {comparisonColumns.map((column) => (
+                      <th key={column.id} className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.12em] text-ink/40">{column.label}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {[
-                    { label: 'Research library', free: true, individual: true, coach: true },
-                    { label: 'Intervention logging', free: false, individual: true, coach: true },
-                    { label: 'Workout check-ins', free: false, individual: true, coach: true },
-                    { label: 'Training response correlations', free: false, individual: true, coach: true },
-                    { label: 'Race blueprint auto-builder', free: false, individual: true, coach: true },
-                    { label: 'Post-race outcome debrief', free: false, individual: true, coach: true },
-                    { label: 'Strava activity sync', free: false, individual: true, coach: true },
-                    { label: 'Coach Command Center + roster triage', free: false, individual: false, coach: true },
-                    { label: 'Protocol assignments (athletes + groups)', free: false, individual: false, coach: true },
-                    { label: 'Per-athlete readiness + compliance view', free: false, individual: false, coach: true },
-                    { label: 'Coach notes + athlete messaging', free: false, individual: false, coach: true },
-                  ].map((row, i) => (
+                  {comparisonRows.map((row, i) => (
                     <tr key={row.label} className={i % 2 === 0 ? 'bg-paper/40' : ''}>
                       <td className="py-3 pr-6 text-ink/70">{row.label}</td>
-                      <td className="px-3 py-3 text-center">
-                        {row.free ? <span className="text-emerald-600">✓</span> : <span className="text-ink/20">—</span>}
-                      </td>
-                      <td className="px-3 py-3 text-center">
-                        {row.individual ? <span className="font-semibold text-emerald-600">✓</span> : <span className="text-ink/20">—</span>}
-                      </td>
-                      <td className="px-3 py-3 text-center">
-                        {row.coach ? <span className="text-emerald-600">✓</span> : <span className="text-ink/20">—</span>}
-                      </td>
+                      {comparisonColumns.map((column) => (
+                        <td key={column.id} className="px-3 py-3 text-center">
+                          {row.tiers.includes(column.id) ? (
+                            <span className="font-semibold text-emerald-600">✓</span>
+                          ) : row.comingSoon?.includes(column.id) ? (
+                            <span className="text-[10px] font-semibold uppercase tracking-wide text-accent">Later</span>
+                          ) : (
+                            <span className="text-ink/20">—</span>
+                          )}
+                        </td>
+                      ))}
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </div>
-        </section>
-
-
-        <section className="mt-16 rounded-[28px] border border-ink/10 bg-white p-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-accent">Why coaches choose Threshold</p>
-          <h2 className="mt-3 text-2xl font-semibold text-ink md:text-3xl">The Coach plan is the product. Your athletes power it.</h2>
-          <div className="mt-5 space-y-3 text-sm leading-7 text-ink/70">
-            <p>Threshold is built around the coach-athlete loop: athletes log interventions and check-ins in seconds, and the Command Center turns that data into your daily triage — who needs attention, who races soon, who is off-protocol, who needs a message.</p>
-            <p>Assign protocol templates to athletes or whole groups, track compliance trends, and see who is responding well versus who needs plan adjustments — without digging through message threads.</p>
-            <p>Coach billing is flat-rate, so your monthly cost is predictable and does not scale with roster size. Threshold sits alongside TrainingPeaks rather than replacing your planning stack.</p>
           </div>
         </section>
 
@@ -332,10 +409,10 @@ export default function PricingPage() {
           <div className="rounded-[32px] bg-panel px-8 py-12 text-center text-white md:px-16">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-accent">Get started free</p>
             <h2 className="font-display mx-auto mt-4 max-w-xl text-3xl font-semibold md:text-4xl">
-              Approved pilot access. No card needed.
+              Free to start. No card needed.
             </h2>
             <p className="mx-auto mt-4 max-w-lg text-sm leading-7 text-white/55">
-              Create an account, then ask your pilot organizer for coach approval. Athletes receive coach-dependent check-ins only after their qualifying relationship becomes active.
+              Athletes can start on Free and upgrade any time. Coaches create an account, then ask the pilot organizer for approval.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <a

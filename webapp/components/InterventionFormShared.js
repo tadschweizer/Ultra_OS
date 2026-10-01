@@ -283,6 +283,11 @@ export function ActivityContextCard({
             <p className="text-xs text-white/60">Additional activity details are unavailable for this workout.</p>
           )}
           {activityDetails?.analysis ? <SteadyStateAnalysis analysis={activityDetails.analysis} /> : null}
+          {activityDetails?.analysis_locked ? (
+            <p className="mt-3 text-xs leading-5 text-ink/55">
+              HR drift and aerobic decoupling for this session are part of <a href="/pricing" className="font-semibold text-accent underline">Athlete Pro</a>.
+            </p>
+          ) : null}
         </div>
       ) : (
         <p className="mt-4 text-sm text-white/70">{emptyCopy}</p>

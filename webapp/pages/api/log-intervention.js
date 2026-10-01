@@ -85,6 +85,10 @@ export function createLogInterventionHandler({ getClient = getSupabaseAdminClien
         }
 
         gate = canLogCheckIn(athlete, weeklyCheckIns ?? 0, entitlement);
+      } else if (!gate.allowed) {
+        // Athletes coached on a paid coach plan get Core, which uncaps logging.
+        const entitlement = await loadCheckInEntitlement(supabase, athlete, now());
+        gate = canLogIntervention(athlete, interventionCount ?? 0, { linkedToPaidCoach: entitlement.linkedToPaidCoach });
       }
 
       if (!gate.allowed) {

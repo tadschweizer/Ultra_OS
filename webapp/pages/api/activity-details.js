@@ -2,6 +2,7 @@ import { getSupabaseAdminClient } from '../../lib/authServer';
 import { getActivityStreams, getDetailedActivity, refreshToken } from '../../lib/strava';
 import cookie from 'cookie';
 import { analyzeSteadyState } from '../../lib/streamAnalysis';
+import { hasFeature } from '../../lib/subscriptionTiers';
 import { getEffectiveAthleteIdFromRequest } from '../../lib/auth/requireAthlete.js';
 
 // Server-side routes cannot use the anon client: it carries no Supabase
@@ -100,11 +101,14 @@ export default async function handler(req, res) {
     ]);
 
     const altitudeSummary = summarizeAltitude(streams?.altitude?.data || []);
+    const analysisAllowed = hasFeature(athlete, 'steady_state_analysis');
     let analysis = null;
-    try {
-      analysis = analyzeSteadyState(streams, settingsRes?.data || {}, { sport: activity.sport_type || activity.type });
-    } catch {
-      analysis = null; // analysis is best-effort; never break the detail payload
+    if (analysisAllowed) {
+      try {
+        analysis = analyzeSteadyState(streams, settingsRes?.data || {}, { sport: activity.sport_type || activity.type });
+      } catch {
+        analysis = null; // analysis is best-effort; never break the detail payload
+      }
     }
     const response = {
       id: activity.id,
@@ -117,6 +121,7 @@ export default async function handler(req, res) {
       elev_low_ft: activity.elev_low ? Math.round(activity.elev_low * 3.28084) : null,
       ...altitudeSummary,
       analysis,
+      analysis_locked: !analysisAllowed,
     };
 
     res.status(200).json({ activity: response });

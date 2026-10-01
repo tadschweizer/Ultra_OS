@@ -1,6 +1,6 @@
 import { randomBytes } from 'crypto';
 import { normalizeProtocolPayload, inferLegacyScores } from './interventionCatalog.js';
-import { SUBSCRIPTION_TIERS } from './subscriptionTiers.js';
+import { isKnownTier } from './subscriptionTiers.js';
 import { isEntitledSubscriptionStatus } from './billingPlans.js';
 
 /**
@@ -16,9 +16,7 @@ export const DEMO_ATHLETE_NAME = 'Demo Athlete';
 
 const DAY_MS = 86400000;
 
-export function isKnownTier(tier) {
-  return typeof tier === 'string' && tier in SUBSCRIPTION_TIERS;
-}
+export { isKnownTier };
 
 /**
  * Whether an admin may hand-set this athlete's subscription_tier. Accounts
