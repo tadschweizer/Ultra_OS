@@ -14,6 +14,8 @@ const withPWA = require('@ducanh2912/next-pwa').default({
 
 const nextConfig = {
   reactStrictMode: true,
+  // Keep the development badge from covering the first mobile navigation tab.
+  ...(process.env.PLAYWRIGHT_TEST === '1' ? { devIndicators: false } : {}),
 };
 
 const { setupDevPlatform } = process.env.NODE_ENV === 'development'

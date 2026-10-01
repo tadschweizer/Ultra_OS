@@ -95,6 +95,9 @@ export default function OnboardingPage() {
   const [role, setRole] = useState('individual');
   const [roleInitialized, setRoleInitialized] = useState(false);
   const [roleError, setRoleError] = useState('');
+  const [formError, setFormError] = useState('');
+  const [stravaAvailable, setStravaAvailable] = useState(false);
+  const [stravaConnected, setStravaConnected] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -118,6 +121,13 @@ export default function OnboardingPage() {
 
   const steps = useMemo(() => stepsForRole(role), [role]);
   const currentStep = steps[Math.min(stepIndex, steps.length - 1)];
+
+  useEffect(() => {
+    fetch('/api/integrations/status').then((res) => res.ok ? res.json() : {})
+      .then((data) => setStravaAvailable(data.strava === true)).catch(() => {});
+    fetch('/api/me').then((res) => res.ok ? res.json() : {})
+      .then((data) => setStravaConnected(Boolean(data.athlete?.strava_id))).catch(() => {});
+  }, []);
 
   useEffect(() => {
     async function loadOnboarding() {
@@ -356,19 +366,19 @@ export default function OnboardingPage() {
           <p className="text-sm uppercase tracking-[0.35em] text-accent">Your coach</p>
           <h1 className="font-display mt-4 text-5xl leading-tight md:text-7xl">Connect to your coach.</h1>
           <p className="mt-6 max-w-2xl text-base leading-8 text-ink/76">
-            Enter the coach code your coach shared with you. Once connected, your logs, check-ins, and race prep show up on their dashboard automatically.
+            Enter the coach code your coach shared with you. Your coach must approve the request before your training appears on their dashboard. You can manage requests in Account Settings → Coach Connection.
           </p>
         </div>
 
         <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
           {coachConnection ? (
             <div className="rounded-[24px] bg-paper p-5">
-              <p className="text-sm uppercase tracking-[0.22em] text-accent">Connected</p>
+              <p className="text-sm uppercase tracking-[0.22em] text-accent">{coachConnection.status === 'active' ? 'Connected' : 'Request sent'}</p>
               <p className="mt-3 text-xl font-semibold text-ink">
                 {coachConnection.coach?.display_name || 'Your coach'}
               </p>
               <p className="mt-2 text-sm text-ink/68">
-                You&apos;re on the roster. Continue to set up your race and training profile.
+                {coachConnection.status === 'active' ? 'Your coach connection is active.' : 'Waiting for your coach to approve your request.'} Continue to set up your race and training profile.
               </p>
             </div>
           ) : (
@@ -402,7 +412,7 @@ export default function OnboardingPage() {
                 I&apos;ll connect later
               </button>
               <p className="mt-3 text-center text-xs text-ink/40">
-                No code yet? Ask your coach, or connect any time from Settings.
+                No code yet? Ask your coach, or use <a href="/account#coach-connection" className="underline">Account Settings → Coach Connection</a> later.
               </p>
             </>
           )}
@@ -461,6 +471,8 @@ export default function OnboardingPage() {
               type="button"
               onClick={() => {
                 setForm((current) => ({ ...current, target_race_id: '', target_race: null }));
+                setManualRace(false);
+                setFormError('');
                 setStepIndex((current) => current + 1);
               }}
               className="text-sm font-semibold text-ink/62"
@@ -634,7 +646,7 @@ export default function OnboardingPage() {
         </div>
 
         <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-          {router.query.strava === 'connected' ? (
+          {stravaConnected ? (
             <div className="rounded-[24px] bg-paper p-5">
               <p className="text-sm uppercase tracking-[0.22em] text-accent">Connected</p>
               <p className="mt-3 text-xl font-semibold text-ink">{stravaName || 'Strava connected'}</p>
@@ -643,7 +655,7 @@ export default function OnboardingPage() {
           ) : null}
 
           <div className="mt-5 space-y-3">
-            <a
+            {stravaAvailable ? <a
               href={`/api/strava/login?next=${encodeURIComponent(safePostAuthPath(
                 typeof router.query.next === 'string' ? router.query.next : '',
                 ''
@@ -651,10 +663,11 @@ export default function OnboardingPage() {
               className="inline-flex w-full items-center justify-center rounded-full bg-panel px-6 py-3 text-sm font-semibold text-paper"
             >
               Connect Strava
-            </a>
+            </a> : <p className="text-sm text-ink/68">Strava connection is currently unavailable. Continue setup and log training manually.</p>}
             <button
               type="button"
               onClick={() => completeOnboarding()}
+              disabled={saving}
               className="w-full rounded-full border border-ink/10 bg-paper px-6 py-3 text-sm font-semibold text-ink transition hover:bg-white"
             >
               Skip — I&apos;ll connect later
@@ -667,7 +680,9 @@ export default function OnboardingPage() {
   };
 
   async function saveProgress(onboardingComplete = false) {
+    if (saving) return false;
     setSaving(true);
+    setFormError('');
     const payload = {
       onboarding_complete: onboardingComplete,
       primary_sports: form.primary_sports,
@@ -678,29 +693,40 @@ export default function OnboardingPage() {
       target_race_id: form.target_race_id || null,
       role,
     };
-    const res = await fetch('/api/onboarding', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    setSaving(false);
-    return res.ok;
+    try {
+      const res = await fetch('/api/onboarding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        setFormError('We could not save your setup. Your answers are still here; please try again.');
+      }
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.targetRace?.id) setForm((current) => ({ ...current, target_race_id: data.targetRace.id }));
+      return res.ok;
+    } catch {
+      setFormError('We could not save your setup. Check your connection and try again.');
+      return false;
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function nextFromRace() {
-    if (manualRace && form.target_race && (!form.target_race.name || !form.target_race.event_date || !form.target_race.distance_miles || !form.target_race.location)) {
+    if (manualRace && (!form.target_race?.name?.trim() || !form.target_race?.event_date || !(Number(form.target_race?.distance_miles) > 0) || !form.target_race?.location?.trim())) {
+      setFormError('Enter your race name, date, distance greater than zero, and location, or choose “I’ll add my race later”.');
       return;
     }
-    await saveProgress(false);
-    setStepIndex((current) => current + 1);
+    if (await saveProgress(false)) setStepIndex((current) => current + 1);
   }
 
   async function nextFromSport() {
     if (!form.primary_sports.length || !form.years_racing_band || !form.weekly_training_hours_band) {
+      setFormError('Choose at least one sport, your years racing, and your weekly training hours to continue.');
       return;
     }
-    await saveProgress(false);
-    setStepIndex((current) => current + 1);
+    if (await saveProgress(false)) setStepIndex((current) => current + 1);
   }
 
   async function completeOnboarding() {
@@ -715,13 +741,13 @@ export default function OnboardingPage() {
   }
 
   useEffect(() => {
-    if (router.query.strava === 'connected' && !loading && roleInitialized) {
+    if (router.query.strava === 'connected' && stravaConnected && !loading && roleInitialized) {
       const timeoutId = setTimeout(() => {
         completeOnboarding();
       }, 1200);
       return () => clearTimeout(timeoutId);
     }
-  }, [router.query.strava, loading, roleInitialized]);
+  }, [router.query.strava, stravaConnected, loading, roleInitialized]);
 
   if (loading || !roleInitialized) {
     return <div className="flex min-h-screen items-center justify-center bg-paper text-ink">Loading...</div>;
@@ -749,6 +775,7 @@ export default function OnboardingPage() {
             </div>
           </div>
 
+          {formError && <p role="alert" className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{formError}</p>}
           <div className="mt-8 flex items-center justify-between">
             <button
               type="button"

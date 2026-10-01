@@ -1,4 +1,4 @@
-import { ConnectorClient } from './connectorClient';
+import { ConnectorClient } from './connectorClient.js';
 
 const connectorMap = {
   oura: new ConnectorClient({
