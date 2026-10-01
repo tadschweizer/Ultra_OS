@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
 Last updated: 2026-10-01<br>
-Status: P0-007/008/009 locally implemented and verified; approved live QA confirms login/linking/check-in, but messaging and dashboard schema failures block full acceptance<br>
+Status: P0-010A billing review/request safety locally implemented and verified; Stripe sandbox acceptance and P0-010B webhook hardening remain open. Earlier pilot live/schema acceptance gates remain open.<br>
 Current milestone: M0 — make the closed coach pilot work end to end<br>
-Next item: Review P0-007/008/009 in [draft PR #125](https://github.com/tadschweizer/Ultra_OS/pull/125), implementation `0441c6b`; prepare a targeted repair for the live missing coach_messages/coach_shared_docs tables and obsolete target_race query before full coach-path acceptance. Use the approved QA pair in `QA_ACCOUNTS.md` for repeatable logins; retain P0-006 human 30-second timing and earlier real-user gates. Production release/schema changes need separate authorization.
+Next item: Continue P0-010 with P0-010B webhook replay/order, retry safety and asynchronous-payment tests; then verify the P0-010A hosted confirmation flow in an isolated Stripe sandbox before release. See `P0_010_BILLING_VERIFICATION.md`. PR #125 is now merged (`4ae8cdf`); its pilot live/schema gates, P0-006 human timing and earlier real-user acceptance remain open. Production release/schema/configuration changes need separate authorization.
 
 ## Purpose
 
@@ -218,6 +218,15 @@ athlete, and use the experience on a phone without Tad or an administrator repai
   - Incomplete onboarding fields display an actionable error.
 
 - [ ] **P0-010 — Fix high-risk billing behavior before any pilot touches billing**
+  - October 1 P0-010A local checkpoint: read-only billing review; protected JSON POST for checkout,
+    portal and sync; signed expiring price/account/subscription reviews; Stripe hosted explicit
+    plan-change confirmation; idempotent checkout/customer creation and unfinished-checkout reuse;
+    safe errors; current-session/checkout ownership and paid-state enforcement. Existing subscriptions
+    are never updated or granted a new tier by selecting a pricing link. Full regression 311/311,
+    production build and billing desktop/mobile journeys 10/10 pass. See
+    `P0_010_BILLING_VERIFICATION.md` for evidence and release gates. Sandbox acceptance remains open.
+  - Next slice P0-010B: durable webhook deduplication, replay/order reconciliation, retryable database
+    failures and asynchronous-payment tests. Existing webhook behavior is not yet release-verified.
   - Subscription mutations use `POST`, not `GET`.
   - Add origin/CSRF protection appropriate to the session architecture.
   - Plan changes show price/proration impact and require explicit confirmation.

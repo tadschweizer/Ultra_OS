@@ -23,9 +23,13 @@ jobs:
         run: npm run test:auth:smoke
       - name: Run integration availability checks
         run: npm run test:integrations
+      - name: Run billing security and confirmation checks
+        run: npm run test:billing
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Run coach invitation browser journey
         run: npm run test:e2e:coach-invitations
       - name: Run pilot mobile and onboarding journeys
         run: npm run test:e2e:pilot-ux
+      - name: Run billing review on desktop and mobile
+        run: npm run test:e2e:billing

@@ -1,3 +1,3 @@
 import { createBillingFlowHandler } from '../../../lib/billingFlow.js';
 
-export default createBillingFlowHandler('checkout');
+export default createBillingFlowHandler('preview');

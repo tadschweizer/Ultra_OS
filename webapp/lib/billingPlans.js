@@ -35,7 +35,7 @@ export const BILLING_PLANS = {
 };
 
 export function getBillingPlan(planId) {
-  return BILLING_PLANS[planId] || null;
+  return Object.hasOwn(BILLING_PLANS, planId) ? BILLING_PLANS[planId] : null;
 }
 
 /**
@@ -88,13 +88,11 @@ export function isEntitledSubscriptionStatus(status) {
 }
 
 /**
- * Resolve the tier for a Stripe subscription object, preferring the metadata
- * written at checkout and falling back to price-id lookup.
+ * Resolve the current price rather than checkout-time metadata, which can be
+ * stale after a customer confirms a plan change in Stripe's portal.
  */
 export function getTierFromSubscription(subscription) {
   if (!subscription) return 'free';
-  const metadataTier = subscription.metadata?.subscription_tier;
-  if (metadataTier) return metadataTier;
   const priceId = subscription.items?.data?.[0]?.price?.id || null;
   return getTierFromPriceId(priceId);
 }

@@ -32,6 +32,7 @@ export default function MyApp({ Component, pageProps }) {
     '/guide': 'Guide',
     '/pricing': 'Pricing',
     '/account': 'Account Settings',
+    '/billing/checkout': 'Review Billing',
     '/settings': 'Athlete Settings',
     '/notifications': 'Notifications',
     '/onboarding': 'Onboarding',

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
 import { createClient } from '@supabase/supabase-js';
@@ -22,6 +22,10 @@ export default function AccountPage() {
   const [coachMessage, setCoachMessage] = useState('');
   const [loggingOut, setLoggingOut] = useState(false);
   const [billingMessage, setBillingMessage] = useState('');
+  const [billingBusy, setBillingBusy] = useState(false);
+  const portalOpening = useRef(false);
+  const billingSyncing = useRef(false);
+  const [syncBusy, setSyncBusy] = useState(false);
   const [athlete, setAthlete] = useState(() => cachedMe?.athlete || null);
   const [account, setAccount] = useState(() => cachedMe?.account || null);
   const navLinks = [
@@ -60,17 +64,15 @@ export default function AccountPage() {
     const sessionId = params.get('session_id');
     const pendingCheckoutSession = document.cookie.match(/pending_checkout_session_id=([^;]+)/)?.[1];
 
-    if (checkoutStatus === 'updated') {
-      // Plan was switched in place on an existing subscription.
+    if (checkoutStatus === 'updated' || checkoutStatus === 'returned') {
       clearMe();
-      setBillingMessage('Your plan has been updated.');
-      syncBilling(null, { userVisible: false });
+      syncBilling(null, { userVisible: true });
     } else if (checkoutStatus === 'success' && sessionId) {
       syncBilling(sessionId, { userVisible: true });
     } else if (pendingCheckoutSession) {
-      syncBilling(null, { userVisible: false });
+      syncBilling(decodeURIComponent(pendingCheckoutSession), { userVisible: false });
     } else if (checkoutStatus === 'success') {
-      setBillingMessage('Payment succeeded. We are finalizing your plan now.');
+      setBillingMessage('Checking your payment status. Refresh billing if your plan has not appeared yet.');
     }
   }, []);
 
@@ -117,7 +119,29 @@ export default function AccountPage() {
     window.location.href = '/';
   }
 
+  async function openBillingPortal() {
+    if (portalOpening.current) return;
+    portalOpening.current = true;
+    setBillingBusy(true);
+    setBillingMessage('');
+    try {
+      const res = await fetch('/api/billing/portal', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Unable to open billing.');
+      window.location.assign(data.url);
+    } catch (error) {
+      setBillingMessage(error.message || 'Unable to open billing. Please try again.');
+      portalOpening.current = false;
+      setBillingBusy(false);
+    }
+  }
+
   async function syncBilling(sessionId = null, { userVisible = true } = {}) {
+    if (billingSyncing.current) return;
+    billingSyncing.current = true;
+    setSyncBusy(true);
     if (userVisible) {
       setBillingMessage(sessionId
         ? 'Confirming your purchase with Stripe and updating your account...'
@@ -161,6 +185,8 @@ export default function AccountPage() {
         setBillingMessage('Could not reach Stripe to refresh billing status.');
       }
     } finally {
+      billingSyncing.current = false;
+      setSyncBusy(false);
     }
   }
 
@@ -215,10 +241,13 @@ export default function AccountPage() {
               View Pricing
             </a>
             {planId !== 'free' ? (
-              <a href="/api/billing/portal" className="mt-3 inline-flex rounded-full border border-ink/10 px-5 py-3 text-sm font-semibold text-ink">
-                Manage Billing
-              </a>
+              <button type="button" disabled={billingBusy} onClick={openBillingPortal} className="mt-3 inline-flex rounded-full border border-ink/10 px-5 py-3 text-sm font-semibold text-ink disabled:opacity-60">
+                {billingBusy ? 'Opening billing…' : 'Manage Billing'}
+              </button>
             ) : null}
+            <button type="button" disabled={syncBusy} onClick={() => syncBilling()} className="mt-3 inline-flex rounded-full border border-ink/10 px-5 py-3 text-sm font-semibold text-ink disabled:opacity-60">
+              {syncBusy ? 'Refreshing billing…' : 'Refresh billing status'}
+            </button>
             {planId === 'coach' && account && !account.capabilities?.coach ? (
               <button
                 type="button"
