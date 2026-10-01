@@ -25,7 +25,16 @@ function harness({ existing = false, signedIn = true } = {}) {
   const calls = [];
   const account = { id: 'athlete-1', email: 'athlete@example.test', stripe_customer_id: 'cus_1', stripe_subscription_id: existing ? 'sub_1' : null };
   const state = { sub: existing ? subscription() : null, price: price(), open: [], dbError: null, fail: null, now: fixedNow };
-  const client = { from() { return { update(values) { calls.push(['write', values]); if (!state.dbError) Object.assign(account, values); return this; },
+  const client = { async rpc(name, args) {
+    if (name === 'claim_billing_webhook') return { data: { lease_token: 'lease_1' }, error: null };
+    if (name === 'finish_billing_webhook') {
+      const snapshot = args.p_snapshot;
+      const values = { subscription_tier: snapshot.tier, stripe_subscription_status: snapshot.status };
+      calls.push(['write', values]);
+      if (!state.dbError) Object.assign(account, values);
+    }
+    return { data: null, error: state.dbError };
+  }, from() { return { update(values) { calls.push(['write', values]); if (!state.dbError) Object.assign(account, values); return this; },
     select() { return this; }, eq() { return this; }, is() { return this; },
     async single() { return { data: account, error: state.dbError }; },
     async maybeSingle() { return { data: account, error: state.dbError }; } }; } };

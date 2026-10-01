@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
 Last updated: 2026-10-01<br>
-Status: P0-010A billing review/request safety locally implemented and verified; Stripe sandbox acceptance and P0-010B webhook hardening remain open. Earlier pilot live/schema acceptance gates remain open.<br>
+Status: P0-010–012 local billing reconciliation, trust/account controls and critical-path CI batch implemented; isolated provider/schema, legal publication and real-phone acceptance gates remain open. Earlier pilot live/schema gates remain open.<br>
 Current milestone: M0 — make the closed coach pilot work end to end<br>
-Next item: Review P0-010A in [draft PR #127](https://github.com/tadschweizer/Ultra_OS/pull/127), code `5392ffd`; continue P0-010B webhook replay/order, retry safety and asynchronous-payment tests, then verify hosted confirmation in an isolated Stripe sandbox before release. See `P0_010_BILLING_VERIFICATION.md`. PR #125 is merged (`4ae8cdf`); its pilot live/schema gates, P0-006 human timing and earlier real-user acceptance remain open. Production release/schema/configuration changes need separate authorization.
+Next item: Review the expanded [draft PR #127](https://github.com/tadschweizer/Ultra_OS/pull/127), then verify the specific billing migration via isolated Supabase/PostgREST and real Stripe sandbox confirmation/invoices before release. Supply the legal operator identity and review public trust copy; verify populated-account export/deletion and the isolated demo/phone loop. See `P0_010_012_EXECUTION.md` and `STAGING_AND_CRITICAL_PATH_VERIFICATION.md`. PR #125 is merged (`4ae8cdf`); its pilot live/schema gates, P0-006 human timing and earlier real-user acceptance remain open. The prior paid-staging cost restriction remains. Production release/schema/configuration changes need separate authorization.
 
 ## Purpose
 
@@ -226,8 +226,11 @@ athlete, and use the experience on a phone without Tad or an administrator repai
     production build and billing desktop/mobile journeys 10/10 pass. See
     `P0_010_BILLING_VERIFICATION.md` for evidence and release gates. Sandbox acceptance remains open.
     Review: [draft PR #127](https://github.com/tadschweizer/Ultra_OS/pull/127), code `5392ffd`.
-  - Next slice P0-010B: durable webhook deduplication, replay/order reconciliation, retryable database
-    failures and asynchronous-payment tests. Existing webhook behavior is not yet release-verified.
+  - October 1 P0-010B local checkpoint: durable service-role-only receipts and customer leases,
+    current-state webhook/sync reconciliation, atomic owner-fenced writes, retryable provider/database
+    failures and asynchronous-payment tests. Actual PostgreSQL migration and signed-handler integration
+    pass locally. Apply the specific migration before releasing the handlers. Isolated Supabase and
+    real Stripe hosted acceptance remain open; see `P0_010_012_EXECUTION.md` in draft PR #127.
   - Subscription mutations use `POST`, not `GET`.
   - Add origin/CSRF protection appropriate to the session architecture.
   - Plan changes show price/proration impact and require explicit confirmation.
@@ -235,11 +238,22 @@ athlete, and use the experience on a phone without Tad or an administrator repai
   - Tests cover upgrade, downgrade, repeat submission, failed payment, and webhook replay/order.
 
 - [ ] **P0-011 — Publish minimum trust and support surfaces**
+  - October 1 local checkpoint: public Privacy/Terms/Support pages, user-provided support email,
+    coach-sharing/cancellation copy, protected paginated personal archive, typed revocable-session
+    deletion with billing failure stop, and Strava attribution. Desktop/mobile, keyboard and axe
+    smoke checks pass. Legal operator identity/review and populated staging cleanup acceptance,
+    including storage/provider/backup limits, remain open. See `P0_010_012_EXECUTION.md`.
   - Privacy policy, terms, support contact, cancellation language, data export, and account deletion.
   - Explain what athlete data an attached coach can see.
   - Add required Strava attribution wherever Strava data is displayed.
 
 - [ ] **P0-012 — Establish staging and critical-path tests**
+  - October 1 local checkpoint: CI now gates full regression, integration checks, production build,
+    desktop/mobile critical journeys and axe smoke. Messaging tests cover both roles, reload and
+    draft-preserving retry. Demo writes require opt-in/exact isolated target and reject production.
+    A safe staging template and beginner-friendly repeatable script are in
+    `STAGING_AND_CRITICAL_PATH_VERIFICATION.md`. Actual isolated provisioning/seed, full Supabase
+    migration-chain checks and actual-phone acceptance remain open; no paid branch was created.
   - Isolated Vercel preview/staging, Supabase staging, Stripe test mode, and test email/OAuth config.
   - CI runs build, unit/regression tests, browser E2E, and accessibility smoke tests.
   - Seed the existing demo coach/athlete dataset from `lib/adminDemo.js` safely in staging.
@@ -642,6 +656,14 @@ accounts are unavailable; the previous INACTIVE observation below is historical.
 | 2026-09-28 | Do not add a Sentry alert rule or uptime monitor | Owner declined; keep the readiness check manual for the closed pilot |
 
 ## Progress log
+
+October 1 expanded checkpoint: [draft PR #127](https://github.com/tadschweizer/Ultra_OS/pull/127)
+now includes P0-010B, P0-011 local account/trust controls and P0-012 CI/demo safeguards. Node 22
+regression **346/346**, integration checks **4/4**, production build and final critical browser suite
+**75 passed / 3 intentional viewport skips** pass. Eight actual PostgreSQL cases include signed
+handler/RPC integration; browser checks include axe and keyboard cancellation. Evidence and remaining
+external gates: `P0_010_012_EXECUTION.md`. No production service writes, hosted staging provisioning
+or paid branch creation. Parent items remain unchecked.
 
 Add one row when an item is verified. Do not use this table for code that has not passed its exit
 criteria.

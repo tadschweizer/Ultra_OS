@@ -10,9 +10,13 @@ export function billingSiteUrl() {
 }
 
 export function requireBillingPost(req, res) {
+  return requireSameOriginJson(req, res, 'POST', 'Please open billing from your Threshold account.');
+}
+
+export function requireSameOriginJson(req, res, method = 'POST', message = 'Please open this action from your Threshold account.') {
   res.setHeader('Cache-Control', 'no-store');
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
+  if (req.method !== method) {
+    res.setHeader('Allow', method);
     res.status(405).json({ error: 'Method not allowed.' });
     return false;
   }
@@ -21,7 +25,7 @@ export function requireBillingPost(req, res) {
     ? ['http://127.0.0.1:3000', 'http://localhost:3000'] : [];
   if (typeof origin !== 'string' || ![billingSiteUrl(), ...localOrigins].includes(origin)
       || req.headers['sec-fetch-site'] === 'cross-site') {
-    res.status(403).json({ error: 'Please open billing from your Threshold account.' });
+    res.status(403).json({ error: message });
     return false;
   }
   if (String(req.headers['content-type'] || '').split(';')[0].trim().toLowerCase() !== 'application/json') {

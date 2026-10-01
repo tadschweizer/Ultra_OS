@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import { usePlan } from '../lib/planUtils';
 import { clearMe, fetchMe, getCachedMe } from '../lib/meClient';
 import SecuritySection from '../components/SecuritySection';
+import AccountDataSection from '../components/AccountDataSection';
 
 function getSupabaseClient() {
   return createClient(
@@ -282,6 +283,7 @@ export default function AccountPage() {
         </section>
 
         <SecuritySection athlete={athlete} />
+        <AccountDataSection />
 
         <section id="coach-connection" className="mt-6 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
           <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">

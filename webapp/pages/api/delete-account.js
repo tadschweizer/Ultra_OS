@@ -1,13 +1,14 @@
-import { getSupabaseAdminClient } from '../../lib/authServer.js';
+import { getAthleteByCookie, getSupabaseAdminClient } from '../../lib/authServer.js';
 import { getStripeClient } from '../../lib/stripeServer.js';
 import { clearAthleteCookie, getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
+import { requireSameOriginJson } from '../../lib/billingSecurity.js';
 
 /**
  * DELETE /api/delete-account
  *
- * Permanently deletes the authenticated athlete's account and all
- * associated data: every athlete-owned table, the Supabase auth user,
- * and the Stripe customer/subscription. Clears the session cookie.
+ * Removes the authenticated athlete's account and the records covered by
+ * this cleanup/cascade workflow. Stops linked billing first and reports
+ * partial external sign-in cleanup. Storage objects/backups are separate.
  *
  * Requires a confirmation body: { confirm: 'DELETE MY ACCOUNT' }
  *
@@ -36,7 +37,9 @@ function isMissingSchemaError(error) {
   return /does not exist/i.test(error?.message || '');
 }
 
-export default async function handler(req, res) {
+export function createDeleteAccountHandler({ getClient = getSupabaseAdminClient, getAthlete = getAthleteByCookie, getStripe = getStripeClient } = {}) {
+return async function handler(req, res) {
+  res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'DELETE') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -51,7 +54,15 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Confirmation text did not match.' });
   }
 
-  const admin = getSupabaseAdminClient();
+  let admin;
+  let authenticated;
+  try {
+    if (!requireSameOriginJson(req, res, 'DELETE')) return;
+    admin = getClient();
+    authenticated = await getAthlete(req, admin);
+  }
+  catch { return res.status(503).json({ error: 'Could not verify your account. Please retry.' }); }
+  if (!authenticated || authenticated.id !== athleteId) return res.status(401).json({ error: 'Please log in again before deleting your account.' });
 
   // Capture identity links before the row disappears.
   const { data: athlete, error: athleteLookupError } = await admin
@@ -61,7 +72,7 @@ export default async function handler(req, res) {
     .maybeSingle();
 
   if (athleteLookupError) {
-    return res.status(500).json({ error: athleteLookupError.message });
+    return res.status(503).json({ error: 'Could not verify your account. Please retry.' });
   }
   if (!athlete) {
     clearAthleteCookie(res);
@@ -69,16 +80,17 @@ export default async function handler(req, res) {
   }
 
   // 1. Stripe: cancel subscriptions and delete the customer so billing
-  // stops. Best-effort — data deletion proceeds even if Stripe fails.
+  // stops. Never delete the account while continuing to bill its owner.
   let stripeCleanup = 'skipped';
   if (athlete.stripe_customer_id) {
     try {
-      const stripe = getStripeClient();
+      const stripe = getStripe();
       const subscriptions = await stripe.subscriptions.list({
         customer: athlete.stripe_customer_id,
         status: 'all',
         limit: 100,
       });
+      if (subscriptions.has_more) throw new Error('Incomplete subscription lookup');
       for (const sub of subscriptions.data) {
         if (sub.status !== 'canceled' && sub.status !== 'incomplete_expired') {
           await stripe.subscriptions.cancel(sub.id);
@@ -87,8 +99,12 @@ export default async function handler(req, res) {
       await stripe.customers.del(athlete.stripe_customer_id);
       stripeCleanup = 'done';
     } catch (stripeError) {
-      console.error('[delete-account] Stripe cleanup failed:', stripeError?.message || stripeError);
-      stripeCleanup = 'failed';
+      if (stripeError?.code === 'resource_missing' && stripeError?.param === 'customer') {
+        stripeCleanup = 'done';
+      } else {
+        console.error('[delete-account] Stripe cleanup failed:', { code: stripeError?.code });
+        return res.status(503).json({ error: 'We could not stop billing, so your account has not been deleted. Retry or contact support.' });
+      }
     }
   }
 
@@ -97,8 +113,8 @@ export default async function handler(req, res) {
   for (const column of ['created_by', 'used_by']) {
     const { error } = await admin.from('invites').update({ [column]: null }).eq(column, athleteId);
     if (error && !isMissingSchemaError(error)) {
-      console.error(`[delete-account] Failed clearing invites.${column}:`, error.message);
-      return res.status(500).json({ error: `Failed to detach invites: ${error.message}` });
+      console.error(`[delete-account] Failed clearing invites.${column}:`, { code: error.code });
+      return res.status(503).json({ error: 'Could not finish account deletion. Please retry or contact support.' });
     }
   }
 
@@ -106,8 +122,8 @@ export default async function handler(req, res) {
   for (const [table, column] of ORPHAN_DELETIONS) {
     const { error } = await admin.from(table).delete().eq(column, athleteId);
     if (error && !isMissingSchemaError(error)) {
-      console.error(`[delete-account] Error deleting from ${table}:`, error.message);
-      return res.status(500).json({ error: `Failed to delete data from ${table}: ${error.message}` });
+      console.error(`[delete-account] Error deleting from ${table}:`, { code: error.code });
+      return res.status(503).json({ error: 'Could not finish account deletion. Please retry or contact support.' });
     }
   }
 
@@ -117,8 +133,8 @@ export default async function handler(req, res) {
   // with all coach-owned rows.
   const { error: athleteError } = await admin.from('athletes').delete().eq('id', athleteId);
   if (athleteError) {
-    console.error('[delete-account] Error deleting athlete:', athleteError.message);
-    return res.status(500).json({ error: `Failed to delete account: ${athleteError.message}` });
+    console.error('[delete-account] Error deleting athlete:', { code: athleteError.code });
+    return res.status(503).json({ error: 'Could not finish account deletion. Please contact support.' });
   }
 
   // 5. Supabase auth user (email/Google logins). Best-effort: the data is
@@ -130,7 +146,7 @@ export default async function handler(req, res) {
       if (authError) throw authError;
       authCleanup = 'done';
     } catch (authDeleteError) {
-      console.error('[delete-account] Auth user deletion failed:', authDeleteError?.message || authDeleteError);
+      console.error('[delete-account] Auth user deletion failed:', { code: authDeleteError?.code });
       authCleanup = 'failed';
     }
   }
@@ -142,4 +158,7 @@ export default async function handler(req, res) {
     stripe_cleanup: stripeCleanup,
     auth_cleanup: authCleanup,
   });
+};
 }
+
+export default createDeleteAccountHandler();

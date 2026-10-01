@@ -64,9 +64,9 @@ export default function BillingReviewPage() {
   }
 
   return <main className="mx-auto max-w-2xl px-4 py-8 md:py-14">
-    <a href="/pricing" className="text-sm font-semibold text-accent">← Back to pricing</a>
+    <a href="/pricing" className="text-sm font-semibold text-ink">← Back to pricing</a>
     <section className="mt-6 rounded-[30px] border border-ink/10 bg-white p-6 shadow-sm md:p-10">
-      <p className="text-xs uppercase tracking-[0.2em] text-accent">Billing review</p>
+      <p className="text-xs uppercase tracking-[0.2em] text-ink">Billing review</p>
       <h1 className="font-display mt-3 text-3xl md:text-5xl">{review?.samePlan ? 'You already have this plan' : 'Review your plan'}</h1>
       {loading && <p role="status" className="mt-6 text-ink/70">Loading your current billing details…</p>}
       {router.query.cancelled && <p role="status" className="mt-4 text-ink/70">Checkout was cancelled. You can review the plan again when you’re ready.</p>}
@@ -87,9 +87,9 @@ export default function BillingReviewPage() {
         </button>
       </>}
       {error && <div className="mt-5"><p role="alert" className="text-sm leading-6 text-red-700">{error}</p>
-        {!review && <button className="mt-3 min-h-11 font-semibold text-accent" onClick={() => setRefresh(n => n + 1)}>Review billing again</button>}
+        {!review && <button className="mt-3 min-h-11 font-semibold text-ink" onClick={() => setRefresh(n => n + 1)}>Review billing again</button>}
       </div>}
-      <p className="mt-5 text-center text-xs leading-6 text-ink/55">Secure payment and subscription management by Stripe.</p>
+      <p className="mt-5 text-center text-xs leading-6 text-ink/70">Secure payment and subscription management by Stripe.</p>
     </section>
   </main>;
 }

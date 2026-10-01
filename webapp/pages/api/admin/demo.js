@@ -1,6 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { requireAdminAthleteId } from '../../../lib/auth/requireAthlete.js';
-import { generateCoachCode } from '../../../lib/coachProtocols';
+import { canSeedDemo } from '../../../lib/stagingSafety.js';
+import { requireSameOriginJson } from '../../../lib/billingSecurity.js';
+import { generateCoachCode } from '../../../lib/coachProtocols.js';
 import {
   DEMO_ATHLETE_EMAIL,
   DEMO_ATHLETE_NAME,
@@ -101,6 +103,7 @@ async function createDemoAccount(supabase, { email, name, password, tier }) {
       email,
       supabase_user_id: authData.user.id,
       subscription_tier: tier,
+      primary_role: tier === 'coach' ? 'coach' : 'athlete',
       subscription_activated_at: new Date().toISOString(),
       onboarding_complete: true,
       is_demo: true,
@@ -191,12 +194,18 @@ async function createDemoPair(supabase) {
   };
 }
 
-export default async function handler(req, res) {
-  const supabase = getAdminClient();
-  const adminId = await requireAdminAthleteId(req, res, supabase);
-  if (!adminId) return;
-
+export function createDemoHandler({ getClient = getAdminClient, authorize = requireAdminAthleteId, env = () => process.env } = {}) {
+return async function handler(req, res) {
+  res.setHeader('Cache-Control', 'no-store');
+  if (!['GET', 'POST', 'DELETE'].includes(req.method)) return res.status(405).json({ error: 'Method not allowed.' });
   try {
+    if (req.method !== 'GET') {
+      if (!requireSameOriginJson(req, res, req.method)) return;
+      if (!canSeedDemo(env())) return res.status(403).json({ error: 'Demo changes are enabled only in an explicitly configured isolated test environment.' });
+    }
+    const supabase = getClient();
+    const adminId = await authorize(req, res, supabase);
+    if (!adminId) return;
     if (req.method === 'GET') {
       const demoAthletes = await listDemoAthletes(supabase);
       return res.status(200).json({ exists: demoAthletes.length > 0, accounts: demoAthletes });
@@ -228,6 +237,8 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error) {
     console.error('[admin/demo]', error);
-    return res.status(500).json({ error: error.message || 'Demo setup failed' });
+    return res.status(503).json({ error: 'Demo setup failed. Please check the isolated environment and retry.' });
   }
+};
 }
+export default createDemoHandler();

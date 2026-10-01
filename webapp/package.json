@@ -20,9 +20,13 @@
     "test:e2e:roles": "playwright test e2e/role-aware-navigation.spec.mjs",
     "test:integrations": "node --test tests/integration-availability.test.mjs",
     "test:e2e:pilot-ux": "playwright test e2e/pilot-ux.spec.mjs",
-    "test:auth:full": "node --test tests/auth-smoke.test.mjs tests/auth-regression.test.mjs tests/auth-oauth-regression.test.mjs tests/auth-password-reset.test.mjs tests/role-access.test.mjs tests/research-admin.test.mjs tests/pilot-entitlements.test.mjs tests/billing-plans.test.mjs tests/billing-flow.test.mjs tests/coach-group-membership.test.mjs tests/coach-invitation-api.test.mjs tests/coach-invitation-migration.test.mjs tests/protocol-lifecycle.test.mjs tests/delete-account.test.mjs tests/workout-compliance.test.mjs tests/training-calculations.test.mjs tests/training-insights.test.mjs tests/coach-import-health.test.mjs tests/stream-analysis.test.mjs tests/admin-demo.test.mjs tests/activity-sync.test.mjs tests/workout-comments.test.mjs tests/readiness.test.mjs",
-    "test:billing": "node --test tests/billing-plans.test.mjs tests/billing-flow.test.mjs",
-    "test:e2e:billing": "playwright test e2e/billing-review.spec.mjs"
+    "test:auth:full": "node --test tests/auth-smoke.test.mjs tests/auth-regression.test.mjs tests/auth-oauth-regression.test.mjs tests/auth-password-reset.test.mjs tests/role-access.test.mjs tests/research-admin.test.mjs tests/pilot-entitlements.test.mjs tests/billing-plans.test.mjs tests/billing-flow.test.mjs tests/coach-group-membership.test.mjs tests/coach-invitation-api.test.mjs tests/coach-invitation-migration.test.mjs tests/protocol-lifecycle.test.mjs tests/delete-account.test.mjs tests/workout-compliance.test.mjs tests/training-calculations.test.mjs tests/training-insights.test.mjs tests/coach-import-health.test.mjs tests/stream-analysis.test.mjs tests/admin-demo.test.mjs tests/activity-sync.test.mjs tests/workout-comments.test.mjs tests/readiness.test.mjs tests/billing-webhook.test.mjs tests/billing-webhook-sql.test.mjs tests/account-data.test.mjs tests/staging-safety.test.mjs",
+    "test:billing": "node --test tests/billing-plans.test.mjs tests/billing-flow.test.mjs tests/billing-webhook.test.mjs tests/billing-webhook-sql.test.mjs",
+    "test:e2e:billing": "playwright test e2e/billing-review.spec.mjs",
+    "test:trust": "node --test tests/account-data.test.mjs tests/delete-account.test.mjs tests/staging-safety.test.mjs",
+    "test:e2e:trust": "playwright test e2e/trust-and-account.spec.mjs --workers=1",
+    "test:e2e:critical": "playwright test e2e/coach-invitation.spec.mjs e2e/role-aware-navigation.spec.mjs e2e/pilot-access.spec.mjs e2e/pilot-ux.spec.mjs e2e/billing-review.spec.mjs e2e/trust-and-account.spec.mjs e2e/messaging-critical.spec.mjs --workers=1",
+    "test:e2e:messages": "playwright test e2e/messaging-critical.spec.mjs --workers=1"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
@@ -43,8 +47,10 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@playwright/test": "^1.51.1",
+    "@axe-core/playwright": "^4.13.0",
     "@cloudflare/next-on-pages": "^1.13.16",
+    "@electric-sql/pglite": "^0.5.8",
+    "@playwright/test": "^1.51.1",
     "wrangler": "^4.80.0"
   }
 }

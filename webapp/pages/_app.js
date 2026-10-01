@@ -4,6 +4,8 @@ import { useRouter } from 'next/router';
 import AppShell from '../components/AppShell';
 import ImpersonationBanner from '../components/ImpersonationBanner';
 import OnboardingGate from '../components/OnboardingGate';
+import TrustLinks from '../components/TrustLinks';
+import StravaAttribution from '../components/StravaAttribution';
 
 
 /**
@@ -33,6 +35,9 @@ export default function MyApp({ Component, pageProps }) {
     '/pricing': 'Pricing',
     '/account': 'Account Settings',
     '/billing/checkout': 'Review Billing',
+    '/privacy': 'Privacy',
+    '/terms': 'Terms of Use',
+    '/support': 'Support',
     '/settings': 'Athlete Settings',
     '/notifications': 'Notifications',
     '/onboarding': 'Onboarding',
@@ -67,6 +72,8 @@ export default function MyApp({ Component, pageProps }) {
         <AppShell>
           <div className="ui-page">
             <Component {...pageProps} />
+            <TrustLinks />
+            <div className="pb-6 text-center"><StravaAttribution /></div>
           </div>
         </AppShell>
       </OnboardingGate>

@@ -75,7 +75,14 @@ npx --yes --package=node@22 -c "npm run test:e2e:billing"
 Run build and browser checks sequentially because they share Next.js output. Browser tests start
 and stop their own local server. No production billing, database or configuration writes were made.
 
-## Remaining P0-010 work and release gates
+## P0-010B continuation
+
+The later October 1 batch implements durable webhook receipts, current-state reconciliation,
+retryable failures, asynchronous-payment handling and shared sync/webhook leases. Its migration
+and signed-handler/PostgreSQL evidence are in `P0_010_012_EXECUTION.md`. The P0-010A results above
+remain historical evidence; the updated document controls the current release gates.
+
+## P0-010A handoff gates (historical; superseded by the continuation above)
 
 1. **P0-010B: webhook replay/order and retry safety.** The existing webhook still applies historical
    subscription snapshots, ignores database update errors, and reports processing failures as
