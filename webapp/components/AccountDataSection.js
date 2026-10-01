@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { clearMe } from '../lib/meClient';
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from '../lib/supportContact';
 
-export default function AccountDataSection() {
+export default function AccountDataSection({ onDeleted } = {}) {
   const [confirmation, setConfirmation] = useState('');
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState('');
@@ -39,6 +39,7 @@ export default function AccountDataSection() {
       setNotice(result.auth_cleanup === 'failed'
         ? 'Your Threshold training account was removed, but external sign-in cleanup needs help. Please email support.'
         : 'Your Threshold account was deleted and you are signed out.');
+      onDeleted?.(result);
     } catch (problem) { setError(problem.message || 'Deletion failed. Your confirmation is still here so you can retry.'); }
     finally { inFlight.current = false; setBusy(''); }
   }

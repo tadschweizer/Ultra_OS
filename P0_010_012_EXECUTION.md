@@ -32,7 +32,9 @@ excludes coach-only notes, other athletes, uploaded file contents and provider c
 Deletion checks the current revocable session and origin, requires `DELETE MY ACCOUNT`, and blocks
 all training deletion if linked billing cleanup fails. Provider/database errors are sanitized.
 The UI preserves typed confirmation on failure, offers cancellation, prevents simultaneous actions
-and reports partial external sign-in cleanup explicitly. Deletion uses the existing cascade/orphan
+and reports partial external sign-in cleanup explicitly. After success, old billing/security/coach
+controls are replaced by a result screen and the local provider sign-in session is cleared.
+Deletion uses the existing cascade/orphan
 workflow; it is not a global distributed transaction. Billing may already be cancelled if a later
 database step fails. Uploaded storage objects, provider copies, backups and partial auth cleanup
 need separate verification/operator handling. The privacy page does not promise immediate erasure

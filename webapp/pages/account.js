@@ -6,6 +6,7 @@ import { usePlan } from '../lib/planUtils';
 import { clearMe, fetchMe, getCachedMe } from '../lib/meClient';
 import SecuritySection from '../components/SecuritySection';
 import AccountDataSection from '../components/AccountDataSection';
+import { SUPPORT_EMAIL, SUPPORT_MAILTO } from '../lib/supportContact';
 
 function getSupabaseClient() {
   return createClient(
@@ -29,6 +30,7 @@ export default function AccountPage() {
   const [syncBusy, setSyncBusy] = useState(false);
   const [athlete, setAthlete] = useState(() => cachedMe?.athlete || null);
   const [account, setAccount] = useState(() => cachedMe?.account || null);
+  const [deletionResult, setDeletionResult] = useState(null);
   const navLinks = [
     { href: '/dashboard', label: 'Threshold Home' },
     { href: '/guide', label: 'Guide' },
@@ -207,6 +209,28 @@ export default function AccountPage() {
     }
   }
 
+  async function accountWasDeleted(result) {
+    setDeletionResult(result);
+    setAthlete(null);
+    setAccount(null);
+    setCoachConnections([]);
+    // Clear the browser's provider session as well as the server cookie/cache.
+    // Server auth cleanup may be partial; never let that hide the data result.
+    try { await getSupabaseClient().auth.signOut({ scope: 'local' }); }
+    catch { console.warn('[account] Local sign-in cleanup needs verification.'); }
+  }
+
+  if (deletionResult) return <main className="mx-auto max-w-2xl px-5 py-14">
+    <section aria-labelledby="your-data-heading" className="rounded-[30px] border border-ink/10 bg-white p-7">
+      <h1 id="your-data-heading" className="font-display text-4xl">Account deleted</h1>
+      <p role="status" className="mt-5 leading-8 text-ink">{deletionResult.auth_cleanup === 'failed'
+        ? 'Your Threshold training account was removed. External sign-in cleanup still needs help; please email support.'
+        : 'Your Threshold account was deleted and you are signed out.'}</p>
+      <p className="mt-4 leading-7 text-ink">Questions about retained or shared records? Email <a className="text-ink font-semibold underline" href={SUPPORT_MAILTO}>{SUPPORT_EMAIL}</a>.</p>
+      <a className="mt-6 inline-block text-ink font-semibold underline" href="/">Return to Threshold</a>
+    </section>
+  </main>;
+
   return (
     <main className="min-h-screen bg-paper px-4 py-6 text-ink">
       <div className="mx-auto max-w-6xl">
@@ -283,7 +307,7 @@ export default function AccountPage() {
         </section>
 
         <SecuritySection athlete={athlete} />
-        <AccountDataSection />
+        <AccountDataSection onDeleted={accountWasDeleted} />
 
         <section id="coach-connection" className="mt-6 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
           <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
