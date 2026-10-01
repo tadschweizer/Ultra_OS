@@ -109,6 +109,11 @@ the complete legacy migration chain, or real browser persistence.
 
 ## Required real-account acceptance (no-cost path, unchecked)
 
+October 1, 2026 exception: the owner explicitly approved the labeled Codex QA coach and athlete
+on production. See `QA_ACCOUNTS.md` for the authorized scope, private credential location,
+repeatable browser login command, and actual live failures. This does not authorize other
+synthetic production accounts, billing tests, research mutations, or schema/config changes.
+
 Hosted Supabase staging is deferred while additional spending is paused. Use local automated/database
 tests for forged, synthetic, expiry, and destructive cases. Use production only for normal activity by
 a specifically approved pilot coach and athletes. Never create synthetic production records or modify

@@ -116,6 +116,7 @@ export const protectedRoutes = [
   '/calendar',
   '/coach/training-calendar',
   '/coach/tools',
+  '/coach/groups',
   '/messages',
   '/races',
   '/race-plan',

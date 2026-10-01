@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
-Last updated: 2026-09-28<br>
-Status: Scoped research/pilot source and schema are active in production; paid staging is deferred and real-user acceptance remains open<br>
+Last updated: 2026-10-01<br>
+Status: P0-007/008/009 locally implemented and verified; approved live QA confirms login/linking/check-in, but messaging and dashboard schema failures block full acceptance<br>
 Current milestone: M0 — make the closed coach pilot work end to end<br>
-Next item: Run safe real-user acceptance by following `PILOT_ACCESS_RUNBOOK.md` with one approved pilot coach (confirm `NEXT_PUBLIC_SITE_URL` and admin access first) for P0-003, P0-013B, and P0-004/P0-005 during normal pilot enrollment; continue no-cost local M0 work while waiting: P0-006 real-athlete 30-second timing, then P0-007 coach mobile path.
+Next item: Review P0-007/008/009 on `feature/p0-007-009-mobile-onboarding`; prepare a targeted P0-013D repair for the live missing coach_messages/coach_shared_docs tables and obsolete target_race query before full coach-path acceptance. Use the approved QA pair in `QA_ACCOUNTS.md` for repeatable logins; retain P0-006 human 30-second timing and earlier real-user gates. Production release/schema changes need separate authorization.
 
 ## Purpose
 
@@ -187,17 +187,31 @@ athlete, and use the experience on a phone without Tad or an administrator repai
     production build, and daily-check-in browser journeys pass on desktop and 390 px. Open: a real athlete timing the flow at 30 s or less.
 
 - [ ] **P0-007 — Give coaches a complete mobile path**
+  - October 1 implementation checkpoint: preserved existing role-aware Roster/Calendar/Messages/Profile
+    tabs; added a visible Invite an athlete action and Manage groups link in basic Command Center.
+    The first-invitation journey passes on desktop and 390 px. Live QA pages have no horizontal
+    overflow, but live messaging returns 500 for missing `coach_messages`; this item stays open.
+    See `P0_007_009_VERIFICATION.md` and `QA_ACCOUNTS.md`.
   - Coach mobile navigation includes Roster, Calendar, Messages, and Profile.
   - Command Center and the first-athlete invitation are reachable with no memorized URL.
   - All M0 coach actions work at 390 px CSS width.
 
 - [ ] **P0-008 — Remove false and unsafe integration states**
+  - October 1 implementation checkpoint: one entry per provider, server-reported Strava availability,
+    unfinished wearables cannot start OAuth, safe callback errors, removed fictional TrainingPeaks
+    progress, and persisted Strava identity required before onboarding claims success. Unit and
+    desktop/mobile browser checks pass; production deployment/acceptance remains open.
   - Unconfigured connectors are disabled or shown as coming soon.
   - No user-facing response exposes environment-variable names.
   - Remove duplicate Oura/Ultrahuman entries.
   - Remove hardcoded TrainingPeaks migration and connection-success claims.
 
 - [ ] **P0-009 — Repair onboarding and empty-state directions**
+  - October 1 implementation checkpoint: directions point to Account Settings → Coach Connection;
+    code requests honestly wait for coach approval; first invitation and groups are directly reachable;
+    missing race/sport fields and failed saves have actionable errors; failed saves retain answers and
+    the current step. Removed import follow-up directions to the fictional migration panel. Automated
+    desktop/mobile checks pass; production deployment/acceptance remains open.
   - Remove references to nonexistent Invitations and Roster tabs.
   - Make coach linking available in one canonical location and point all copy there.
   - Link `/coach/groups` from the appropriate coach navigation or remove the sales claim until live.

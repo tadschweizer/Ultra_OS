@@ -8,7 +8,7 @@ import { requireCoachAccess } from '../../../lib/auth/roleAccessServer.js';
 const supabase = getSupabaseAdminClient();
 
 function buildFollowupBody(count) {
-  return `Your TrainingPeaks import has ${count} workout${count === 1 ? '' : 's'} that need manual mapping. Open Connections → Migration completeness to finish them so your calendar and reports are complete.`;
+  return `Your TrainingPeaks import has ${count} workout${count === 1 ? '' : 's'} that need review. Ask your coach to review the import details with you before relying on these workouts for planning.`;
 }
 
 export default async function handler(req, res) {

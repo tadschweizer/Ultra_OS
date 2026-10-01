@@ -23,6 +23,7 @@ export default defineConfig({
   webServer: {
     command: 'npm run dev -- --hostname 127.0.0.1',
     env: {
+      PLAYWRIGHT_TEST: '1',
       NEXT_PUBLIC_SUPABASE_URL: 'http://127.0.0.1:54321',
       NEXT_PUBLIC_SUPABASE_ANON_KEY: 'test',
     },
