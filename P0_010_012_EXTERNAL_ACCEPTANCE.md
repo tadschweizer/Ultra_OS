@@ -77,6 +77,8 @@ Read-only production checks on October 3 established:
 
 - The actual production tier constraint still allows only `free`, `individual`, `coach`.
 - **None** of the three reconciliation RPCs exist in production.
+- `public.coach_messages` and `public.coach_shared_docs` are still absent, confirming
+  the earlier pilot messaging/shared-document schema gates remain open.
 - The production migration ledger contains neither October billing migration and
   differs from repository history.
 
