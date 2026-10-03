@@ -66,6 +66,24 @@ test('legacy checkout GET is a read-only redirect with no auth, Stripe, or datab
   const h = harness(); const res = await h.run('checkout', h.req('GET'));
   assert.equal(res.code, 303); assert.equal(res.body.url, '/billing/checkout?plan=pro_annual'); assert.deepEqual(h.calls, []);
 });
+test('server portal configuration applies to management and reviewed plan changes; request cannot override it', async () => {
+  const previous = process.env.STRIPE_PORTAL_CONFIGURATION;
+  process.env.STRIPE_PORTAL_CONFIGURATION = 'bpc_isolated';
+  try {
+    const h = harness({ existing: true });
+    const review = await h.preview();
+    const changed = await h.submit(review.body.intent);
+    assert.equal(changed.code, 200);
+    const managed = await h.run('portal', h.req('POST', { configuration: 'bpc_attacker' }));
+    assert.equal(managed.code, 200);
+    const portals = h.calls.filter(call => call[0] === 'portal');
+    assert.equal(portals.length, 2);
+    for (const call of portals) assert.equal(call[1].configuration, 'bpc_isolated');
+  } finally {
+    if (previous === undefined) delete process.env.STRIPE_PORTAL_CONFIGURATION;
+    else process.env.STRIPE_PORTAL_CONFIGURATION = previous;
+  }
+});
 for (const action of ['checkout', 'portal']) {
   for (const [name, headers, code] of [
     ['cross origin', { origin: 'https://attacker.example' }, 403], ['missing origin', { origin: undefined }, 403],

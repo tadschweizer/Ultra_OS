@@ -1,7 +1,8 @@
 # P0-010–012 external acceptance follow-up
 
-October 3, 2026. Continues draft PR #127. No production writes, billing operations,
-paid resources, broad remote database push, or public release were performed.
+October 3, 2026. Continues draft PR #127. Sandbox-only billing operations were
+performed. No production writes, live billing, paid resources, broad remote database
+push, or public release were performed.
 
 ## Verified against real local services
 
@@ -90,20 +91,72 @@ subscription was exercised during this read-only check.
 
 ## Outstanding provider and operator work
 
-Stripe's connector requires reauthentication. No real sandbox invoice, 3DS, decline,
-asynchronous settlement, renewal failure, hosted plan change, cancellation, webhook
-reordering, billing-linked deletion or portal configuration is claimed verified.
-Preserve the existing SDK/API contract. Use the selected Threshold sandbox, record
-invoice/event identifiers and amounts, and verify the exact isolated deployment origin.
-Confirm the business's tax/registration decision before enabling automatic tax.
+The owner selected **UltraOS sandbox**, account `acct_1TFmRALs6h9nimdM`, and
+authenticated Stripe CLI 1.53.0. All tested resources had `livemode: false`.
+Provider reads/writes preserved the application's pinned `2025-02-24.acacia` API.
+
+- Initial invoice `in_1UMVTaLs6h9nimdMJsqtVvFd` paid **700 USD cents**.
+- Actual hosted Core-to-Pro confirmation showed **$18/month** and **$11 due today**.
+  Confirming in the browser updated `sub_1UMVTaLs6h9nimdMwDvSQWkJ`; proration
+  invoice `in_1UMVd2Ls6h9nimdMiDnYLL1p` paid **1100 cents**. Local entitlement
+  became Pro. The return link was exactly `http://localhost:3100/account?checkout=returned`;
+  no hosted deployment origin is claimed verified. Screenshot:
+  `output/playwright/stripe-hosted-upgrade-confirmed.png`.
+- A test clock advanced to renewal with Stripe's attachable decline method. Invoice
+  `in_1UMVfPLs6h9nimdMsbpGGiT4` remained open, due **1800 cents**, paid zero.
+  Provider and local status became `past_due`, retaining Pro grace. Paying with the
+  valid card settled **1800 cents** and recovered the subscription.
+- PaymentIntent `pi_3UMVfhLs6h9nimdM24DTDOjt` returned `requires_action` with
+  the authentication-required method. It was canceled after inspection. This proves
+  the provider 3DS state. A separate intent `pi_3UMVnxLs6h9nimdM0fkZ9Mfq`
+  completed the actual hosted browser 3DS test challenge and became `succeeded`,
+  receiving **100 cents**. This is a provider browser check, not full app checkout.
+- Period-end cancellation was scheduled while active; immediate disposable
+  cancellation produced local `free`/`canceled` state.
+- Real Stripe CLI-signed delivery exercised SDK signature validation, the application
+  webhook handler and actual service-role PostgREST reconciliation RPCs. Concurrent
+  events received retryable 503 while one held the lease. Seventeen genuine events
+  replayed newest-first preserved current `free`/`canceled` state, even with older paid
+  snapshots. Durable duplicates returned 200. Manual replay used fresh local test
+  signatures over genuine provider payloads.
+- The actual deletion handler canceled a new disposable trial, deleted its sandbox
+  customer, and removed the populated local account, interventions and Auth identity.
+  It returned `stripe_cleanup: done`, `auth_cleanup: done`.
+
+**Transport limit:** CLI authentication uses OAuth. The SDK validated real signatures,
+but remote provider calls used an authenticated CLI adapter. Full Next-to-Stripe SDK
+HTTP authentication, full app checkout through 3DS, asynchronous checkout settlement and a
+hosted staging return/callback remain open. The owner was asked to save a test key
+privately, never in chat or Git. Filtered evidence is
+`output/p010-012-stripe-sandbox-acceptance.json`; raw responses and tooling remain in
+ignored `webapp/.qa-private/`.
+
+The default sandbox portal disables plan changes. A separate QA configuration enabled
+the isolated QA prices. Added optional server-only `STRIPE_PORTAL_CONFIGURATION` to
+both portal entry points, with a regression test proving caller overrides are ignored.
+Unset behavior preserves the default. Staging needs an enabled configuration covering
+its actual prices. No production portal configuration changed.
+
+The sandbox webhook pointed at **production** and lacked invoice/async events. It was
+disabled during tests, then restored to its original enabled state after stopping the
+listener and deleting the disposable customer/test clock. QA portal, products and
+prices were archived; the demo athlete restored to unlinked Pro. No live-mode settings
+changed. An isolated endpoint, correct subscriptions and API-version review remain
+deployment prerequisites. Tax registrations remain an operator release decision;
+automatic tax was not enabled.
+
+Validation: 78 focused billing tests, 369 regression tests, 12 billing browser tests
+and Node 22 build passed.
 
 Supabase lists one production project, no branches, and a Free organization. Hosted
 staging does not currently exist. Await the owner's organization selection before a
 cost lookup; proceed only with explicitly accepted included resources. The previously
 rejected paid branch remains excluded. The local environment is available without it.
 
-The legal operator's exact legal name, jurisdiction and correspondence address are
-pending. `tad.s@mythreshold.co` is the confirmed support address. Public processor copy
+The owner reports a registered Utah LLC. Its exact registered legal name,
+correspondence address and confirmation that it operates Threshold remain pending.
+Use that existing entity once confirmed. `tad.s@mythreshold.co` is the confirmed
+support address. Public processor copy
 now names the configured Resend and Sentry integrations and discloses replay diagnostics;
 it does not invent retention periods. Source references are `lib/email/transactional.js`,
 `sentry.client.config.js`, `sentry.server.config.js`, and the Supabase/Stripe adapters.
@@ -131,8 +184,9 @@ for this verification and no message was sent to Strava on the owner's behalf.
 
 ## Next actions
 
-Reconnect Stripe and select the sandbox; supply legal operator details; resolve the
-Strava design decision; approve an included staging organization/cost; complete hosted
-email/OAuth and populated provider cleanup; run the phone script in the staging runbook.
+Complete SDK-authenticated app billing/3DS and asynchronous settlement; supply
+legal operator details; resolve the Strava decision; approve an included staging
+organization/cost; complete hosted email/OAuth and external Google/uploaded-file
+cleanup; run the phone script in the staging runbook.
 Then authorize the exact production schema/release sequence and review the updated PR.
 P0-010/011/012 and earlier human/live pilot gates remain open.

@@ -62,6 +62,7 @@ export function createBillingFlowHandler(action, {
           return res.status(409).json({ error: 'Billing is not linked yet. Refresh your billing status or contact support.' });
         }
         const session = await stripe.billingPortal.sessions.create({
+          ...(process.env.STRIPE_PORTAL_CONFIGURATION ? { configuration: process.env.STRIPE_PORTAL_CONFIGURATION } : {}),
           customer: athlete.stripe_customer_id, return_url: `${siteUrl}/account?checkout=returned`,
         });
         return res.status(200).json({ url: session.url });
@@ -104,6 +105,7 @@ export function createBillingFlowHandler(action, {
       const options = { idempotencyKey: `threshold-billing-${athlete.id}-${intent.requestId}` };
       if (current) {
         const session = await stripe.billingPortal.sessions.create({
+          ...(process.env.STRIPE_PORTAL_CONFIGURATION ? { configuration: process.env.STRIPE_PORTAL_CONFIGURATION } : {}),
           customer: athlete.stripe_customer_id, return_url: `${siteUrl}/account?checkout=returned`,
           ...(current.priceId === priceId ? {} : { flow_data: {
             type: 'subscription_update_confirm',
