@@ -31,13 +31,13 @@ test('export rejects cross origin before client access and expired sessions befo
   const cross=req();cross.headers.origin='https://attacker.example';const a=response();await handler(cross,a);assert.equal(a.code,403);assert.equal(calls,0);
   const b=response();await handler(req(),b);assert.equal(b.code,401);assert.equal(calls,1);
 });
-function deletionHarness({revoked=false,billingFails=false,dbFails=false,authFails=false}={}){
+function deletionHarness({revoked=false,billingFails=false,dbFails=false,authFails=false,optionalSchemaCode=null}={}){
   const changes=[];
   const athlete={id,stripe_customer_id:'cus_1',supabase_user_id:'auth_1'};
   const client={auth:{admin:{async deleteUser(){changes.push('auth-delete');return {error:authFails?{message:'private auth error'}:null};}}},from(table){return {
     select(){return this;},eq(){return this;},async maybeSingle(){return {data:athlete};},
     update(){changes.push(`update:${table}`);return this;},delete(){changes.push(`delete:${table}`);return this;},
-    then(resolve,reject){return Promise.resolve({error:dbFails?{message:'private sql detail'}:null}).then(resolve,reject);}
+    then(resolve,reject){return Promise.resolve({error:dbFails?{message:'private sql detail'}:optionalSchemaCode&&table!=='athletes'?{code:optionalSchemaCode,message:'Could not find the table in the schema cache'}:null}).then(resolve,reject);}
   };}};
   const stripe={subscriptions:{async list(){if(billingFails)throw new Error('private Stripe error');return {data:[{id:'sub_1',status:'active'}]};},async cancel(){changes.push('cancel');}},customers:{async del(){changes.push('customer-delete');}}};
   return {changes,handler:createDeleteAccountHandler({getClient:()=>client,getAthlete:async()=>revoked?null:athlete,getStripe:()=>stripe})};
@@ -59,4 +59,13 @@ test('database deletion failure is sanitized and does not claim success',async()
 });
 test('external sign-in cleanup failure is explicit after data removal',async()=>{
   const h=deletionHarness({authFails:true});const res=response();await h.handler(req('DELETE'),res);assert.equal(res.code,200);assert.equal(res.body.auth_cleanup,'failed');
+});
+
+test('deletion tolerates PostgREST missing optional tables/columns but not permission failures',async()=>{
+  for(const code of ['PGRST205','PGRST204','42P01','42703']) {
+    const h=deletionHarness({optionalSchemaCode:code});const res=response();await h.handler(req('DELETE'),res);
+    assert.equal(res.code,200);assert.ok(h.changes.includes('delete:athletes'));
+  }
+  const h=deletionHarness({optionalSchemaCode:'42501'});const res=response();await h.handler(req('DELETE'),res);
+  assert.equal(res.code,503);assert.equal(h.changes.includes('delete:athletes'),false);
 });

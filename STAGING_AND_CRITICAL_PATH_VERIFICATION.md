@@ -1,5 +1,64 @@
 # Repeatable M0 verification
 
+October 3 update: the isolated local service checks below are available. See
+`P0_010_012_EXTERNAL_ACCEPTANCE.md` for the current results and open hosted/provider/phone gates.
+
+## Start the isolated local acceptance stack
+
+Open **Docker Desktop** from the Windows Start menu. Wait until it says the engine is running.
+Open PowerShell and copy these commands one at a time:
+
+```powershell
+Set-Location 'C:\Users\BAS\Desktop\UltraOS\Ultra_OS'
+docker version
+```
+
+`docker version` must show both Client and Server. A Client-only response means the Docker
+Desktop engine is unavailable; open Docker Desktop and wait before retrying. The current working
+backend is WSL2/Linux. Do not enable Docker's unsecured port 2375 for this verification.
+
+This chat already initialized the separate stack at `output/p010-012-supabase`. Start it with:
+
+```powershell
+supabase start --workdir output/p010-012-supabase
+Set-Location webapp
+npx --yes --package=node@22 -c "node scripts/verify-local-supabase.mjs"
+```
+
+This opt-in script resets the isolated demo pair and creates/deletes disposable local records.
+It refuses a remote API/database URL. Passwords are saved to the ignored
+`webapp/.qa-private/local-demo.json`; do not paste or commit that file. It records Storage
+leftovers before cleaning the current test file separately. Billing providers are not involved.
+`--bootstrap` is for an empty local database only: it tests the repository schema and historical
+SQL files, records failed transactions and then runs the focused checks. The current bootstrap
+has two known historical failures; do not classify it as a complete production-schema clone.
+
+In one PowerShell window, start the app:
+
+```powershell
+npx --yes --package=node@22 -c "node scripts/local-acceptance-server.mjs"
+```
+
+Open `http://localhost:3100/login` on this computer and use the private demo credentials.
+This wrapper replaces production environment settings and disables external Stripe, Resend
+and Strava credentials. Keep the window open; press **Ctrl+C** to stop the app before a build.
+It listens only on this computer; this URL does not establish physical-phone acceptance.
+
+The local Auth callback allowlist must contain `http://localhost:3100/auth/callback` and
+`http://localhost:3100/reset-password`. Both were added to this isolated stack's config.
+Optional analytics is disabled. After editing its config, stop/start this stack to apply it;
+`supabase stop` preserves the local database volume. Do not use `--no-backup` for routine stops.
+
+In a second PowerShell window in `webapp`, run:
+
+```powershell
+npx --yes --package=node@22 -c "node scripts/verify-local-email.mjs"
+```
+
+It checks actual Supabase SMTP/Auth with the local mailbox at `http://127.0.0.1:54324` and
+records the exact callback origin. The private callback file contains session tokens.
+Application Resend delivery, hosted Google OAuth and a real phone still need hosted staging.
+
 This guide covers the P0-010–012 batch in draft PR #127. Local tests use fake accounts and
 provider responses. They do not charge cards, send real invitations, or establish hosted staging acceptance.
 

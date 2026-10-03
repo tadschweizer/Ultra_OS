@@ -36,7 +36,7 @@ const DEMO_EMAILS = [DEMO_COACH_EMAIL, DEMO_ATHLETE_EMAIL];
 async function listDemoAthletes(supabase) {
   const { data, error } = await supabase
     .from('athletes')
-    .select('id, name, email, subscription_tier, supabase_user_id, created_at')
+    .select('id, name, email, subscription_tier, supabase_user_id')
     .eq('is_demo', true);
   if (error) throw new Error(error.message);
   return data || [];

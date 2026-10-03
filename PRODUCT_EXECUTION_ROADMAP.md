@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
-Last updated: 2026-10-01<br>
-Status: P0-010–012 local billing reconciliation, trust/account controls and critical-path CI batch implemented; isolated provider/schema, legal publication and real-phone acceptance gates remain open. Earlier pilot live/schema gates remain open.<br>
+Last updated: 2026-10-03<br>
+Status: P0-010–012 real local Supabase/PostgREST, populated export/deletion, demo sign-in, email callback and persisted browser messaging verified; three schema-compatibility defects fixed. Production lacks the tier prerequisite and billing RPCs. Hosted Stripe, legal/Strava, provider cleanup and real-phone gates remain open.<br>
 Current milestone: M0 — make the closed coach pilot work end to end<br>
-Next item: Review the expanded [draft PR #127](https://github.com/tadschweizer/Ultra_OS/pull/127), then verify the specific billing migration via isolated Supabase/PostgREST and real Stripe sandbox confirmation/invoices before release. Supply the legal operator identity and review public trust copy; verify populated-account export/deletion and the isolated demo/phone loop. See `P0_010_012_EXECUTION.md` and `STAGING_AND_CRITICAL_PATH_VERIFICATION.md`. PR #125 is merged (`4ae8cdf`); its pilot live/schema gates, P0-006 human timing and earlier real-user acceptance remain open. The prior paid-staging cost restriction remains. Production release/schema/configuration changes need separate authorization.
+Next item: Reconnect/select the Stripe sandbox, supply legal operator details, resolve Strava compatibility and provision only accepted included staging resources; complete hosted callbacks, billing-linked cleanup and actual-phone acceptance. Review [draft PR #127](https://github.com/tadschweizer/Ultra_OS/pull/127) and `P0_010_012_EXTERNAL_ACCEPTANCE.md`. Do not merge into automatically deployed main until the owner authorizes and verifies the prerequisite-first production schema sequence: production still rejects current plan tiers and lacks all billing RPCs. Earlier pilot live/schema and human timing gates remain open. The prior paid-staging restriction remains; production release/schema/configuration changes need separate authorization.
 
 ## Purpose
 
@@ -667,6 +667,16 @@ accounts are unavailable; the previous INACTIVE observation below is historical.
 | 2026-09-28 | Do not add a Sentry alert rule or uptime monitor | Owner declined; keep the readiness check manual for the closed pilot |
 
 ## Progress log
+
+October 3 external acceptance checkpoint: real local Supabase/PostgREST verified both billing
+migrations in order, service-role RPCs and client denials, populated export/deletion, real demo
+sign-ins, captured SMTP/application email callback and persisted two-role browser messaging.
+Uploaded files survive account deletion and were cleaned separately. Repository bootstrap passes
+65/67 historical SQL files, with two explicit older gaps. Demo listing, deletion schema-error
+handling and protocol-summary legacy-column queries were repaired. Read-only production checks
+confirm the tier prerequisite and all three reconciliation RPCs are absent. Hosted Stripe,
+operator/retention/Strava decisions and physical-phone acceptance remain open. Detailed evidence:
+`P0_010_012_EXTERNAL_ACCEPTANCE.md`. No production writes or paid staging creation.
 
 October 1 expanded checkpoint: [draft PR #127](https://github.com/tadschweizer/Ultra_OS/pull/127)
 now includes P0-010B, P0-011 local account/trust controls and P0-012 CI/demo safeguards. Node 22

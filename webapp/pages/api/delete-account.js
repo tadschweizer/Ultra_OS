@@ -34,7 +34,8 @@ export const ORPHAN_DELETIONS = [
 ];
 
 function isMissingSchemaError(error) {
-  return /does not exist/i.test(error?.message || '');
+  return ['42P01', '42703', 'PGRST205', 'PGRST204'].includes(error?.code)
+    || /does not exist/i.test(error?.message || '');
 }
 
 export function createDeleteAccountHandler({ getClient = getSupabaseAdminClient, getAthlete = getAthleteByCookie, getStripe = getStripeClient } = {}) {

@@ -1,6 +1,10 @@
 # P0-010–012: billing, trust and verification batch
 
 October 1, 2026 · draft [PR #127](https://github.com/tadschweizer/Ultra_OS/pull/127).
+October 3 follow-up: Docker/local Supabase now work and the focused PostgREST, populated account,
+demo, local email callback and browser messaging checks passed. See
+[external acceptance evidence](P0_010_012_EXTERNAL_ACCEPTANCE.md) for fixes, bootstrap gaps and
+the production migration/RPC blocker. The original results below remain the October 1 checkpoint.
 This continues the P0-010A confirmation work with the related trust and verification gates.
 The parent roadmap items remain open until their external acceptance gates are complete.
 
