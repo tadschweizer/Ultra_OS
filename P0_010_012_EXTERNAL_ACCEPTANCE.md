@@ -153,9 +153,11 @@ staging does not currently exist. Await the owner's organization selection befor
 cost lookup; proceed only with explicitly accepted included resources. The previously
 rejected paid branch remains excluded. The local environment is available without it.
 
-The owner reports a registered Utah LLC. Its exact registered legal name,
-correspondence address and confirmation that it operates Threshold remain pending.
-Use that existing entity once confirmed. `tad.s@mythreshold.co` is the confirmed
+The owner supplied the Certificate of Organization details for **Threshold LLC**, a
+Utah domestic limited liability company, filed and effective **April 21, 2026**.
+Terms, Privacy and Support identify Threshold LLC as the operator. The formation
+date is recorded here; it is not treated as the effective date of the public terms.
+The business correspondence address remains pending. `tad.s@mythreshold.co` is the confirmed
 support address. Public processor copy
 now names the configured Resend and Sentry integrations and discloses replay diagnostics;
 it does not invent retention periods. Source references are `lib/email/transactional.js`,
@@ -185,7 +187,7 @@ for this verification and no message was sent to Strava on the owner's behalf.
 ## Next actions
 
 Complete SDK-authenticated app billing/3DS and asynchronous settlement; supply
-legal operator details; resolve the Strava decision; approve an included staging
+Threshold LLC's correspondence address and legal/data-practice review; resolve the Strava decision; approve an included staging
 organization/cost; complete hosted email/OAuth and external Google/uploaded-file
 cleanup; run the phone script in the staging runbook.
 Then authorize the exact production schema/release sequence and review the updated PR.
