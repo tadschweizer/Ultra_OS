@@ -21,6 +21,10 @@ Object.assign(env, { APP_ENV: 'staging', NODE_ENV: 'development', NEXT_PUBLIC_SI
   SUPABASE_SERVICE_ROLE_KEY: status.SERVICE_ROLE_KEY, SESSION_COOKIE_SECRET: crypto.randomBytes(32).toString('hex'),
   ALLOW_DEMO_SEED: 'false', STRIPE_SECRET_KEY: '', STRIPE_WEBHOOK_SECRET: '', RESEND_API_KEY: '',
   STRAVA_CLIENT_SECRET: '', SENTRY_AUTH_TOKEN: '', NEXT_PUBLIC_SENTRY_DSN: '', SENTRY_DSN: '' });
+if (process.argv.includes('--strava-fixture')) Object.assign(env, {
+  STRAVA_CLIENT_ID: '1', STRAVA_CLIENT_SECRET: 'local-fixture-only',
+  STRAVA_QA_API_ORIGIN: 'http://127.0.0.1:3102',
+});
 const child = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'dev', '-p', '3100', '-H', '127.0.0.1'], { env, stdio: 'inherit' });
 child.on('exit', code => process.exit(code || 0));
 for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => child.kill(signal));

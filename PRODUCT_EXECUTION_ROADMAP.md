@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
 Last updated: 2026-10-03<br>
-Status: P0-010–012 local Supabase/PostgREST and sandbox invoices, hosted upgrade/proration, renewal decline/recovery, cancellation/replay and billing-linked deletion verified. Dedicated portal configuration support added; 369 regression tests and build pass. SDK HTTP authentication, full-app 3DS/async settlement, hosted staging, legal/Strava and real-phone gates remain open. Production lacks the tier prerequisite and billing RPCs.<br>
+Status: P0-010–012 local Supabase/PostgREST and sandbox billing checks verified. Strava imports now have atomic leases, truthful status, explicit disconnect, source-event cleanup and an authenticated refresh worker; isolated database and HTTP-fixture browser acceptance pass. Regression 387/387 and build pass. Real Strava OAuth/webhooks/scheduler, SDK-authenticated billing/3DS/async settlement, hosted staging, legal/data practices and actual-phone gates remain open. Production lacks the tier prerequisite and billing RPCs.<br>
 Current milestone: M0 — make the closed coach pilot work end to end<br>
-Next item: Finish SDK-authenticated sandbox billing, full-app 3DS and asynchronous settlement; supply Threshold LLC's business mailing address and review legal/data practices, resolve Strava compatibility and provision only accepted included staging resources; complete hosted callbacks, external Google/uploaded-file cleanup and actual-phone acceptance. Review [draft PR #127](https://github.com/tadschweizer/Ultra_OS/pull/127) and `P0_010_012_EXTERNAL_ACCEPTANCE.md`. Do not merge into automatically deployed main until the owner authorizes and verifies the prerequisite-first production schema sequence: production still rejects current plan tiers and lacks all billing RPCs. Earlier pilot live/schema and human timing gates remain open. The prior paid-staging restriction remains; production release/schema/configuration changes need separate authorization.
+Next item: Finish SDK-authenticated sandbox billing, full-app 3DS and asynchronous settlement; supply Threshold LLC's business mailing address and review legal/data practices. Continue Strava setup on the owner's approval assumption using `STRAVA_IMPORT_VERIFICATION.md`; the owner will contact Strava before launching. Provision only accepted included staging resources; complete hosted callbacks, worker/webhook configuration, external Google/uploaded-file cleanup and actual-phone acceptance. Review [draft PR #127](https://github.com/tadschweizer/Ultra_OS/pull/127) and `P0_010_012_EXTERNAL_ACCEPTANCE.md`. Do not merge into automatically deployed main until the owner authorizes and verifies the prerequisite-first production schema sequence: production still rejects current plan tiers and lacks all billing RPCs. The Strava lifecycle migration also requires its activity-persistence prerequisite. Earlier pilot live/schema and human timing gates remain open. The prior paid-staging restriction remains; production release/schema/configuration changes need separate authorization.
 
 ## Purpose
 
@@ -667,6 +667,14 @@ accounts are unavailable; the previous INACTIVE observation below is historical.
 | 2026-09-28 | Do not add a Sentry alert rule or uptime monitor | Owner declined; keep the readiness check manual for the closed pilot |
 
 ## Progress log
+
+October 3 Strava checkpoint: owner authorized implementation assuming approval and will
+contact Strava before launch. Atomic imports/token refresh, safe status, owned disconnect,
+deletion/deauthorization webhook handling and a queued refresh worker are implemented.
+Six real isolated Supabase/Auth/PostgREST checks and actual app browser import/disconnect
+with an HTTP provider fixture pass. Native regression 387/387 and Node 22 build pass.
+No real Strava provider account, hosted webhook/scheduler, production migration or public
+release is claimed. Evidence/setup: `STRAVA_IMPORT_VERIFICATION.md`. Parent gates stay open.
 
 October 3 external acceptance checkpoint: real local Supabase/PostgREST verified both billing
 migrations in order, service-role RPCs and client denials, populated export/deletion, real demo

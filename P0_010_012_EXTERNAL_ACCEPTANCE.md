@@ -179,15 +179,33 @@ Strava's collection of usage information (section 6.5). Branding alone is insuff
 Existing coach routes (`coach/athlete-detail.js`, `coach/dashboard.js`,
 `coach/relationships.js`) read connected athletes' cached Strava activity records.
 `lib/activitySync.js` persists them; an enforced seven-day deletion lifecycle was not
-established. These source findings are a release blocker, not a compliance certification.
-Choose a conforming integration design, obtain written clarification where required,
-or disable affected functionality before public release. No real Strava data was used
-for this verification and no message was sent to Strava on the owner's behalf.
+established. These source findings are a release concern, not a compliance certification.
+The owner explicitly directed continued setup on the assumption of approval and will
+message Strava before launching. Implementation preserves the intended athlete-to-coach
+workflow; actual approval is not asserted. No message was sent on the owner's behalf.
+Confirm permitted display, calculations and retention before public launch.
+
+The October 3 Strava implementation adds atomic service-role import leases/upserts,
+safe cooldown/error status, granted-scope and returning-paid-account protection,
+owned manual sync/disconnect, deletion/deauthorization webhooks and a protected
+pending-import worker. A deduplicated private queue refreshes specific activity edits,
+including records older than the rolling window. Database deletion invalidates an
+in-flight import so its stale payload cannot restore deleted data.
+
+Actual isolated Supabase/Auth/PostgREST passes six lifecycle checks. Application browser
+sign-in, expired-token refresh, repeat-import persistence and confirmed disconnect pass
+against an HTTP Strava fixture, with desktop and 390px layout checks. No real Strava
+account/data, hosted subscription or scheduler was used. The new migration was applied
+only to the named loopback stack. Detailed setup and remaining provider gates:
+`STRAVA_IMPORT_VERIFICATION.md`. Regression is now 387 tests, including 18 lifecycle
+cases; production build passes. Real provider approval/capacity, callback latency,
+logging redaction, hosted OAuth/webhooks and scheduler activation remain release steps.
 
 ## Next actions
 
 Complete SDK-authenticated app billing/3DS and asynchronous settlement; supply
-Threshold LLC's correspondence address and legal/data-practice review; resolve the Strava decision; approve an included staging
+Threshold LLC's correspondence address and legal/data-practice review; complete the
+owner's Strava contact and real-provider setup/acceptance; approve an included staging
 organization/cost; complete hosted email/OAuth and external Google/uploaded-file
 cleanup; run the phone script in the staging runbook.
 Then authorize the exact production schema/release sequence and review the updated PR.
