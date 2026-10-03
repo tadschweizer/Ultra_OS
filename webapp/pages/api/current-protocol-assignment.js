@@ -1,4 +1,4 @@
-import { getSupabaseAdminClient } from '../../lib/authServer';
+import { getSupabaseAdminClient } from '../../lib/authServer.js';
 import {
 
   buildAssignmentStatusLabel,
@@ -6,18 +6,12 @@ import {
   countAssignmentCompletions,
   getDaysUntil,
   normalizeRace,
-} from '../../lib/coachProtocols';
-import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
+} from '../../lib/coachProtocols.js';
 import { getEffectiveAthleteIdFromRequest } from '../../lib/auth/requireAthlete.js';
 
 // Coach tables are no longer reachable with the public anon key (RLS is on and
 // the anon grants are revoked), so this route uses the service-role client.
 // Authorisation is enforced in the handler from the session athlete id.
-const supabase = getSupabaseAdminClient();
-
-function getAthleteId(req) {
-  return getEffectiveAthleteIdFromRequest(req);
-}
 
 function selectCurrentRace(races = []) {
   const upcoming = races
@@ -29,8 +23,10 @@ function selectCurrentRace(races = []) {
   return races[0] || null;
 }
 
-export default async function handler(req, res) {
-  const athleteId = await getAthleteId(req);
+export function createCurrentProtocolHandler({ getClient = getSupabaseAdminClient, getAthleteId = getEffectiveAthleteIdFromRequest } = {}) {
+return async function handler(req, res) {
+  const supabase = getClient();
+  const athleteId = await getAthleteId(req, supabase);
   if (!athleteId) {
     res.status(401).json({ error: 'Not authenticated' });
     return;
@@ -51,7 +47,7 @@ export default async function handler(req, res) {
   ] = await Promise.all([
     supabase
       .from('athletes')
-      .select('target_race_id, target_race, target_race_date')
+      .select('target_race_id')
       .eq('id', athleteId)
       .maybeSingle(),
     supabase
@@ -94,12 +90,25 @@ export default async function handler(req, res) {
   const athleteTargetRace = athlete?.target_race_id
     ? normalizedRaces.find((race) => race.id === athlete.target_race_id) || null
     : null;
+  // Legacy free-text race columns were never part of the canonical schema.
+  // Query them only when no structured race is available, and tolerate their
+  // absence without breaking every athlete's dashboard protocol summary.
+  let legacyTarget = null;
+  if (!athleteTargetRace && normalizedRaces.length === 0) {
+    const { data, error } = await supabase.from('athletes')
+      .select('target_race, target_race_date').eq('id', athleteId).maybeSingle();
+    if (error && !['42703', 'PGRST204'].includes(error.code)) {
+      res.status(503).json({ error: 'Could not load your race information. Please retry.' });
+      return;
+    }
+    legacyTarget = data;
+  }
   const fallbackRace =
-    !athleteTargetRace && athlete?.target_race
+    legacyTarget?.target_race
       ? normalizeRace({
           id: null,
-          name: athlete.target_race,
-          event_date: athlete.target_race_date || null,
+          name: legacyTarget.target_race,
+          event_date: legacyTarget.target_race_date || null,
           race_type: null,
           distance_miles: null,
           elevation_gain_ft: null,
@@ -152,4 +161,6 @@ export default async function handler(req, res) {
     daysUntilRace,
     protocolStatus,
   });
+};
 }
+export default createCurrentProtocolHandler();

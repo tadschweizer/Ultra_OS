@@ -31,6 +31,7 @@ const supportSections = [
     items: [
       { href: '/guide', label: 'Guide' },
       { href: '/pricing', label: 'Pricing' },
+      { href: '/support', label: 'Support' },
     ],
   },
   {
@@ -100,6 +101,7 @@ export const appMenuLinks = [
 ];
 
 export const appShellExcludedRoutes = [
+  '/privacy', '/terms', '/support',
   '/',
   '/login',
   '/signup',

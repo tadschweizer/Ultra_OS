@@ -1,5 +1,6 @@
 .vercel
 .env*
+!.env.staging.example
 test-results/
 playwright-report/
 .qa-private/

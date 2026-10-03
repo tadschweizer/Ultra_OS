@@ -7,7 +7,7 @@ import { fetchMe, getCachedMe } from '../lib/meClient';
 // with real content + meta tags for SEO). Everything else — protected pages,
 // admin pages, onboarding — starts on the loading shell until the session
 // check in the effect below resolves.
-const publicPrerenderRoutes = ['/', '/guide', '/pricing', '/content', '/login', '/signup'];
+const publicPrerenderRoutes = ['/', '/guide', '/pricing', '/content', '/login', '/signup', '/privacy', '/terms', '/support'];
 
 export default function OnboardingGate({ children }) {
   const router = useRouter();

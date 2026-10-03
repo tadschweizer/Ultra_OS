@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
-Last updated: 2026-10-01<br>
-Status: P0-007/008/009 locally implemented and verified; approved live QA confirms login/linking/check-in, but messaging and dashboard schema failures block full acceptance<br>
+Last updated: 2026-10-03<br>
+Status: P0-010–012 local Supabase/PostgREST and sandbox billing checks verified. Strava imports now have atomic leases, truthful status, explicit disconnect, source-event cleanup and an authenticated refresh worker; isolated database and HTTP-fixture browser acceptance pass. Regression 387/387 and build pass. Real Strava OAuth/webhooks/scheduler, SDK-authenticated billing/3DS/async settlement, hosted staging, legal/data practices and actual-phone gates remain open. Production lacks the tier prerequisite and billing RPCs.<br>
 Current milestone: M0 — make the closed coach pilot work end to end<br>
-Next item: Review P0-007/008/009 in [draft PR #125](https://github.com/tadschweizer/Ultra_OS/pull/125), implementation `0441c6b`; prepare a targeted repair for the live missing coach_messages/coach_shared_docs tables and obsolete target_race query before full coach-path acceptance. Use the approved QA pair in `QA_ACCOUNTS.md` for repeatable logins; retain P0-006 human 30-second timing and earlier real-user gates. Production release/schema changes need separate authorization.
+Next item: Finish SDK-authenticated sandbox billing, full-app 3DS and asynchronous settlement; supply Threshold LLC's business mailing address and review legal/data practices. Continue Strava setup on the owner's approval assumption using `STRAVA_IMPORT_VERIFICATION.md`; the owner will contact Strava before launching. Provision only accepted included staging resources; complete hosted callbacks, worker/webhook configuration, external Google/uploaded-file cleanup and actual-phone acceptance. Review [draft PR #127](https://github.com/tadschweizer/Ultra_OS/pull/127) and `P0_010_012_EXTERNAL_ACCEPTANCE.md`. Do not merge into automatically deployed main until the owner authorizes and verifies the prerequisite-first production schema sequence: production still rejects current plan tiers and lacks all billing RPCs. The Strava lifecycle migration also requires its activity-persistence prerequisite. Earlier pilot live/schema and human timing gates remain open. The prior paid-staging restriction remains; production release/schema/configuration changes need separate authorization.
 
 ## Purpose
 
@@ -218,6 +218,19 @@ athlete, and use the experience on a phone without Tad or an administrator repai
   - Incomplete onboarding fields display an actionable error.
 
 - [ ] **P0-010 — Fix high-risk billing behavior before any pilot touches billing**
+  - October 1 P0-010A local checkpoint: read-only billing review; protected JSON POST for checkout,
+    portal and sync; signed expiring price/account/subscription reviews; Stripe hosted explicit
+    plan-change confirmation; idempotent checkout/customer creation and unfinished-checkout reuse;
+    safe errors; current-session/checkout ownership and paid-state enforcement. Existing subscriptions
+    are never updated or granted a new tier by selecting a pricing link. Full regression 311/311,
+    production build and billing desktop/mobile journeys 10/10 pass. See
+    `P0_010_BILLING_VERIFICATION.md` for evidence and release gates. Sandbox acceptance remains open.
+    Review: [draft PR #127](https://github.com/tadschweizer/Ultra_OS/pull/127), code `5392ffd`.
+  - October 1 P0-010B local checkpoint: durable service-role-only receipts and customer leases,
+    current-state webhook/sync reconciliation, atomic owner-fenced writes, retryable provider/database
+    failures and asynchronous-payment tests. Actual PostgreSQL migration and signed-handler integration
+    pass locally. Apply the specific migration before releasing the handlers. Isolated Supabase and
+    real Stripe hosted acceptance remain open; see `P0_010_012_EXECUTION.md` in draft PR #127.
   - Subscription mutations use `POST`, not `GET`.
   - Add origin/CSRF protection appropriate to the session architecture.
   - Plan changes show price/proration impact and require explicit confirmation.
@@ -225,11 +238,22 @@ athlete, and use the experience on a phone without Tad or an administrator repai
   - Tests cover upgrade, downgrade, repeat submission, failed payment, and webhook replay/order.
 
 - [ ] **P0-011 — Publish minimum trust and support surfaces**
+  - October 1 local checkpoint: public Privacy/Terms/Support pages, user-provided support email,
+    coach-sharing/cancellation copy, protected paginated personal archive, typed revocable-session
+    deletion with billing failure stop, and Strava attribution. Desktop/mobile, keyboard and axe
+    smoke checks pass. Legal operator identity/review and populated staging cleanup acceptance,
+    including storage/provider/backup limits, remain open. See `P0_010_012_EXECUTION.md`.
   - Privacy policy, terms, support contact, cancellation language, data export, and account deletion.
   - Explain what athlete data an attached coach can see.
   - Add required Strava attribution wherever Strava data is displayed.
 
 - [ ] **P0-012 — Establish staging and critical-path tests**
+  - October 1 local checkpoint: CI now gates full regression, integration checks, production build,
+    desktop/mobile critical journeys and axe smoke. Messaging tests cover both roles, reload and
+    draft-preserving retry. Demo writes require opt-in/exact isolated target and reject production.
+    A safe staging template and beginner-friendly repeatable script are in
+    `STAGING_AND_CRITICAL_PATH_VERIFICATION.md`. Actual isolated provisioning/seed, full Supabase
+    migration-chain checks and actual-phone acceptance remain open; no paid branch was created.
   - Isolated Vercel preview/staging, Supabase staging, Stripe test mode, and test email/OAuth config.
   - CI runs build, unit/regression tests, browser E2E, and accessibility smoke tests.
   - Seed the existing demo coach/athlete dataset from `lib/adminDemo.js` safely in staging.
@@ -644,11 +668,38 @@ accounts are unavailable; the previous INACTIVE observation below is historical.
 
 ## Progress log
 
+October 3 Strava checkpoint: owner authorized implementation assuming approval and will
+contact Strava before launch. Atomic imports/token refresh, safe status, owned disconnect,
+deletion/deauthorization webhook handling and a queued refresh worker are implemented.
+Six real isolated Supabase/Auth/PostgREST checks and actual app browser import/disconnect
+with an HTTP provider fixture pass. Native regression 387/387 and Node 22 build pass.
+No real Strava provider account, hosted webhook/scheduler, production migration or public
+release is claimed. Evidence/setup: `STRAVA_IMPORT_VERIFICATION.md`. Parent gates stay open.
+
+October 3 external acceptance checkpoint: real local Supabase/PostgREST verified both billing
+migrations in order, service-role RPCs and client denials, populated export/deletion, real demo
+sign-ins, captured SMTP/application email callback and persisted two-role browser messaging.
+Uploaded files survive account deletion and were cleaned separately. Repository bootstrap passes
+65/67 historical SQL files, with two explicit older gaps. Demo listing, deletion schema-error
+handling and protocol-summary legacy-column queries were repaired. Read-only production checks
+confirm the tier prerequisite and all three reconciliation RPCs are absent. Hosted Stripe,
+operator/retention/Strava decisions and physical-phone acceptance remain open. Detailed evidence:
+`P0_010_012_EXTERNAL_ACCEPTANCE.md`. No production writes or paid staging creation.
+
+October 1 expanded checkpoint: [draft PR #127](https://github.com/tadschweizer/Ultra_OS/pull/127)
+now includes P0-010B, P0-011 local account/trust controls and P0-012 CI/demo safeguards. Node 22
+regression **364/364**, integration checks **4/4**, production build and final critical browser suite
+**79 passed / 3 intentional viewport skips** pass. Merged current plans from PR #126 (`39cc8ca`), resolving checkout/tier conflicts and verifying Core/Pro confirmation plus legacy-price mapping. Eight actual PostgreSQL cases include signed
+handler/RPC integration; browser checks include axe and keyboard cancellation. Evidence and remaining
+external gates: `P0_010_012_EXECUTION.md`. No production service writes, hosted staging provisioning
+or paid branch creation. Parent items remain unchecked.
+
 Add one row when an item is verified. Do not use this table for code that has not passed its exit
 criteria.
 
 | Date | Item | PR/commit | Verification evidence | Notes |
 | --- | --- | --- | --- | --- |
+| 2026-10-01 | P0-010A local billing request/confirmation slice | [Draft PR #127](https://github.com/tadschweizer/Ultra_OS/pull/127) / `5392ffd` | Node 22 regression 311/311; build; billing browser journeys 10/10; combined billing/pilot browser regression 32/32 with one worker; diff checks. See `P0_010_BILLING_VERIFICATION.md`. | Local handler and mocked browser gates verified. P0-010 remains open pending webhook replay/order/retry work and isolated Stripe hosted-payment acceptance. No production service writes. |
 | 2026-08-19 | Roadmap created | Local branch `agent/product-execution-roadmap` | Reconciled PR #104, current source audit, and existing roadmaps | No implementation items completed |
 | 2026-08-20 | P0-001 | [PR #106](https://github.com/tadschweizer/Ultra_OS/pull/106) / `cc3c1da` | Production on `mythreshold.co`: canonical `coach_invite` links displayed invalid (404), expired (410), already-connected/used (409), and accepted states; acceptance POST returned 200; active records were confirmed in both relationship tables and appeared in the athlete account and coach roster. [Auth Smoke run #99](https://github.com/tadschweizer/Ultra_OS/actions/runs/32390037510) passed 41/41 auth tests and 12/12 Playwright tests in desktop Chromium and 390 px mobile Chromium; local invitation API tests passed 7/7 and the full suite passed 179/179. | A fresh athlete accepted the production invitation. PR #107 review later identified that the logged-out browser test stopped at auth-link inspection, so this item was reopened for the complete transition and repaired in PR #108. |
 | 2026-08-20 | P0-002 | [PR #106](https://github.com/tadschweizer/Ultra_OS/pull/106) / `cc3c1da` | A production invitation sent through the existing transactional layer arrived in a real recipient inbox from `Threshold <hello@mythreshold.co>`. The message identified the coach, explained the relationship, stated the expiration, and linked to the canonical `https://mythreshold.co/join?coach_invite=...` URL. Command Center retained the copy-link control and displayed `Copied`. Automated API/regression coverage verified honest 502 failure handling while retaining the fallback link. | Live successful delivery was verified. PR #107 review later identified that failed delivery was response-only and disappeared after refresh, so this item was reopened for persistence and repaired in PR #108. |

@@ -7,6 +7,10 @@ on:
 jobs:
   auth-smoke:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: local-build-placeholder
     defaults:
       run:
         working-directory: webapp
@@ -19,13 +23,20 @@ jobs:
           cache-dependency-path: webapp/package-lock.json
       - name: Install dependencies
         run: npm ci
-      - name: Run fast auth smoke checks
-        run: npm run test:auth:smoke
+      - name: Run complete authentication and critical regression checks
+        run: npm run test:auth:full
       - name: Run integration availability checks
         run: npm run test:integrations
+      - name: Build production bundle
+        run: npm run build
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
-      - name: Run coach invitation browser journey
-        run: npm run test:e2e:coach-invitations
-      - name: Run pilot mobile and onboarding journeys
-        run: npm run test:e2e:pilot-ux
+      - name: Run desktop/mobile critical journeys and accessibility smoke
+        run: npm run test:e2e:critical
+      - name: Preserve failure traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: critical-journey-failures
+          path: webapp/test-results
+          retention-days: 7

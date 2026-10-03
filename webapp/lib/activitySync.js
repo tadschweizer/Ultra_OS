@@ -12,11 +12,9 @@
  */
 
 // Extensioned paths so `node --test` can resolve these directly, without a bundler.
-import { refreshToken, getRecentActivities } from './strava.js';
+import { refreshToken, getRecentActivities, getDetailedActivity } from './strava.js';
 import { estimateTssFromActivity } from './trainingLoad.js';
-
-/** Minimum gap between upstream pulls for one athlete. */
-const SYNC_THROTTLE_MS = 10 * 60 * 1000;
+import { classifyStravaSyncError } from './stravaSyncStatus.js';
 
 /** Rolling window pulled on a routine sync. */
 const INCREMENTAL_WINDOW_DAYS = 60;
@@ -113,7 +111,7 @@ export function toActivityRow(athleteId, activity) {
  * Returns a usable Strava access token, refreshing and persisting it when the
  * stored one has expired. Returns null when the athlete has no connection.
  */
-export async function ensureStravaAccessToken(admin, athlete) {
+export async function ensureStravaAccessToken(admin, athlete, refresh = refreshToken) {
   if (!athlete?.strava_id || !athlete.access_token || !athlete.refresh_token) return null;
 
   const expiresAt = athlete.token_expires_at ? new Date(athlete.token_expires_at).getTime() : 0;
@@ -124,15 +122,21 @@ export async function ensureStravaAccessToken(admin, athlete) {
   const clientSecret = process.env.STRAVA_CLIENT_SECRET;
   if (!clientId || !clientSecret) return null;
 
-  const refreshed = await refreshToken(athlete.refresh_token, clientId, clientSecret);
-  await admin
+  const refreshed = await refresh(athlete.refresh_token, clientId, clientSecret);
+  if (!refreshed?.access_token || !refreshed?.refresh_token || !Number.isFinite(refreshed.expires_at)) {
+    throw new Error('Invalid token refresh response');
+  }
+  const { data, error } = await admin
     .from('athletes')
     .update({
       access_token: refreshed.access_token,
       refresh_token: refreshed.refresh_token,
       token_expires_at: new Date(refreshed.expires_at * 1000).toISOString(),
     })
-    .eq('id', athlete.id);
+    .eq('id', athlete.id).eq('strava_id', athlete.strava_id).eq('refresh_token', athlete.refresh_token)
+    .select('id').maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error('Strava connection changed during refresh');
 
   return refreshed.access_token;
 }
@@ -145,59 +149,79 @@ export async function ensureStravaAccessToken(admin, athlete) {
  * `force` to bypass the throttle, or `since` to widen a single run (used when
  * the caller needs a range older than what has been backfilled).
  */
-export async function syncAthleteActivities(admin, athleteId, { force = false, since = null } = {}) {
+export function createActivitySync({ listActivities = getRecentActivities, refresh = refreshToken,
+  detailActivity = getDetailedActivity } = {}) {
+return async function sync(admin, athleteId, { force = false, since = null } = {}) {
+  let lease = null;
   try {
-    const { data: athlete } = await admin
+    const { data: athlete, error: lookupError } = await admin
       .from('athletes')
       .select('id, strava_id, access_token, refresh_token, token_expires_at, last_activity_sync_at, activity_backfill_completed_at')
       .eq('id', athleteId)
       .maybeSingle();
-
+    if (lookupError) throw lookupError;
     if (!athlete) return { synced: 0, skipped: true, reason: 'athlete_not_found' };
     if (!athlete.strava_id) return { synced: 0, skipped: true, reason: 'not_connected' };
 
     const isBackfill = !athlete.activity_backfill_completed_at;
-    const lastSync = athlete.last_activity_sync_at ? new Date(athlete.last_activity_sync_at).getTime() : 0;
-    const throttled = !force && !isBackfill && !since && Date.now() - lastSync < SYNC_THROTTLE_MS;
-    if (throttled) return { synced: 0, skipped: true, reason: 'throttled' };
+    if (since && !Number.isFinite(toEpochSeconds(since))) throw new Error('Invalid import range');
+    const { data: claim, error: claimError } = await admin.rpc('claim_strava_sync', {
+      p_athlete_id: athleteId, p_strava_id: athlete.strava_id, p_force: force, p_history: Boolean(since),
+    });
+    if (claimError) throw claimError;
+    if (!claim?.lease_token) return { synced: 0, skipped: true, reason: claim?.reason || 'in_progress', retryAt: claim?.retry_at || null };
+    lease = claim.lease_token;
 
-    const accessToken = await ensureStravaAccessToken(admin, athlete);
-    if (!accessToken) return { synced: 0, skipped: true, reason: 'no_token' };
+    const accessToken = await ensureStravaAccessToken(admin, athlete, refresh);
+    if (!accessToken) throw Object.assign(new Error('Strava authorization unavailable'), { response: { status: 401 } });
 
     const after = since
       ? toEpochSeconds(since)
       : daysAgoEpoch(isBackfill ? BACKFILL_WINDOW_DAYS : INCREMENTAL_WINDOW_DAYS);
 
-    const activities = await getRecentActivities(accessToken, after);
-    const rows = (activities || [])
-      .filter((activity) => activity?.id && activity.start_date)
-      .map((activity) => toActivityRow(athleteId, activity));
-
-    if (rows.length) {
-      const { error: upsertError } = await admin
-        .from('strava_activities')
-        .upsert(rows, { onConflict: 'athlete_id,strava_activity_id' });
-      if (upsertError) throw upsertError;
+    const activities = await listActivities(accessToken, after);
+    if (!Array.isArray(activities)) throw new Error('Invalid activities response');
+    if (claim.activity_id) {
+      // Webhook edits can refer to training older than the rolling import window.
+      // Drain one specific activity per lease, keeping each job within its budget.
+      try {
+        const detail = await detailActivity(accessToken, claim.activity_id);
+        if (String(detail?.id) !== claim.activity_id) throw new Error('Unexpected activity identity');
+        activities.push(detail);
+      } catch (error) {
+        if (error.response?.status === 404) {
+          const deleted = await admin.rpc('handle_strava_event', { p_owner_id: athlete.strava_id,
+            p_activity_id: claim.activity_id, p_action: 'delete' });
+          if (deleted.error) throw deleted.error;
+          return { synced: 0, skipped: true, reason: 'source_deleted' };
+        }
+        throw error;
+      }
     }
-
-    const stamps = { last_activity_sync_at: new Date().toISOString(), last_activity_sync_error: null };
-    // Only a full-history run clears the backfill flag — a narrowed `since`
-    // run must not mark partial history as complete.
-    if (isBackfill && !since) stamps.activity_backfill_completed_at = new Date().toISOString();
-    await admin.from('athletes').update(stamps).eq('id', athleteId);
-
-    return { synced: rows.length, skipped: false, backfilled: isBackfill && !since };
+    // Reject malformed records instead of claiming a partial import succeeded.
+    if (activities.some(a => !/^\d+$/.test(String(a?.id || '')) || !a.start_date || !Number.isFinite(Date.parse(a.start_date)))) {
+      throw new Error('Invalid activity record');
+    }
+    const rows = [...new Map(activities.map(a => [String(a.id), toActivityRow(athleteId, a)])).values()];
+    const { data: finished, error: finishError } = await admin.rpc('finish_strava_sync', {
+      p_athlete_id: athleteId, p_strava_id: athlete.strava_id, p_lease_token: lease,
+      p_rows: rows, p_backfilled: isBackfill && !since,
+    });
+    if (finishError) throw finishError;
+    return { synced: finished.synced, skipped: false, backfilled: isBackfill && !since };
   } catch (error) {
     // A sync failure must never take down a page — stored data still renders.
-    console.error('[activitySync] failed for athlete', athleteId, error?.message || error);
-    await admin
-      .from('athletes')
-      .update({ last_activity_sync_at: new Date().toISOString(), last_activity_sync_error: String(error?.message || error).slice(0, 500) })
-      .eq('id', athleteId)
-      .then(() => {}, () => {});
-    return { synced: 0, skipped: true, reason: 'error', error: String(error?.message || error) };
+    const failure = classifyStravaSyncError(error);
+    console.error('[activitySync] failed:', { code: failure.code });
+    if (lease) {
+      try { await admin.rpc('release_strava_sync', { p_athlete_id: athleteId,
+        p_lease_token: lease, p_error: failure.code, p_retry_seconds: failure.retrySeconds }); } catch { /* lease expires */ }
+    }
+    return { synced: 0, skipped: true, reason: failure.code, message: failure.message };
   }
+};
 }
+export const syncAthleteActivities = createActivitySync();
 
 /**
  * Reads stored activities for a calendar range.

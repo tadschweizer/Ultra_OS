@@ -50,7 +50,7 @@ export function safePostAuthPath(rawNext, fallback = '/dashboard') {
 
   try {
     const url = new URL(path, 'https://mythreshold.co');
-    if (url.origin !== 'https://mythreshold.co' || url.pathname !== '/api/billing/checkout') {
+    if (url.origin !== 'https://mythreshold.co' || !['/api/billing/checkout', '/billing/checkout'].includes(url.pathname)) {
       return path;
     }
 
