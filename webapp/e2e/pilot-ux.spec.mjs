@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 
-async function mockAccount(page, { coach = false, strava = false, saveFails = false, onboarding = false } = {}) {
+async function mockAccount(page, { coach = false, strava = false, saveFails = false, onboarding = false,
+  relationships = [], calendarStravaConnected = true } = {}) {
   let invited = false;
   await page.route('**/api/**', async (route) => {
     const path = new URL(route.request().url()).pathname;
@@ -13,6 +14,9 @@ async function mockAccount(page, { coach = false, strava = false, saveFails = fa
         coach_access: { eligible: coach, reason: 'pilot' }, default_path: coach ? '/coach-command-center' : '/dashboard' },
     };
     if (path === '/api/integrations/status') payload = { strava };
+    if (path === '/api/coach/relationships') payload = { relationships };
+    if (path === '/api/planned-workouts') payload = { workouts: [], activities: [],
+      import_source: { strava_connected: calendarStravaConnected } };
     if (path === '/api/coach/dashboard') payload = { profile: { id: 'coach-1', display_name: 'QA Coach', coach_code: 'QA-COACH' }, summary: { total_athletes: 0 } };
     if (path === '/api/coach/invitations' && route.request().method() === 'POST') {
       invited = true;
@@ -97,4 +101,32 @@ test('query string alone cannot claim a Strava connection or finish onboarding',
   await page.waitForTimeout(1500);
   await expect(page).toHaveURL(/\/onboarding\?strava=connected$/);
   await expect(page.getByText('Strava connected', { exact: true })).toHaveCount(0);
+});
+
+test('coach calendar explains that an athlete without Strava only shows assigned or self-added workouts', async ({ page }) => {
+  const relationships = [{ athlete_id: 'athlete-2', status: 'active', athlete: { name: 'Pilot Runner' } }];
+  const notice = page.getByText(/hasn.t connected Strava, so only workouts you assign or they add/);
+  const calendarLoaded = () => page.waitForResponse((r) => new URL(r.url()).pathname === '/api/planned-workouts');
+
+  await mockAccount(page, { coach: true, relationships, calendarStravaConnected: false });
+  await page.goto('/coach/training-calendar');
+  await expect(notice).toBeVisible();
+  await expect(notice).toContainText('Pilot Runner hasn’t connected Strava');
+  await noOverflow(page);
+
+  await page.unrouteAll({ behavior: 'ignoreErrors' });
+  await mockAccount(page, { coach: true, relationships, calendarStravaConnected: true });
+  let loaded = calendarLoaded();
+  await page.reload();
+  await loaded;
+  await expect(page.getByText('Loading roster…')).toBeHidden();
+  await expect(notice).toHaveCount(0);
+
+  // The athlete's own calendar never shows the coach-facing notice.
+  await page.unrouteAll({ behavior: 'ignoreErrors' });
+  await mockAccount(page, { calendarStravaConnected: false });
+  loaded = calendarLoaded();
+  await page.goto('/calendar');
+  await loaded;
+  await expect(notice).toHaveCount(0);
 });

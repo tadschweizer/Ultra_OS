@@ -129,7 +129,12 @@ export default function CoachTrainingCalendarPage() {
               ctaHref="/coach-command-center"
             />
           ) : selectedAthleteId ? (
-            <TrainingCalendar key={selectedAthleteId} role="coach" athleteId={selectedAthleteId} />
+            <TrainingCalendar
+              key={selectedAthleteId}
+              role="coach"
+              athleteId={selectedAthleteId}
+              athleteName={selectedRelationship?.athlete?.name || ''}
+            />
           ) : null}
         </section>
       </div>
