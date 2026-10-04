@@ -1,226 +1,73 @@
-import { getAthleteByCookie, getSupabaseAdminClient } from '../../../lib/authServer';
-import { setAthleteCookie } from '../../../lib/auth/sessionCookies.js';
-import { getTierFromSubscription, isEntitledSubscriptionStatus } from '../../../lib/billingPlans';
-import { getStripeClient } from '../../../lib/stripeServer';
-import cookie from 'cookie';
 import crypto from 'crypto';
-
-async function writeSubscriptionToAthlete({ athleteId, customerId, subscription }) {
-  const admin = getSupabaseAdminClient();
-  const primaryItem = subscription?.items?.data?.[0];
-  const priceId = primaryItem?.price?.id || null;
-  const tier = getTierFromSubscription(subscription);
-  const isPaid = isEntitledSubscriptionStatus(subscription?.status);
-
-  const updates = {
-    stripe_customer_id: customerId || null,
-    stripe_subscription_id: subscription?.id || null,
-    stripe_price_id: priceId,
-    stripe_subscription_status: subscription?.status || null,
-    subscription_tier: isPaid ? tier : 'free',
-    subscription_activated_at: isPaid
-      ? new Date(subscription.created * 1000).toISOString()
-      : null,
+import { getAthleteByCookie, getSupabaseAdminClient } from '../../../lib/authServer.js';
+import { getTierFromSubscription, isEntitledSubscriptionStatus } from '../../../lib/billingPlans.js';
+import { getStripeClient } from '../../../lib/stripeServer.js';
+import { requireBillingPost } from '../../../lib/billingSecurity.js';
+import cookie from 'cookie';
+import { appendSetCookie } from '../../../lib/auth/sessionCookies.js';
+const stripeId = value => typeof value === 'string' ? value : value?.id || null;
+async function rpc(admin, name, args) { const result = await admin.rpc(name, args); if (result.error) throw result.error; return result.data; }
+export function createBillingSyncHandler({ getClient = getSupabaseAdminClient,
+  getAthlete = getAthleteByCookie, getStripe = getStripeClient } = {}) {
+  return async function handler(req, res) {
+    let admin; let customerId; let lease;
+    try {
+      if (!requireBillingPost(req, res)) return;
+      admin = getClient();
+      const athlete = await getAthlete(req, admin);
+      if (!athlete) return res.status(401).json({ error: 'Please log in to refresh billing.' });
+      const stripe = getStripe();
+      customerId = athlete.stripe_customer_id;
+      if (req.body?.sessionId) {
+        const session = await stripe.checkout.sessions.retrieve(req.body.sessionId);
+        if (session.mode !== 'subscription' || session.metadata?.athlete_id !== athlete.id
+            || (session.client_reference_id && session.client_reference_id !== athlete.id)) {
+          return res.status(403).json({ error: 'Checkout does not belong to this account.' });
+        }
+        if (session.status !== 'complete' || !['paid', 'no_payment_required'].includes(session.payment_status)) {
+          return res.status(200).json({ synced: false, pending: true });
+        }
+        const sessionCustomer = stripeId(session.customer);
+        if (!sessionCustomer || (customerId && customerId !== sessionCustomer)) return res.status(403).json({ error: 'Checkout does not belong to this account.' });
+        customerId = sessionCustomer;
+      }
+      if (!customerId) return res.status(200).json({ synced: false });
+      const eventId = `sync_${crypto.randomUUID()}`;
+      const claim = await rpc(admin, 'claim_billing_webhook', { p_event_id: eventId, p_customer_id: customerId, p_event_type: 'threshold.billing_sync' });
+      if (!claim?.lease_token) return res.status(503).json({ error: 'Billing is updating. Please retry in a few seconds.' });
+      lease = claim.lease_token;
+      // Sync and webhooks share the customer lease and atomic write, so a stale
+      // return-page refresh cannot race a newer provider event.
+      const list = await stripe.subscriptions.list({ customer: customerId, status: 'all', limit: 100, expand: ['data.items.data.price'] });
+      const live = list.data.filter(s => !['canceled', 'incomplete_expired'].includes(s.status));
+      if (list.has_more || live.length > 1) throw new Error('Ambiguous subscriptions.');
+      const subscription = live[0] || list.data[0];
+      if (subscription && (stripeId(subscription.customer) !== customerId
+          || (subscription.metadata?.athlete_id && subscription.metadata.athlete_id !== athlete.id))) {
+        await rpc(admin, 'release_billing_webhook', { p_customer_id: customerId, p_lease_token: lease });
+        return res.status(403).json({ error: 'Billing does not belong to this account.' });
+      }
+      const entitled = isEntitledSubscriptionStatus(subscription?.status);
+      await rpc(admin, 'finish_billing_webhook', { p_event_id: eventId, p_customer_id: customerId, p_lease_token: lease,
+        p_athlete_id: athlete.id, p_snapshot: { subscription_id: subscription?.id || null,
+          price_id: subscription?.items?.data?.[0]?.price?.id || null, status: subscription?.status || null,
+          tier: entitled ? getTierFromSubscription(subscription) : 'free',
+          activated_at: entitled ? new Date(subscription.created * 1000).toISOString() : null } });
+      lease = null;
+      const { data, error } = await admin.from('athletes')
+        .select('id, subscription_tier, stripe_customer_id, stripe_subscription_id, stripe_price_id, stripe_subscription_status')
+        .eq('id', athlete.id).single();
+      if (error) throw error;
+      for (const cleared of [
+        cookie.serialize('pending_checkout_session_id', '', { path: '/', maxAge: 0, sameSite: 'lax', secure: process.env.NODE_ENV === 'production' }),
+        cookie.serialize('pending_billing_state', '', { path: '/', maxAge: 0, httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production' }),
+      ]) appendSetCookie(res, cleared);
+      return res.status(200).json({ synced: true, athlete: data });
+    } catch (error) {
+      if (admin && customerId && lease) { try { await rpc(admin, 'release_billing_webhook', { p_customer_id: customerId, p_lease_token: lease }); } catch { /* expires */ } }
+      console.error('[billing/sync] failed:', { type: error?.type || error?.name, code: error?.code });
+      return res.status(503).json({ error: 'Could not refresh billing status. Please try again.' });
+    }
   };
-
-  const { data, error } = await admin
-    .from('athletes')
-    .update(updates)
-    .eq('id', athleteId)
-    .select('id, subscription_tier, stripe_customer_id, stripe_subscription_id, stripe_price_id, stripe_subscription_status, session_version')
-    .single();
-
-  if (error) {
-    throw error;
-  }
-
-  return data;
 }
-
-async function findCustomerIdForAthlete(stripe, athlete) {
-  if (athlete.stripe_customer_id) {
-    return athlete.stripe_customer_id;
-  }
-
-  if (!athlete.email) {
-    return null;
-  }
-
-  const customers = await stripe.customers.list({
-    email: athlete.email,
-    limit: 1,
-  });
-
-  return customers.data?.[0]?.id || null;
-}
-
-async function findLatestRelevantSubscription(stripe, customerId) {
-  if (!customerId) {
-    return null;
-  }
-
-  const subscriptions = await stripe.subscriptions.list({
-    customer: customerId,
-    status: 'all',
-    limit: 10,
-  });
-
-  return subscriptions.data.find((subscription) => isEntitledSubscriptionStatus(subscription.status))
-    || subscriptions.data[0]
-    || null;
-}
-
-function clearPendingCheckoutCookie(res) {
-  const cookiesToSet = [
-    cookie.serialize('pending_checkout_session_id', '', {
-      httpOnly: false,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 0,
-    }),
-    cookie.serialize('pending_billing_state', '', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 0,
-    }),
-  ];
-
-  const current = res.getHeader('Set-Cookie');
-  if (!current) {
-    res.setHeader('Set-Cookie', cookiesToSet);
-    return;
-  }
-
-  const existing = Array.isArray(current) ? current : [current];
-  res.setHeader('Set-Cookie', [...existing, ...cookiesToSet]);
-}
-
-function verifyPendingBillingState(value) {
-  if (!value) return null;
-
-  const secret = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!secret) {
-    throw new Error('Missing required environment variable: SUPABASE_SERVICE_ROLE_KEY');
-  }
-
-  const [encodedPayload, providedSignature] = value.split('.');
-  if (!encodedPayload || !providedSignature) {
-    return null;
-  }
-
-  const expectedSignature = crypto
-    .createHmac('sha256', secret)
-    .update(encodedPayload)
-    .digest('base64url');
-
-  const providedBuffer = Buffer.from(providedSignature);
-  const expectedBuffer = Buffer.from(expectedSignature);
-  if (providedBuffer.length !== expectedBuffer.length) {
-    return null;
-  }
-
-  if (!crypto.timingSafeEqual(providedBuffer, expectedBuffer)) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8'));
-  } catch {
-    return null;
-  }
-}
-
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method not allowed' });
-    return;
-  }
-
-  try {
-    const cookies = cookie.parse(req.headers.cookie || '');
-    const recoveryState = verifyPendingBillingState(cookies.pending_billing_state);
-    const athlete = await getAthleteByCookie(req, getSupabaseAdminClient());
-    const athleteId = athlete?.id || recoveryState?.athleteId || null;
-    if (!athleteId) {
-      res.status(401).json({ error: 'Not authenticated.' });
-      return;
-    }
-
-    const stripe = getStripeClient();
-    const sessionId = req.body?.sessionId || recoveryState?.sessionId || cookies.pending_checkout_session_id || null;
-    let customerId = null;
-    let subscription = null;
-
-    if (sessionId) {
-      const session = await stripe.checkout.sessions.retrieve(sessionId);
-      if (session.metadata?.athlete_id && session.metadata.athlete_id !== athleteId) {
-        res.status(403).json({ error: 'Checkout session does not belong to this account.' });
-        return;
-      }
-
-      customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id || null;
-
-      if (session.subscription) {
-        const subscriptionId = typeof session.subscription === 'string'
-          ? session.subscription
-          : session.subscription.id;
-        subscription = await stripe.subscriptions.retrieve(subscriptionId, {
-          expand: ['items.data.price'],
-        });
-      }
-    }
-
-    if (!customerId) {
-      const athleteRecord = athlete || await getSupabaseAdminClient()
-        .from('athletes')
-        .select('*')
-        .eq('id', athleteId)
-        .single()
-        .then(({ data, error }) => {
-          if (error) throw error;
-          return data;
-        });
-      customerId = await findCustomerIdForAthlete(stripe, athleteRecord);
-    }
-
-    if (!subscription) {
-      subscription = await findLatestRelevantSubscription(stripe, customerId);
-    }
-
-    if (!customerId || !subscription) {
-      res.status(200).json({
-        synced: false,
-        athlete: {
-          id: athleteId,
-          subscription_tier: athlete?.subscription_tier || 'free',
-          stripe_subscription_status: athlete?.stripe_subscription_status || null,
-        },
-      });
-      return;
-    }
-
-    const updatedAthlete = await writeSubscriptionToAthlete({
-      athleteId,
-      customerId,
-      subscription,
-    });
-
-    // Re-issues the session for the checkout-return recovery path, where the
-    // athlete was resolved from the pending-billing cookie rather than a live
-    // session. Must carry the current session_version or the fresh cookie
-    // would verify as revoked.
-    setAthleteCookie(res, athleteId, updatedAthlete.session_version);
-    clearPendingCheckoutCookie(res);
-
-    res.status(200).json({
-      synced: true,
-      athlete: updatedAthlete,
-    });
-  } catch (error) {
-    console.error('[billing/sync] failed:', error);
-    res.status(500).json({ error: 'Could not sync billing status.' });
-  }
-}
+export default createBillingSyncHandler();

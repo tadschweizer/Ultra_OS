@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 
 const TEMPLATE_META = {
@@ -52,6 +52,7 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [sending, setSending] = useState(false);
+  const sendInFlight = useRef(false);
 
   async function load(targetAthleteId = athleteId, { keepSelection = false } = {}) {
     setError('');
@@ -110,6 +111,8 @@ export default function MessagesPage() {
 
   async function send(e) {
     e.preventDefault();
+    if (sendInFlight.current || !canSend) return;
+    sendInFlight.current = true;
     setSending(true);
     setError('');
     try {
@@ -130,6 +133,7 @@ export default function MessagesPage() {
     } catch (err) {
       setError('Unable to send message. Please check required fields and retry.');
     } finally {
+      sendInFlight.current = false;
       setSending(false);
     }
   }
@@ -139,7 +143,7 @@ export default function MessagesPage() {
     () => conversations.find((conversation) => conversation.athlete_id === athleteId) || conversations[0] || null,
     [athleteId, conversations]
   );
-  const canSend = role === 'athlete' || Boolean(athleteId);
+  const canSend = !loading && Boolean(selectedConversation) && (role === 'athlete' || Boolean(athleteId));
 
   return (
     <main className="min-h-screen bg-paper p-6 text-ink">
@@ -179,6 +183,7 @@ export default function MessagesPage() {
                 return (
                   <button
                     key={conversation.athlete_id}
+                    disabled={sending}
                     onClick={() => selectConversation(conversation.athlete_id)}
                     className={`w-full rounded-xl border p-3 text-left transition ${active ? 'border-accent/40 bg-accent/5' : 'border-ink/8 bg-paper hover:border-ink/20'}`}
                   >
@@ -209,6 +214,8 @@ export default function MessagesPage() {
                 </div>
                 {role === 'coach' && conversations.length ? (
                   <select
+                    aria-label="Selected athlete"
+                    disabled={sending}
                     value={athleteId}
                     onChange={(e) => selectConversation(e.target.value)}
                     className="rounded-xl border border-ink/10 bg-paper px-3 py-2 text-sm"
@@ -222,8 +229,10 @@ export default function MessagesPage() {
 
               {role === 'coach' ? (
                 <div>
-                  <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.18em] text-ink/50">Message purpose</label>
+                  <label htmlFor="message-purpose" className="mb-1 block text-xs font-semibold uppercase tracking-[0.18em] text-ink/70">Message purpose</label>
                   <select
+                    id="message-purpose"
+                    disabled={sending}
                     value={templateKey}
                     onChange={(e) => { setTemplateKey(e.target.value); setBody(templates[e.target.value] || ''); }}
                     className="w-full rounded-xl border border-ink/10 bg-paper px-3 py-2 text-sm"
@@ -238,7 +247,10 @@ export default function MessagesPage() {
                 </div>
               ) : null}
 
+              <label htmlFor="message-body" className="block text-sm font-semibold text-ink">Your message</label>
               <textarea
+                id="message-body"
+                disabled={sending}
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
                 rows={3}
@@ -253,7 +265,7 @@ export default function MessagesPage() {
             <section className="rounded-2xl border border-ink/10 bg-white p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink/40">Conversation</p>
               {loading && <p className="mt-3 text-sm text-ink/60">Loading messages…</p>}
-              {!!error && <p className="mt-3 text-sm text-red-700">{error}</p>}
+              {!!error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
               {!loading && !messages.length && (
                 <p className="mt-3 text-sm text-ink/60">No messages yet. Start the loop with a check-in.</p>
               )}

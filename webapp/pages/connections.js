@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
 import EmptyStateCard from '../components/EmptyStateCard';
-import { fetchMe } from '../lib/meClient';
+import { clearMe, fetchMe } from '../lib/meClient';
 
 const sources = ['Garmin', 'COROS', 'Oura', 'Ultrahuman', 'Zwift', 'TrainingPeaks', 'CORE Body Temp'];
 
@@ -12,6 +12,10 @@ export default function Connections() {
   const [availability, setAvailability] = useState({ strava: false });
   const [notifyEmails, setNotifyEmails] = useState({});
   const [notifyStatus, setNotifyStatus] = useState({});
+  const [stravaStatus, setStravaStatus] = useState(null);
+  const [stravaBusy, setStravaBusy] = useState(null);
+  const [stravaNotice, setStravaNotice] = useState('');
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false);
   const navLinks = athleteId
     ? [
         { href: '/dashboard', label: 'Threshold Home', description: 'Insights, trends, and recent training.' },
@@ -48,11 +52,25 @@ export default function Connections() {
     }
   }, [athleteId]);
 
-  const hasAnyConnections = Boolean(athlete?.strava_id);
-  const stravaLastSeen = athlete?.token_expires_at || null;
+  const hasAnyConnections = stravaStatus?.connected ?? Boolean(athlete?.strava_id);
+  useEffect(() => {
+    if (!athleteId) return;
+    const abort = new AbortController();
+    fetch('/api/strava/connection', { signal: abort.signal }).then(async res => {
+      const data = await res.json();
+      if (!res.ok) throw new Error('Connection status could not be loaded. Refresh this page to try again.');
+      if (typeof data.connected === 'boolean') setStravaStatus(data);
+    }).catch(error => { if (error.name !== 'AbortError') setStravaNotice(error.message); });
+    return () => abort.abort();
+  }, [athleteId]);
   useEffect(() => {
     fetch('/api/integrations/status').then((res) => res.ok ? res.json() : {})
       .then((data) => setAvailability({ strava: data.strava === true })).catch(() => {});
+  }, []);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('error') === 'strava_permissions') {
+      setStravaNotice('Strava activity access was not granted. Connect again and allow activity access to import training.');
+    }
   }, []);
 
   const visibleSources = [
@@ -60,6 +78,37 @@ export default function Connections() {
       status: hasAnyConnections ? 'Connected' : availability.strava ? 'Available now' : 'Currently unavailable' },
     ...sources.map((name) => ({ name, enabled: false, status: 'Coming soon' })),
   ];
+
+  async function manageStrava(action) {
+    if (stravaBusy) return;
+    setStravaBusy(action); setStravaNotice('');
+    try {
+      const response = await fetch('/api/strava/connection', {
+        method: action === 'disconnect' ? 'DELETE' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(action === 'disconnect' ? { confirm: 'DISCONNECT STRAVA' } : {}),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Strava could not be updated. Try again.');
+      if (action === 'disconnect') {
+        clearMe(); setAthlete(current => current ? { ...current, strava_id: null } : current);
+        setStravaStatus({ connected: false }); setConfirmDisconnect(false);
+        setStravaNotice(data.providerCleanup === 'failed'
+          ? 'Imported activities were removed from Threshold. Also revoke Threshold in Strava’s My Apps settings to finish disconnecting.'
+          : 'Strava disconnected. Imported activities were removed; your manual training is unchanged.');
+      } else {
+        setStravaStatus(data);
+        const reason = data.sync?.reason;
+        setStravaNotice(data.sync?.message || (reason === 'in_progress' ? 'An import is already running. Check back shortly.'
+          : reason === 'retry_later' ? 'Strava requests are paused briefly. Try again shortly.'
+          : reason === 'throttled' ? 'Activities were checked recently. Try again shortly.'
+          : reason === 'not_connected' ? 'Connect Strava to import activities.'
+          : reason === 'source_deleted' ? 'An activity was removed in Strava. Your next import will refresh the remaining training.'
+          : `${data.sync?.synced || 0} ${(data.sync?.synced || 0) === 1 ? 'activity' : 'activities'} refreshed. Your calendar and coach views use the same saved training.`));
+      }
+    } catch (error) { setStravaNotice(error.message || 'Network error. Try again.'); }
+    finally { setStravaBusy(null); }
+  }
 
   async function handleNotifySubmit(sourceName) {
     const email = (notifyEmails[sourceName] || '').trim();
@@ -139,11 +188,31 @@ export default function Connections() {
                     {source.status}
                   </span>
                 </div>
-                {source.name === 'Strava' && hasAnyConnections && stravaLastSeen ? (
-                  <p className="mt-2 text-xs text-ink/45">
-                    Token valid until: {new Date(stravaLastSeen).toLocaleString()}
-                  </p>
+                {source.name === 'Strava' && hasAnyConnections ? (
+                  <div className="mt-4 space-y-3 text-sm text-ink/75">
+                    <p>{stravaStatus?.lastSyncedAt ? `Last successful import: ${new Date(stravaStatus.lastSyncedAt).toLocaleString()}` : 'No successful import yet.'}</p>
+                    {stravaStatus ? <p>{stravaStatus.activityCount || 0} imported {(stravaStatus.activityCount || 0) === 1 ? 'activity' : 'activities'}</p> : null}
+                    {stravaStatus?.message ? <p className="text-amber-800">{stravaStatus.message}</p> : null}
+                    <div className="flex flex-wrap gap-3">
+                      <button type="button" disabled={Boolean(stravaBusy) || !availability.strava} onClick={() => manageStrava('sync')}
+                        className="rounded-full border border-ink/20 px-4 py-3 font-semibold disabled:opacity-50">{stravaBusy === 'sync' ? 'Importing…' : 'Sync activities'}</button>
+                      <button type="button" disabled={Boolean(stravaBusy) || !stravaStatus} onClick={() => setConfirmDisconnect(true)}
+                        className="rounded-full border border-ink/20 px-4 py-3 font-semibold disabled:opacity-50">Disconnect Strava</button>
+                    </div>
+                    {confirmDisconnect ? <div className="rounded-2xl border border-ink/15 bg-paper p-4">
+                      <p className="font-semibold">Remove imported Strava training?</p>
+                      <p className="mt-2">Disconnecting removes imported Strava activities and their comments from Threshold. Manually entered workouts and training stay.</p>
+                      {stravaStatus?.canDisconnect === false ? <p className="mt-2">Add an email or Google sign-in first so you can still access your account.</p> : null}
+                      <div className="mt-3 flex flex-wrap gap-3">
+                        <button type="button" disabled={Boolean(stravaBusy)} onClick={() => setConfirmDisconnect(false)} className="rounded-full border border-ink/20 px-4 py-3">Keep connection</button>
+                        <button type="button" disabled={Boolean(stravaBusy) || !stravaStatus?.canDisconnect} onClick={() => manageStrava('disconnect')}
+                          className="rounded-full bg-ink px-4 py-3 font-semibold text-paper disabled:opacity-50">{stravaBusy === 'disconnect' ? 'Disconnecting…' : 'Confirm disconnect'}</button>
+                      </div>
+                    </div> : null}
+                    <a href="https://www.strava.com/settings/apps" target="_blank" rel="noreferrer" className="inline-block font-semibold underline">Manage access in Strava</a>
+                  </div>
                 ) : null}
+                {source.name === 'Strava' && stravaNotice ? <p role="status" aria-live="polite" className="mt-4 text-sm text-ink/80">{stravaNotice}</p> : null}
                 {source.enabled ? (
                   <a href={source.href} className="mt-6 inline-flex rounded-full bg-ink px-5 py-3 text-sm font-semibold text-paper">
                     {source.name === 'Strava' && hasAnyConnections ? 'Reconnect' : 'Connect'}

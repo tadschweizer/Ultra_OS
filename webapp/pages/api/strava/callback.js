@@ -1,7 +1,6 @@
-import { exchangeToken } from '../../../lib/strava';
-import { getSupabaseAdminClient } from '../../../lib/authServer';
+import { exchangeToken } from '../../../lib/strava.js';
+import { getAthleteByCookie, getSupabaseAdminClient } from '../../../lib/authServer.js';
 import cookie from 'cookie';
-import { normalizeSubscriptionTier } from '../../../lib/subscriptionTiers';
 import { getStravaRedirectUri } from '../../../lib/auth/oauth.js';
 import { clearOAuthState, consumeOAuthReturnPath, verifyOAuthState } from '../../../lib/auth/oauthState.js';
 import { buildOnboardingPath, isCoachInvitationPath } from '../../../lib/auth/redirects.js';
@@ -16,16 +15,16 @@ import { loadAccountAccess } from '../../../lib/auth/roleAccessServer.js';
 // Server-side routes cannot use the anon client: it carries no Supabase
 // session, so auth.uid() is null and every RLS policy denies it. This route
 // uses the service-role client and authorises from the session athlete id.
-const supabase = getSupabaseAdminClient();
 
 /**
  * Handle the Strava OAuth callback.
  *
  * Exchanges the provided code for an access token and refresh token,
- * upserts the athlete record in Supabase, sets a cookie with the athlete
+ * links or signs in the athlete in Supabase, sets a cookie with the athlete
  * ID, and then redirects the browser to the dashboard page.
  */
-export default async function handler(req, res) {
+export function createStravaCallbackHandler({ getClient = getSupabaseAdminClient, exchange = exchangeToken } = {}) {
+return async function handler(req, res) {
   const { code, state } = req.query;
   const cookies = cookie.parse(req.headers.cookie || '');
   if (!code) {
@@ -48,6 +47,12 @@ export default async function handler(req, res) {
   const returnPath = consumeOAuthReturnPath(req, res, 'strava');
 
   try {
+    const scopes = typeof req.query.scope === 'string' ? req.query.scope.split(',') : [];
+    if (!scopes.some(scope => ['activity:read', 'activity:read_all'].includes(scope))) {
+      res.setHeader('Location', '/connections?error=strava_permissions');
+      res.statusCode = 302; res.end(); return;
+    }
+    const supabase = getClient();
     const clientId = process.env.STRAVA_CLIENT_ID;
     const clientSecret = process.env.STRAVA_CLIENT_SECRET;
     const redirectUri = getStravaRedirectUri(req);
@@ -56,10 +61,21 @@ export default async function handler(req, res) {
         'Missing Strava environment variables: STRAVA_CLIENT_ID and STRAVA_CLIENT_SECRET are required.'
       );
     }
-    const tokenData = await exchangeToken(code, clientId, clientSecret, redirectUri);
+    const tokenData = await exchange(code, clientId, clientSecret, redirectUri);
     const { access_token, refresh_token, expires_at, athlete } = tokenData;
+    if (!/^\d+$/.test(String(athlete?.id || '')) || !access_token || !refresh_token || !Number.isFinite(expires_at)) {
+      throw new Error('Invalid Strava token response');
+    }
     const athleteName = [athlete.firstname, athlete.lastname].filter(Boolean).join(' ').trim();
     const existingAthleteId = getAthleteIdFromRequest(req);
+    const existingSession = existingAthleteId ? await getAthleteByCookie(req, supabase) : null;
+    if (existingAthleteId && !existingSession) return res.status(401).send('Please sign in again before connecting Strava.');
+    if (existingSession?.strava_id && String(existingSession.strava_id) !== String(athlete.id)) {
+      return res.status(409).send('Disconnect the previous Strava account before connecting a different one.');
+    }
+    const tokenFields = { strava_id: athlete.id.toString(), access_token, refresh_token,
+      token_expires_at: new Date(expires_at * 1000).toISOString(),
+      last_activity_sync_at: null, last_activity_sync_error: null };
     const primaryRoleIntent = getPersistedPrimaryRoleIntent(req);
     let savedAthlete;
 
@@ -70,12 +86,7 @@ export default async function handler(req, res) {
       // identity linking key off.
       const { data: linkedAthlete, error: linkError } = await supabase
         .from('athletes')
-        .update({
-          strava_id: athlete.id.toString(),
-          access_token,
-          refresh_token,
-          token_expires_at: new Date(expires_at * 1000).toISOString(),
-        })
+        .update(tokenFields)
         .eq('id', existingAthleteId)
         .select('id, onboarding_complete, primary_role, name, subscription_tier, session_version')
         .single();
@@ -87,12 +98,23 @@ export default async function handler(req, res) {
       // anyone who could set that address on a Strava profile walk into the
       // matching Threshold account — including accounts that already had a
       // password login. We cannot verify Strava's email claim, so the only
-      // safe anonymous match is on `strava_id` (the upsert below).
+      // safe anonymous match is on `strava_id`.
       //
       // A returning user whose account exists under that email is sent to log
       // in instead, so they end up connecting Strava from inside their own
       // session rather than silently forking a second account.
-      if (athlete.email) {
+      const { data: returningAthlete, error: returningError } = await supabase.from('athletes')
+        .select('id').eq('strava_id', athlete.id.toString()).maybeSingle();
+      if (returningError) throw returningError;
+      if (returningAthlete) {
+        // Returning Strava sign-in must preserve paid tiers, profile and role.
+        const { data, error } = await supabase.from('athletes').update(tokenFields)
+          .eq('id', returningAthlete.id).eq('strava_id', athlete.id.toString())
+          .select('id, onboarding_complete, primary_role, name, subscription_tier, session_version').single();
+        if (error) throw error;
+        savedAthlete = data;
+      }
+      if (!savedAthlete && athlete.email) {
         const { data: emailMatches } = await supabase
           .from('athletes')
           .select('id')
@@ -109,25 +131,21 @@ export default async function handler(req, res) {
       }
 
       if (!savedAthlete) {
-        const { data: upsertedAthlete, error: athleteError } = await supabase
+        const { data: insertedAthlete, error: athleteError } = await supabase
           .from('athletes')
-          .upsert(
+          .insert(
             {
               name: athleteName || null,
               email: athlete.email || null,
-              strava_id: athlete.id.toString(),
-              access_token,
-              refresh_token,
-              token_expires_at: new Date(expires_at * 1000).toISOString(),
+              ...tokenFields,
               subscription_tier: 'free',
               ...(primaryRoleIntent ? { primary_role: primaryRoleIntent } : {}),
-            },
-            { onConflict: 'strava_id' }
+            }
           )
           .select('id, onboarding_complete, primary_role, name, subscription_tier, session_version')
           .single();
         if (athleteError) throw athleteError;
-        savedAthlete = upsertedAthlete;
+        savedAthlete = insertedAthlete;
       }
     }
 
@@ -169,7 +187,9 @@ export default async function handler(req, res) {
     res.statusCode = 302;
     res.end();
   } catch (err) {
-    console.error(err);
+    console.error('[strava/callback] failed:', { code: err?.code || 'provider_error' });
     res.status(500).send('Failed to process Strava callback');
   }
+};
 }
+export default createStravaCallbackHandler();

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
 import { createClient } from '@supabase/supabase-js';
@@ -6,6 +6,8 @@ import { usePlan } from '../lib/planUtils';
 import { isCoachTier } from '../lib/subscriptionTiers';
 import { clearMe, fetchMe, getCachedMe } from '../lib/meClient';
 import SecuritySection from '../components/SecuritySection';
+import AccountDataSection from '../components/AccountDataSection';
+import { SUPPORT_EMAIL, SUPPORT_MAILTO } from '../lib/supportContact';
 
 function getSupabaseClient() {
   return createClient(
@@ -23,8 +25,13 @@ export default function AccountPage() {
   const [coachMessage, setCoachMessage] = useState('');
   const [loggingOut, setLoggingOut] = useState(false);
   const [billingMessage, setBillingMessage] = useState('');
+  const [billingBusy, setBillingBusy] = useState(false);
+  const portalOpening = useRef(false);
+  const billingSyncing = useRef(false);
+  const [syncBusy, setSyncBusy] = useState(false);
   const [athlete, setAthlete] = useState(() => cachedMe?.athlete || null);
   const [account, setAccount] = useState(() => cachedMe?.account || null);
+  const [deletionResult, setDeletionResult] = useState(null);
   const navLinks = [
     { href: '/dashboard', label: 'Threshold Home' },
     { href: '/guide', label: 'Guide' },
@@ -61,17 +68,15 @@ export default function AccountPage() {
     const sessionId = params.get('session_id');
     const pendingCheckoutSession = document.cookie.match(/pending_checkout_session_id=([^;]+)/)?.[1];
 
-    if (checkoutStatus === 'updated') {
-      // Plan was switched in place on an existing subscription.
+    if (checkoutStatus === 'updated' || checkoutStatus === 'returned') {
       clearMe();
-      setBillingMessage('Your plan has been updated.');
-      syncBilling(null, { userVisible: false });
+      syncBilling(null, { userVisible: true });
     } else if (checkoutStatus === 'success' && sessionId) {
       syncBilling(sessionId, { userVisible: true });
     } else if (pendingCheckoutSession) {
-      syncBilling(null, { userVisible: false });
+      syncBilling(decodeURIComponent(pendingCheckoutSession), { userVisible: false });
     } else if (checkoutStatus === 'success') {
-      setBillingMessage('Payment succeeded. We are finalizing your plan now.');
+      setBillingMessage('Checking your payment status. Refresh billing if your plan has not appeared yet.');
     }
   }, []);
 
@@ -118,7 +123,29 @@ export default function AccountPage() {
     window.location.href = '/';
   }
 
+  async function openBillingPortal() {
+    if (portalOpening.current) return;
+    portalOpening.current = true;
+    setBillingBusy(true);
+    setBillingMessage('');
+    try {
+      const res = await fetch('/api/billing/portal', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Unable to open billing.');
+      window.location.assign(data.url);
+    } catch (error) {
+      setBillingMessage(error.message || 'Unable to open billing. Please try again.');
+      portalOpening.current = false;
+      setBillingBusy(false);
+    }
+  }
+
   async function syncBilling(sessionId = null, { userVisible = true } = {}) {
+    if (billingSyncing.current) return;
+    billingSyncing.current = true;
+    setSyncBusy(true);
     if (userVisible) {
       setBillingMessage(sessionId
         ? 'Confirming your purchase with Stripe and updating your account...'
@@ -162,6 +189,8 @@ export default function AccountPage() {
         setBillingMessage('Could not reach Stripe to refresh billing status.');
       }
     } finally {
+      billingSyncing.current = false;
+      setSyncBusy(false);
     }
   }
 
@@ -180,6 +209,28 @@ export default function AccountPage() {
       setBillingMessage('Could not reach the server to activate the coach workspace.');
     }
   }
+
+  async function accountWasDeleted(result) {
+    setDeletionResult(result);
+    setAthlete(null);
+    setAccount(null);
+    setCoachConnections([]);
+    // Clear the browser's provider session as well as the server cookie/cache.
+    // Server auth cleanup may be partial; never let that hide the data result.
+    try { await getSupabaseClient().auth.signOut({ scope: 'local' }); }
+    catch { console.warn('[account] Local sign-in cleanup needs verification.'); }
+  }
+
+  if (deletionResult) return <main className="mx-auto max-w-2xl px-5 py-14">
+    <section aria-labelledby="your-data-heading" className="rounded-[30px] border border-ink/10 bg-white p-7">
+      <h1 id="your-data-heading" className="font-display text-4xl">Account deleted</h1>
+      <p role="status" className="mt-5 leading-8 text-ink">{deletionResult.auth_cleanup === 'failed'
+        ? 'Your Threshold training account was removed. External sign-in cleanup still needs help; please email support.'
+        : 'Your Threshold account was deleted and you are signed out.'}</p>
+      <p className="mt-4 leading-7 text-ink">Questions about retained or shared records? Email <a className="text-ink font-semibold underline" href={SUPPORT_MAILTO}>{SUPPORT_EMAIL}</a>.</p>
+      <a className="mt-6 inline-block text-ink font-semibold underline" href="/">Return to Threshold</a>
+    </section>
+  </main>;
 
   return (
     <main className="min-h-screen bg-paper px-4 py-6 text-ink">
@@ -215,11 +266,14 @@ export default function AccountPage() {
             <a href="/pricing" className="mt-5 inline-flex rounded-full bg-ink px-5 py-3 text-sm font-semibold text-paper">
               View Pricing
             </a>
-            {planId !== 'free' ? (
-              <a href="/api/billing/portal" className="mt-3 inline-flex rounded-full border border-ink/10 px-5 py-3 text-sm font-semibold text-ink">
-                Manage Billing
-              </a>
+            {planId !== 'free' || athlete?.stripe_subscription_id ? (
+              <button type="button" disabled={billingBusy} onClick={openBillingPortal} className="mt-3 inline-flex rounded-full border border-ink/10 px-5 py-3 text-sm font-semibold text-ink disabled:opacity-60">
+                {billingBusy ? 'Opening billing…' : 'Manage Billing'}
+              </button>
             ) : null}
+            <button type="button" disabled={syncBusy} onClick={() => syncBilling()} className="mt-3 inline-flex rounded-full border border-ink/10 px-5 py-3 text-sm font-semibold text-ink disabled:opacity-60">
+              {syncBusy ? 'Refreshing billing…' : 'Refresh billing status'}
+            </button>
             {isCoachTier(planId) && account && !account.capabilities?.coach ? (
               <button
                 type="button"
@@ -254,6 +308,7 @@ export default function AccountPage() {
         </section>
 
         <SecuritySection athlete={athlete} />
+        <AccountDataSection onDeleted={accountWasDeleted} />
 
         <section id="coach-connection" className="mt-6 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
           <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">

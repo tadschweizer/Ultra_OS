@@ -48,11 +48,17 @@ test('public signup resumes only current athlete checkout plans', () => {
 test('legacy subscriptions resolve to their successor tiers', () => {
   assert.equal(getTierFromPriceId('price_1TG9MNLs6h9nimdMijXTxWpC'), 'pro');
   assert.equal(getTierFromPriceId('price_1TG9MOLs6h9nimdMmgLvmC23'), 'pro');
-  assert.equal(getTierFromSubscription({ metadata: { subscription_tier: 'individual' } }), 'pro');
-  assert.equal(getTierFromSubscription({ metadata: { subscription_tier: 'research' } }), 'core');
-  assert.equal(getTierFromSubscription({ metadata: { subscription_tier: 'coach' } }), 'coach_pro');
-  assert.equal(getTierFromSubscription({ metadata: { subscription_tier: 'coach_essentials' } }), 'coach_essentials');
-  assert.equal(getTierFromSubscription({ metadata: { subscription_tier: 'bogus' } }), 'free');
+  assert.equal(getTierFromSubscription({ metadata: { subscription_tier: 'coach' }, items: { data: [{ price: { id: 'price_1TG9MNLs6h9nimdMijXTxWpC' } }] } }), 'pro');
+  withEnv('STRIPE_PRICE_RESEARCH_MONTHLY', 'legacy_research', () => {
+    assert.equal(getTierFromSubscription({ items: { data: [{ price: { id: 'legacy_research' } }] } }), 'core');
+  });
+  withEnv('STRIPE_PRICE_COACH_MONTHLY', 'legacy_coach', () => {
+    assert.equal(getTierFromSubscription({ items: { data: [{ price: { id: 'legacy_coach' } }] } }), 'coach_pro');
+  });
+  // Metadata can remain stale after hosted changes; a price must establish access.
+  for (const tier of ['individual', 'research', 'coach', 'coach_essentials', 'bogus']) {
+    assert.equal(getTierFromSubscription({ metadata: { subscription_tier: tier } }), 'free');
+  }
 });
 
 test('new plan prices resolve to their tiers', () => {

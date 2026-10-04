@@ -1304,6 +1304,7 @@ export default function Dashboard() {
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="font-semibold text-white">{activity.name}</p>
+                      {/^\d+$/.test(String(activity.strava_activity_id || '')) && <a href={`https://www.strava.com/activities/${activity.strava_activity_id}`} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-white underline">View on Strava</a>}
                       <p className="mt-1 text-sm text-white/70">{formatActivityDate(activity.start_date)}</p>
                     </div>
                     <div className="flex flex-wrap gap-2">

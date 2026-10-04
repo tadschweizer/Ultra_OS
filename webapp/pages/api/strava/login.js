@@ -34,7 +34,7 @@ export default function handler(req, res) {
     setSignupRoleIntent(res, signupRole);
   }
 
-  const scope = 'read,activity:read_all,profile:read_all';
+  const scope = 'read,activity:read_all';
   const authUrl =
     'https://www.strava.com/oauth/authorize?client_id=' +
     clientId +
