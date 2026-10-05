@@ -1,3 +1,4 @@
+import { validMessageId } from '../../lib/directMessages';
 import { getSupabaseAdminClient } from '../../lib/authServer';
 import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
 import { getEffectiveAthleteIdFromRequest } from '../../lib/auth/requireAthlete.js';
@@ -229,28 +230,23 @@ export default async function handler(req, res) {
       }
 
       if (body.scope === 'conversation') {
-        if (role === 'coach') {
-          if (!body.athlete_id) {
-            res.status(400).json({ error: 'athlete_id is required.' });
-            return;
-          }
-          await admin
-            .from('coach_messages')
-            .update({ read_at: new Date().toISOString() })
-            .eq('coach_id', coachProfile.id)
-            .eq('athlete_id', body.athlete_id)
-            .eq('sender_role', 'athlete')
-            .is('read_at', null);
-        } else {
-          await admin
-            .from('coach_messages')
-            .update({ read_at: new Date().toISOString() })
-            .eq('athlete_id', sessionAthleteId)
-            .eq('sender_role', 'coach')
-            .is('read_at', null);
+        const ids = body.message_ids;
+        if (!Array.isArray(ids) || !ids.length || ids.length > 50 || !ids.every(validMessageId)) {
+          return res.status(400).json({ error: 'Provide the messages you have read.' });
         }
-        res.status(200).json({ success: true });
-        return;
+        const athleteId = role === 'coach' ? body.athlete_id : sessionAthleteId;
+        let relation = admin.from('coach_athlete_relationships').select('coach_id')
+          .eq('athlete_id', athleteId).eq('status', 'active');
+        if (role === 'coach') relation = relation.eq('coach_id', coachProfile.id);
+        const { data: relationship, error: relationshipError } = await relation.limit(1).maybeSingle();
+        if (relationshipError) throw relationshipError;
+        if (!relationship) return res.status(403).json({ error: 'No active coaching relationship.' });
+        const { error } = await admin.from('coach_messages')
+          .update({ read_at: new Date().toISOString() }).eq('coach_id', relationship.coach_id)
+          .eq('athlete_id', athleteId).eq('sender_role', role === 'coach' ? 'athlete' : 'coach')
+          .in('id', ids).is('read_at', null);
+        if (error) throw error;
+        return res.status(200).json({ success: true });
       }
 
       // Scope name is historical: a session thread hangs off a planned workout
@@ -303,6 +299,6 @@ export default async function handler(req, res) {
     res.status(405).json({ error: 'Method not allowed' });
   } catch (error) {
     console.error('[message-center] failed:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Could not update messages. Please try again.' });
   }
 }

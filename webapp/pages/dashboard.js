@@ -1,3 +1,4 @@
+import TodayTraining from '../components/TodayTraining';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import {
@@ -837,6 +838,7 @@ export default function Dashboard() {
           />
         </div>
 
+        <TodayTraining />
         <DashboardTabs activeHref="/dashboard" />
 
         {!loading && checkInGate?.allowed !== false && !hasCheckedInOn(lastCheckInDate, localDateString()) ? (
