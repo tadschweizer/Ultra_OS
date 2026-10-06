@@ -1,3 +1,4 @@
+import { acknowledgeMessages, mergeMessages, notifyMessagesChanged } from '../lib/messageClient';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 
@@ -53,30 +54,67 @@ export default function MessagesPage() {
   const [error, setError] = useState('');
   const [sending, setSending] = useState(false);
   const sendInFlight = useRef(false);
+  const selectedRef = useRef('');
+  const drafts = useRef({});
+  const requestVersion = useRef(0);
+  const requestPending = useRef(false);
+  const requestAbort = useRef(null);
+  const [nextCursor, setNextCursor] = useState(null);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const retryId = useRef(null);
+  const appliedTemplate = useRef(false);
+  const loadRef = useRef(null);
+  const historyLoaded = useRef(false);
+  const requestedMode = router.query.mode === 'athlete' ? 'athlete' : 'coach';
 
-  async function load(targetAthleteId = athleteId, { keepSelection = false } = {}) {
-    setError('');
+  async function load(targetAthleteId = selectedRef.current, { keepSelection = false, older = false, background = false } = {}) {
+    if (background && requestPending.current) return;
+    requestAbort.current?.abort();
+    const controller = new AbortController();
+    requestAbort.current = controller;
+    requestPending.current = true;
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    const version = ++requestVersion.current;
     try {
-      const query = new URLSearchParams({ mode: 'coach' });
+      const query = new URLSearchParams({ mode: requestedMode });
       if (targetAthleteId) query.set('athlete_id', targetAthleteId);
-      const r = await fetch(`/api/coach/messages?${query.toString()}`);
+      if (older && nextCursor) query.set('before', nextCursor);
+      const r = await fetch(`/api/coach/messages?${query.toString()}`, { signal: controller.signal });
       const d = await r.json();
-      if (!r.ok) throw new Error(d.error || 'Failed to load messages');
+      if (version !== requestVersion.current) return;
+      if (!r.ok) { if (r.status === 403 || r.status === 401) { setMessages([]); setConversations([]); } throw new Error('Failed to load messages'); }
+      setError((previous) => previous.startsWith('Unable to load') || previous.startsWith('Messages loaded') ? '' : previous);
       const nextConversations = d.conversations || [];
-      setMessages(d.messages || []);
+      setMessages((previous) => nextConversations.length && (older || historyLoaded.current) ? mergeMessages(previous, d.messages || []) : (d.messages || []));
+      if (older || !historyLoaded.current) setNextCursor(d.next_cursor || null);
+      if (older) historyLoaded.current = true;
       setConversations(nextConversations);
       setTemplates(d.templates || {});
+      const requestedTemplate = typeof router.query.template_key === 'string' ? router.query.template_key : '';
+      if (!appliedTemplate.current && requestedTemplate && d.templates?.[requestedTemplate] && !router.query.message_body) {
+        appliedTemplate.current = true;
+        setBody((draft) => draft || d.templates[requestedTemplate]);
+      }
       setRole(d.role || 'athlete');
 
       if (!keepSelection && !targetAthleteId && d.role === 'coach' && nextConversations.length) {
         const firstAthleteId = nextConversations[0].athlete_id;
+        selectedRef.current = firstAthleteId;
         setAthleteId(firstAthleteId);
         await load(firstAthleteId, { keepSelection: true });
+      } else if (nextConversations.length) {
+        const acknowledged = await acknowledgeMessages(d.messages || [], d.role, targetAthleteId || nextConversations[0].athlete_id);
+        if (version === requestVersion.current) {
+          if (!acknowledged) setError('Messages loaded, but read status could not be saved. We will retry.');
+          else setConversations((items) => items.map((item) => item.athlete_id === (targetAthleteId || nextConversations[0].athlete_id) ? { ...item, unread_count: Math.max(0, item.unread_count - (d.messages || []).filter((m) => m.sender_role !== d.role && !m.read_at).length) } : item));
+        }
       }
     } catch (err) {
+      if (version !== requestVersion.current) return;
       setError('Unable to load messages right now. Please try again.');
     } finally {
-      setLoading(false);
+      clearTimeout(timeout);
+      if (version === requestVersion.current) { requestPending.current = false; setLoading(false); setLoadingOlder(false); }
     }
   }
 
@@ -89,23 +127,41 @@ export default function MessagesPage() {
     if (queryTemplateKey) setTemplateKey(queryTemplateKey);
     if (queryBody) setBody(queryBody);
 
-    if (queryAthleteId) {
+    if (queryAthleteId && selectedRef.current && queryAthleteId !== selectedRef.current) {
+      selectConversation(queryAthleteId);
+    } else if (queryAthleteId) {
+      selectedRef.current = queryAthleteId;
       setAthleteId(queryAthleteId);
       load(queryAthleteId, { keepSelection: true });
     } else {
       load('');
     }
-  }, [router.isReady]);
+    return () => { requestVersion.current += 1; requestAbort.current?.abort(); };
+  }, [router.isReady, router.query.athlete_id, requestedMode]);
 
+  loadRef.current = load;
   useEffect(() => {
-    if (!router.isReady || body) return;
-    const queryTemplateKey = typeof router.query.template_key === 'string' ? router.query.template_key : '';
-    if (queryTemplateKey && templates[queryTemplateKey]) setBody(templates[queryTemplateKey]);
-  }, [router.isReady, router.query.template_key, templates, body]);
+    if (!router.isReady) return;
+    const refresh = () => { if (document.visibilityState !== 'hidden' && !sendInFlight.current && !loadingOlder) loadRef.current(selectedRef.current, { keepSelection: true, background: true }); };
+    const timer = setInterval(refresh, 4000);
+    window.addEventListener('online', refresh);
+    window.addEventListener('focus', refresh);
+    return () => { clearInterval(timer); window.removeEventListener('online', refresh); window.removeEventListener('focus', refresh); };
+  }, [router.isReady, loadingOlder]);
 
   async function selectConversation(nextAthleteId) {
+    if (sendInFlight.current) return;
+    drafts.current[selectedRef.current] = { body, templateKey, retry: retryId.current };
+    historyLoaded.current = false;
+    selectedRef.current = nextAthleteId;
+    setBody(drafts.current[nextAthleteId]?.body || '');
+    setTemplateKey(drafts.current[nextAthleteId]?.templateKey || 'general_checkin');
+    retryId.current = drafts.current[nextAthleteId]?.retry || null;
     setAthleteId(nextAthleteId);
+    setMessages([]);
+    setNextCursor(null);
     setLoading(true);
+    setError('');
     await load(nextAthleteId, { keepSelection: true });
   }
 
@@ -115,12 +171,15 @@ export default function MessagesPage() {
     sendInFlight.current = true;
     setSending(true);
     setError('');
+    const signature = JSON.stringify([athleteId, body, templateKey]);
+    if (retryId.current?.signature !== signature) retryId.current = { signature, id: crypto.randomUUID() };
     try {
       const r = await fetch('/api/coach/messages', {
-        method: 'POST',
+        method: 'POST', signal: AbortSignal.timeout(15000),
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          mode: 'coach',
+          mode: requestedMode,
+          client_message_id: retryId.current.id,
           athlete_id: role === 'coach' ? athleteId || undefined : undefined,
           template_key: role === 'coach' ? templateKey : undefined,
           message_body: body || undefined,
@@ -129,6 +188,9 @@ export default function MessagesPage() {
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || 'Failed to send');
       setBody('');
+      drafts.current[selectedRef.current] = { body: '', templateKey };
+      retryId.current = null;
+      notifyMessagesChanged();
       await load(athleteId, { keepSelection: true });
     } catch (err) {
       setError('Unable to send message. Please check required fields and retry.');
@@ -140,10 +202,10 @@ export default function MessagesPage() {
 
   const selectedTemplate = TEMPLATE_META[templateKey];
   const selectedConversation = useMemo(
-    () => conversations.find((conversation) => conversation.athlete_id === athleteId) || conversations[0] || null,
+    () => (athleteId ? conversations.find((conversation) => conversation.athlete_id === athleteId) : conversations[0]) || null,
     [athleteId, conversations]
   );
-  const canSend = !loading && Boolean(selectedConversation) && (role === 'athlete' || Boolean(athleteId));
+  const canSend = !loading && Boolean(body.trim()) && Boolean(selectedConversation) && (role === 'athlete' || Boolean(athleteId));
 
   return (
     <main className="min-h-screen bg-paper p-6 text-ink">
@@ -152,16 +214,16 @@ export default function MessagesPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-accent">Coaching Loop</p>
           <h1 className="mt-2 text-3xl font-semibold">Messages</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-ink/60">
-            A conversation center for coach-athlete follow-up: pick a roster conversation, use a coaching template when helpful, and keep replies tied to the athlete instead of typing raw IDs. Triage links can preselect the athlete, template, and draft copy.
+            Keep training questions and feedback in one place. Open conversations refresh automatically.
           </p>
         </header>
 
-        <div className="rounded-2xl border border-ink/10 bg-white p-4">
+        {role === 'coach' && <div className="rounded-2xl border border-ink/10 bg-white p-4">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink/40">Not sure who needs a message?</p>
           <p className="mt-1 text-sm text-ink/65">
             The <a href="/coach-command-center" className="font-semibold text-accent hover:underline">Command Center triage feed</a> flags athletes with missed logs, compliance gaps, and upcoming races.
           </p>
-        </div>
+        </div>}
 
         <div className="grid gap-5 lg:grid-cols-[320px_1fr]">
           <aside className="rounded-2xl border border-ink/10 bg-white p-4">
@@ -253,6 +315,7 @@ export default function MessagesPage() {
                 disabled={sending}
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
+                maxLength={5000}
                 rows={3}
                 className="w-full rounded-xl border border-ink/10 bg-paper px-3 py-2 text-sm"
                 placeholder="Type message"
@@ -269,6 +332,7 @@ export default function MessagesPage() {
               {!loading && !messages.length && (
                 <p className="mt-3 text-sm text-ink/60">No messages yet. Start the loop with a check-in.</p>
               )}
+              {nextCursor && <button disabled={loadingOlder} onClick={() => { setLoadingOlder(true); load(athleteId, { keepSelection: true, older: true }); }} className="mt-3 rounded-full border border-ink/20 px-4 py-2 text-sm">{loadingOlder ? 'Loading…' : 'Load older messages'}</button>}
               <div className="mt-3 space-y-3">
                 {messages.map((m) => (
                   <div

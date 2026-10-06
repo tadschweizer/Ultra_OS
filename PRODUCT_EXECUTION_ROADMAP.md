@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
-Last updated: 2026-10-03<br>
-Status: P0-010–012 local Supabase/PostgREST and sandbox billing checks verified. Strava imports now have atomic leases, truthful status, explicit disconnect, source-event cleanup and an authenticated refresh worker; isolated database and HTTP-fixture browser acceptance pass. Regression 387/387 and build pass. Real Strava OAuth/webhooks/scheduler, SDK-authenticated billing/3DS/async settlement, hosted staging, legal/data practices and actual-phone gates remain open. Production lacks the tier prerequisite and billing RPCs.<br>
+Last updated: 2026-10-05<br>
+Status: PR #127 is merged as `2841ac8`. The P0-014/015/016 daily-loop implementation is locally verified: workout correction/retry, direct-message refresh/history/read state, and athlete entry points. Parent acceptance remains open; see `P0_DAILY_LOOP_VERIFICATION.md`. No production deployment or schema changes were performed in this batch.<br>
 Current milestone: M0 — make the closed coach pilot work end to end<br>
-Next item: Finish SDK-authenticated sandbox billing, full-app 3DS and asynchronous settlement; supply Threshold LLC's business mailing address and review legal/data practices. Continue Strava setup on the owner's approval assumption using `STRAVA_IMPORT_VERIFICATION.md`; the owner will contact Strava before launching. Provision only accepted included staging resources; complete hosted callbacks, worker/webhook configuration, external Google/uploaded-file cleanup and actual-phone acceptance. Review [draft PR #127](https://github.com/tadschweizer/Ultra_OS/pull/127) and `P0_010_012_EXTERNAL_ACCEPTANCE.md`. Do not merge into automatically deployed main until the owner authorizes and verifies the prerequisite-first production schema sequence: production still rejects current plan tiers and lacks all billing RPCs. The Strava lifecycle migration also requires its activity-persistence prerequisite. Earlier pilot live/schema and human timing gates remain open. The prior paid-staging restriction remains; production release/schema/configuration changes need separate authorization.
+Next item: Review and release the P0-014/015/016 daily-loop slice on `feature/p0-daily-loop-reliability`, then finish automatic workout-match correction, notification lifecycle and actual-phone acceptance. Keep the experimental signed-in coach/athlete acceptance loop and existing coach-message/shared-document schema repair as separate gates. SDK-authenticated sandbox billing, full-app 3DS/asynchronous settlement, accepted included hosted staging/Auth callbacks, Strava webhook/worker setup, external Auth/uploaded-file cleanup, business mailing address and retention/processor review remain open. No paid staging is authorized; production release/schema/configuration changes require separate authorization.
 
 ## Purpose
 
@@ -321,6 +321,10 @@ in place. Existing milestones remain the larger parity roadmap.
   If Supabase remains unavailable, continue B locally and document the blocked staging checks.
 
 - [ ] **P0-014 — Reliable workout creation and logging**
+  - October 5 local implementation checkpoint: retained save failures, blank actuals, completion correction/undo, unplanned logging, durable workout-create retries, validation and conservative import matching.
+    Node 22 regression 394/394; critical browser suite 89 passed / 3 viewport skips; expanded
+    daily-loop journeys 16/16; real isolated Supabase 6/6 check groups. Evidence and remaining
+    parent acceptance: `P0_DAILY_LOOP_VERIFICATION.md`. No production release is claimed.
   - Every create/update/complete/delete/library action reports persisted success or actionable failure.
   - Preserve drafts, clear busy states after errors, prevent duplicate submission, and support retry.
   - Directly edit/undo completion; support partial, skipped, and unplanned sessions.
@@ -329,6 +333,10 @@ in place. Existing milestones remain the larger parity roadmap.
   - Returning athlete target: log completion within 30 seconds, excluding optional written notes.
 
 - [ ] **P0-015 — One dependable messaging experience**
+  - October 5 local implementation checkpoint: one canonical composer, four-second refresh, per-recipient drafts, durable retries, cursor history and loaded-message read acknowledgements.
+    Node 22 regression 394/394; critical browser suite 89 passed / 3 viewport skips; expanded
+    daily-loop journeys 16/16; real isolated Supabase 6/6 check groups. Evidence and remaining
+    parent acceptance: `P0_DAILY_LOOP_VERIFICATION.md`. No production release is claimed.
   - Full inbox and floating center share conversation selection, unread state, and read acknowledgement.
   - Incoming replies refresh promptly; target five seconds in an open conversation.
   - Keep per-recipient drafts, retry safely, paginate history, and preserve session-discussion links.
@@ -336,6 +344,10 @@ in place. Existing milestones remain the larger parity roadmap.
   - Verify two-account delivery, refresh, reconnect, duplicate prevention, and relationship revocation.
 
 - [ ] **P0-016 — Athlete-first navigation and focused interface**
+  - October 5 local implementation checkpoint: Today/Calendar/Log workout/Messages/Profile mobile navigation, Today sessions and coach reply, keyboard-accessible workout panels.
+    Node 22 regression 394/394; critical browser suite 89 passed / 3 viewport skips; expanded
+    daily-loop journeys 16/16; real isolated Supabase 6/6 check groups. Evidence and remaining
+    parent acceptance: `P0_DAILY_LOOP_VERIFICATION.md`. No production release is claimed.
   - Athlete mobile navigation: Today, Calendar, Log workout, Messages, Profile.
   - Today exposes the planned session, fast check-in, and latest coach reply.
   - Preserve coach Roster/Calendar/Messages access already introduced by P0-003.

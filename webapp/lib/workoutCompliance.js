@@ -107,12 +107,12 @@ export function estimateTss(structure = [], fallbackDurationMin = null) {
 export function compliancePct(planned, completed) {
   const plannedDuration = Number(planned?.planned_duration_min) || 0;
   const completedDuration = Number(completed?.duration_min) || 0;
-  if (plannedDuration > 0 && completedDuration > 0) {
+  if (plannedDuration > 0 && completed?.duration_min != null && completedDuration >= 0) {
     return Math.round((completedDuration / plannedDuration) * 100);
   }
   const plannedDistance = Number(planned?.planned_distance_km) || 0;
   const completedDistance = Number(completed?.distance_km) || 0;
-  if (plannedDistance > 0 && completedDistance > 0) {
+  if (plannedDistance > 0 && completed?.distance_km != null && completedDistance >= 0) {
     return Math.round((completedDistance / plannedDistance) * 100);
   }
   return null;
@@ -231,8 +231,8 @@ export function matchActivitiesToWorkouts(workouts = [], activities = [], { tole
  */
 export function decorateWorkoutsWithCompliance(workouts = [], activities = [], { today = new Date(), toleranceDays = 0 } = {}) {
   const matches = matchActivitiesToWorkouts(
-    workouts.filter((w) => w.status !== 'skipped' && !w.completed_activity_id),
-    activities,
+    workouts.filter((w) => w.status === 'planned' && !w.completed_activity_id),
+    activities.filter((a) => !workouts.some((w) => String(w.completed_activity_id) === String(a.id))),
     { toleranceDays }
   );
 

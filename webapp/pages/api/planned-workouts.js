@@ -1,3 +1,4 @@
+import { validateWorkoutFields, validWorkoutRequestId, sameWorkoutRequest } from '../../lib/workoutValidation';
 import { getSupabaseAdminClient } from '../../lib/authServer';
 
 import {
@@ -252,6 +253,9 @@ export default async function handler(req, res) {
 
     if (req.method === 'POST') {
       const body = req.body || {};
+      if (body.client_request_id != null && !validWorkoutRequestId(body.client_request_id)) {
+        return res.status(400).json({ error: 'Invalid workout retry key.' });
+      }
       const targetAthleteId = body.athlete_id || sessionAthleteId;
 
       let coachProfile = null;
@@ -370,7 +374,13 @@ export default async function handler(req, res) {
         return;
       }
 
-      fillPlannedTotals(payload);
+      if (targetAthleteId === sessionAthleteId && body.status === 'completed') {
+        for (const field of ATHLETE_COMPLETION_FIELDS) if (body[field] !== undefined) payload[field] = body[field];
+      }
+      const validationError = validateWorkoutFields(payload);
+      if (validationError) return res.status(400).json({ error: validationError });
+      if (payload.status !== 'completed') fillPlannedTotals(payload);
+      if (body.client_request_id) payload.id = body.client_request_id;
 
       const { data: created, error: insertError } = await admin
         .from('planned_workouts')
@@ -378,6 +388,12 @@ export default async function handler(req, res) {
         .select(WORKOUT_COLUMNS)
         .single();
       if (insertError) {
+        if (insertError.code === '23505' && body.client_request_id) {
+          const { data: original, error: retryError } = await admin.from('planned_workouts')
+            .select(WORKOUT_COLUMNS).eq('id', body.client_request_id).eq('athlete_id', targetAthleteId).maybeSingle();
+          if (!retryError && sameWorkoutRequest(original, payload)) return res.status(200).json({ workout: original });
+          return res.status(409).json({ error: 'This save already exists with different details. Close this editor and review the calendar before making another change.' });
+        }
         res.status(500).json({ error: insertError.message });
         return;
       }
@@ -451,6 +467,8 @@ export default async function handler(req, res) {
         updates.planned_distance_km = recomputed.planned_distance_km;
         updates.planned_tss = recomputed.planned_tss;
       }
+      const validationError = validateWorkoutFields(updates);
+      if (validationError) return res.status(400).json({ error: validationError });
       updates.updated_at = new Date().toISOString();
 
       const { data: updated, error: updateError } = await admin

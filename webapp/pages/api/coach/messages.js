@@ -1,3 +1,4 @@
+import { loadMessagePage, parseMessageCursor, insertMessageOnce, validMessageId } from '../../../lib/directMessages';
 import { getSupabaseAdminClient } from '../../../lib/authServer';
 import { getAthleteIdFromRequest } from '../../../lib/auth/sessionCookies.js';
 import { getEffectiveAthleteIdFromRequest } from '../../../lib/auth/requireAthlete.js';
@@ -103,6 +104,7 @@ async function buildAthleteConversation(actorId, coachId) {
 }
 
 export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'private, no-store');
   const actorId = await getAthleteId(req);
   if (!actorId) return res.status(401).json({ error: 'Not authenticated' });
 
@@ -119,6 +121,7 @@ export default async function handler(req, res) {
       ? access.coachProfile
       : null;
     if (req.method === 'GET') {
+      try { parseMessageCursor(req.query.before); } catch { return res.status(400).json({ error: 'Invalid message cursor.' }); }
       const requestedAthleteId = req.query.athlete_id || '';
 
       if (coachProfile?.id) {
@@ -136,33 +139,23 @@ export default async function handler(req, res) {
           .maybeSingle();
         if (!relationship) return res.status(403).json({ error: 'No active coaching relationship with this athlete.' });
 
-        const { data, error } = await supabase
-          .from('coach_messages')
-          .select('*')
-          .eq('coach_id', coachProfile.id)
-          .eq('athlete_id', requestedAthleteId)
-          .order('created_at', { ascending: true });
-        if (error) return res.status(500).json({ error: error.message });
+        const page = await loadMessagePage(supabase, coachProfile.id, requestedAthleteId, req.query.before);
         const conversations = await buildCoachConversations(coachProfile.id);
-        return res.status(200).json({ messages: data || [], conversations, templates: MESSAGE_TEMPLATES, role: 'coach' });
+        return res.status(200).json({ ...page, conversations, templates: MESSAGE_TEMPLATES, role: 'coach' });
       }
 
       const rel = await getActiveCoachRelationship(actorId);
       if (!rel?.coach_id) return res.status(200).json({ messages: [], conversations: [], templates: MESSAGE_TEMPLATES, role: 'athlete' });
 
-      const { data, error } = await supabase
-        .from('coach_messages')
-        .select('*')
-        .eq('coach_id', rel.coach_id)
-        .eq('athlete_id', actorId)
-        .order('created_at', { ascending: true });
-      if (error) return res.status(500).json({ error: error.message });
+      const page = await loadMessagePage(supabase, rel.coach_id, actorId, req.query.before);
       const conversations = await buildAthleteConversation(actorId, rel.coach_id);
-      return res.status(200).json({ messages: data || [], conversations, templates: MESSAGE_TEMPLATES, role: 'athlete' });
+      return res.status(200).json({ ...page, conversations, templates: MESSAGE_TEMPLATES, role: 'athlete' });
     }
 
     if (req.method === 'POST') {
       const body = req.body || {};
+      if (body.client_message_id != null && !validMessageId(body.client_message_id)) return res.status(400).json({ error: 'Invalid message retry key.' });
+      if (body.message_body != null && (typeof body.message_body !== 'string' || body.message_body.length > 5000)) return res.status(400).json({ error: 'Messages must be 5,000 characters or fewer.' });
       if (coachProfile?.id) {
         if (!body.athlete_id) return res.status(400).json({ error: 'athlete_id is required' });
         const { data: relationship } = await supabase
@@ -176,8 +169,8 @@ export default async function handler(req, res) {
 
         const text = (body.message_body || MESSAGE_TEMPLATES[body.template_key] || '').trim();
         if (!text) return res.status(400).json({ error: 'message_body is required' });
-        const { data, error } = await supabase.from('coach_messages').insert({ coach_id: coachProfile.id, athlete_id: body.athlete_id, sender_role: 'coach', message_body: text, message_template_key: body.template_key || null }).select('*').single();
-        if (error) return res.status(500).json({ error: error.message });
+        const { data, error } = await insertMessageOnce(supabase, { coach_id: coachProfile.id, athlete_id: body.athlete_id, sender_role: 'coach', message_body: text, message_template_key: body.template_key || null }, body.client_message_id);
+        if (error) return res.status(500).json({ error: 'Messages are unavailable. Please try again.' });
         return res.status(200).json({ message: data });
       }
 
@@ -186,14 +179,14 @@ export default async function handler(req, res) {
       if (!coachId) return res.status(403).json({ error: 'No active coach relationship' });
       if (!body.message_body?.trim()) return res.status(400).json({ error: 'message_body is required' });
       const text = body.message_body.trim();
-      const { data, error } = await supabase.from('coach_messages').insert({ coach_id: coachId, athlete_id: actorId, sender_role: 'athlete', message_body: text }).select('*').single();
-      if (error) return res.status(500).json({ error: error.message });
-      await supabase.from('coach_notifications').insert({
+      const { data, error, replayed } = await insertMessageOnce(supabase, { coach_id: coachId, athlete_id: actorId, sender_role: 'athlete', message_body: text }, body.client_message_id);
+      if (error) return res.status(500).json({ error: 'Messages are unavailable. Please try again.' });
+      if (!replayed) await supabase.from('coach_notifications').insert({
         coach_id: coachId,
         athlete_id: actorId,
         notification_type: 'athlete_message',
         title: 'New athlete message',
-        body: text.slice(0, 240),
+        body: 'Open Messages to read the reply.',
         entity_type: 'coach_message',
         entity_id: data.id,
       });
@@ -202,6 +195,6 @@ export default async function handler(req, res) {
 
     res.status(405).end();
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Messages are unavailable. Please try again.' });
   }
 }
