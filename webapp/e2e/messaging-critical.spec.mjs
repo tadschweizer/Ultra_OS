@@ -19,9 +19,13 @@ async function routeMessages(page, role, store) {
           store.messages.push({ id: `message-${store.messages.length}`, sender_role: role, athlete_id: 'athlete-1', message_body: payload.message_body, created_at: '2026-10-01T12:00:00Z' });
           body = { success: true };
         }
-      } else body = { role, templates: { general_checkin: 'How did training feel?' }, messages: store.messages,
-        conversations: store.disconnected ? [] : [{ athlete_id: 'athlete-1', athlete: { name: role === 'coach' ? 'Test Athlete' : 'Test Coach' }, unread_count: 0 }] };
+      } else body = { actor_id: role === 'coach' ? 'coach-owner' : 'athlete-1', role, templates: { general_checkin: 'How did training feel?' }, messages: store.messages,
+        conversations: store.disconnected ? [] : [{ coach_id: 'coach-1', athlete_id: 'athlete-1', athlete: { name: role === 'coach' ? 'Test Athlete' : 'Test Coach' }, unread_count: 0 }] };
     }
+    if (url.pathname === '/api/message-center' && request.method() === 'POST') body = {
+      success: true, conversations: store.disconnected ? [] : [{ coach_id: 'coach-1', athlete_id: 'athlete-1',
+        athlete: { name: role === 'coach' ? 'Test Athlete' : 'Test Coach' }, unread_count: 0 }],
+    };
     await route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
   });
 }

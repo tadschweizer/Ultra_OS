@@ -1,5 +1,6 @@
 import { useDialogFocus } from '../lib/useDialogFocus';
 import { calendarMutation } from '../lib/calendarMutation';
+import { acknowledgeComments, notifyMessagesChanged } from '../lib/messageClient';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import {
@@ -638,10 +639,12 @@ function CommentThread({ subject, role, onCountChange }) {
         if (!r.ok) throw new Error(data.error || 'Could not load this discussion.');
         return data;
       })
-      .then((data) => {
+      .then(async (data) => {
         if (!active) return;
         setComments(data.comments || []);
         setLoading(false);
+        const acknowledged = await acknowledgeComments(data.comments || [], data.viewer_role || role, subject);
+        if (active && !acknowledged) setError('Discussion loaded, but read status could not be saved. Reopen to retry.');
       })
       .catch((err) => {
         if (!active) return;
@@ -675,6 +678,7 @@ function CommentThread({ subject, role, onCountChange }) {
         return next;
       });
       setBody('');
+      notifyMessagesChanged();
     } catch (err) {
       setError(err.message);
     } finally {

@@ -43,15 +43,16 @@ async function setup(page, { coach = false } = {}) {
         const body = request.postDataJSON(); state.writes.push(body);
         if (state.fail) { status=503; data={error:'Unavailable'}; }
         else { const message = { id: body.client_message_id, athlete_id: body.athlete_id || athleteId, sender_role: coach ? 'coach' : 'athlete', message_body: body.message_body, created_at: new Date().toISOString() }; state.messages.push(message); data={message}; }
-      } else data = { role: coach ? 'coach' : 'athlete', templates: { general_checkin: 'How are you?' }, conversations: [
-        { athlete_id: athleteId, athlete: { name: 'First athlete' }, unread_count: 1 },
-        ...(coach ? [{ athlete_id: secondId, athlete: { name: 'Second athlete' }, unread_count: 0 }] : []),
+      } else data = { actor_id: coach ? secondId : athleteId, role: coach ? 'coach' : 'athlete', templates: { general_checkin: 'How are you?' }, conversations: [
+        { coach_id: 'test-coach', athlete_id: athleteId, athlete: { name: 'First athlete' }, unread_count: 1 },
+        ...(coach ? [{ coach_id: 'test-coach', athlete_id: secondId, athlete: { name: 'Second athlete' }, unread_count: 0 }] : []),
       ], messages: url.searchParams.has('before') ? state.older || [] : state.messages.filter(m => m.athlete_id === (url.searchParams.get('athlete_id') || athleteId)), next_cursor: state.older?.length && !url.searchParams.has('before') ? 'older-page' : null };
     }
     if (url.pathname === '/api/message-center') {
       if (request.method() === 'POST') { state.acknowledgements.push(request.postDataJSON()); data={success:true}; }
-      else data={has_messaging:true,role:coach?'coach':'athlete',unread_total:1,workout_threads:[],conversations:[{athlete_id:athleteId,name:'First athlete',unread:1}]};
+      else data={has_messaging:true,role:coach?'coach':'athlete',unread_total:1,workout_threads:state.sessionThreads || [],conversations:[{athlete_id:athleteId,name:'First athlete',unread:1}]};
     }
+    if (url.pathname === '/api/workout-comments' && request.method() === 'GET') data = {comments: state.comments || [], viewer_role: coach ? 'coach' : 'athlete'};
     await route.fulfill({ status, contentType:'application/json', body:JSON.stringify(data) });
   });
   return state;
@@ -126,6 +127,19 @@ test('floating conversation opens the canonical inbox with the selected recipien
   await page.getByRole('button',{name:/First athlete/}).click();
   await expect(page).toHaveURL(new RegExp(`/messages\\?athlete_id=${athleteId}`));
   await expect(page.getByLabel('Selected athlete')).toHaveValue(athleteId);
+});
+
+test('session preview navigation marks only comments loaded in the opened discussion', async ({ page }) => {
+  const state=await setup(page);
+  state.comments=[{id:messageId,sender_role:'coach',body:'Loaded session reply',read_at:null,created_at:'2026-10-07T12:00:00Z'}];
+  state.sessionThreads=[{subject_type:'workout',subject_id:'workout-1',title:'Easy run',athlete_id:athleteId,name:'Coach',unread:2}];
+  await page.goto('/calendar');
+  await page.getByRole('button',{name:/Messages \(1 unread\)/}).click();
+  await page.getByRole('button',{name:'Sessions',exact:true}).click();
+  await page.getByRole('button',{name:/^OTH Easy run/}).click();
+  await expect(page.getByText('Loaded session reply',{exact:true})).toBeVisible();
+  await expect.poll(()=>state.acknowledgements.filter(a=>a.scope==='workout').length).toBe(1);
+  expect(state.acknowledgements.find(a=>a.scope==='workout').comment_ids).toEqual([messageId]);
 });
 
 

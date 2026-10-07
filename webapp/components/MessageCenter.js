@@ -1,5 +1,5 @@
 import { MESSAGE_REFRESH_EVENT } from '../lib/messageClient';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import { isCoachRoute } from '../lib/siteNavigation';
 
@@ -46,17 +46,24 @@ export default function MessageCenter() {
   const [summary, setSummary] = useState(null);
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState('direct');
+  const [summaryError, setSummaryError] = useState(false);
+  const requestVersion = useRef(0);
   const coachingFlow = (router.pathname === '/messages' && router.query.mode !== 'athlete') || isCoachRoute(router.pathname);
 
   const refresh = useCallback(async () => {
+    const version = ++requestVersion.current;
     try {
       const modeQuery = coachingFlow ? '?mode=coach' : '';
-      const res = await fetch(`/api/message-center${modeQuery}`);
-      if (!res.ok) return;
+      const res = await fetch(`/api/message-center${modeQuery}`, { signal: AbortSignal.timeout(10000) });
+      if (version !== requestVersion.current) return;
+      if (res.status === 401 || res.status === 403) { setSummary(null); setSummaryError(false); return; }
+      if (!res.ok) throw new Error('Summary unavailable');
       const data = await res.json();
+      if (version !== requestVersion.current) return;
       setSummary(data);
+      setSummaryError(false);
     } catch {
-      // Silent: the badge just stays stale until the next poll.
+      if (version === requestVersion.current) setSummaryError(true);
     }
   }, [coachingFlow]);
 
@@ -65,10 +72,13 @@ export default function MessageCenter() {
     const interval = setInterval(refresh, open ? 4000 : 30000);
     const onFocus = () => refresh();
     window.addEventListener('focus', onFocus);
+    window.addEventListener('online', onFocus);
     window.addEventListener(MESSAGE_REFRESH_EVENT, onFocus);
     return () => {
       clearInterval(interval);
+      requestVersion.current++;
       window.removeEventListener('focus', onFocus);
+      window.removeEventListener('online', onFocus);
       window.removeEventListener(MESSAGE_REFRESH_EVENT, onFocus);
     };
   }, [refresh, open]);
@@ -84,21 +94,10 @@ export default function MessageCenter() {
     router.push(`/messages?athlete_id=${encodeURIComponent(conversation.athlete_id)}&mode=${summary?.role || 'athlete'}`);
   }, [router, summary?.role]);
 
-  // A session thread hangs off either a planned workout or an imported
-  // activity, so both the mark-read call and the calendar deep link name the
-  // subject the thread actually has.
-  const openSessionThread = useCallback(async (sessionThread) => {
+  // Navigate to the actual session. The calendar acknowledges comments only
+  // after it has loaded them; a summary preview is not a read acknowledgement.
+  const openSessionThread = useCallback((sessionThread) => {
     const subjectParam = sessionThread.subject_type === 'activity' ? 'activity' : 'workout';
-    await fetch('/api/message-center', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'mark_read',
-        scope: 'workout',
-        mode: summary?.role || 'athlete',
-        [`${subjectParam}_id`]: sessionThread.subject_id,
-      }),
-    }).catch(() => {});
     setOpen(false);
     const deepLink = `${subjectParam}=${encodeURIComponent(sessionThread.subject_id)}`;
     const target = summary?.role === 'coach'
@@ -107,12 +106,12 @@ export default function MessageCenter() {
     router.push(target);
   }, [router, summary?.role]);
 
-  if (!summary || !summary.has_messaging) return null;
+  if ((!summary || !summary.has_messaging) && !summaryError) return null;
 
-  const unread = summary.unread_total || 0;
-  const conversations = summary.conversations || [];
-  const sessionThreads = summary.workout_threads || [];
-  const myRole = summary.role;
+  const unread = summary?.unread_total || 0;
+  const conversations = summary?.conversations || [];
+  const sessionThreads = summary?.workout_threads || [];
+  const myRole = summary?.role || (coachingFlow ? 'coach' : 'athlete');
 
   return (
     <>
@@ -120,13 +119,13 @@ export default function MessageCenter() {
       <button
         type="button"
         onClick={() => { setOpen((v) => !v); if (!open) { refresh(); } }}
-        aria-label={unread ? `Messages (${unread} unread)` : 'Messages'}
+        aria-label={summaryError ? 'Messages (unread count unavailable)' : unread ? `Messages (${unread} unread)` : 'Messages'}
         className="fixed bottom-24 right-4 z-[64] flex h-12 w-12 items-center justify-center rounded-full border border-ink/10 bg-white text-ink shadow-[0_4px_20px_rgba(19,24,22,0.14)] transition hover:scale-105 lg:bottom-auto lg:top-4 lg:right-5"
       >
         <ChatIcon className="h-5 w-5" />
-        {unread > 0 && (
+        {(unread > 0 || summaryError) && (
           <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white ring-2 ring-white">
-            {unread > 99 ? '99+' : unread}
+            {summaryError ? '?' : unread > 99 ? '99+' : unread}
           </span>
         )}
       </button>
@@ -139,12 +138,13 @@ export default function MessageCenter() {
             <div className="flex items-center justify-between border-b border-ink/8 px-5 py-3.5">
               <div className="flex items-center gap-2">
                 <p className="text-sm font-semibold text-ink">Messages</p>
-                {unread > 0 && (
+                {unread > 0 && !summaryError && (
                   <span className="rounded-full bg-rose-500/10 px-2 py-0.5 text-[10px] font-bold text-rose-600">{unread} unread</span>
                 )}
               </div>
               <button onClick={() => setOpen(false)} className="rounded-full border border-ink/10 px-2.5 py-1 text-xs text-ink/60 hover:bg-ink/5">✕</button>
             </div>
+            {summaryError && <p role="status" className="px-5 py-3 text-sm text-ink/70">Unread count could not be refreshed. <button onClick={refresh} className="underline">Retry</button></p>}
             <>
                 {/* Tabs */}
                 <div className="flex gap-1 border-b border-ink/8 px-4 pt-2.5">
@@ -234,7 +234,7 @@ export default function MessageCenter() {
                   )}
                 </div>
 
-                <a href="/messages" className="block border-t border-ink/8 px-5 py-3 text-center text-xs font-semibold text-accent hover:bg-paper">
+                <a href={`/messages?mode=${myRole}`} className="block border-t border-ink/8 px-5 py-3 text-center text-xs font-semibold text-accent hover:bg-paper">
                   Open full message board →
                 </a>
             </>

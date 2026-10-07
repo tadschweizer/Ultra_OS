@@ -88,15 +88,14 @@ async function resolveSubject(admin, sessionAthleteId, { workoutId, activityId }
  * with no coach yields null and no notification is written.
  */
 async function resolveNotifyCoachId(admin, subject) {
-  if (subject.assignedCoachId) return subject.assignedCoachId;
-
-  const { data: relationship } = await admin
+  let query = admin
     .from('coach_athlete_relationships')
     .select('coach_id')
     .eq('athlete_id', subject.ownerAthleteId)
-    .eq('status', 'active')
-    .limit(1)
-    .maybeSingle();
+    .eq('status', 'active');
+  if (subject.assignedCoachId) query = query.eq('coach_id', subject.assignedCoachId);
+  const { data: relationship, error } = await query.order('coach_id', { ascending: true }).limit(1).maybeSingle();
+  if (error) throw error;
   return relationship?.coach_id || null;
 }
 
@@ -208,23 +207,6 @@ export default async function handler(req, res) {
       if (error) {
         res.status(500).json({ error: error.message });
         return;
-      }
-
-      // Notifying the coach is a side effect of the conversation, not part of
-      // it: a failure here must not lose the athlete's comment.
-      if (subject.senderRole === 'athlete' && coachId) {
-        const { error: notifyError } = await admin.from('coach_notifications').insert({
-          coach_id: coachId,
-          athlete_id: subject.ownerAthleteId,
-          notification_type: 'workout_comment',
-          title: workoutId ? 'New workout comment' : 'New activity comment',
-          body: body.slice(0, 240),
-          entity_type: workoutId ? 'planned_workout' : 'activity',
-          entity_id: workoutId || activityId,
-        });
-        if (notifyError) {
-          console.error('[workout-comments] coach notification failed:', notifyError.message);
-        }
       }
 
       const [comment] = await withAuthorNames(admin, [data]);

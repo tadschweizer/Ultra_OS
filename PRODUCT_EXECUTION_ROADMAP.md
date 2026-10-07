@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
 Last updated: 2026-10-07<br>
-Status: PR #129 is merged as `a9d83c2`; matching production deployment is READY. The October 7 P0-014 workout-match correction slice is locally verified (403 regression tests, 103 critical browser passes / 3 skips, 24 daily-loop browser passes, Node 22 build). Its production migration/release and parent acceptance remain open; see `P0_WORKOUT_MATCH_VERIFICATION.md`. No production writes were performed in this session.<br>
+Status: PR #130 is merged on remote main as `4f2038f`. The P0-015 messaging batch is locally verified (416 regression tests, 115 critical browser passes / 3 skips, 46 expanded journeys and a final 22-case messaging rerun, Node 22 build). Production migration/release and parent acceptance remain open; see `P0_MESSAGING_DELIVERY_VERIFICATION.md`. No production writes were performed in this session.<br>
 Current milestone: M0 — make the closed coach pilot work end to end<br>
-Next item: Review and release the locally verified P0-014 workout-match correction slice in `feature/p0-workout-match-correction`, applying its exact migration before application deployment only after explicit authorization. Then tackle P0-015 notification preferences/delivery lifecycle, durable drafts and all-history unread aggregation. Real two-account and physical-phone acceptance, existing coach-message/shared-document schema repair, and the other external gates remain open. No paid staging is authorized; production release/schema/configuration changes require separate authorization.
+Next item: Review and release the P0-015 notification/draft/unread batch in `feature/p0-messaging-delivery`, applying exact migration `20261007200545_messaging_delivery.sql` before application deployment only after explicit authorization. Independently resolve PR #130 migration/release, then verify controlled two-account and physical-phone delivery, read counts, preferences and revocation. Existing shared-document schema repair and other external M0 gates remain open. No paid staging or production writes are authorized by this implementation request.
 
 ## Purpose
 
@@ -334,6 +334,7 @@ in place. Existing milestones remain the larger parity roadmap.
   - Returning athlete target: log completion within 30 seconds, excluding optional written notes.
 
 - [ ] **P0-015 — One dependable messaging experience**
+  - October 7 messaging-delivery checkpoint: transactional in-app delivery for both roles, explicit preferences/suppression, account/conversation-scoped device drafts with persisted retry IDs, and all-history direct/session unread aggregation. Node 22 regression 416/416; critical browser checkpoint 115 passed / 3 skips; expanded daily-loop/messaging 46/46, final cross-tab messaging rerun 22/22; production build and 13 isolated PostgreSQL/signed-handler cases pass. Evidence and release order: `P0_MESSAGING_DELIVERY_VERIFICATION.md`. Exact migration and controlled hosted/physical-phone acceptance remain open; no production writes.
   - October 5 local implementation checkpoint: one canonical composer, four-second refresh, per-recipient drafts, durable retries, cursor history and loaded-message read acknowledgements.
     Node 22 regression 394/394; critical browser suite 89 passed / 3 viewport skips; expanded
     daily-loop journeys 16/16; real isolated Supabase 6/6 check groups. Evidence and remaining
@@ -680,6 +681,9 @@ accounts are unavailable; the previous INACTIVE observation below is historical.
 | 2026-09-28 | Do not add a Sentry alert rule or uptime monitor | Owner declined; keep the readiness check manual for the closed pilot |
 
 ## Progress log
+
+October 7 P0-015 messaging checkpoint (`feature/p0-messaging-delivery`): delivered transactional coach/athlete in-app notifications with privacy-safe previews and explicit suppression, atomic preference patches, device-saved drafts and retry identities, shared SQL all-history counts, loaded-only session acknowledgements, and fresh post-acknowledgement counts. Node 22 regression 416/416; critical browser 115 passed / 3 skips; expanded daily-loop/messaging 46/46 and final cross-tab messaging 22/22; build and diff checks pass. Read-only production preflight finds `coach_messages` and `notification_preferences` absent, all new messaging functions absent, and neither PR #130 nor this new migration recorded. The exact new migration narrowly repairs messaging prerequisites. PR #130 is merged on remote main at `4f2038f`; release/live/phone gates remain separate. See `P0_MESSAGING_DELIVERY_VERIFICATION.md`. P0-015 stays open. No production write, deployment or service configuration change.
+
 
 October 7 P0-014 match-correction checkpoint: saved athlete decisions, explicit manual-to-import linking, duplicate-link protection, stale-edit conflicts, lost-response retries, provider-deletion handling and cross-range calendar visibility are locally verified. Node 22 regression 403/403; critical browser 103 passed / 3 skips; expanded daily-loop 24/24; production build and seven isolated PostgreSQL groups pass. Read-only checks confirm PR #129's READY production deployment on `a9d83c2`, zero existing/duplicate links, the new migration still absent and `coach_messages` still absent. Evidence and release order: `P0_WORKOUT_MATCH_VERIFICATION.md`. P0-014 stays open; P0-015 notification lifecycle is the next implementation batch. No production deployment, database write or service configuration change.
 

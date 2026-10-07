@@ -1,4 +1,5 @@
 import { acknowledgeMessages, mergeMessages, notifyMessagesChanged } from '../lib/messageClient';
+import { browserDraftStorage, clearSentDraft, messageDraftKey, readMessageDraft, writeMessageDraft } from '../lib/messageDrafts';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 
@@ -56,16 +57,42 @@ export default function MessagesPage() {
   const sendInFlight = useRef(false);
   const selectedRef = useRef('');
   const drafts = useRef({});
+  const draftKey = useRef(null);
+  const [draftStatus, setDraftStatus] = useState('');
   const requestVersion = useRef(0);
   const requestPending = useRef(false);
   const requestAbort = useRef(null);
   const [nextCursor, setNextCursor] = useState(null);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const retryId = useRef(null);
-  const appliedTemplate = useRef(false);
   const loadRef = useRef(null);
   const historyLoaded = useRef(false);
+  const loadedIdentity = useRef(null);
   const requestedMode = router.query.mode === 'athlete' ? 'athlete' : 'coach';
+
+  function saveDraft(nextBody = body, nextTemplate = templateKey, retry = retryId.current) {
+    const draft = { body: nextBody, templateKey: nextTemplate, retry };
+    if (draftKey.current) drafts.current[draftKey.current] = draft;
+    const ok = writeMessageDraft(browserDraftStorage(), draftKey.current, draft);
+    setDraftStatus(ok ? (nextBody ? 'Draft saved on this device.' : '') : 'Draft could not be saved on this device. Keep this page open.');
+  }
+
+  function restoreDraft(data, conversation) {
+    const key = messageDraftKey(data.actor_id, data.role, conversation);
+    if (!key || key === draftKey.current) return;
+    draftKey.current = key;
+    const { draft, ok } = readMessageDraft(browserDraftStorage(), key);
+    const saved = drafts.current[key] || draft;
+    const queryBody = typeof router.query.message_body === 'string' ? router.query.message_body.slice(0, 5000) : '';
+    const queryTemplate = typeof router.query.template_key === 'string' ? router.query.template_key : '';
+    const nextTemplate = saved?.templateKey || queryTemplate || 'general_checkin';
+    const nextBody = saved?.body || queryBody || (queryTemplate ? data.templates?.[queryTemplate] || '' : '');
+    setBody(nextBody);
+    setTemplateKey(nextTemplate);
+    retryId.current = saved?.retry || null;
+    saveDraft(nextBody, nextTemplate, retryId.current);
+    if (!ok) setDraftStatus('Draft could not be loaded on this device. Keep this page open.');
+  }
 
   async function load(targetAthleteId = selectedRef.current, { keepSelection = false, older = false, background = false } = {}) {
     if (background && requestPending.current) return;
@@ -85,17 +112,23 @@ export default function MessagesPage() {
       if (!r.ok) { if (r.status === 403 || r.status === 401) { setMessages([]); setConversations([]); } throw new Error('Failed to load messages'); }
       setError((previous) => previous.startsWith('Unable to load') || previous.startsWith('Messages loaded') ? '' : previous);
       const nextConversations = d.conversations || [];
+      const identity = `${d.actor_id}:${d.role}`;
+      if (loadedIdentity.current !== identity) {
+        historyLoaded.current = false;
+        loadedIdentity.current = identity;
+        draftKey.current = null;
+      }
       setMessages((previous) => nextConversations.length && (older || historyLoaded.current) ? mergeMessages(previous, d.messages || []) : (d.messages || []));
       if (older || !historyLoaded.current) setNextCursor(d.next_cursor || null);
       if (older) historyLoaded.current = true;
       setConversations(nextConversations);
       setTemplates(d.templates || {});
-      const requestedTemplate = typeof router.query.template_key === 'string' ? router.query.template_key : '';
-      if (!appliedTemplate.current && requestedTemplate && d.templates?.[requestedTemplate] && !router.query.message_body) {
-        appliedTemplate.current = true;
-        setBody((draft) => draft || d.templates[requestedTemplate]);
-      }
       setRole(d.role || 'athlete');
+      const selectedId = targetAthleteId || nextConversations[0]?.athlete_id;
+      const selected = nextConversations.find(conversation => conversation.athlete_id === selectedId);
+      if (selected) restoreDraft(d, selected);
+      else { draftKey.current = null; setBody(''); setDraftStatus(''); }
+      if (d.role === 'athlete' && selectedId) { selectedRef.current = selectedId; setAthleteId(selectedId); }
 
       if (!keepSelection && !targetAthleteId && d.role === 'coach' && nextConversations.length) {
         const firstAthleteId = nextConversations[0].athlete_id;
@@ -105,8 +138,9 @@ export default function MessagesPage() {
       } else if (nextConversations.length) {
         const acknowledged = await acknowledgeMessages(d.messages || [], d.role, targetAthleteId || nextConversations[0].athlete_id);
         if (version === requestVersion.current) {
-          if (!acknowledged) setError('Messages loaded, but read status could not be saved. We will retry.');
-          else setConversations((items) => items.map((item) => item.athlete_id === (targetAthleteId || nextConversations[0].athlete_id) ? { ...item, unread_count: Math.max(0, item.unread_count - (d.messages || []).filter((m) => m.sender_role !== d.role && !m.read_at).length) } : item));
+          if (acknowledged === false) setError('Messages loaded, but read status could not be saved. We will retry.');
+          else if (acknowledged.conversations) setConversations(acknowledged.conversations);
+          else setConversations((items) => items.map((item) => item.athlete_id === (targetAthleteId || nextConversations[0].athlete_id) ? { ...item, unread_count: Math.max(0, item.unread_count - acknowledged) } : item));
         }
       }
     } catch (err) {
@@ -121,21 +155,16 @@ export default function MessagesPage() {
   useEffect(() => {
     if (!router.isReady) return;
     const queryAthleteId = typeof router.query.athlete_id === 'string' ? router.query.athlete_id : '';
-    const queryTemplateKey = typeof router.query.template_key === 'string' ? router.query.template_key : '';
-    const queryBody = typeof router.query.message_body === 'string' ? router.query.message_body : '';
-
-    if (queryTemplateKey) setTemplateKey(queryTemplateKey);
-    if (queryBody) setBody(queryBody);
-
-    if (queryAthleteId && selectedRef.current && queryAthleteId !== selectedRef.current) {
-      selectConversation(queryAthleteId);
-    } else if (queryAthleteId) {
-      selectedRef.current = queryAthleteId;
-      setAthleteId(queryAthleteId);
-      load(queryAthleteId, { keepSelection: true });
-    } else {
-      load('');
-    }
+    draftKey.current = null;
+    historyLoaded.current = false;
+    selectedRef.current = queryAthleteId;
+    setAthleteId(queryAthleteId);
+    setBody('');
+    retryId.current = null;
+    setMessages([]);
+    setNextCursor(null);
+    setLoading(true);
+    load(queryAthleteId, { keepSelection: Boolean(queryAthleteId) });
     return () => { requestVersion.current += 1; requestAbort.current?.abort(); };
   }, [router.isReady, router.query.athlete_id, requestedMode]);
 
@@ -151,12 +180,13 @@ export default function MessagesPage() {
 
   async function selectConversation(nextAthleteId) {
     if (sendInFlight.current) return;
-    drafts.current[selectedRef.current] = { body, templateKey, retry: retryId.current };
+    saveDraft();
     historyLoaded.current = false;
     selectedRef.current = nextAthleteId;
-    setBody(drafts.current[nextAthleteId]?.body || '');
-    setTemplateKey(drafts.current[nextAthleteId]?.templateKey || 'general_checkin');
-    retryId.current = drafts.current[nextAthleteId]?.retry || null;
+    draftKey.current = null;
+    setBody('');
+    setTemplateKey('general_checkin');
+    retryId.current = null;
     setAthleteId(nextAthleteId);
     setMessages([]);
     setNextCursor(null);
@@ -173,6 +203,9 @@ export default function MessagesPage() {
     setError('');
     const signature = JSON.stringify([athleteId, body, templateKey]);
     if (retryId.current?.signature !== signature) retryId.current = { signature, id: crypto.randomUUID() };
+    saveDraft(body, templateKey, retryId.current);
+    const sendingKey = draftKey.current;
+    const sendingId = retryId.current.id;
     try {
       const r = await fetch('/api/coach/messages', {
         method: 'POST', signal: AbortSignal.timeout(15000),
@@ -187,11 +220,18 @@ export default function MessagesPage() {
       });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || 'Failed to send');
-      setBody('');
-      drafts.current[selectedRef.current] = { body: '', templateKey };
-      retryId.current = null;
+      const cleared = clearSentDraft(browserDraftStorage(), sendingKey, sendingId);
+      const latest = readMessageDraft(browserDraftStorage(), sendingKey);
+      const newerDraft = latest.draft && latest.draft.retry?.id !== sendingId ? latest.draft : null;
+      drafts.current[sendingKey] = newerDraft || { body: '', templateKey, retry: null };
+      if (draftKey.current === sendingKey) {
+        setBody(newerDraft?.body || '');
+        setTemplateKey(newerDraft?.templateKey || templateKey);
+        retryId.current = newerDraft?.retry || null;
+        setDraftStatus(newerDraft ? 'A newer draft from this device was preserved.' : !cleared && (!latest.ok || latest.draft) ? 'Message sent, but the saved draft could not be cleared on this device.' : '');
+      }
       notifyMessagesChanged();
-      await load(athleteId, { keepSelection: true });
+      if (draftKey.current === sendingKey) await loadRef.current(selectedRef.current, { keepSelection: true });
     } catch (err) {
       setError('Unable to send message. Please check required fields and retry.');
     } finally {
@@ -245,7 +285,7 @@ export default function MessagesPage() {
                 return (
                   <button
                     key={conversation.athlete_id}
-                    disabled={sending}
+                    disabled={sending || loading}
                     onClick={() => selectConversation(conversation.athlete_id)}
                     className={`w-full rounded-xl border p-3 text-left transition ${active ? 'border-accent/40 bg-accent/5' : 'border-ink/8 bg-paper hover:border-ink/20'}`}
                   >
@@ -277,7 +317,7 @@ export default function MessagesPage() {
                 {role === 'coach' && conversations.length ? (
                   <select
                     aria-label="Selected athlete"
-                    disabled={sending}
+                    disabled={sending || loading || !selectedConversation}
                     value={athleteId}
                     onChange={(e) => selectConversation(e.target.value)}
                     className="rounded-xl border border-ink/10 bg-paper px-3 py-2 text-sm"
@@ -294,9 +334,9 @@ export default function MessagesPage() {
                   <label htmlFor="message-purpose" className="mb-1 block text-xs font-semibold uppercase tracking-[0.18em] text-ink/70">Message purpose</label>
                   <select
                     id="message-purpose"
-                    disabled={sending}
+                    disabled={sending || loading || !selectedConversation}
                     value={templateKey}
-                    onChange={(e) => { setTemplateKey(e.target.value); setBody(templates[e.target.value] || ''); }}
+                    onChange={(e) => { setTemplateKey(e.target.value); setBody(templates[e.target.value] || ''); retryId.current = null; saveDraft(templates[e.target.value] || '', e.target.value, null); }}
                     className="w-full rounded-xl border border-ink/10 bg-paper px-3 py-2 text-sm"
                   >
                     {Object.keys(templates).map((k) => (
@@ -312,14 +352,16 @@ export default function MessagesPage() {
               <label htmlFor="message-body" className="block text-sm font-semibold text-ink">Your message</label>
               <textarea
                 id="message-body"
-                disabled={sending}
+                disabled={sending || loading || !selectedConversation}
                 value={body}
-                onChange={(e) => setBody(e.target.value)}
+                onChange={(e) => { setBody(e.target.value); retryId.current = null; saveDraft(e.target.value, templateKey, null); }}
                 maxLength={5000}
                 rows={3}
                 className="w-full rounded-xl border border-ink/10 bg-paper px-3 py-2 text-sm"
                 placeholder="Type message"
               />
+              {draftStatus && <p role="status" className="text-xs text-ink/60">{draftStatus}</p>}
+              {body && <button type="button" disabled={sending} onClick={() => { setBody(''); retryId.current = null; saveDraft('', templateKey, null); }} className="mr-3 text-sm underline">Discard draft</button>}
               <button disabled={sending || !canSend} className="rounded-full bg-panel px-5 py-2.5 text-sm font-semibold text-paper disabled:cursor-not-allowed disabled:opacity-60">
                 {sending ? 'Sending…' : 'Send'}
               </button>
