@@ -754,7 +754,7 @@ function CommentThread({ subject, role, onCountChange }) {
   );
 }
 
-function WorkoutDetail({ workout, role, onUpdate, onEdit, onDelete, onClose }) {
+function WorkoutDetail({ workout, matchActivities = [], role, onUpdate, onEdit, onDelete, onClose }) {
   const distanceUnit = workout.planned_distance_unit || 'mi';
   const [completion, setCompletion] = useState({
     completed_duration_min: workout.completed_duration_min ?? '',
@@ -769,6 +769,12 @@ function WorkoutDetail({ workout, role, onUpdate, onEdit, onDelete, onClose }) {
   const dialogRef = useDialogFocus(onClose, busy);
   const [saveError, setSaveError] = useState('');
   const [saved, setSaved] = useState(false);
+  const currentMatch = workout.linked_activity || workout.matched_activity;
+  const [selectedActivity, setSelectedActivity] = useState(String(workout.completed_activity_id || currentMatch?.id || ''));
+  const matchCandidates = matchActivities.filter((a) =>
+    (!a.linked_workout_id || a.linked_workout_id === workout.id)
+    && (String(a.id) === String(workout.completed_activity_id)
+      || Math.abs(Date.parse(a.activity_date) - Date.parse(workout.workout_date)) <= 7 * 86400000));
 
   async function submit(updates, remove = false) {
     if (busyRef.current) return;
@@ -777,10 +783,18 @@ function WorkoutDetail({ workout, role, onUpdate, onEdit, onDelete, onClose }) {
     setSaveError('');
     setSaved(false);
     try {
-      const result = remove ? await onDelete(workout.id) : await onUpdate(workout.id, updates);
+      const result = remove ? await onDelete(workout.id) : await onUpdate(workout.id, { expected_updated_at: workout.updated_at, ...updates });
       if (!result?.ok) setSaveError(result?.error || 'Could not save. Your answers are still here; please retry.');
       else {
         setSaved(true);
+        if (updates.match_action) {
+          const value = result.workout;
+          setCompletion((previous) => ({ ...previous,
+            completed_duration_min: value?.completed_duration_min ?? '',
+            completed_distance: kmToUnit(value?.completed_distance_km ?? '', distanceUnit),
+          }));
+          if (updates.match_action !== 'confirm') setSelectedActivity(String(value?.matched_activity?.id || ''));
+        }
         if (updates.status === 'planned') setCompletion((previous) => ({ ...previous, completed_duration_min: '', completed_distance: '', athlete_rpe: '' }));
       }
     } catch {
@@ -862,8 +876,11 @@ function WorkoutDetail({ workout, role, onUpdate, onEdit, onDelete, onClose }) {
             <p className="mt-2 text-sm text-ink/55">Not completed yet.</p>
           )}
           {workout.matched_activity && (
-            <p className="mt-1 text-xs text-emerald-700">Auto-matched to a synced activity on this day.</p>
+            <p className="mt-1 text-xs text-emerald-700">Suggested match to an imported activity.{role === 'athlete' ? ' Confirm it or choose another session below.' : ''}</p>
           )}
+          {workout.completed_activity_id && <p className="mt-1 text-xs text-emerald-700">
+            {workout.linked_activity ? 'Confirmed imported activity.' : 'The linked activity is no longer available. Saved actuals are retained; you can unlink or replace it.'}
+          </p>}
           {workout.athlete_comment && (
             <p className="mt-2 rounded-xl bg-paper p-3 text-sm text-ink/75">Athlete: {workout.athlete_comment}</p>
           )}
@@ -872,11 +889,40 @@ function WorkoutDetail({ workout, role, onUpdate, onEdit, onDelete, onClose }) {
           )}
         </div>
 
+        {role === 'athlete' && (currentMatch || workout.completed_activity_id || matchCandidates.length > 0
+          || (workout.activity_match_mode === 'manual' && workout.status === 'planned')) && (
+          <div className="mt-4 rounded-2xl border border-ink/10 bg-white p-4">
+            <p className="text-sm font-semibold text-ink">Imported activity match</p>
+            {currentMatch && <p className="mt-2 text-sm text-ink/75">{currentMatch.name || 'Imported activity'} · {String(currentMatch.local_date || currentMatch.start_date_local || currentMatch.start_date || '').slice(0, 10)}</p>}
+            {workout.activity_match_mode === 'manual' && !workout.completed_activity_id && <p className="mt-2 text-xs text-ink/60">Automatic matching is off for this workout. Your manual choice stays saved after refresh.</p>}
+            {matchCandidates.length > 0 && <>
+            <label className="mt-3 block text-sm text-ink" htmlFor="workout-match-activity">Choose an imported activity</label>
+            <select id="workout-match-activity" value={selectedActivity} disabled={busy}
+              onChange={(e) => setSelectedActivity(e.target.value)} className="mt-1 w-full rounded-xl border border-ink/10 bg-paper px-3 py-3 text-sm text-ink">
+              <option value="">Select a session</option>
+              {matchCandidates.map((a) => <option key={a.id} value={String(a.id)}>{a.activity_date} · {a.name} · {a.duration_min == null ? 'Duration unknown' : `${a.duration_min} min`}</option>)}
+            </select>
+            <p className="mt-2 text-xs text-ink/60">Available sessions within seven days of the plan. Linking uses the imported duration and distance, keeps your notes, and replaces the current completion. Each imported activity can belong to one workout.</p>
+            </>}
+            {!matchCandidates.length && <p className="mt-2 text-xs text-ink/60">No available imported sessions in this date range.</p>}
+            <div className="mt-3 flex flex-wrap gap-2">
+              {matchCandidates.length > 0 && <button disabled={busy || !matchCandidates.some((a) => String(a.id) === selectedActivity)} onClick={() => submit({ match_action: 'confirm', activity_id: selectedActivity })}
+                className="rounded-full bg-panel px-4 py-3 text-sm font-semibold text-paper disabled:opacity-50">Confirm activity match</button>}
+              {(currentMatch || workout.completed_activity_id) && <button disabled={busy} onClick={() => submit({ match_action: 'reject' })}
+                className="rounded-full border border-ink/20 px-4 py-3 text-sm text-ink disabled:opacity-50">{workout.completed_activity_id ? 'Unlink activity' : 'Reject suggested match'}</button>}
+              {workout.activity_match_mode === 'manual' && workout.status === 'planned' && !workout.completed_activity_id && <button disabled={busy} onClick={() => submit({ match_action: 'auto' })}
+                className="rounded-full border border-ink/20 px-4 py-3 text-sm text-ink disabled:opacity-50">Use automatic matching</button>}
+            </div>
+            {(currentMatch || workout.completed_activity_id) && <p className="mt-2 text-xs text-ink/60">Unlinking or rejecting clears the imported actuals and leaves the workout planned. The imported activity is kept in your calendar. Automatic matching stays off until you enable it.</p>}
+          </div>
+        )}
+
         {/* Athlete completion form */}
         {role === 'athlete' && (
           <div className="mt-4 rounded-2xl border border-ink/10 bg-white p-4">
             <p className="text-xs uppercase tracking-[0.22em] text-ink/55">{workout.status === 'completed' ? 'Correct completion' : 'Log completion'}</p>
             <p className="mt-2 text-xs text-ink/60">Enter what you actually did, including a shorter or partial session. Blank values stay unknown.</p>
+            {(currentMatch || workout.completed_activity_id) && <p className="mt-2 text-xs text-ink/60">Saving manual actuals or skipping replaces the activity match. The imported session will appear separately in your calendar.</p>}
             <div className="mt-3 grid gap-2 sm:grid-cols-3">
               <input
                 type="number"
@@ -936,7 +982,7 @@ function WorkoutDetail({ workout, role, onUpdate, onEdit, onDelete, onClose }) {
           </div>
         )}
 
-        {role === 'athlete' && workout.status !== 'planned' && !workout.matched_activity && (
+        {role === 'athlete' && workout.status !== 'planned' && !workout.matched_activity && !workout.completed_activity_id && (
           <button disabled={busy} onClick={() => submit({ status: 'planned', completed_activity_id: null,
             completed_duration_min: null, completed_distance_km: null, athlete_rpe: null })}
             className="mt-3 rounded-full border border-ink/20 px-4 py-2 text-sm disabled:opacity-50">Undo completion / skip</button>
@@ -1417,6 +1463,7 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
   const [notes, setNotes] = useState([]);
   const [events, setEvents] = useState([]);
   const [activities, setActivities] = useState([]);
+  const [matchActivities, setMatchActivities] = useState([]);
   const [library, setLibrary] = useState([]);
   const [distanceUnitPref, setDistanceUnitPref] = useState('mi');
   const [loading, setLoading] = useState(true);
@@ -1459,6 +1506,7 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
       const workoutsData = await workoutsRes.json();
       setWorkouts(workoutsData.workouts || []);
       setActivities(workoutsData.activities || []);
+      setMatchActivities(workoutsData.match_activities || []);
       if (notesRes?.ok) {
         const notesData = await notesRes.json();
         setNotes(notesData.notes || []);
@@ -1467,6 +1515,7 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
         const eventsData = await eventsRes.json();
         setEvents(eventsData.events || []);
       }
+      return workoutsData;
     } catch {
       setError('Could not load the training calendar.');
     } finally {
@@ -1601,7 +1650,10 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
 
   const updateWorkout = useCallback(async (id, updates) => {
     const result = await calendarMutation('/api/planned-workouts', { method: 'PATCH', body: { id, ...updates } });
-    if (result.ok) await reload();
+    if (result.ok) {
+      const refreshed = await reload();
+      result.workout = refreshed?.workouts?.find((w) => w.id === id) || result.workout;
+    }
     return result;
   }, [reload]);
 
@@ -1769,6 +1821,7 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
       {detailWorkout && (
         <WorkoutDetail
           workout={detailWorkout}
+          matchActivities={matchActivities}
           role={role}
           onUpdate={updateWorkout}
           onEdit={(w) => {

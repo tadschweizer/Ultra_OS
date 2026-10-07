@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
-Last updated: 2026-10-05<br>
-Status: PR #127 is merged as `2841ac8`. The P0-014/015/016 daily-loop implementation is locally verified: workout correction/retry, direct-message refresh/history/read state, and athlete entry points. Parent acceptance remains open; see `P0_DAILY_LOOP_VERIFICATION.md`. No production deployment or schema changes were performed in this batch.<br>
+Last updated: 2026-10-07<br>
+Status: PR #129 is merged as `a9d83c2`; matching production deployment is READY. The October 7 P0-014 workout-match correction slice is locally verified (403 regression tests, 103 critical browser passes / 3 skips, 24 daily-loop browser passes, Node 22 build). Its production migration/release and parent acceptance remain open; see `P0_WORKOUT_MATCH_VERIFICATION.md`. No production writes were performed in this session.<br>
 Current milestone: M0 — make the closed coach pilot work end to end<br>
-Next item: Review and release the P0-014/015/016 daily-loop slice on `feature/p0-daily-loop-reliability`, then finish automatic workout-match correction, notification lifecycle and actual-phone acceptance. Keep the experimental signed-in coach/athlete acceptance loop and existing coach-message/shared-document schema repair as separate gates. SDK-authenticated sandbox billing, full-app 3DS/asynchronous settlement, accepted included hosted staging/Auth callbacks, Strava webhook/worker setup, external Auth/uploaded-file cleanup, business mailing address and retention/processor review remain open. No paid staging is authorized; production release/schema/configuration changes require separate authorization.
+Next item: Review and release the locally verified P0-014 workout-match correction slice in `feature/p0-workout-match-correction`, applying its exact migration before application deployment only after explicit authorization. Then tackle P0-015 notification preferences/delivery lifecycle, durable drafts and all-history unread aggregation. Real two-account and physical-phone acceptance, existing coach-message/shared-document schema repair, and the other external gates remain open. No paid staging is authorized; production release/schema/configuration changes require separate authorization.
 
 ## Purpose
 
@@ -321,6 +321,7 @@ in place. Existing milestones remain the larger parity roadmap.
   If Supabase remains unavailable, continue B locally and document the blocked staging checks.
 
 - [ ] **P0-014 — Reliable workout creation and logging**
+  - October 7 match-correction checkpoint ([draft PR #130](https://github.com/tadschweizer/Ultra_OS/pull/130), implementation `efed738`): durable confirm/reject/replace/unlink and explicit automatic restore; owner-scoped imported actuals, duplicate-link protection, stale conflicts, retry-safe decisions and cross-range calendar placement. Node 22 regression 403/403; critical browser 103 passed / 3 skips; daily-loop browser 24/24; build and isolated PostgreSQL checks pass. See `P0_WORKOUT_MATCH_VERIFICATION.md`. Exact new migration and controlled deployed/physical-phone acceptance remain open; no production writes.
   - October 5 local implementation checkpoint: retained save failures, blank actuals, completion correction/undo, unplanned logging, durable workout-create retries, validation and conservative import matching.
     Node 22 regression 394/394; critical browser suite 89 passed / 3 viewport skips; expanded
     daily-loop journeys 16/16; real isolated Supabase 6/6 check groups. Evidence and remaining
@@ -679,6 +680,8 @@ accounts are unavailable; the previous INACTIVE observation below is historical.
 | 2026-09-28 | Do not add a Sentry alert rule or uptime monitor | Owner declined; keep the readiness check manual for the closed pilot |
 
 ## Progress log
+
+October 7 P0-014 match-correction checkpoint: saved athlete decisions, explicit manual-to-import linking, duplicate-link protection, stale-edit conflicts, lost-response retries, provider-deletion handling and cross-range calendar visibility are locally verified. Node 22 regression 403/403; critical browser 103 passed / 3 skips; expanded daily-loop 24/24; production build and seven isolated PostgreSQL groups pass. Read-only checks confirm PR #129's READY production deployment on `a9d83c2`, zero existing/duplicate links, the new migration still absent and `coach_messages` still absent. Evidence and release order: `P0_WORKOUT_MATCH_VERIFICATION.md`. P0-014 stays open; P0-015 notification lifecycle is the next implementation batch. No production deployment, database write or service configuration change.
 
 October 3 Strava checkpoint: owner authorized implementation assuming approval and will
 contact Strava before launch. Atomic imports/token refresh, safe status, owned disconnect,
