@@ -1,0 +1,13 @@
+{
+  "provider": "Sites",
+  "project_id": "appgprj_6ac6b052f9588191854864764987a5c4",
+  "url": "https://threshold-coach-research.tadschweizer.chatgpt.site",
+  "access_mode": "public",
+  "version_id": "appgprj_6ac6b052f9588191854864764987a5c4~appgver_3ac6e265e428819182f9fe66b9718c7f",
+  "version_number": 1,
+  "deployment_id": "appgdep_6ac6d61af9488191a110fef890ae1b1c",
+  "deployment_status": "succeeded",
+  "published_source_commit": "14588adfbea8c821efbbabfedcbfc96ce9e49b8d",
+  "source_checkout": "C:/Users/BAS/Desktop/UltraOS/coach-research-published",
+  "static_directory": "dist"
+}

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <meta name="description" content="Explore a fictional Threshold coaching workspace. No account needed.">
+  <meta name="theme-color" content="#173247">
+  <title>Threshold · Coach demo</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <div class="demo-banner"><span><strong>COACH DEMO</strong> Fictional athletes. Try things freely.</span><span>Changes stay in this browser. <button id="reset" type="button">Reset demo</button></span></div>
+  <div class="workspace">
+    <aside class="sidebar">
+      <a href="#overview" class="brand"><span class="brand-mark">T<span>↗</span></span><span>Threshold<small>THE COACHING WORKSPACE</small></span></a>
+      <div class="workspace-label"><span class="avatar dark">AC</span><span>Alex’s coaching studio<small>Sample workspace · 6 athletes</small></span></div>
+      <nav aria-label="Main navigation" id="nav"></nav>
+      <div class="sidebar-bottom"><div class="small-label">YOUR FIRST LOOK</div><p>What would you use in your coaching day?</p><a href="#feedback" class="button outline light">Share your take <span>↗</span></a><small>About 3 minutes. No sign-in.</small></div>
+      <div class="coach"><span class="avatar">AC</span><span>Alex Carter<small>Fictional coach</small></span><span class="online" title="Demo workspace"></span></div>
+    </aside>
+    <div class="content-wrap">
+      <header class="topbar"><span class="breadcrumb">Coach workspace <span>/</span> <b id="crumb">Overview</b></span><a href="#guide" class="text-link">How to explore <span>↗</span></a></header>
+      <main id="main" tabindex="-1"></main>
+      <footer>Threshold research demo <span>·</span> All names, training, and conversations are fictional. <a href="#feedback">Leave feedback</a></footer>
+    </div>
+  </div>
+  <dialog id="dialog" aria-labelledby="dialog-title"></dialog>
+  <div id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
