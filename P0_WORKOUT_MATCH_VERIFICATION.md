@@ -2,6 +2,7 @@
 
 Date: 2026-10-07. Base: remote main `a9d83c2` (merged PR #129).
 Branch: `feature/p0-workout-match-correction`.
+Review: [draft PR #130](https://github.com/tadschweizer/Ultra_OS/pull/130), implementation `efed738`.
 
 This batch implements and locally verifies match correction. P0-014 stays open
 until release and controlled real-athlete/physical-phone acceptance. No production

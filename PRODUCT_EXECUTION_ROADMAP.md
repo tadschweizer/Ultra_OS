@@ -321,7 +321,7 @@ in place. Existing milestones remain the larger parity roadmap.
   If Supabase remains unavailable, continue B locally and document the blocked staging checks.
 
 - [ ] **P0-014 — Reliable workout creation and logging**
-  - October 7 match-correction checkpoint: durable confirm/reject/replace/unlink and explicit automatic restore; owner-scoped imported actuals, duplicate-link protection, stale conflicts, retry-safe decisions and cross-range calendar placement. Node 22 regression 403/403; critical browser 103 passed / 3 skips; daily-loop browser 24/24; build and isolated PostgreSQL checks pass. See `P0_WORKOUT_MATCH_VERIFICATION.md`. Exact new migration and controlled deployed/physical-phone acceptance remain open; no production writes.
+  - October 7 match-correction checkpoint ([draft PR #130](https://github.com/tadschweizer/Ultra_OS/pull/130), implementation `efed738`): durable confirm/reject/replace/unlink and explicit automatic restore; owner-scoped imported actuals, duplicate-link protection, stale conflicts, retry-safe decisions and cross-range calendar placement. Node 22 regression 403/403; critical browser 103 passed / 3 skips; daily-loop browser 24/24; build and isolated PostgreSQL checks pass. See `P0_WORKOUT_MATCH_VERIFICATION.md`. Exact new migration and controlled deployed/physical-phone acceptance remain open; no production writes.
   - October 5 local implementation checkpoint: retained save failures, blank actuals, completion correction/undo, unplanned logging, durable workout-create retries, validation and conservative import matching.
     Node 22 regression 394/394; critical browser suite 89 passed / 3 viewport skips; expanded
     daily-loop journeys 16/16; real isolated Supabase 6/6 check groups. Evidence and remaining
