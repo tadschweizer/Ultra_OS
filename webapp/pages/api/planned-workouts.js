@@ -1,16 +1,17 @@
-import { validateWorkoutFields, validWorkoutRequestId, sameWorkoutRequest } from '../../lib/workoutValidation';
-import { getSupabaseAdminClient } from '../../lib/authServer';
+import { validateWorkoutFields, validWorkoutRequestId, sameWorkoutRequest } from '../../lib/workoutValidation.js';
+import { decideWorkoutMatch } from '../../lib/workoutMatch.js';
+import { getSupabaseAdminClient } from '../../lib/authServer.js';
 
 import {
   decorateWorkoutsWithCompliance,
+  activityDateKey,
   estimateTss,
   normalizeSport,
   summarizeStructure,
   toDateKey,
-} from '../../lib/workoutCompliance';
-import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
+} from '../../lib/workoutCompliance.js';
 import { getEffectiveAthleteIdFromRequest } from '../../lib/auth/requireAthlete.js';
-import { syncAthleteActivities, getStoredActivities } from '../../lib/activitySync';
+import { syncAthleteActivities, getStoredActivities } from '../../lib/activitySync.js';
 import {
   loadAccountAccess,
   loadActiveCoachRelationship,
@@ -55,7 +56,7 @@ const WORKOUT_COLUMNS = `
   id, athlete_id, coach_id, workout_date, sport, title, description, structure,
   objective, coach_instructions, target_metric, planned_if, visibility, export_status, sync_provider,
   planned_duration_min, planned_distance_km, planned_distance_unit, planned_tss, order_index, status,
-  completed_activity_id, completed_duration_min, completed_distance_km,
+  completed_activity_id, activity_match_mode, completed_duration_min, completed_distance_km,
   athlete_rpe, athlete_comment, coach_feedback, library_workout_id, created_at, updated_at
 `;
 
@@ -134,6 +135,17 @@ async function fetchCommentCounts(admin, column, ids) {
   return counts;
 }
 
+// Bound lookups below PostgREST's row limit instead of scanning all history.
+async function fetchInBatches(admin, table, columns, athleteId, column, ids) {
+  const rows = [];
+  for (let start = 0; start < ids.length; start += 100) {
+    const result = await admin.from(table).select(columns).eq('athlete_id', athleteId).in(column, ids.slice(start, start + 100));
+    if (result.error) throw result.error;
+    rows.push(...(result.data || []));
+  }
+  return rows;
+}
+
 // Trims a stored activity down to what the calendar renders for a session that
 // had no matching plan. local_date keeps an evening session on the athlete's
 // own day; legacy rows without it fall back to the UTC instant.
@@ -144,7 +156,7 @@ function toCalendarActivity(activity) {
   return {
     id: activity.id,
     start_date: activity.start_date,
-    activity_date: activity.local_date || toDateKey(activity.start_date),
+    activity_date: activityDateKey(activity),
     name: activity.name || activity.activity_name || 'Imported activity',
     sport: normalizeSport(activity.sport_type || activity.type || activity.sport) || 'other',
     duration_min: movingSec != null ? Math.round((movingSec / 60) * 10) / 10 : null,
@@ -173,14 +185,19 @@ function toCalendarActivity(activity) {
   };
 }
 
-export default async function handler(req, res) {
-  const sessionAthleteId = await getEffectiveAthleteIdFromRequest(req);
+export function createPlannedWorkoutsHandler({
+  resolveAthlete = getEffectiveAthleteIdFromRequest,
+  getAdmin = getSupabaseAdminClient,
+  fetchActivities = fetchActivitiesForRange,
+} = {}) {
+return async function handler(req, res) {
+  const sessionAthleteId = await resolveAthlete(req);
   if (!sessionAthleteId) {
     res.status(401).json({ error: 'Not authenticated' });
     return;
   }
 
-  const admin = getSupabaseAdminClient();
+  const admin = getAdmin();
 
   try {
     if (req.method === 'GET') {
@@ -206,7 +223,7 @@ export default async function handler(req, res) {
         ? req.query.end
         : toDateKey(defaultEnd);
 
-      const [{ data: workouts, error }, activities] = await Promise.all([
+      const [{ data: rangeWorkouts, error }, activities] = await Promise.all([
         admin
           .from('planned_workouts')
           .select(WORKOUT_COLUMNS)
@@ -215,17 +232,35 @@ export default async function handler(req, res) {
           .lte('workout_date', end)
           .order('workout_date', { ascending: true })
           .order('order_index', { ascending: true }),
-        fetchActivitiesForRange(admin, targetAthleteId, start, end),
+        fetchActivities(admin, targetAthleteId, start, end),
       ]);
 
       if (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Could not load workouts. Please retry.' });
         return;
       }
 
+      // Bring the confirmed plan along when its activity falls in the visible
+      // range, even if the original plan date is elsewhere. Reserving the
+      // activity alone would hide the completed session from this calendar.
+      const links = await fetchInBatches(admin, 'planned_workouts', 'id, completed_activity_id',
+        targetAthleteId, 'completed_activity_id', [...new Set(activities.map((a) => String(a.id)))]);
+      const rangeIds = new Set((rangeWorkouts || []).map((w) => w.id));
+      const outsidePlans = await fetchInBatches(admin, 'planned_workouts', WORKOUT_COLUMNS,
+        targetAthleteId, 'id', links.filter((w) => !rangeIds.has(w.id)).map((w) => w.id));
+      const workouts = [...(rangeWorkouts || []), ...outsidePlans];
+      const missing = workouts.map((w) => w.completed_activity_id)
+        .filter((id) => validWorkoutRequestId(id) && !activities.some((a) => String(a.id) === id));
+      let linkedActivities = [];
+      if (missing.length) {
+        linkedActivities = await fetchInBatches(admin, 'strava_activities', '*', targetAthleteId, 'id', missing);
+      }
+      const availableActivities = [...activities, ...linkedActivities];
+      const linkOwners = new Map(workouts.filter((w) => w.completed_activity_id).map((w) => [w.completed_activity_id, w.id]));
+
       // Fulfill a plan from an activity up to a day off the planned date, so a
       // long run done Sunday still completes a Saturday plan.
-      const decorated = decorateWorkoutsWithCompliance(workouts || [], activities, { toleranceDays: 1 });
+      const decorated = decorateWorkoutsWithCompliance(workouts || [], availableActivities, { toleranceDays: 1 });
 
       // Any synced activity a plan didn't consume is shown on its own day, so
       // past training is visible even where nothing was scheduled.
@@ -246,6 +281,8 @@ export default async function handler(req, res) {
       res.status(200).json({
         workouts: decorated.map((w) => ({ ...w, comment_count: workoutComments.get(w.id) || 0 })),
         activities: unplannedActivities.map((a) => ({ ...a, comment_count: activityComments.get(a.id) || 0 })),
+        match_activities: availableActivities.map((a) => ({ ...toCalendarActivity(a),
+          linked_workout_id: linkOwners.get(String(a.id)) || null })),
         range: { start, end },
       });
       return;
@@ -253,6 +290,7 @@ export default async function handler(req, res) {
 
     if (req.method === 'POST') {
       const body = req.body || {};
+      if (body.completed_activity_id != null) return res.status(400).json({ error: 'Create the workout first, then choose an imported activity in its details.' });
       if (body.client_request_id != null && !validWorkoutRequestId(body.client_request_id)) {
         return res.status(400).json({ error: 'Invalid workout retry key.' });
       }
@@ -380,6 +418,7 @@ export default async function handler(req, res) {
       const validationError = validateWorkoutFields(payload);
       if (validationError) return res.status(400).json({ error: validationError });
       if (payload.status !== 'completed') fillPlannedTotals(payload);
+      if (payload.status === 'completed') payload.activity_match_mode = 'manual';
       if (body.client_request_id) payload.id = body.client_request_id;
 
       const { data: created, error: insertError } = await admin
@@ -419,6 +458,14 @@ export default async function handler(req, res) {
       }
 
       const isOwnCalendar = existing.athlete_id === sessionAthleteId;
+      if (body.match_action !== undefined) {
+        if (!isOwnCalendar) return res.status(403).json({ error: 'Only the athlete can change this workout match.' });
+        const result = await decideWorkoutMatch(admin, sessionAthleteId, body);
+        return res.status(result.status).json(result.error ? { error: result.error } : { workout: result.workout });
+      }
+      if (body.completed_activity_id != null || body.activity_match_mode !== undefined) {
+        return res.status(400).json({ error: 'Use the workout match controls to change an imported activity.' });
+      }
       let allowedFields = null;
 
       if (isOwnCalendar && !existing.coach_id) {
@@ -469,18 +516,29 @@ export default async function handler(req, res) {
       }
       const validationError = validateWorkoutFields(updates);
       if (validationError) return res.status(400).json({ error: validationError });
+      // Manual completion/skip/undo replaces the link; the imported session
+      // returns to the calendar and subsequent imports cannot undo this choice.
+      if (updates.status !== undefined || updates.completed_duration_min !== undefined || updates.completed_distance_km !== undefined) {
+        updates.completed_activity_id = null;
+        updates.activity_match_mode = 'manual';
+        if (updates.status === 'planned' || updates.status === 'skipped') {
+          updates.completed_duration_min = null;
+          updates.completed_distance_km = null;
+        }
+      }
       updates.updated_at = new Date().toISOString();
 
-      const { data: updated, error: updateError } = await admin
+      let updateQuery = admin
         .from('planned_workouts')
         .update(updates)
-        .eq('id', body.id)
-        .select(WORKOUT_COLUMNS)
-        .single();
+        .eq('id', body.id);
+      if (body.expected_updated_at) updateQuery = updateQuery.eq('updated_at', body.expected_updated_at);
+      const { data: updated, error: updateError } = await updateQuery.select(WORKOUT_COLUMNS).maybeSingle();
       if (updateError) {
         res.status(500).json({ error: updateError.message });
         return;
       }
+      if (!updated) return res.status(409).json({ error: 'This workout changed in another session. Close and reopen it before saving.' });
       res.status(200).json({ workout: updated });
       return;
     }
@@ -529,6 +587,9 @@ export default async function handler(req, res) {
     res.status(405).json({ error: 'Method not allowed' });
   } catch (error) {
     console.error('[planned-workouts] failed:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Could not complete this calendar request. Please retry.' });
   }
 }
+}
+
+export default createPlannedWorkoutsHandler();
