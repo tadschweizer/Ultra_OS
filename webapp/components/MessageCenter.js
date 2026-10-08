@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { MESSAGE_REFRESH_EVENT } from '../lib/messageClient';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { isCoachRoute } from '../lib/siteNavigation';
 
@@ -45,13 +46,7 @@ export default function MessageCenter() {
   const [summary, setSummary] = useState(null);
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState('direct');
-  const [thread, setThread] = useState(null); // { athlete_id, name }
-  const [threadMessages, setThreadMessages] = useState([]);
-  const [threadLoading, setThreadLoading] = useState(false);
-  const [draft, setDraft] = useState('');
-  const [sending, setSending] = useState(false);
-  const scrollRef = useRef(null);
-  const coachingFlow = router.pathname === '/messages' || isCoachRoute(router.pathname);
+  const coachingFlow = (router.pathname === '/messages' && router.query.mode !== 'athlete') || isCoachRoute(router.pathname);
 
   const refresh = useCallback(async () => {
     try {
@@ -67,14 +62,16 @@ export default function MessageCenter() {
 
   useEffect(() => {
     refresh();
-    const interval = setInterval(refresh, 60000);
+    const interval = setInterval(refresh, open ? 4000 : 30000);
     const onFocus = () => refresh();
     window.addEventListener('focus', onFocus);
+    window.addEventListener(MESSAGE_REFRESH_EVENT, onFocus);
     return () => {
       clearInterval(interval);
       window.removeEventListener('focus', onFocus);
+      window.removeEventListener(MESSAGE_REFRESH_EVENT, onFocus);
     };
-  }, [refresh]);
+  }, [refresh, open]);
 
   useEffect(() => {
     function onKey(e) { if (e.key === 'Escape') setOpen(false); }
@@ -82,65 +79,10 @@ export default function MessageCenter() {
     return () => document.removeEventListener('keydown', onKey);
   }, []);
 
-  // Keep the thread scrolled to the newest message.
-  useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [threadMessages]);
-
-  const openThread = useCallback(async (conversation) => {
-    setThread(conversation);
-    setThreadLoading(true);
-    setThreadMessages([]);
-    try {
-      const query = new URLSearchParams({ mode: summary?.role || 'athlete' });
-      if (summary?.role === 'coach') query.set('athlete_id', conversation.athlete_id);
-      const res = await fetch(`/api/coach/messages?${query.toString()}`);
-      if (res.ok) {
-        const data = await res.json();
-        setThreadMessages(data.messages || []);
-      }
-      await fetch('/api/message-center', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'mark_read',
-          scope: 'conversation',
-          athlete_id: conversation.athlete_id,
-          mode: summary?.role || 'athlete',
-        }),
-      });
-      setSummary((prev) => prev ? {
-        ...prev,
-        unread_total: Math.max(0, prev.unread_total - conversation.unread),
-        conversations: prev.conversations.map((c) => (c.athlete_id === conversation.athlete_id ? { ...c, unread: 0 } : c)),
-      } : prev);
-    } finally {
-      setThreadLoading(false);
-    }
-  }, [summary?.role]);
-
-  const send = useCallback(async () => {
-    if (!draft.trim() || !thread) return;
-    setSending(true);
-    try {
-      const res = await fetch('/api/coach/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mode: summary?.role || 'athlete',
-          athlete_id: summary?.role === 'coach' ? thread.athlete_id : undefined,
-          message_body: draft.trim(),
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setThreadMessages((prev) => [...prev, data.message]);
-        setDraft('');
-      }
-    } finally {
-      setSending(false);
-    }
-  }, [draft, thread, summary?.role]);
+  const openThread = useCallback((conversation) => {
+    setOpen(false);
+    router.push(`/messages?athlete_id=${encodeURIComponent(conversation.athlete_id)}&mode=${summary?.role || 'athlete'}`);
+  }, [router, summary?.role]);
 
   // A session thread hangs off either a planned workout or an imported
   // activity, so both the mark-read call and the calendar deep link name the
@@ -177,7 +119,7 @@ export default function MessageCenter() {
       {/* Floating trigger */}
       <button
         type="button"
-        onClick={() => { setOpen((v) => !v); if (!open) { refresh(); setThread(null); } }}
+        onClick={() => { setOpen((v) => !v); if (!open) { refresh(); } }}
         aria-label={unread ? `Messages (${unread} unread)` : 'Messages'}
         className="fixed bottom-24 right-4 z-[64] flex h-12 w-12 items-center justify-center rounded-full border border-ink/10 bg-white text-ink shadow-[0_4px_20px_rgba(19,24,22,0.14)] transition hover:scale-105 lg:bottom-auto lg:top-4 lg:right-5"
       >
@@ -196,59 +138,14 @@ export default function MessageCenter() {
             {/* Header */}
             <div className="flex items-center justify-between border-b border-ink/8 px-5 py-3.5">
               <div className="flex items-center gap-2">
-                {thread ? (
-                  <button onClick={() => { setThread(null); refresh(); }} className="rounded-full px-1.5 text-ink/50 hover:bg-ink/5" aria-label="Back">
-                    ←
-                  </button>
-                ) : null}
-                <p className="text-sm font-semibold text-ink">{thread ? thread.name : 'Messages'}</p>
-                {!thread && unread > 0 && (
+                <p className="text-sm font-semibold text-ink">Messages</p>
+                {unread > 0 && (
                   <span className="rounded-full bg-rose-500/10 px-2 py-0.5 text-[10px] font-bold text-rose-600">{unread} unread</span>
                 )}
               </div>
               <button onClick={() => setOpen(false)} className="rounded-full border border-ink/10 px-2.5 py-1 text-xs text-ink/60 hover:bg-ink/5">✕</button>
             </div>
-
-            {thread ? (
-              <>
-                {/* Direct thread */}
-                <div ref={scrollRef} className="min-h-[200px] flex-1 space-y-2 overflow-y-auto px-4 py-3">
-                  {threadLoading && <p className="text-center text-xs text-ink/45">Loading…</p>}
-                  {!threadLoading && !threadMessages.length && (
-                    <p className="mt-6 text-center text-sm text-ink/50">No messages yet — start the conversation.</p>
-                  )}
-                  {threadMessages.map((m) => {
-                    const mine = m.sender_role === myRole;
-                    return (
-                      <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-sm leading-5 ${mine ? 'rounded-br-md bg-panel text-paper' : 'rounded-bl-md bg-paper text-ink/85'}`}>
-                          <p className="whitespace-pre-wrap">{m.message_body}</p>
-                          <p className={`mt-1 text-right text-[10px] ${mine ? 'text-paper/55' : 'text-ink/40'}`}>{timeAgo(m.created_at)}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="flex items-end gap-2 border-t border-ink/8 p-3">
-                  <textarea
-                    rows={1}
-                    value={draft}
-                    onChange={(e) => setDraft(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-                    placeholder="Write a message…"
-                    className="max-h-28 flex-1 resize-none rounded-2xl border border-ink/10 bg-paper px-3.5 py-2.5 text-sm text-ink focus:border-accent/50 focus:outline-none"
-                  />
-                  <button
-                    onClick={send}
-                    disabled={sending || !draft.trim()}
-                    className="rounded-full bg-panel px-4 py-2.5 text-sm font-semibold text-paper disabled:opacity-50"
-                  >
-                    Send
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
+            <>
                 {/* Tabs */}
                 <div className="flex gap-1 border-b border-ink/8 px-4 pt-2.5">
                   {[
@@ -340,8 +237,7 @@ export default function MessageCenter() {
                 <a href="/messages" className="block border-t border-ink/8 px-5 py-3 text-center text-xs font-semibold text-accent hover:bg-paper">
                   Open full message board →
                 </a>
-              </>
-            )}
+            </>
           </div>
         </>
       )}

@@ -103,9 +103,9 @@ test('query string alone cannot claim a Strava connection or finish onboarding',
   await expect(page.getByText('Strava connected', { exact: true })).toHaveCount(0);
 });
 
-test('coach calendar explains that an athlete without Strava only shows assigned or self-added workouts', async ({ page }) => {
+test('coach calendar explains disconnected imports without hiding stored training', async ({ page }) => {
   const relationships = [{ athlete_id: 'athlete-2', status: 'active', athlete: { name: 'Pilot Runner' } }];
-  const notice = page.getByText(/hasn.t connected Strava, so only workouts you assign or they add/);
+  const notice = page.getByText(/hasn.t connected Strava\. Assigned workouts/);
   const calendarLoaded = () => page.waitForResponse((r) => new URL(r.url()).pathname === '/api/planned-workouts');
 
   await mockAccount(page, { coach: true, relationships, calendarStravaConnected: false });

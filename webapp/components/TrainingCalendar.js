@@ -1,3 +1,5 @@
+import { useDialogFocus } from '../lib/useDialogFocus';
+import { calendarMutation } from '../lib/calendarMutation';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import {
@@ -308,7 +310,7 @@ function StepRow({ step, onChange, onRemove, distanceUnit = 'mi' }) {
 
 function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose, defaultDistanceUnit = 'mi' }) {
   const [form, setForm] = useState(() => {
-    const base = { ...emptyForm, ...initial };
+    const base = { ...emptyForm, client_request_id: crypto.randomUUID(), ...initial };
     const unit = base.planned_distance_unit || defaultDistanceUnit || 'mi';
     return {
       ...base,
@@ -320,6 +322,8 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
   });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const savingRef = useRef(false);
+  const dialogRef = useDialogFocus(onClose, saving);
 
   const distanceUnit = form.planned_distance_unit || 'mi';
   const structureTotals = useMemo(() => summarizeStructure(form.structure), [form.structure]);
@@ -349,6 +353,8 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     setMessage('');
     // Stamp each step's target units so the read-only detail view renders the
@@ -365,7 +371,9 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
       planned_distance_unit: distanceUnit,
       planned_tss: tssEstimate,
       planned_if: form.planned_if === '' ? null : Number(form.planned_if),
+      ...(form.logCompletion ? { status: 'completed', completed_duration_min: form.planned_duration_min === '' ? null : Number(form.planned_duration_min), completed_distance_km: unitToKm(form.planned_distance, distanceUnit), planned_duration_min: null, planned_distance_km: null, planned_tss: null } : {}),
     });
+    savingRef.current = false;
     setSaving(false);
     if (result && result.ok) {
       onClose();
@@ -375,28 +383,28 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[28px] border border-ink/10 bg-paper p-6">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm" onClick={(e) => { if (!saving && e.target === e.currentTarget) onClose(); }}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Workout editor" className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[28px] border border-ink/10 bg-paper p-6">
         <div className="flex items-center justify-between">
           <p className="text-sm uppercase tracking-[0.25em] text-accent">
-            {form.id ? 'Edit workout' : 'Plan workout'}
+            {form.id ? 'Edit workout' : form.logCompletion ? 'Log workout' : 'Plan workout'}
           </p>
-          <button onClick={onClose} className="rounded-full border border-ink/10 px-4 py-1.5 text-sm text-ink/70 hover:bg-ink/5">Close</button>
+          <button disabled={saving} onClick={onClose} className="rounded-full border border-ink/10 px-4 py-1.5 text-sm text-ink/70 hover:bg-ink/5">Close</button>
         </div>
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div className="grid gap-3 sm:grid-cols-[1fr_140px_140px]">
             <input
               required
-              disabled={!canEditPlan}
-              placeholder="Workout title (e.g. Threshold intervals)"
+              disabled={!canEditPlan || saving}
+              aria-label="Workout title" placeholder="Workout title (e.g. Threshold intervals)"
               value={form.title}
               onChange={(e) => setField('title', e.target.value)}
               className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink disabled:opacity-60"
             />
             <select
-              disabled={!canEditPlan}
-              value={form.sport}
+              disabled={!canEditPlan || saving}
+              aria-label="Sport" value={form.sport}
               onChange={(e) => setField('sport', e.target.value)}
               className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink disabled:opacity-60"
             >
@@ -405,8 +413,8 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
             <input
               type="date"
               required
-              disabled={!canEditPlan}
-              value={form.workout_date}
+              disabled={!canEditPlan || saving}
+              aria-label="Workout date" value={form.workout_date}
               onChange={(e) => setField('workout_date', e.target.value)}
               className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink disabled:opacity-60"
             />
@@ -414,7 +422,7 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
 
           <textarea
             rows={2}
-            disabled={!canEditPlan}
+            disabled={!canEditPlan || saving}
             placeholder="Coach instructions / session goal"
             value={form.description || ''}
             onChange={(e) => setField('description', e.target.value)}
@@ -424,14 +432,14 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
 
           <div className="grid gap-3 sm:grid-cols-2">
             <input
-              disabled={!canEditPlan}
+              disabled={!canEditPlan || saving}
               placeholder="Workout objective / purpose"
               value={form.objective || ''}
               onChange={(e) => setField('objective', e.target.value)}
               className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink disabled:opacity-60"
             />
             <input
-              disabled={!canEditPlan}
+              disabled={!canEditPlan || saving}
               placeholder="Coach instructions (separate from description)"
               value={form.coach_instructions || ''}
               onChange={(e) => setField('coach_instructions', e.target.value)}
@@ -441,8 +449,8 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
 
           <div className="grid gap-3 sm:grid-cols-3">
             <select
-              disabled={!canEditPlan}
-              value={form.target_metric || 'duration'}
+              disabled={!canEditPlan || saving}
+              aria-label="Primary target" value={form.target_metric || 'duration'}
               onChange={(e) => setField('target_metric', e.target.value)}
               className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink disabled:opacity-60"
             >
@@ -458,15 +466,15 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
               type="number"
               min="0"
               step="0.01"
-              disabled={!canEditPlan}
+              disabled={!canEditPlan || saving}
               placeholder="Planned IF"
               value={form.planned_if || ''}
               onChange={(e) => setField('planned_if', e.target.value)}
               className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink disabled:opacity-60"
             />
             <select
-              disabled={!canEditPlan}
-              value={form.visibility || 'athlete_visible'}
+              disabled={!canEditPlan || saving}
+              aria-label="Workout visibility" value={form.visibility || 'athlete_visible'}
               onChange={(e) => setField('visibility', e.target.value)}
               className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink disabled:opacity-60"
             >
@@ -477,12 +485,12 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
 
           <div className="grid gap-3 sm:grid-cols-3">
             <div>
-              <label className="mb-1 block text-xs text-ink/55">Planned duration (min)</label>
+              <label className="mb-1 block text-xs text-ink/55">{form.logCompletion ? 'Actual duration (min)' : 'Planned duration (min)'}</label>
               <input
                 type="number"
                 min="0"
-                disabled={!canEditPlan}
-                value={form.planned_duration_min}
+                disabled={!canEditPlan || saving}
+                aria-label={form.logCompletion ? "Actual duration (min)" : "Planned duration (min)"} value={form.planned_duration_min}
                 placeholder={structureTotals.durationMin ? String(structureTotals.durationMin) : ''}
                 onChange={(e) => setField('planned_duration_min', e.target.value)}
                 className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink disabled:opacity-60"
@@ -490,9 +498,9 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
             </div>
             <div>
               <div className="mb-1 flex items-center justify-between gap-2">
-                <label className="block text-xs text-ink/55">Planned distance</label>
+                <label className="block text-xs text-ink/55">{form.logCompletion ? 'Actual distance' : 'Planned distance'}</label>
                 <select
-                  disabled={!canEditPlan}
+                  disabled={!canEditPlan || saving}
                   value={distanceUnit}
                   onChange={(e) => changeDistanceUnit(e.target.value)}
                   aria-label="Distance unit"
@@ -506,8 +514,8 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
                 type="number"
                 min="0"
                 step="0.1"
-                disabled={!canEditPlan}
-                value={form.planned_distance}
+                disabled={!canEditPlan || saving}
+                aria-label={form.logCompletion ? "Actual distance" : "Planned distance"} value={form.planned_distance}
                 placeholder={structureTotals.distanceKm ? kmToUnit(structureTotals.distanceKm, distanceUnit) : ''}
                 onChange={(e) => setField('planned_distance', e.target.value)}
                 className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink disabled:opacity-60"
@@ -553,19 +561,26 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
             </div>
           </div>
 
+          {form.logCompletion && <p className="text-sm text-ink/70">Logging a completed, unplanned workout. Duration and distance record what you actually did.</p>}
           <div className="flex flex-wrap items-center gap-3">
             <button type="submit" disabled={saving} className="rounded-full bg-panel px-5 py-2.5 text-sm font-semibold text-paper disabled:opacity-60">
-              {saving ? 'Saving…' : 'Save workout'}
+              {saving ? 'Saving…' : form.logCompletion ? 'Save completed workout' : 'Save workout'}
             </button>
             {onSaveToLibrary && canEditPlan && (
               <button
                 type="button"
+                disabled={saving}
                 onClick={async () => {
+                  if (savingRef.current) return;
+                  savingRef.current = true;
+                  setSaving(true);
                   const ok = await onSaveToLibrary({
                     ...form,
                     planned_distance_km: unitToKm(form.planned_distance, distanceUnit),
                     planned_distance_unit: distanceUnit,
                   });
+                  savingRef.current = false;
+                  setSaving(false);
                   setMessage(ok ? 'Saved to library.' : 'Could not save to library.');
                 }}
                 className="rounded-full border border-ink/10 px-5 py-2.5 text-sm font-semibold text-ink/70 hover:bg-ink/5"
@@ -573,7 +588,7 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
                 Save to library
               </button>
             )}
-            {message && <p className="text-xs text-ink/60">{message}</p>}
+            {message && <p role="status" className="text-xs text-ink/60">{message}</p>}
           </div>
         </form>
       </div>
@@ -739,27 +754,60 @@ function CommentThread({ subject, role, onCountChange }) {
   );
 }
 
-function WorkoutDetail({ workout, role, onUpdate, onEdit, onDelete, onClose }) {
+function WorkoutDetail({ workout, matchActivities = [], role, onUpdate, onEdit, onDelete, onClose }) {
   const distanceUnit = workout.planned_distance_unit || 'mi';
   const [completion, setCompletion] = useState({
-    completed_duration_min: workout.completed_duration_min ?? workout.planned_duration_min ?? '',
+    completed_duration_min: workout.completed_duration_min ?? '',
     // Shown/entered in the workout's unit; converted to km on submit.
-    completed_distance: kmToUnit(workout.completed_distance_km ?? workout.planned_distance_km ?? '', distanceUnit),
+    completed_distance: kmToUnit(workout.completed_distance_km ?? '', distanceUnit),
     athlete_rpe: workout.athlete_rpe ?? '',
     athlete_comment: workout.athlete_comment ?? '',
   });
   const [feedback, setFeedback] = useState(workout.coach_feedback || '');
   const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
+  const dialogRef = useDialogFocus(onClose, busy);
+  const [saveError, setSaveError] = useState('');
+  const [saved, setSaved] = useState(false);
+  const currentMatch = workout.linked_activity || workout.matched_activity;
+  const [selectedActivity, setSelectedActivity] = useState(String(workout.completed_activity_id || currentMatch?.id || ''));
+  const matchCandidates = matchActivities.filter((a) =>
+    (!a.linked_workout_id || a.linked_workout_id === workout.id)
+    && (String(a.id) === String(workout.completed_activity_id)
+      || Math.abs(Date.parse(a.activity_date) - Date.parse(workout.workout_date)) <= 7 * 86400000));
 
-  async function submit(updates) {
+  async function submit(updates, remove = false) {
+    if (busyRef.current) return;
+    busyRef.current = true;
     setBusy(true);
-    await onUpdate(workout.id, updates);
-    setBusy(false);
+    setSaveError('');
+    setSaved(false);
+    try {
+      const result = remove ? await onDelete(workout.id) : await onUpdate(workout.id, { expected_updated_at: workout.updated_at, ...updates });
+      if (!result?.ok) setSaveError(result?.error || 'Could not save. Your answers are still here; please retry.');
+      else {
+        setSaved(true);
+        if (updates.match_action) {
+          const value = result.workout;
+          setCompletion((previous) => ({ ...previous,
+            completed_duration_min: value?.completed_duration_min ?? '',
+            completed_distance: kmToUnit(value?.completed_distance_km ?? '', distanceUnit),
+          }));
+          if (updates.match_action !== 'confirm') setSelectedActivity(String(value?.matched_activity?.id || ''));
+        }
+        if (updates.status === 'planned') setCompletion((previous) => ({ ...previous, completed_duration_min: '', completed_distance: '', athlete_rpe: '' }));
+      }
+    } catch {
+      setSaveError('Connection lost. Your answers are still here; please retry.');
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
+    }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-[28px] border border-ink/10 bg-paper p-6">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm" onClick={(e) => { if (!busy && e.target === e.currentTarget) onClose(); }}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Workout details" className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-[28px] border border-ink/10 bg-paper p-6">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-[0.25em] text-accent">
@@ -774,7 +822,7 @@ function WorkoutDetail({ workout, role, onUpdate, onEdit, onDelete, onClose }) {
               ].filter(Boolean).join(' · ') || 'No planned targets'}
             </p>
           </div>
-          <button onClick={onClose} className="rounded-full border border-ink/10 px-4 py-1.5 text-sm text-ink/70 hover:bg-ink/5">Close</button>
+          <button disabled={busy} onClick={onClose} className="rounded-full border border-ink/10 px-4 py-1.5 text-sm text-ink/70 hover:bg-ink/5">Close</button>
         </div>
 
         {(workout.objective || workout.description || workout.coach_instructions) && (
@@ -828,8 +876,11 @@ function WorkoutDetail({ workout, role, onUpdate, onEdit, onDelete, onClose }) {
             <p className="mt-2 text-sm text-ink/55">Not completed yet.</p>
           )}
           {workout.matched_activity && (
-            <p className="mt-1 text-xs text-emerald-700">Auto-matched to a synced activity on this day.</p>
+            <p className="mt-1 text-xs text-emerald-700">Suggested match to an imported activity.{role === 'athlete' ? ' Confirm it or choose another session below.' : ''}</p>
           )}
+          {workout.completed_activity_id && <p className="mt-1 text-xs text-emerald-700">
+            {workout.linked_activity ? 'Confirmed imported activity.' : 'The linked activity is no longer available. Saved actuals are retained; you can unlink or replace it.'}
+          </p>}
           {workout.athlete_comment && (
             <p className="mt-2 rounded-xl bg-paper p-3 text-sm text-ink/75">Athlete: {workout.athlete_comment}</p>
           )}
@@ -838,15 +889,45 @@ function WorkoutDetail({ workout, role, onUpdate, onEdit, onDelete, onClose }) {
           )}
         </div>
 
-        {/* Athlete completion form */}
-        {role === 'athlete' && workout.status !== 'completed' && (
+        {role === 'athlete' && (currentMatch || workout.completed_activity_id || matchCandidates.length > 0
+          || (workout.activity_match_mode === 'manual' && workout.status === 'planned')) && (
           <div className="mt-4 rounded-2xl border border-ink/10 bg-white p-4">
-            <p className="text-xs uppercase tracking-[0.22em] text-ink/55">Log completion</p>
+            <p className="text-sm font-semibold text-ink">Imported activity match</p>
+            {currentMatch && <p className="mt-2 text-sm text-ink/75">{currentMatch.name || 'Imported activity'} · {String(currentMatch.local_date || currentMatch.start_date_local || currentMatch.start_date || '').slice(0, 10)}</p>}
+            {workout.activity_match_mode === 'manual' && !workout.completed_activity_id && <p className="mt-2 text-xs text-ink/60">Automatic matching is off for this workout. Your manual choice stays saved after refresh.</p>}
+            {matchCandidates.length > 0 && <>
+            <label className="mt-3 block text-sm text-ink" htmlFor="workout-match-activity">Choose an imported activity</label>
+            <select id="workout-match-activity" value={selectedActivity} disabled={busy}
+              onChange={(e) => setSelectedActivity(e.target.value)} className="mt-1 w-full rounded-xl border border-ink/10 bg-paper px-3 py-3 text-sm text-ink">
+              <option value="">Select a session</option>
+              {matchCandidates.map((a) => <option key={a.id} value={String(a.id)}>{a.activity_date} · {a.name} · {a.duration_min == null ? 'Duration unknown' : `${a.duration_min} min`}</option>)}
+            </select>
+            <p className="mt-2 text-xs text-ink/60">Available sessions within seven days of the plan. Linking uses the imported duration and distance, keeps your notes, and replaces the current completion. Each imported activity can belong to one workout.</p>
+            </>}
+            {!matchCandidates.length && <p className="mt-2 text-xs text-ink/60">No available imported sessions in this date range.</p>}
+            <div className="mt-3 flex flex-wrap gap-2">
+              {matchCandidates.length > 0 && <button disabled={busy || !matchCandidates.some((a) => String(a.id) === selectedActivity)} onClick={() => submit({ match_action: 'confirm', activity_id: selectedActivity })}
+                className="rounded-full bg-panel px-4 py-3 text-sm font-semibold text-paper disabled:opacity-50">Confirm activity match</button>}
+              {(currentMatch || workout.completed_activity_id) && <button disabled={busy} onClick={() => submit({ match_action: 'reject' })}
+                className="rounded-full border border-ink/20 px-4 py-3 text-sm text-ink disabled:opacity-50">{workout.completed_activity_id ? 'Unlink activity' : 'Reject suggested match'}</button>}
+              {workout.activity_match_mode === 'manual' && workout.status === 'planned' && !workout.completed_activity_id && <button disabled={busy} onClick={() => submit({ match_action: 'auto' })}
+                className="rounded-full border border-ink/20 px-4 py-3 text-sm text-ink disabled:opacity-50">Use automatic matching</button>}
+            </div>
+            {(currentMatch || workout.completed_activity_id) && <p className="mt-2 text-xs text-ink/60">Unlinking or rejecting clears the imported actuals and leaves the workout planned. The imported activity is kept in your calendar. Automatic matching stays off until you enable it.</p>}
+          </div>
+        )}
+
+        {/* Athlete completion form */}
+        {role === 'athlete' && (
+          <div className="mt-4 rounded-2xl border border-ink/10 bg-white p-4">
+            <p className="text-xs uppercase tracking-[0.22em] text-ink/55">{workout.status === 'completed' ? 'Correct completion' : 'Log completion'}</p>
+            <p className="mt-2 text-xs text-ink/60">Enter what you actually did, including a shorter or partial session. Blank values stay unknown.</p>
+            {(currentMatch || workout.completed_activity_id) && <p className="mt-2 text-xs text-ink/60">Saving manual actuals or skipping replaces the activity match. The imported session will appear separately in your calendar.</p>}
             <div className="mt-3 grid gap-2 sm:grid-cols-3">
               <input
                 type="number"
                 min="0"
-                placeholder="Duration (min)"
+                aria-label="Actual duration in minutes" disabled={busy} placeholder="Duration (min)"
                 value={completion.completed_duration_min}
                 onChange={(e) => setCompletion((c) => ({ ...c, completed_duration_min: e.target.value }))}
                 className="rounded-xl border border-ink/10 bg-paper px-3 py-2 text-sm text-ink"
@@ -855,13 +936,13 @@ function WorkoutDetail({ workout, role, onUpdate, onEdit, onDelete, onClose }) {
                 type="number"
                 min="0"
                 step="0.1"
-                placeholder={`Distance (${distanceUnit})`}
+                aria-label={`Actual distance in ${distanceUnit}`} disabled={busy} placeholder={`Distance (${distanceUnit})`}
                 value={completion.completed_distance}
                 onChange={(e) => setCompletion((c) => ({ ...c, completed_distance: e.target.value }))}
                 className="rounded-xl border border-ink/10 bg-paper px-3 py-2 text-sm text-ink"
               />
               <select
-                value={completion.athlete_rpe}
+                aria-label="Workout RPE" disabled={busy} value={completion.athlete_rpe}
                 onChange={(e) => setCompletion((c) => ({ ...c, athlete_rpe: e.target.value }))}
                 className="rounded-xl border border-ink/10 bg-paper px-3 py-2 text-sm text-ink"
               >
@@ -871,7 +952,7 @@ function WorkoutDetail({ workout, role, onUpdate, onEdit, onDelete, onClose }) {
             </div>
             <textarea
               rows={2}
-              placeholder="How did it go?"
+              aria-label="Workout notes" disabled={busy} placeholder="How did it go?"
               value={completion.athlete_comment}
               onChange={(e) => setCompletion((c) => ({ ...c, athlete_comment: e.target.value }))}
               className="mt-2 w-full rounded-xl border border-ink/10 bg-paper px-3 py-2 text-sm text-ink"
@@ -888,7 +969,7 @@ function WorkoutDetail({ workout, role, onUpdate, onEdit, onDelete, onClose }) {
                 })}
                 className="rounded-full bg-panel px-4 py-2 text-sm font-semibold text-paper disabled:opacity-60"
               >
-                Mark completed
+                {workout.status === 'completed' ? 'Save correction' : 'Mark completed'}
               </button>
               <button
                 disabled={busy}
@@ -901,24 +982,13 @@ function WorkoutDetail({ workout, role, onUpdate, onEdit, onDelete, onClose }) {
           </div>
         )}
 
-        {/* Athlete comment on completed workouts */}
-        {role === 'athlete' && workout.status === 'completed' && (
-          <div className="mt-4 flex gap-2">
-            <input
-              placeholder="Add a comment for your coach…"
-              value={completion.athlete_comment}
-              onChange={(e) => setCompletion((c) => ({ ...c, athlete_comment: e.target.value }))}
-              className="flex-1 rounded-xl border border-ink/10 bg-white px-3 py-2 text-sm text-ink"
-            />
-            <button
-              disabled={busy}
-              onClick={() => submit({ athlete_comment: completion.athlete_comment || null })}
-              className="rounded-full bg-panel px-4 py-2 text-sm font-semibold text-paper disabled:opacity-60"
-            >
-              Save
-            </button>
-          </div>
+        {role === 'athlete' && workout.status !== 'planned' && !workout.matched_activity && !workout.completed_activity_id && (
+          <button disabled={busy} onClick={() => submit({ status: 'planned', completed_activity_id: null,
+            completed_duration_min: null, completed_distance_km: null, athlete_rpe: null })}
+            className="mt-3 rounded-full border border-ink/20 px-4 py-2 text-sm disabled:opacity-50">Undo completion / skip</button>
         )}
+        {saveError && <p role="alert" className="mt-3 text-sm text-red-700">{saveError}</p>}
+        {saved && <p role="status" className="mt-3 text-sm text-emerald-700">Saved.</p>}
 
         {/* Coach feedback */}
         {role === 'coach' && (
@@ -945,7 +1015,7 @@ function WorkoutDetail({ workout, role, onUpdate, onEdit, onDelete, onClose }) {
         <CommentThread subject={{ workout_id: workout.id }} role={role} />
 
         {/* Edit / delete */}
-        <div className="mt-5 flex items-center justify-between border-t border-ink/8 pt-4">
+        <div className="mt-5 flex flex-wrap gap-2 items-center justify-between border-t border-ink/8 pt-4">
           <a
             href={`/api/workout-export?id=${workout.id}`}
             className="rounded-full border border-ink/10 px-4 py-2 text-sm font-semibold text-ink/70 hover:bg-ink/5"
@@ -953,13 +1023,13 @@ function WorkoutDetail({ workout, role, onUpdate, onEdit, onDelete, onClose }) {
             Export JSON
           </a>
           {(role === 'coach' || !workout.coach_id) ? (
-            <button onClick={() => onEdit(workout)} className="rounded-full border border-ink/10 px-4 py-2 text-sm font-semibold text-ink/70 hover:bg-ink/5">
+            <button disabled={busy} onClick={() => onEdit(workout)} className="rounded-full border border-ink/10 px-4 py-2 text-sm font-semibold text-ink/70 hover:bg-ink/5">
               Edit workout
             </button>
           ) : <span className="text-xs text-ink/45">Assigned by your coach</span>}
           {(role === 'coach' || !workout.coach_id) && (
             <button
-              onClick={() => { if (window.confirm('Delete this workout?')) onDelete(workout.id); }}
+              disabled={busy} onClick={() => { if (window.confirm('Delete this workout?')) submit({}, true); }}
               className="rounded-full border border-rose-200 px-4 py-2 text-sm text-rose-600 hover:bg-rose-50"
             >
               Delete
@@ -1009,7 +1079,7 @@ function ActivityDetail({ activity, role, distanceUnit = 'mi', onCountChange, on
       className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-[28px] border border-ink/10 bg-paper p-6">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Workout details" className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-[28px] border border-ink/10 bg-paper p-6">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-xs uppercase tracking-[0.25em] text-sky-700">
@@ -1157,15 +1227,17 @@ function NoteEditor({ initial, role, canEdit, onSave, onDelete, onClose }) {
     visibility: initial.visibility || 'athlete_visible',
   });
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const meta = NOTE_META[form.note_type] || NOTE_META.general;
 
   async function submit(e) {
     e.preventDefault();
-    if (!canEdit) return;
+    if (!canEdit || saving) return;
     setSaving(true);
     const ok = await onSave(form);
     setSaving(false);
     if (ok) onClose();
+    else setSaveError('Could not save. Your changes are still here; please retry.');
   }
 
   return (
@@ -1176,6 +1248,7 @@ function NoteEditor({ initial, role, canEdit, onSave, onDelete, onClose }) {
           <button onClick={onClose} className="rounded-full border border-ink/10 px-3 py-1 text-sm text-ink/60 hover:bg-ink/5">✕</button>
         </div>
         <form onSubmit={submit} className="mt-4 space-y-3">
+          {saveError && <p role="alert" className="text-sm text-red-700">{saveError}</p>}
           <input
             required
             disabled={!canEdit}
@@ -1241,13 +1314,16 @@ function EventEditor({ date, onSave, onClose }) {
   const [raceType, setRaceType] = useState('Marathon');
   const [priority, setPriority] = useState('B');
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   async function submit(e) {
     e.preventDefault();
+    if (saving) return;
     setSaving(true);
     const ok = await onSave({ name, event_date: date, race_type: raceType, priority });
     setSaving(false);
     if (ok) onClose();
+    else setSaveError('Could not save. Your changes are still here; please retry.');
   }
 
   return (
@@ -1258,6 +1334,7 @@ function EventEditor({ date, onSave, onClose }) {
           <button onClick={onClose} className="rounded-full border border-ink/10 px-3 py-1 text-sm text-ink/60 hover:bg-ink/5">✕</button>
         </div>
         <form onSubmit={submit} className="mt-4 space-y-3">
+          {saveError && <p role="alert" className="text-sm text-red-700">{saveError}</p>}
           <input
             required
             value={name}
@@ -1388,6 +1465,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
   const [activities, setActivities] = useState([]);
   // Assume connected until the server says otherwise so the notice never flashes.
   const [stravaConnected, setStravaConnected] = useState(true);
+  const [matchActivities, setMatchActivities] = useState([]);
   const [library, setLibrary] = useState([]);
   const [distanceUnitPref, setDistanceUnitPref] = useState('mi');
   const [loading, setLoading] = useState(true);
@@ -1431,6 +1509,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
       setWorkouts(workoutsData.workouts || []);
       setActivities(workoutsData.activities || []);
       setStravaConnected(workoutsData.import_source?.strava_connected !== false);
+      setMatchActivities(workoutsData.match_activities || []);
       if (notesRes?.ok) {
         const notesData = await notesRes.json();
         setNotes(notesData.notes || []);
@@ -1439,6 +1518,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
         const eventsData = await eventsRes.json();
         setEvents(eventsData.events || []);
       }
+      return workoutsData;
     } catch {
       setError('Could not load the training calendar.');
     } finally {
@@ -1471,6 +1551,12 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (router.isReady && router.query.log === '1' && role === 'athlete') {
+      setEditorInitial({ ...emptyForm, workout_date: toDateKey(new Date()), logCompletion: true });
+    }
+  }, [router.isReady, router.query.log, role]);
 
   // Deep link: /calendar?workout=<id> opens the workout detail once loaded.
   // Tracks the last id opened this way so navigating to a different workout
@@ -1558,124 +1644,61 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
   // ── Mutations ──────────────────────────────────────────────────────────────
 
   const saveWorkout = useCallback(async (form) => {
-    const isUpdate = Boolean(form.id);
-    let res;
-    try {
-      res = await fetch('/api/planned-workouts', {
-        method: isUpdate ? 'PATCH' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, athlete_id: athleteId || undefined }),
-      });
-    } catch {
-      return { ok: false, error: 'Network error — check your connection and try again.' };
-    }
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      return { ok: false, error: data.error || `Save failed (${res.status}). Please try again.` };
-    }
-    await reload();
-    return { ok: true };
+    const result = await calendarMutation('/api/planned-workouts', {
+      method: form.id ? 'PATCH' : 'POST', body: { ...form, athlete_id: athleteId || undefined },
+    });
+    if (result.ok) await reload();
+    return result;
   }, [athleteId, reload]);
 
   const updateWorkout = useCallback(async (id, updates) => {
-    const res = await fetch('/api/planned-workouts', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, ...updates }),
-    });
-    if (res.ok) await reload();
+    const result = await calendarMutation('/api/planned-workouts', { method: 'PATCH', body: { id, ...updates } });
+    if (result.ok) {
+      const refreshed = await reload();
+      result.workout = refreshed?.workouts?.find((w) => w.id === id) || result.workout;
+    }
+    return result;
   }, [reload]);
 
   const deleteWorkout = useCallback(async (id) => {
-    const res = await fetch(`/api/planned-workouts?id=${id}`, { method: 'DELETE' });
-    if (res.ok) {
-      setDetailId(null);
+    const result = await calendarMutation(`/api/planned-workouts?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+    if (result.ok) { setDetailId(null); await reload(); }
+    return result;
+  }, [reload]);
+
+  const pendingMutations = useRef(new Map());
+  const mutateCalendar = useCallback(async (url, options, afterSave) => {
+    const key = JSON.stringify([url, options]);
+    if (pendingMutations.current.has(key)) return false;
+    pendingMutations.current.set(key, true);
+    try {
+      const result = await calendarMutation(url, options);
+      if (!result.ok) { setError(result.error); return false; }
+      if (afterSave) afterSave(result);
       await reload();
-    }
+      return true;
+    } finally { pendingMutations.current.delete(key); }
   }, [reload]);
 
-  const saveNote = useCallback(async (form) => {
-    const isUpdate = Boolean(form.id);
-    const res = await fetch('/api/calendar-notes', {
-      method: isUpdate ? 'PATCH' : 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, athlete_id: athleteId || undefined }),
-    });
-    if (!res.ok) return false;
-    await reload();
-    return true;
-  }, [athleteId, reload]);
-
-  const deleteNote = useCallback(async (id) => {
-    const res = await fetch(`/api/calendar-notes?id=${id}`, { method: 'DELETE' });
-    if (res.ok) {
-      setNoteEditor(null);
-      await reload();
-    }
-  }, [reload]);
-
-  const saveEvent = useCallback(async (payload) => {
-    const res = await fetch('/api/race-events', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) return false;
-    await reload();
-    return true;
-  }, [reload]);
-
-  const saveToLibrary = useCallback(async (form) => {
-    const res = await fetch('/api/workout-library', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: form.title,
-        sport: form.sport,
-        description: form.description,
-        structure: form.structure,
-        planned_duration_min: form.planned_duration_min === '' ? null : form.planned_duration_min,
-        planned_distance_km: form.planned_distance_km === '' ? null : form.planned_distance_km,
-        planned_distance_unit: form.planned_distance_unit || 'mi',
-      }),
-    });
-    if (!res.ok) return false;
-    const d = await res.json();
-    setLibrary((prev) => [d.workout, ...prev]);
-    return true;
-  }, []);
-
-  const applyLibraryWorkout = useCallback(async (libraryWorkoutId, date) => {
-    const res = await fetch('/api/planned-workouts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        athlete_id: athleteId || undefined,
-        library_workout_id: libraryWorkoutId,
-        workout_date: date,
-      }),
-    });
-    if (res.ok) await reload();
-  }, [athleteId, reload]);
-
-  const copyWeekForward = useCallback(async (fromWeekStartKey) => {
-    const toWeekStart = toDateKey(addDays(new Date(`${fromWeekStartKey}T00:00:00`), 7));
-    const res = await fetch('/api/planned-workouts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'copy_week',
-        athlete_id: athleteId || undefined,
-        from_week_start: fromWeekStartKey,
-        to_week_start: toWeekStart,
-      }),
-    });
-    if (res.ok) await reload();
-    else {
-      const d = await res.json().catch(() => ({}));
-      setError(d.error || 'Could not copy week.');
-    }
-  }, [athleteId, reload]);
+  const saveNote = useCallback((form) => mutateCalendar('/api/calendar-notes', {
+    method: form.id ? 'PATCH' : 'POST', body: { ...form, athlete_id: athleteId || undefined },
+  }), [athleteId, mutateCalendar]);
+  const deleteNote = useCallback((id) => mutateCalendar(`/api/calendar-notes?id=${encodeURIComponent(id)}`,
+    { method: 'DELETE' }, () => setNoteEditor(null)), [mutateCalendar]);
+  const saveEvent = useCallback((body) => mutateCalendar('/api/race-events', { body }), [mutateCalendar]);
+  const saveToLibrary = useCallback((form) => mutateCalendar('/api/workout-library', {
+    body: { name: form.title, sport: form.sport, description: form.description, structure: form.structure,
+      planned_duration_min: form.planned_duration_min === '' ? null : Number(form.planned_duration_min),
+      planned_distance_km: form.planned_distance_km === '' ? null : form.planned_distance_km,
+      planned_distance_unit: form.planned_distance_unit || 'mi' },
+  }, (result) => setLibrary((previous) => [result.workout, ...previous])), [mutateCalendar]);
+  const applyLibraryWorkout = useCallback((libraryWorkoutId, date) => mutateCalendar('/api/planned-workouts', {
+    body: { athlete_id: athleteId || undefined, library_workout_id: libraryWorkoutId, workout_date: date },
+  }), [athleteId, mutateCalendar]);
+  const copyWeekForward = useCallback((fromWeekStartKey) => mutateCalendar('/api/planned-workouts', {
+    body: { action: 'copy_week', athlete_id: athleteId || undefined, from_week_start: fromWeekStartKey,
+      to_week_start: toDateKey(addDays(new Date(`${fromWeekStartKey}T00:00:00`), 7)) },
+  }), [athleteId, mutateCalendar]);
 
   // ── Derived rows ───────────────────────────────────────────────────────────
 
@@ -1801,6 +1824,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
       {detailWorkout && (
         <WorkoutDetail
           workout={detailWorkout}
+          matchActivities={matchActivities}
           role={role}
           onUpdate={updateWorkout}
           onEdit={(w) => {
@@ -1896,14 +1920,14 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
         </div>
       </div>
 
-      {error && <p className="mt-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>}
+      {error && <p role="alert" className="mt-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>}
 
       {/* Without an import source, an empty calendar means "nothing synced",
           not "didn't train" — say so, so the coach doesn't read it as a bug. */}
       {role === 'coach' && !loading && !stravaConnected && (
         <p className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          {`${athleteName || 'This athlete'} hasn’t connected Strava, so only workouts you assign or they add `
-            + 'themselves will appear. Training they do on their own will show up here once they connect.'}
+          {`${athleteName || 'This athlete'} hasn’t connected Strava. Assigned workouts, manually logged workouts, `
+            + 'and previously imported activities can still appear here. New Strava activities won’t import until they connect.'}
         </p>
       )}
 
@@ -1921,8 +1945,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
                   item={item}
                   onApply={(date) => applyLibraryWorkout(item.id, date)}
                   onDelete={async () => {
-                    const res = await fetch(`/api/workout-library?id=${item.id}`, { method: 'DELETE' });
-                    if (res.ok) setLibrary((prev) => prev.filter((x) => x.id !== item.id));
+                    return mutateCalendar(`/api/workout-library?id=${encodeURIComponent(item.id)}`, { method: 'DELETE' }, () => setLibrary((prev) => prev.filter((x) => x.id !== item.id)));
                   }}
                 />
               ))}
@@ -2233,6 +2256,14 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
 
 function LibraryCard({ item, onApply, onDelete }) {
   const [date, setDate] = useState(toDateKey(new Date()));
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState('');
+  async function apply() {
+    if (busy || !date) return;
+    setBusy(true);
+    try { setResult(await onApply(date) ? 'Added to calendar.' : 'Could not add. Please retry.'); }
+    finally { setBusy(false); }
+  }
   return (
     <div className="rounded-2xl border border-ink/10 bg-paper p-3">
       <div className="flex items-start justify-between gap-2">
@@ -2240,7 +2271,7 @@ function LibraryCard({ item, onApply, onDelete }) {
           <SportTag sport={item.sport} />
           <span className="truncate">{item.name}</span>
         </p>
-        <button onClick={onDelete} className="rounded-full px-1.5 text-xs text-ink/40 hover:text-rose-600">✕</button>
+        <button disabled={busy} aria-label={`Delete ${item.name} from library`} onClick={onDelete} className="rounded-full px-1.5 text-xs text-ink/40 hover:text-rose-600">✕</button>
       </div>
       <p className="mt-1 text-[11px] text-ink/55">
         {[
@@ -2250,9 +2281,10 @@ function LibraryCard({ item, onApply, onDelete }) {
         ].filter(Boolean).join(' · ') || 'No targets'}
       </p>
       <div className="mt-2 flex gap-2">
-        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="flex-1 rounded-lg border border-ink/10 bg-white px-2 py-1 text-xs text-ink" />
-        <button onClick={() => onApply(date)} className="rounded-lg bg-panel px-3 py-1 text-xs font-semibold text-paper">Add</button>
+        <input aria-label="Add library workout on" disabled={busy} type="date" value={date} onChange={(e) => setDate(e.target.value)} className="flex-1 rounded-lg border border-ink/10 bg-white px-2 py-1 text-xs text-ink" />
+        <button disabled={busy || !date} onClick={apply} className="rounded-lg bg-panel px-3 py-1 text-xs font-semibold text-paper">{busy ? 'Adding…' : 'Add'}</button>
       </div>
+      {result && <p role="status" className="mt-2 text-xs text-ink/70">{result}</p>}
     </div>
   );
 }

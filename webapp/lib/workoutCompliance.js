@@ -107,12 +107,12 @@ export function estimateTss(structure = [], fallbackDurationMin = null) {
 export function compliancePct(planned, completed) {
   const plannedDuration = Number(planned?.planned_duration_min) || 0;
   const completedDuration = Number(completed?.duration_min) || 0;
-  if (plannedDuration > 0 && completedDuration > 0) {
+  if (plannedDuration > 0 && completed?.duration_min != null && completedDuration >= 0) {
     return Math.round((completedDuration / plannedDuration) * 100);
   }
   const plannedDistance = Number(planned?.planned_distance_km) || 0;
   const completedDistance = Number(completed?.distance_km) || 0;
-  if (plannedDistance > 0 && completedDistance > 0) {
+  if (plannedDistance > 0 && completed?.distance_km != null && completedDistance >= 0) {
     return Math.round((completedDistance / plannedDistance) * 100);
   }
   return null;
@@ -208,7 +208,7 @@ export function matchActivitiesToWorkouts(workouts = [], activities = [], { tole
     };
 
     const best = acts.reduce((bestSoFar, activity) => {
-      if (used.has(activity.id)) return bestSoFar;
+      if (used.has(String(activity.id))) return bestSoFar;
       if (Math.abs(dayIndex(activityDateKey(activity)) - planDay) > toleranceDays) return bestSoFar;
       const actSport = activitySport(activity);
       if (planSport && actSport && planSport !== actSport) return bestSoFar;
@@ -217,7 +217,7 @@ export function matchActivitiesToWorkouts(workouts = [], activities = [], { tole
     }, null);
 
     if (best) {
-      used.add(best.id);
+      used.add(String(best.id));
       matches.set(workout.id, best);
     }
   });
@@ -231,21 +231,25 @@ export function matchActivitiesToWorkouts(workouts = [], activities = [], { tole
  */
 export function decorateWorkoutsWithCompliance(workouts = [], activities = [], { today = new Date(), toleranceDays = 0 } = {}) {
   const matches = matchActivitiesToWorkouts(
-    workouts.filter((w) => w.status !== 'skipped' && !w.completed_activity_id),
-    activities,
+    workouts.filter((w) => w.status === 'planned' && !w.completed_activity_id && w.activity_match_mode !== 'manual'),
+    activities.filter((a) => !workouts.some((w) => String(w.completed_activity_id) === String(a.id))),
     { toleranceDays }
   );
 
   return workouts.map((workout) => {
+    const confirmed = workout.completed_activity_id != null;
+    const linked = confirmed ? activities.find((a) => String(a.id) === String(workout.completed_activity_id)) || null : null;
     const matched = matches.get(workout.id) || null;
     const completedDuration = workout.completed_duration_min
-      ?? (matched ? Math.round(((Number(matched.moving_time) || 0) / 60) * 10) / 10 : null);
+      ?? (matched?.moving_time != null ? Math.round((Number(matched.moving_time) / 60) * 10) / 10 : null);
     const completedDistance = workout.completed_distance_km
-      ?? (matched?.distance ? Math.round((Number(matched.distance) / 1000) * 100) / 100 : null);
+      ?? (matched?.distance != null ? Math.round((Number(matched.distance) / 1000) * 100) / 100 : null);
 
     const next = {
       ...workout,
       matched_activity: matched,
+      linked_activity: linked,
+      activity_match_state: confirmed ? (linked ? 'confirmed' : 'unavailable') : matched ? 'suggested' : workout.activity_match_mode === 'manual' ? 'manual' : 'none',
       completed_duration_min: completedDuration,
       completed_distance_km: completedDistance,
       // A matched activity implies the session happened even if the athlete
@@ -254,7 +258,7 @@ export function decorateWorkoutsWithCompliance(workouts = [], activities = [], {
       // The calendar day this workout should render on: where it actually
       // happened when an activity fulfilled it (which may differ from the
       // planned day), otherwise the planned day.
-      display_date: matched ? activityDateKey(matched) : toDateKey(workout.workout_date),
+      display_date: (linked || matched) ? activityDateKey(linked || matched) : toDateKey(workout.workout_date),
     };
     next.compliance_pct = compliancePct(next, {
       duration_min: next.completed_duration_min,

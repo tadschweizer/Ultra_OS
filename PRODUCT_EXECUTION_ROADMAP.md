@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
-Last updated: 2026-10-04<br>
-Status: P0-010–012 local Supabase/PostgREST and sandbox billing checks verified. Strava imports now have atomic leases, truthful status, explicit disconnect, source-event cleanup and an authenticated refresh worker; isolated database and HTTP-fixture browser acceptance pass. Regression 387/387 and build pass. Real Strava OAuth/webhooks/scheduler, SDK-authenticated billing/3DS/async settlement, hosted staging, legal/data practices and actual-phone gates remain open. Production lacks the tier prerequisite and billing RPCs.<br>
+Last updated: 2026-10-08<br>
+Status: PR #130 is merged into main as `4f2038f` (confirmed October 8); production migration/schema and deployed-source acceptance have not been reverified in this session. PR #129 previously had a matching READY production deployment. The October 7 P0-014 workout-match correction slice is locally verified (403 regression tests, 103 critical browser passes / 3 skips, 24 daily-loop browser passes, Node 22 build). Its production migration/release and parent acceptance remain open; see `P0_WORKOUT_MATCH_VERIFICATION.md`. No production writes were performed in this session.<br>
 Current milestone: M0 — make the closed coach pilot work end to end<br>
-Next item: Finish SDK-authenticated sandbox billing, full-app 3DS and asynchronous settlement; supply Threshold LLC's business mailing address and review legal/data practices. Continue Strava setup on the owner's approval assumption using `STRAVA_IMPORT_VERIFICATION.md`; the owner will contact Strava before launching. Provision only accepted included staging resources; complete hosted callbacks, worker/webhook configuration, external Google/uploaded-file cleanup and actual-phone acceptance. Review [draft PR #127](https://github.com/tadschweizer/Ultra_OS/pull/127) and `P0_010_012_EXTERNAL_ACCEPTANCE.md`. Do not merge into automatically deployed main until the owner authorizes and verifies the prerequisite-first production schema sequence: production still rejects current plan tiers and lacks all billing RPCs. The Strava lifecycle migration also requires its activity-persistence prerequisite. Earlier pilot live/schema and human timing gates remain open. The prior paid-staging restriction remains; production release/schema/configuration changes need separate authorization.
+Next item: Verify the production schema and deployed source after PR #130 merged; the exact P0-014 migration must be present before the matching application can work. Any production repair requires explicit authorization. Then tackle P0-015 notification preferences/delivery lifecycle, durable drafts and all-history unread aggregation. Real two-account and physical-phone acceptance, existing coach-message/shared-document schema repair, and the other external gates remain open. No paid staging is authorized; production release/schema/configuration changes require separate authorization.
 
 ## Purpose
 
@@ -321,6 +321,11 @@ in place. Existing milestones remain the larger parity roadmap.
   If Supabase remains unavailable, continue B locally and document the blocked staging checks.
 
 - [ ] **P0-014 — Reliable workout creation and logging**
+  - October 7 match-correction checkpoint ([PR #130](https://github.com/tadschweizer/Ultra_OS/pull/130), implementation `efed738`): durable confirm/reject/replace/unlink and explicit automatic restore; owner-scoped imported actuals, duplicate-link protection, stale conflicts, retry-safe decisions and cross-range calendar placement. Node 22 regression 403/403; critical browser 103 passed / 3 skips; daily-loop browser 24/24; build and isolated PostgreSQL checks pass. See `P0_WORKOUT_MATCH_VERIFICATION.md`. Exact new migration and controlled deployed/physical-phone acceptance remain open; no production writes.
+  - October 5 local implementation checkpoint: retained save failures, blank actuals, completion correction/undo, unplanned logging, durable workout-create retries, validation and conservative import matching.
+    Node 22 regression 394/394; critical browser suite 89 passed / 3 viewport skips; expanded
+    daily-loop journeys 16/16; real isolated Supabase 6/6 check groups. Evidence and remaining
+    parent acceptance: `P0_DAILY_LOOP_VERIFICATION.md`. No production release is claimed.
   - Every create/update/complete/delete/library action reports persisted success or actionable failure.
   - Preserve drafts, clear busy states after errors, prevent duplicate submission, and support retry.
   - Directly edit/undo completion; support partial, skipped, and unplanned sessions.
@@ -329,6 +334,10 @@ in place. Existing milestones remain the larger parity roadmap.
   - Returning athlete target: log completion within 30 seconds, excluding optional written notes.
 
 - [ ] **P0-015 — One dependable messaging experience**
+  - October 5 local implementation checkpoint: one canonical composer, four-second refresh, per-recipient drafts, durable retries, cursor history and loaded-message read acknowledgements.
+    Node 22 regression 394/394; critical browser suite 89 passed / 3 viewport skips; expanded
+    daily-loop journeys 16/16; real isolated Supabase 6/6 check groups. Evidence and remaining
+    parent acceptance: `P0_DAILY_LOOP_VERIFICATION.md`. No production release is claimed.
   - Full inbox and floating center share conversation selection, unread state, and read acknowledgement.
   - Incoming replies refresh promptly; target five seconds in an open conversation.
   - Keep per-recipient drafts, retry safely, paginate history, and preserve session-discussion links.
@@ -336,6 +345,10 @@ in place. Existing milestones remain the larger parity roadmap.
   - Verify two-account delivery, refresh, reconnect, duplicate prevention, and relationship revocation.
 
 - [ ] **P0-016 — Athlete-first navigation and focused interface**
+  - October 5 local implementation checkpoint: Today/Calendar/Log workout/Messages/Profile mobile navigation, Today sessions and coach reply, keyboard-accessible workout panels.
+    Node 22 regression 394/394; critical browser suite 89 passed / 3 viewport skips; expanded
+    daily-loop journeys 16/16; real isolated Supabase 6/6 check groups. Evidence and remaining
+    parent acceptance: `P0_DAILY_LOOP_VERIFICATION.md`. No production release is claimed.
   - Athlete mobile navigation: Today, Calendar, Log workout, Messages, Profile.
   - Today exposes the planned session, fast check-in, and latest coach reply.
   - Preserve coach Roster/Calendar/Messages access already introduced by P0-003.
@@ -488,6 +501,16 @@ Goal: Planned work reaches the devices athletes already use, and completed work 
 - [ ] **SYNC-002 — Provider priority decision**
   - Select providers from pilot evidence, not logo count.
   - Record commercial/API access requirements and supported inbound/outbound capabilities.
+  - October 8 access checkpoint: Suunto accepted Threshold into its Partner Program on October 5;
+    the separate one-use API Zone signup invitation was sent to `tad.s@mythreshold.co`.
+    Development access is available; production API subscription still needs Suunto review.
+    Next: redeem the invitation from the original email, subscribe to Developer API, configure
+    OAuth app name/client secret/redirect URI in the profile, and use a Suunto App test account.
+    Verify one authorized workout/FIT import and webhook before expanding to Guides delivery.
+    Docs: https://apizone.suunto.com/how-to-start and https://apizone.suunto.com/faq.
+    The welcome email also advertises sleep/HRV and SuuntoPlus Guides, but the public FAQ has
+    older conflicting sleep information; confirm actual subscribed endpoint scope during setup.
+    No signup, credential creation, production request or connector implementation was performed.
 
 - [ ] **SYNC-003 — First outbound workout provider**
   - Deliver a structured workout to one real device ecosystem.
@@ -668,6 +691,8 @@ accounts are unavailable; the previous INACTIVE observation below is historical.
 
 ## Progress log
 
+October 7 P0-014 match-correction checkpoint: saved athlete decisions, explicit manual-to-import linking, duplicate-link protection, stale-edit conflicts, lost-response retries, provider-deletion handling and cross-range calendar visibility are locally verified. Node 22 regression 403/403; critical browser 103 passed / 3 skips; expanded daily-loop 24/24; production build and seven isolated PostgreSQL groups pass. Read-only checks confirm PR #129's READY production deployment on `a9d83c2`, zero existing/duplicate links, the new migration still absent and `coach_messages` still absent. Evidence and release order: `P0_WORKOUT_MATCH_VERIFICATION.md`. P0-014 stays open; P0-015 notification lifecycle is the next implementation batch. No production deployment, database write or service configuration change.
+
 October 3 Strava checkpoint: owner authorized implementation assuming approval and will
 contact Strava before launch. Atomic imports/token refresh, safe status, owned disconnect,
 deletion/deauthorization webhook handling and a queued refresh worker are implemented.
@@ -699,6 +724,7 @@ criteria.
 
 | Date | Item | PR/commit | Verification evidence | Notes |
 | --- | --- | --- | --- | --- |
+| 2026-10-08 | PR #128 merge-conflict repair and calendar import notice review | [PR #128](https://github.com/tadschweizer/Ultra_OS/pull/128) | Merged current main (`4f2038f`) into the PR branch, retaining saved match decisions/candidates and cross-range calendar loading. Updated the injected activity fixture to the new metadata contract; regression covers connection state and retained stored activities. Node 22 full regression 404/404; production build passes. Desktop/390 px Chromium pilot-UX and daily-loop browser suites 36/36 pass against the production build (temporary CJS harness on Node 22). | Notice now acknowledges previously imported activities rather than implying disconnected athletes have no history. Roadmap reflects PR #130's confirmed merge, leaves production acceptance open, and records Suunto development-access setup under SYNC-002. No production writes or deployment. |
 | 2026-10-04 | Owner request (out of queue): coach sees every athlete workout on the calendar, assigned or not | [PR #128](https://github.com/tadschweizer/Ultra_OS/pull/128) | Code audit: `/api/planned-workouts` already returns unmatched Strava activities and athlete self-added workouts to an active coach, and the calendar renders them for both roles. Read-only production counts: both actively coached athletes have no Strava connection and 0 imported activities, so the coach calendar had nothing to show. Change: the endpoint now reports `import_source.strava_connected` from the sync it already runs, and the coach calendar explains when an athlete has no Strava connection. `next build` passes; `node --test` workout-compliance/activity-sync/workout-comments 56/56; `e2e/pilot-ux.spec.mjs` 12/12 desktop + mobile (Chromium 1194 via executablePath), new test fails when the notice is removed. | COROS pushes are stored in `coros_activities` but never read by any calendar; revisit when COROS is sequenced (M4). Current milestone and Next item unchanged. |
 | 2026-10-01 | P0-010A local billing request/confirmation slice | [Draft PR #127](https://github.com/tadschweizer/Ultra_OS/pull/127) / `5392ffd` | Node 22 regression 311/311; build; billing browser journeys 10/10; combined billing/pilot browser regression 32/32 with one worker; diff checks. See `P0_010_BILLING_VERIFICATION.md`. | Local handler and mocked browser gates verified. P0-010 remains open pending webhook replay/order/retry work and isolated Stripe hosted-payment acceptance. No production service writes. |
 | 2026-08-19 | Roadmap created | Local branch `agent/product-execution-roadmap` | Reconciled PR #104, current source audit, and existing roadmaps | No implementation items completed |

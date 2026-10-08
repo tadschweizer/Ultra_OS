@@ -83,10 +83,10 @@ export function getMobileTabs(account = null) {
   }
 
   return [
-    { href: '/dashboard', label: 'Home' },
-    { href: '/check-in', label: 'Check-in' },
-    { href: '/log-intervention', label: 'Log', primary: true },
-    { href: '/history', label: 'History' },
+    { href: '/dashboard', label: 'Today' },
+    { href: '/calendar', label: 'Calendar' },
+    { href: '/calendar?log=1', label: 'Log workout', primary: true },
+    { href: '/messages', label: 'Messages' },
     { href: '/settings', label: 'Profile' },
   ];
 }
