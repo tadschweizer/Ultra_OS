@@ -1,6 +1,6 @@
 # P0-017: pilot assistance deferral and product claims
 
-Date: 2026-10-08. Branch: `feature/p0-017-ai-deferral`, stacked on P0-015 PR #131 at `46c5492`. This checkpoint covers code and isolated verification, not a production release.
+Date: 2026-10-08. Branch: `feature/p0-017-ai-deferral`, stacked on P0-015 PR #131 at `46c5492`. Implementation: [draft PR #132](https://github.com/tadschweizer/Ultra_OS/pull/132), code `6af6629`. This checkpoint covers code and isolated verification, not a production release.
 
 ## Release policy
 
