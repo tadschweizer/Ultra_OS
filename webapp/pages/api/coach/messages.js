@@ -1,16 +1,9 @@
-import { loadMessagePage, parseMessageCursor, insertMessageOnce, validMessageId } from '../../../lib/directMessages';
-import { getSupabaseAdminClient } from '../../../lib/authServer';
-import { getAthleteIdFromRequest } from '../../../lib/auth/sessionCookies.js';
-import { getEffectiveAthleteIdFromRequest } from '../../../lib/auth/requireAthlete.js';
-import { loadAccountAccess } from '../../../lib/auth/roleAccessServer.js';
-import { resolveAccountMode } from '../../../lib/auth/roleGuards.js';
-
-// Coach tables are no longer reachable with the public anon key (RLS is on and
-// the anon grants are revoked), so this route uses the service-role client.
-// Authorisation is enforced in the handler from the session athlete id.
-const supabase = getSupabaseAdminClient();
-
-function getAthleteId(req) { return getEffectiveAthleteIdFromRequest(req); }
+import crypto from 'node:crypto';
+import { loadMessagePage, parseMessageCursor, validMessageId } from '../../../lib/directMessages.js';
+import { getSupabaseAdminClient } from '../../../lib/authServer.js';
+import { requireSameOriginJson } from '../../../lib/billingSecurity.js';
+import { messageActor, messageConversation, inboxSummary, messagingFailure } from '../../../lib/messagingServer.js';
+// messageActor uses resolveAccountMode with canonical server-derived capabilities.
 
 const MESSAGE_TEMPLATES = {
   missed_protocol_reminder: 'Quick check-in: I noticed a missed protocol session. Can you share what got in the way and your plan for the next session?',
@@ -21,180 +14,48 @@ const MESSAGE_TEMPLATES = {
   general_checkin: 'General check-in: how are you feeling this week and where do you need support?'
 };
 
-function latestByAthlete(messages = []) {
-  const map = new Map();
-  messages.forEach((message) => {
-    const current = map.get(message.athlete_id);
-    if (!current || new Date(message.created_at) > new Date(current.created_at)) {
-      map.set(message.athlete_id, message);
-    }
-  });
-  return map;
-}
 
-async function getActiveCoachRelationship(actorId) {
-  const { data } = await supabase
-    .from('coach_athlete_relationships')
-    .select('coach_id')
-    .eq('athlete_id', actorId)
-    .eq('status', 'active')
-    .limit(1);
-  return data?.[0] || null;
-}
-
-async function buildCoachConversations(coachId) {
-  const { data: relationships, error: relationshipError } = await supabase
-    .from('coach_athlete_relationships')
-    .select('athlete_id, status, group_name, created_at')
-    .eq('coach_id', coachId)
-    .eq('status', 'active')
-    .order('created_at', { ascending: true });
-  if (relationshipError) throw relationshipError;
-
-  const athleteIds = (relationships || []).map((rel) => rel.athlete_id);
-  if (!athleteIds.length) return [];
-
-  const { data: athletes, error: athleteError } = await supabase
-    .from('athletes')
-    .select('id, name, email')
-    .in('id', athleteIds);
-  if (athleteError) throw athleteError;
-
-  const { data: messages, error: messageError } = await supabase
-    .from('coach_messages')
-    .select('*')
-    .eq('coach_id', coachId)
-    .in('athlete_id', athleteIds)
-    .order('created_at', { ascending: false });
-  if (messageError) throw messageError;
-
-  const latest = latestByAthlete(messages || []);
-  return (relationships || []).map((rel) => {
-    const lastMessage = latest.get(rel.athlete_id) || null;
-    return {
-      athlete_id: rel.athlete_id,
-      athlete: (athletes || []).find((athlete) => athlete.id === rel.athlete_id) || null,
-      group_name: rel.group_name || null,
-      last_message: lastMessage,
-      unread_count: (messages || []).filter((m) => m.athlete_id === rel.athlete_id && m.sender_role === 'athlete' && !m.read_at).length,
-    };
-  }).sort((a, b) => new Date(b.last_message?.created_at || 0) - new Date(a.last_message?.created_at || 0));
-}
-
-async function buildAthleteConversation(actorId, coachId) {
-  const { data: coach } = await supabase
-    .from('coach_profiles')
-    .select('id, display_name')
-    .eq('id', coachId)
-    .maybeSingle();
-  const { data: messages, error } = await supabase
-    .from('coach_messages')
-    .select('*')
-    .eq('coach_id', coachId)
-    .eq('athlete_id', actorId)
-    .order('created_at', { ascending: false });
-  if (error) throw error;
-  return [{
-    athlete_id: actorId,
-    athlete: { id: actorId, name: coach?.display_name || 'Coach' },
-    group_name: null,
-    last_message: messages?.[0] || null,
-    unread_count: (messages || []).filter((m) => m.sender_role === 'coach' && !m.read_at).length,
-  }];
-}
-
-export default async function handler(req, res) {
-  res.setHeader('Cache-Control', 'private, no-store');
-  const actorId = await getAthleteId(req);
-  if (!actorId) return res.status(401).json({ error: 'Not authenticated' });
-
-  try {
-    const access = await loadAccountAccess(supabase, actorId);
-    const requestedMode = req.method === 'GET' ? req.query.mode : req.body?.mode;
-    // This route is the explicit coaching message flow for coach-capable
-    // accounts. Athlete mode remains available for a coach who is also coached.
-    const messageMode = resolveAccountMode(
-      access,
-      requestedMode || (access?.capabilities?.coach ? 'coach' : 'athlete')
-    );
-    const coachProfile = messageMode === 'coach' && access?.capabilities.coach
-      ? access.coachProfile
-      : null;
-    if (req.method === 'GET') {
-      try { parseMessageCursor(req.query.before); } catch { return res.status(400).json({ error: 'Invalid message cursor.' }); }
-      const requestedAthleteId = req.query.athlete_id || '';
-
-      if (coachProfile?.id) {
-        if (!requestedAthleteId) {
-          const conversations = await buildCoachConversations(coachProfile.id);
-          return res.status(200).json({ messages: [], conversations, templates: MESSAGE_TEMPLATES, role: 'coach' });
+export function createCoachMessagesHandler({ getClient = getSupabaseAdminClient } = {}) {
+  return async function handler(req,res) {
+    res.setHeader('Cache-Control','private, no-store');
+    if(!['GET','POST'].includes(req.method)){res.setHeader('Allow','GET, POST');return res.status(405).json({error:'Method not allowed.'});}
+    try {
+      if(req.method==='POST' && !requireSameOriginJson(req,res))return;
+      const admin=getClient();const actor=await messageActor(req,admin);
+      if(!actor)return res.status(401).json({error:'Not authenticated.'});
+      if(req.method==='GET') {
+        try {parseMessageCursor(req.query.before);}catch{return res.status(400).json({error:'Invalid message cursor.'});}
+        const summary=await inboxSummary(admin,actor);
+        const athleteId=req.query.athlete_id || (actor.role==='athlete' ? actor.id : '');
+        if(!athleteId)return res.status(200).json({messages:[],...summary,templates:MESSAGE_TEMPLATES,role:actor.role,actor_id:actor.id});
+        const conversation=await messageConversation(admin,actor,athleteId);
+        if(!conversation) {
+          if(actor.role==='coach')return res.status(403).json({error:'No active coaching relationship.'});
+          return res.status(200).json({messages:[],...summary,templates:MESSAGE_TEMPLATES,role:actor.role,actor_id:actor.id});
         }
-
-        const { data: relationship } = await supabase
-          .from('coach_athlete_relationships')
-          .select('id')
-          .eq('coach_id', coachProfile.id)
-          .eq('athlete_id', requestedAthleteId)
-          .eq('status', 'active')
-          .maybeSingle();
-        if (!relationship) return res.status(403).json({ error: 'No active coaching relationship with this athlete.' });
-
-        const page = await loadMessagePage(supabase, coachProfile.id, requestedAthleteId, req.query.before);
-        const conversations = await buildCoachConversations(coachProfile.id);
-        return res.status(200).json({ ...page, conversations, templates: MESSAGE_TEMPLATES, role: 'coach' });
+        const page=await loadMessagePage(admin,conversation.coach_id,conversation.athlete_id,req.query.before);
+        const ownIds = page.messages.filter(m => m.sender_role === actor.role).map(m => m.id);
+        if (ownIds.length) {
+          const {data:deliveries,error:deliveryError} = await admin.from('message_email_deliveries').select('message_id, status').in('message_id',ownIds);
+          if (deliveryError) throw deliveryError;
+          const byId = new Map((deliveries || []).map(d => [d.message_id,d.status]));
+          page.messages = page.messages.map(m => m.sender_role === actor.role ? {...m,email_notification:byId.get(m.id) || null} : m);
+        }
+        return res.status(200).json({...page,...summary,templates:MESSAGE_TEMPLATES,role:actor.role,actor_id:actor.id});
       }
-
-      const rel = await getActiveCoachRelationship(actorId);
-      if (!rel?.coach_id) return res.status(200).json({ messages: [], conversations: [], templates: MESSAGE_TEMPLATES, role: 'athlete' });
-
-      const page = await loadMessagePage(supabase, rel.coach_id, actorId, req.query.before);
-      const conversations = await buildAthleteConversation(actorId, rel.coach_id);
-      return res.status(200).json({ ...page, conversations, templates: MESSAGE_TEMPLATES, role: 'athlete' });
-    }
-
-    if (req.method === 'POST') {
-      const body = req.body || {};
-      if (body.client_message_id != null && !validMessageId(body.client_message_id)) return res.status(400).json({ error: 'Invalid message retry key.' });
-      if (body.message_body != null && (typeof body.message_body !== 'string' || body.message_body.length > 5000)) return res.status(400).json({ error: 'Messages must be 5,000 characters or fewer.' });
-      if (coachProfile?.id) {
-        if (!body.athlete_id) return res.status(400).json({ error: 'athlete_id is required' });
-        const { data: relationship } = await supabase
-          .from('coach_athlete_relationships')
-          .select('id')
-          .eq('coach_id', coachProfile.id)
-          .eq('athlete_id', body.athlete_id)
-          .eq('status', 'active')
-          .maybeSingle();
-        if (!relationship) return res.status(403).json({ error: 'No active coaching relationship with this athlete.' });
-
-        const text = (body.message_body || MESSAGE_TEMPLATES[body.template_key] || '').trim();
-        if (!text) return res.status(400).json({ error: 'message_body is required' });
-        const { data, error } = await insertMessageOnce(supabase, { coach_id: coachProfile.id, athlete_id: body.athlete_id, sender_role: 'coach', message_body: text, message_template_key: body.template_key || null }, body.client_message_id);
-        if (error) return res.status(500).json({ error: 'Messages are unavailable. Please try again.' });
-        return res.status(200).json({ message: data });
-      }
-
-      const rel = await getActiveCoachRelationship(actorId);
-      const coachId = rel?.coach_id;
-      if (!coachId) return res.status(403).json({ error: 'No active coach relationship' });
-      if (!body.message_body?.trim()) return res.status(400).json({ error: 'message_body is required' });
-      const text = body.message_body.trim();
-      const { data, error, replayed } = await insertMessageOnce(supabase, { coach_id: coachId, athlete_id: actorId, sender_role: 'athlete', message_body: text }, body.client_message_id);
-      if (error) return res.status(500).json({ error: 'Messages are unavailable. Please try again.' });
-      if (!replayed) await supabase.from('coach_notifications').insert({
-        coach_id: coachId,
-        athlete_id: actorId,
-        notification_type: 'athlete_message',
-        title: 'New athlete message',
-        body: 'Open Messages to read the reply.',
-        entity_type: 'coach_message',
-        entity_id: data.id,
-      });
-      return res.status(200).json({ message: data });
-    }
-
-    res.status(405).end();
-  } catch (error) {
-    res.status(500).json({ error: 'Messages are unavailable. Please try again.' });
-  }
+      const b=req.body || {};
+      if(b.client_message_id!=null && !validMessageId(b.client_message_id))return res.status(400).json({error:'Invalid message retry key.'});
+      if(b.message_body!=null && (typeof b.message_body!=='string' || b.message_body.length>5000))return res.status(400).json({error:'Messages must be 5,000 characters or fewer.'});
+      if(b.template_key!=null && (typeof b.template_key!=='string' || !Object.hasOwn(MESSAGE_TEMPLATES,b.template_key)))return res.status(400).json({error:'Invalid message purpose.'});
+      const conversation=await messageConversation(admin,actor,b.athlete_id);
+      if(!conversation)return res.status(403).json({error:'No active coaching relationship.'});
+      const text=(b.message_body || (actor.role==='coach' ? MESSAGE_TEMPLATES[b.template_key] : '') || '').trim();
+      if(!text)return res.status(400).json({error:'Write a message before sending.'});
+      const {data,error}=await admin.rpc('send_direct_message',{p_owner:actor.id,p_coach:conversation.coach_id,p_athlete:conversation.athlete_id,p_role:actor.role,
+        p_body:text,p_template:actor.role==='coach' ? b.template_key || null : null,p_client_id:b.client_message_id || crypto.randomUUID()});
+      if(error)throw error;
+      return res.status(200).json(data);
+    }catch(error){return messagingFailure(res,error);}
+  };
 }
+export default createCoachMessagesHandler();

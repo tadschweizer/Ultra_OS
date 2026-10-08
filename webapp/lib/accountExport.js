@@ -2,6 +2,7 @@
 export const EXPORT_TABLES = [
   'interventions', 'athlete_settings', 'athlete_supplements', 'races', 'planned_workouts',
   'calendar_notes', 'strava_activities', 'coros_activities', 'coach_athlete_relationships',
+  'message_preferences', 'message_drafts', 'message_email_deliveries',
   'coach_protocol_assignments', 'assigned_protocols', 'coach_messages', 'trainingpeaks_import_jobs',
 ];
 const sensitive = /token|secret|password|api[_-]?key|session[_-]?version|supabase_user_id|stripe_/i;
@@ -18,8 +19,13 @@ export async function collectAccountExport(admin, athlete, { pageSize = 1000, ma
   for (const table of EXPORT_TABLES) {
     const records = [];
     for (let offset = 0; ; offset += pageSize) {
-      const { data, error } = await admin.from(table).select('*').eq('athlete_id', athlete.id)
-        .order(table === 'athlete_settings' ? 'athlete_id' : 'id', { ascending: true }).range(offset, offset + pageSize - 1);
+      const ownerColumn = table === 'message_drafts' ? 'owner_id' : table === 'message_email_deliveries' ? 'recipient_id' : 'athlete_id';
+      const orderColumns = table === 'message_drafts' ? ['coach_id', 'athlete_id', 'sender_role']
+        : table === 'message_email_deliveries' ? ['message_id']
+        : ['message_preferences', 'athlete_settings'].includes(table) ? ['athlete_id'] : ['id'];
+      let query = admin.from(table).select('*').eq(ownerColumn, athlete.id);
+      for (const column of orderColumns) query = query.order(column, { ascending: true });
+      const { data, error } = await query.range(offset, offset + pageSize - 1);
       if (error) {
         // Older deployments may not have a feature table. Make omissions explicit.
         if (['42P01', '42703', 'PGRST205', 'PGRST204'].includes(error.code)) { unavailable.push(table); break; }

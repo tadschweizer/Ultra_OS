@@ -1,3 +1,4 @@
+import { mockMessagingPersistence, clearMockDraft } from './helpers/message-drafts.mjs';
 import AxeBuilder from '@axe-core/playwright';
 import { test, expect } from '@playwright/test';
 import { decorateWorkoutsWithCompliance } from '../lib/workoutCompliance.js';
@@ -11,6 +12,8 @@ async function setup(page, { coach = false } = {}) {
     workouts: [{ id: 'workout-1', title: 'Easy run', sport: 'run', workout_date: day, status: 'planned', activity_match_mode:'auto', updated_at:'2026-10-04T12:00:00Z', planned_duration_min: 60, planned_distance_unit: 'km', planned_distance_km: 10, structure: [] }] };
   await page.route('**/api/**', async route => {
     const request = route.request(); const url = new URL(request.url());
+    const persistence = mockMessagingPersistence(request,state,coach?'coach':'athlete');
+    if(persistence){await route.fulfill({status:persistence.status,contentType:'application/json',body:JSON.stringify(persistence.body)});return;}
     let status = 200; let data = { notes: [], events: [], comments: [], settings: {}, workouts: [], messages: [], conversations: [] };
     if (url.pathname === '/api/me') data = { athlete: { id: athleteId, name: 'QA athlete', onboarding_complete: true, subscription_tier: coach ? 'coach_pro' : 'free', primary_role: coach ? 'coach' : 'athlete' }, account: { primary_role: coach ? 'coach' : 'athlete', capabilities: { athlete: true, coach }, coach_access:{eligible:coach} } };
     if (url.pathname === '/api/coach/relationships') data = {relationships:[{athlete_id:athleteId,status:'active',athlete:{name:'First athlete'}}]};
@@ -42,7 +45,7 @@ async function setup(page, { coach = false } = {}) {
       if (request.method() === 'POST') {
         const body = request.postDataJSON(); state.writes.push(body);
         if (state.fail) { status=503; data={error:'Unavailable'}; }
-        else { const message = { id: body.client_message_id, athlete_id: body.athlete_id || athleteId, sender_role: coach ? 'coach' : 'athlete', message_body: body.message_body, created_at: new Date().toISOString() }; state.messages.push(message); data={message}; }
+        else { const message = { id: body.client_message_id, athlete_id: body.athlete_id || athleteId, sender_role: coach ? 'coach' : 'athlete', message_body: body.message_body, created_at: new Date().toISOString() }; state.messages.push(message); clearMockDraft(state,coach?'coach':'athlete',body.athlete_id || athleteId,body); data={message}; }
       } else data = { role: coach ? 'coach' : 'athlete', templates: { general_checkin: 'How are you?' }, conversations: [
         { athlete_id: athleteId, athlete: { name: 'First athlete' }, unread_count: 1 },
         ...(coach ? [{ athlete_id: secondId, athlete: { name: 'Second athlete' }, unread_count: 0 }] : []),

@@ -1,3 +1,5 @@
+import useMessageDraft from '../lib/useMessageDraft.js';
+import MessageNotificationSettings from '../components/MessageNotificationSettings.js';
 import { acknowledgeMessages, mergeMessages, notifyMessagesChanged } from '../lib/messageClient';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
@@ -46,8 +48,6 @@ export default function MessagesPage() {
   const [messages, setMessages] = useState([]);
   const [conversations, setConversations] = useState([]);
   const [templates, setTemplates] = useState({});
-  const [templateKey, setTemplateKey] = useState('general_checkin');
-  const [body, setBody] = useState('');
   const [athleteId, setAthleteId] = useState('');
   const [role, setRole] = useState('athlete');
   const [loading, setLoading] = useState(true);
@@ -55,14 +55,11 @@ export default function MessagesPage() {
   const [sending, setSending] = useState(false);
   const sendInFlight = useRef(false);
   const selectedRef = useRef('');
-  const drafts = useRef({});
   const requestVersion = useRef(0);
   const requestPending = useRef(false);
   const requestAbort = useRef(null);
   const [nextCursor, setNextCursor] = useState(null);
   const [loadingOlder, setLoadingOlder] = useState(false);
-  const retryId = useRef(null);
-  const appliedTemplate = useRef(false);
   const loadRef = useRef(null);
   const historyLoaded = useRef(false);
   const requestedMode = router.query.mode === 'athlete' ? 'athlete' : 'coach';
@@ -90,12 +87,8 @@ export default function MessagesPage() {
       if (older) historyLoaded.current = true;
       setConversations(nextConversations);
       setTemplates(d.templates || {});
-      const requestedTemplate = typeof router.query.template_key === 'string' ? router.query.template_key : '';
-      if (!appliedTemplate.current && requestedTemplate && d.templates?.[requestedTemplate] && !router.query.message_body) {
-        appliedTemplate.current = true;
-        setBody((draft) => draft || d.templates[requestedTemplate]);
-      }
       setRole(d.role || 'athlete');
+      if (d.role === 'athlete' && nextConversations.length) { selectedRef.current = nextConversations[0].athlete_id; setAthleteId(nextConversations[0].athlete_id); }
 
       if (!keepSelection && !targetAthleteId && d.role === 'coach' && nextConversations.length) {
         const firstAthleteId = nextConversations[0].athlete_id;
@@ -121,11 +114,6 @@ export default function MessagesPage() {
   useEffect(() => {
     if (!router.isReady) return;
     const queryAthleteId = typeof router.query.athlete_id === 'string' ? router.query.athlete_id : '';
-    const queryTemplateKey = typeof router.query.template_key === 'string' ? router.query.template_key : '';
-    const queryBody = typeof router.query.message_body === 'string' ? router.query.message_body : '';
-
-    if (queryTemplateKey) setTemplateKey(queryTemplateKey);
-    if (queryBody) setBody(queryBody);
 
     if (queryAthleteId && selectedRef.current && queryAthleteId !== selectedRef.current) {
       selectConversation(queryAthleteId);
@@ -151,12 +139,8 @@ export default function MessagesPage() {
 
   async function selectConversation(nextAthleteId) {
     if (sendInFlight.current) return;
-    drafts.current[selectedRef.current] = { body, templateKey, retry: retryId.current };
     historyLoaded.current = false;
     selectedRef.current = nextAthleteId;
-    setBody(drafts.current[nextAthleteId]?.body || '');
-    setTemplateKey(drafts.current[nextAthleteId]?.templateKey || 'general_checkin');
-    retryId.current = drafts.current[nextAthleteId]?.retry || null;
     setAthleteId(nextAthleteId);
     setMessages([]);
     setNextCursor(null);
@@ -171,15 +155,14 @@ export default function MessagesPage() {
     sendInFlight.current = true;
     setSending(true);
     setError('');
-    const signature = JSON.stringify([athleteId, body, templateKey]);
-    if (retryId.current?.signature !== signature) retryId.current = { signature, id: crypto.randomUUID() };
     try {
+      const messageId = await draft.prepareSend();
       const r = await fetch('/api/coach/messages', {
         method: 'POST', signal: AbortSignal.timeout(15000),
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           mode: requestedMode,
-          client_message_id: retryId.current.id,
+          client_message_id: messageId,
           athlete_id: role === 'coach' ? athleteId || undefined : undefined,
           template_key: role === 'coach' ? templateKey : undefined,
           message_body: body || undefined,
@@ -187,12 +170,11 @@ export default function MessagesPage() {
       });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || 'Failed to send');
-      setBody('');
-      drafts.current[selectedRef.current] = { body: '', templateKey };
-      retryId.current = null;
+      draft.sent(messageId);
       notifyMessagesChanged();
       await load(athleteId, { keepSelection: true });
     } catch (err) {
+      draft.sendFailed();
       setError('Unable to send message. Please check required fields and retry.');
     } finally {
       sendInFlight.current = false;
@@ -200,12 +182,16 @@ export default function MessagesPage() {
     }
   }
 
-  const selectedTemplate = TEMPLATE_META[templateKey];
   const selectedConversation = useMemo(
     () => (athleteId ? conversations.find((conversation) => conversation.athlete_id === athleteId) : conversations[0]) || null,
     [athleteId, conversations]
   );
-  const canSend = !loading && Boolean(body.trim()) && Boolean(selectedConversation) && (role === 'athlete' || Boolean(athleteId));
+  const seedTemplate = typeof router.query.template_key === 'string' && templates[router.query.template_key] ? router.query.template_key : 'general_checkin';
+  const seedBody = typeof router.query.message_body === 'string' ? router.query.message_body : (router.query.template_key ? templates[seedTemplate] || '' : '');
+  const draft = useMessageDraft({ role, conversation: selectedConversation, seedBody, seedTemplate });
+  const { body, setBody, templateKey, setTemplateKey } = draft;
+  const selectedTemplate = TEMPLATE_META[templateKey];
+  const canSend = draft.ready && !loading && Boolean(body.trim()) && Boolean(selectedConversation) && (role === 'athlete' || Boolean(athleteId));
 
   return (
     <main className="min-h-screen bg-paper p-6 text-ink">
@@ -217,6 +203,8 @@ export default function MessagesPage() {
             Keep training questions and feedback in one place. Open conversations refresh automatically.
           </p>
         </header>
+
+        <MessageNotificationSettings />
 
         {role === 'coach' && <div className="rounded-2xl border border-ink/10 bg-white p-4">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink/40">Not sure who needs a message?</p>
@@ -312,7 +300,7 @@ export default function MessagesPage() {
               <label htmlFor="message-body" className="block text-sm font-semibold text-ink">Your message</label>
               <textarea
                 id="message-body"
-                disabled={sending}
+                disabled={sending || draft.status === 'loading'}
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
                 maxLength={5000}
@@ -320,6 +308,13 @@ export default function MessagesPage() {
                 className="w-full rounded-xl border border-ink/10 bg-paper px-3 py-2 text-sm"
                 placeholder="Type message"
               />
+              <p role="status" className="text-xs text-ink/60">{draft.status === 'saving' ? 'Saving draft…' : draft.status === 'saved' ? 'Draft saved' : draft.status === 'loading' ? 'Loading draft…' : ''}</p>
+              {draft.error && <div className="space-y-2 text-sm">
+                <p role="alert">{draft.error}</p>
+                {draft.status === 'conflict' || !draft.ready
+                  ? <button type="button" onClick={draft.reload} className="rounded-full border border-ink/20 px-4 py-2">Load saved draft</button>
+                  : <button type="button" onClick={draft.retrySave} className="rounded-full border border-ink/20 px-4 py-2">Retry saving draft</button>}
+              </div>}
               <button disabled={sending || !canSend} className="rounded-full bg-panel px-5 py-2.5 text-sm font-semibold text-paper disabled:cursor-not-allowed disabled:opacity-60">
                 {sending ? 'Sending…' : 'Send'}
               </button>
@@ -357,6 +352,10 @@ export default function MessagesPage() {
                       </p>
                     ) : null}
                     <p className="mt-1.5 text-sm leading-6 text-ink/80">{m.message_body}</p>
+                    {m.sender_role === role && <p className="mt-2 text-xs text-ink/50">
+                      {m.read_at ? 'Read' : 'Sent'}
+                      {m.email_notification === 'sent' ? ' · Email alert sent' : ['pending','processing'].includes(m.email_notification) ? ' · Email alert pending' : m.email_notification === 'failed' ? ' · Email alert failed; your message is still in the inbox' : m.email_notification === 'skipped' ? ' · Email alert skipped' : ''}
+                    </p>}
                   </div>
                 ))}
               </div>
