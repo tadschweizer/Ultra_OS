@@ -3,6 +3,8 @@ import DashboardTabs from '../components/DashboardTabs';
 import { usePlan } from '../lib/planUtils';
 
 const sections = [
+  { title: 'Plan and log workouts', body: 'Create workouts on the training calendar, record completion and actual values, and review planned versus completed work.', value: 'Manual planning stays available during the pilot.', cta: { label: 'Open the training calendar', href: '/calendar' } },
+  { title: 'Daily check-ins and messages', body: 'Record legs feel, energy and RPE after training. Use Messages or a session discussion to share feedback with your coach.', value: 'Your account shows the check-in access for your plan and coach relationship.', cta: { label: 'Open Messages', href: '/messages' } },
   {
     title: 'Intervention Log',
     body:
@@ -28,11 +30,11 @@ const sections = [
     cta: { label: 'Add a target race', href: '/log-intervention' },
   },
   {
-    title: 'Insight Engine',
+    title: 'Calculated training comparisons',
     body:
-      'When enough useful data exists, Threshold turns your intervention history, baseline trends, and race context into short insight cards. If there is not enough evidence yet, the product should tell you what to log next instead of pretending certainty.',
+      'Training-load estimates and check-in comparisons use rules and formulas applied to your records. Review the sample size, time window and missing inputs before interpreting a result.',
     value:
-      'The point of the insight engine is to help you make a decision, not to flood you with commentary.',
+      'These are observations for you and your coach to review. A correlation does not establish cause and effect. Automatic reviews and generated plans are deferred.',
     cta: { label: 'View your insights', href: '/insights' },
   },
   {
@@ -54,7 +56,7 @@ const sections = [
   {
     title: 'Coach Command Center',
     body:
-      'If you are on a coach plan, the Coach Command Center is now the canonical coach home for triage, roster monitoring, protocol assignment, and reusable notes/templates workflows.',
+      'Approved pilot coaches and eligible paid coaches use the Coach Command Center to review their roster and check-ins, assign protocols and send written feedback.',
     value:
       'This keeps every coach workflow in one place so you can move from triage to action without context switching.',
     cta: { label: 'Open Coach Command Center', href: '/coach-command-center' },

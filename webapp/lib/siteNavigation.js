@@ -2,7 +2,6 @@ const athleteTrainingItems = [
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/calendar', label: 'Training Calendar' },
   { href: '/races', label: 'Race Calendar' },
-  { href: '/race-plan', label: 'Race Blueprint' },
   { href: '/check-in', label: 'Daily Check-in' },
   { href: '/log-intervention', label: 'Log Intervention' },
   { href: '/history', label: 'Intervention History' },

@@ -1,3 +1,4 @@
+import { RELEASE_CAPABILITIES } from '../lib/releaseCapabilities.js';
 import { useEffect, useMemo, useState } from 'react';
 import DashboardTabs from '../components/DashboardTabs';
 import NavMenu from '../components/NavMenu';
@@ -320,7 +321,8 @@ export default function InsightsPage() {
   }, [activities, settings, interventions]);
 
   const cards = useMemo(() => {
-    const interventionCards = buildInterventionInsights(interventions, settings || {}, currentRace);
+    const interventionCards = RELEASE_CAPABILITIES.automatedAssistance
+      ? buildInterventionInsights(interventions, settings || {}, currentRace) : [];
     return loadSpikeCard ? [loadSpikeCard, ...interventionCards] : interventionCards;
   }, [interventions, settings, currentRace, loadSpikeCard]);
 
@@ -371,7 +373,7 @@ export default function InsightsPage() {
             {athlete ? `${athlete.name}'s insights` : 'Insights'}
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-8 text-ink/70">
-            Each card carries a coaching call — keep the protocol, adjust it, watch the pattern, or gather more data — so you and your coach decide from the same read.
+            Review calculated training observations, logged results and sample limits with your coach. These comparisons do not generate a training plan or establish cause and effect.
           </p>
           {currentRace ? (
             <div className="mt-5 flex flex-wrap gap-3 text-sm text-ink/75">
@@ -389,7 +391,7 @@ export default function InsightsPage() {
         <section className="mt-12 grid gap-4 lg:grid-cols-2">
           {!loading && !insightsAllowed ? (
             <div className="lg:col-span-2">
-              <BlurredInsightPreview body="The free tier lets you collect the data. Upgrade to Athlete Pro to unlock the full correlation engine and insight cards." />
+              <BlurredInsightPreview body="The free tier lets you collect the data. Upgrade to Athlete Pro to review calculated comparisons and their sample limits." />
             </div>
           ) : null}
 
@@ -404,7 +406,7 @@ export default function InsightsPage() {
                 <article key={card.id} className="flex flex-col rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
                   <div className="flex flex-wrap items-center gap-2">
                     <CategoryChip category={card.category} />
-                    <CoachingCallBadge decision={card.decision} />
+                    {RELEASE_CAPABILITIES.automatedAssistance && <CoachingCallBadge decision={card.decision} />}
                     <ConfidenceBadge level={card.confidence} />
                     {card.dataPoints ? (
                       <span className="ml-auto text-xs text-ink/35">{card.dataPoints} data point{card.dataPoints !== 1 ? 's' : ''}</span>
@@ -435,7 +437,7 @@ export default function InsightsPage() {
               </p>
               {interventionCount > 0 && (
                 <p className="mt-1 text-sm text-ink/55">
-                  Insights unlock when you have 2+ sessions of the same type with response data. Try logging gut training, heat sessions, or bicarb trials.
+                  Keep logging comparable sessions and check-ins. The calculated comparisons below show their sample size and limitations.
                 </p>
               )}
               <div className="mt-5">
@@ -449,9 +451,9 @@ export default function InsightsPage() {
               </div>
               <div className="mt-6 grid gap-3 sm:grid-cols-3">
                 {[
-                  { label: 'Heat / Sauna', sub: '3+ sessions to unlock heat block insight' },
-                  { label: 'Gut Training', sub: '2+ sessions with carb data to unlock trend' },
-                  { label: 'Bicarb', sub: '3+ trials to find your optimal dose' },
+                  { label: 'Heat / Sauna', sub: 'Record session details for coach review' },
+                  { label: 'Gut Training', sub: 'Record planned and actual carb intake' },
+                  { label: 'Bicarb', sub: 'Record trial details and your response' },
                 ].map((item) => (
                   <div key={item.label} className="rounded-[18px] border border-ink/8 bg-paper p-4">
                     <p className="text-sm font-semibold text-ink">{item.label}</p>
@@ -474,9 +476,9 @@ export default function InsightsPage() {
           <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="text-xs uppercase tracking-[0.28em] text-accent">Training Response</p>
-              <h2 className="font-display mt-1 text-3xl font-semibold text-ink">What moves your training quality?</h2>
+              <h2 className="font-display mt-1 text-3xl font-semibold text-ink">Training quality comparisons</h2>
               <p className="mt-2 text-sm leading-6 text-ink/55 max-w-2xl">
-                Every time you log a Workout Check-in, Threshold compares it against interventions from the prior 48 hours. Patterns emerge automatically — no manual tagging.
+                Every time you log a Workout Check-in, Threshold compares it against interventions from the prior 48 hours. These calculated associations are observations for review, not automatic recommendations.
               </p>
             </div>
             <a

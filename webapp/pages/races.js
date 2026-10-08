@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
 import NavMenu from '../components/NavMenu';
 import RaceSearchInput from '../components/RaceSearchInput';
 
@@ -57,7 +56,6 @@ const emptyForm = {
 };
 
 export default function RacesPage() {
-  const router = useRouter();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -68,7 +66,6 @@ export default function RacesPage() {
 
   const navLinks = [
     { href: '/dashboard', label: 'Dashboard' },
-    { href: '/race-plan', label: 'Race Blueprint' },
     { href: '/log-intervention', label: 'Log Intervention' },
   ];
 
@@ -166,18 +163,6 @@ export default function RacesPage() {
     setEvents((prev) => prev.filter((e) => e.id !== id));
   }
 
-  function handleBlueprint(event) {
-    try {
-      localStorage.setItem('ultraos-default-race', JSON.stringify({
-        target_race: event.name,
-        target_race_date: event.event_date,
-        race_type: event.race_type,
-        race_profile: event,
-      }));
-    } catch (_) {}
-    router.push('/race-plan');
-  }
-
   return (
     <main className="min-h-screen bg-paper px-4 py-6 text-ink">
       <div className="mx-auto max-w-4xl">
@@ -188,7 +173,6 @@ export default function RacesPage() {
           <NavMenu
             label="Races navigation"
             links={navLinks}
-            primaryLink={{ href: '/race-plan', label: 'Blueprint', variant: 'secondary' }}
           />
         </div>
 
@@ -197,7 +181,7 @@ export default function RacesPage() {
           <p className="text-sm uppercase tracking-[0.35em] text-accent">Season Planning</p>
           <h1 className="font-display mt-4 text-4xl leading-tight md:text-6xl">Your race season.</h1>
           <p className="mt-4 max-w-xl text-sm leading-7 text-ink/70">
-            Build your season calendar. Set A, B, and C priority races, mark your goal event, and jump straight to the Blueprint from any card.
+            Build your season calendar. Set A, B, and C priority races, mark your goal event, and record the details you and your coach need.
           </p>
         </section>
 
@@ -207,13 +191,14 @@ export default function RacesPage() {
 
           <div className="mt-4">
             <RaceSearchInput
+              id="race-search" ariaLabel="Search race catalog"
               value={searchQuery}
               onChange={setSearchQuery}
               onSelect={handleRaceSelect}
               placeholder="Search races — e.g. Western States, IRONMAN Florida…"
             />
             <p className="mt-2 text-xs text-ink/40">
-              Searches the catalog first. Finds on the web when catalog results are sparse.
+              Search saved catalog entries, or add your race manually.
             </p>
           </div>
 
@@ -222,10 +207,10 @@ export default function RacesPage() {
               <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-accent">Confirm details</p>
 
               <div>
-                <label className="mb-1 block text-xs font-semibold text-ink">Race name</label>
+                <label htmlFor="race-name" className="mb-1 block text-xs font-semibold text-ink">Race name</label>
                 <input
                   type="text"
-                  name="name"
+                  id="race-name" name="name"
                   value={form.name}
                   onChange={handleFormChange}
                   required
@@ -235,20 +220,20 @@ export default function RacesPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-ink">Race date</label>
+                  <label htmlFor="race-event_date" className="mb-1 block text-xs font-semibold text-ink">Race date</label>
                   <input
                     type="date"
-                    name="event_date"
+                    id="race-event_date" name="event_date"
                     value={form.event_date}
                     onChange={handleFormChange}
                     className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-accent/30"
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-ink">Distance (mi)</label>
+                  <label htmlFor="race-distance_miles" className="mb-1 block text-xs font-semibold text-ink">Distance (mi)</label>
                   <input
                     type="number"
-                    name="distance_miles"
+                    id="race-distance_miles" name="distance_miles"
                     step="0.1"
                     value={form.distance_miles}
                     onChange={handleFormChange}
@@ -260,10 +245,10 @@ export default function RacesPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-ink">Location</label>
+                  <label htmlFor="race-location" className="mb-1 block text-xs font-semibold text-ink">Location</label>
                   <input
                     type="text"
-                    name="location"
+                    id="race-location" name="location"
                     value={form.location}
                     onChange={handleFormChange}
                     placeholder="e.g. Squaw Valley, CA"
@@ -271,9 +256,9 @@ export default function RacesPage() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-ink">Race type</label>
+                  <label htmlFor="race-race_type" className="mb-1 block text-xs font-semibold text-ink">Race type</label>
                   <select
-                    name="race_type"
+                    id="race-race_type" name="race_type"
                     value={form.race_type}
                     onChange={handleFormChange}
                     className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-accent/30"
@@ -334,7 +319,7 @@ export default function RacesPage() {
           {!showForm && (
             <button
               type="button"
-              onClick={() => { setShowForm(true); setForm(emptyForm); setError(''); }}
+              onClick={() => { setShowForm(true); setForm({ ...emptyForm, name: searchQuery.trim() }); setError(''); }}
               className="mt-4 text-sm font-semibold text-accent"
             >
               + Add manually
@@ -444,13 +429,7 @@ export default function RacesPage() {
                           </button>
                         )}
 
-                        <button
-                          type="button"
-                          onClick={() => handleBlueprint(event)}
-                          className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800 transition hover:bg-amber-100"
-                        >
-                          Blueprint →
-                        </button>
+
 
                         <button
                           type="button"

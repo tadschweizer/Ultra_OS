@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
 Last updated: 2026-10-08<br>
-Status: PR #130 is merged on main `4f2038f`. The P0-015 durable draft/unread/notification lifecycle batch is implemented in [draft PR #131](https://github.com/tadschweizer/Ultra_OS/pull/131), code `6cea21d`; Node 22 regression 415/415, integration 4/4, critical browser 115 passed / 3 existing skips and production build pass. Desktop/mobile and SQL evidence plus exact release prerequisites are in `P0_015_MESSAGING_VERIFICATION.md`. Production release and parent acceptance remain open; no production writes or real notification emails were performed.<br>
+Status: PR #130 is merged on main `4f2038f`. P0-015 is implemented in [draft PR #131](https://github.com/tadschweizer/Ultra_OS/pull/131), final head `46c5492`, with green GitHub CI. The stacked P0-017 batch is locally verified: regression 418/418, integration 4/4, production build passed, desktop/mobile critical browser 127 passed / 3 existing viewport skips. Evidence: `P0_017_AI_DEFERRAL_VERIFICATION.md`. Production release and parent acceptance remain open.<br>
 Current milestone: M0 — make the closed coach pilot work end to end<br>
-Next item: P0-017 — inventory and defer AI server routes/scheduled work and pilot UI entry points, align product claims, preserve manual planning and deterministic calculations. Review P0-015 PR #131 with its generated migration and protected delivery scheduler checklist. P0-014's exact migration/release, coach-message/shared-document schema repair, real two-account and physical-phone acceptance, and other external gates remain open. No paid staging is authorized; production release/schema/configuration changes require separate explicit authorization.
+Next item: P0-018 — prepare and run measured daily-loop usability/retention acceptance after technical release gates pass. P0-017 is locally implemented on `feature/p0-017-ai-deferral`, stacked on PR #131; see `P0_017_AI_DEFERRAL_VERIFICATION.md`. Review the stacked PRs and perform the separately authorized migration/release, schema repair, physical-phone/two-account and notification-provider acceptance gates. No paid staging or production changes are authorized.
 
 ## Purpose
 
@@ -358,6 +358,7 @@ in place. Existing milestones remain the larger parity roadmap.
   - Verify a phone agenda view and non-drag editing; retain calendar context after mutations.
 
 - [ ] **P0-017 — Defer AI and align product claims**
+  - October 8 local checkpoint: immutable release capability blocks four Exa endpoints, research draft generation and direct library calls; automatic race/protocol UI is deferred. Manual catalog/race entry, human research editing and deterministic calculations remain. Landing and pilot claims now describe the available manual loop. Node 22 regression 418/418, integrations 4/4, build, focused browser 12/12 and expanded critical browser 127 passed / 3 existing skips. Evidence: `P0_017_AI_DEFERRAL_VERIFICATION.md`. Controlled deployed acceptance remains open.
   - Inventory AI labels, generation/search/enrichment routes, scheduled work, and deterministic logic.
   - Disable deferred generation on the server and remove its pilot UI entry points and sales claims.
   - Keep manual planning, coach feedback, workout totals, and transparent deterministic calculations.
@@ -735,3 +736,5 @@ Items remain here until evidence moves them into a milestone. They are not commi
 - AI-generated plans or workouts before the manual planning model is reliable.
 - Additional recovery/wellness providers after core activity and workout delivery are stable.
 - Broad social/community features.
+
+October 8 P0-017 checkpoint: `feature/p0-017-ai-deferral`, stacked on PR #131. Five deferred APIs and their library entry points fail closed; local automatic race/protocol recommendations are unavailable; manual race entry/catalog selection and human research editing remain, with deterministic training calculations. Marketing and pilot guidance describe the manual loop and data limits. Regression 418/418, integration 4/4, production build, focused desktop/mobile 12/12, and critical browser 127 passed / 3 existing skips. Evidence and release prerequisites: `P0_017_AI_DEFERRAL_VERIFICATION.md`. Next item advances to P0-018 measured real-pilot usability and retention. No production changes or participant observation are claimed; P0-017 stays unchecked pending controlled deployed acceptance.

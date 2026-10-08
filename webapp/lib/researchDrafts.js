@@ -1,3 +1,4 @@
+import { assertAutomatedAssistance } from './releaseCapabilities.js';
 function joinTags(tags = []) {
   if (!tags.length) return 'endurance performance';
   if (tags.length === 1) return tags[0];
@@ -27,6 +28,7 @@ function sportRead(form = {}) {
 }
 
 export function buildResearchDraft(form = {}) {
+  assertAutomatedAssistance();
   const tags = joinTags(form.topic_tags || []);
   const audience = sportRead(form);
   const title = form.title || 'This study';

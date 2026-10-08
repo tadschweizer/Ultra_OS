@@ -1,6 +1,8 @@
+import { assertAutomatedAssistance } from './releaseCapabilities.js';
 import Exa from 'exa-js';
 
 function getClient() {
+  assertAutomatedAssistance();
   const key = process.env.EXA_API_KEY;
   if (!key) throw new Error('EXA_API_KEY is not set');
   return new Exa(key);

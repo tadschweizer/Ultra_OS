@@ -1,4 +1,5 @@
-import { searchRaces } from '../../../lib/exa';
+import { requireAutomatedAssistance } from '../../../lib/releaseCapabilities.js';
+import { searchRaces } from '../../../lib/exa.js';
 import { getAthleteIdFromRequest } from '../../../lib/auth/sessionCookies.js';
 
 export default async function handler(req, res) {
@@ -11,6 +12,8 @@ export default async function handler(req, res) {
     res.status(405).end();
     return;
   }
+
+  if (!requireAutomatedAssistance(res)) return;
 
   const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
   if (!q) {

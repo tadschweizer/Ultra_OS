@@ -677,27 +677,27 @@ export function buildInsightCards(activities = [], interventionCount = 0, settin
       title: 'Intervention Coverage',
       body:
         interventionCount > 0
-          ? `${interventionCount} interventions are logged. As paired activity + intervention coverage grows, the insight engine can start comparing prep blocks instead of isolated workouts.`
-          : 'No interventions are paired yet. The insight engine needs actual protocol coverage before it can make credible claims.',
+          ? `${interventionCount} interventions are logged. Review calculated comparisons only where comparable sessions and enough paired data are available.`
+          : 'No interventions are paired yet. Calculated comparisons need comparable logged sessions and adequate samples.',
     },
     {
       title: 'Workout Intent Detection',
       body:
         thresholdCount + intervalCount + hillCount > 0
           ? `Recent sessions show ${thresholdCount} threshold, ${intervalCount} interval, and ${hillCount} hill-oriented workouts by title + HR heuristics.`
-          : 'Workout intent is still mostly unclassified. Connecting planned workout descriptions later will make this far more reliable.',
+          : 'Workout intent is mostly unclassified. Title and heart-rate heuristics can be incomplete or incorrect.',
     },
     {
       title: 'Activity Type Read',
       body:
         trailRunCount + bikeRideCount > 0
           ? `Recent training includes ${trailRunCount} trail runs and ${bikeRideCount} bike-oriented sessions, so intervention review can start separating modality instead of treating everything like generic mileage.`
-          : 'Activity modality is now being inferred from Strava sport type plus terrain signals. The next step is making this durable across every connected platform.',
+          : 'Activity type uses available sport and terrain fields. Missing or incorrect source fields can affect classification.',
     },
     {
-      title: 'Future Parsing Path',
+      title: 'Calculation Limits',
       body:
-        'Next layer: ingest planned workout text from connected platforms and merge it with HR, duration, and terrain so Threshold can distinguish threshold work from easy mileage and hill strides from generic climbs.',
+        'These observations use recorded activity fields and rules. They do not generate a training plan or prove that an intervention caused a result.',
     },
   ];
 }
@@ -716,8 +716,8 @@ export function buildProtocolTrendCards(interventions = [], supplements = []) {
         title: 'Baseline Stack',
         body:
           supplementCount > 0
-            ? `${supplementCount} baseline supplements are tracked. Trend detection will use that stack as the non-intervention background state.`
-            : 'No baseline supplements are tracked yet, so future supplement-vs-intervention comparisons still lack a default stack.',
+            ? `${supplementCount} baseline supplements are tracked. You and your coach can review that baseline alongside intervention records.`
+            : 'No baseline supplements are tracked yet. Add them manually to give your coach context.',
       },
     ];
   }
@@ -761,14 +761,14 @@ export function buildProtocolTrendCards(interventions = [], supplements = []) {
     {
       title: 'Best Early Signal',
       body: bestType
-        ? `${bestType.type} is the strongest early signal so far, averaging ${bestType.avgFeel.toFixed(1)}/10 subjective feel across ${bestType.count} logs.`
+        ? `${bestType.type} has the highest recorded average, averaging ${bestType.avgFeel.toFixed(1)}/10 subjective feel across ${bestType.count} logs. This is a descriptive average, not evidence of benefit.`
         : 'You have intervention history, but no protocol type has enough repeated entries yet to rank credibly.',
     },
     {
       title: 'Timing Read',
       body: bestTiming
         ? `${bestTiming.timing} currently has the best physical-response average at ${bestTiming.avgPhysical.toFixed(1)}/10.`
-        : 'Timing data is still too sparse to distinguish pre-workout, post-workout, or race-week effects.',
+        : 'Timing data is too sparse for a descriptive comparison.',
     },
     {
       title: 'Baseline Stack',
