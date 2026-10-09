@@ -20,7 +20,7 @@
     "test:e2e:roles": "playwright test e2e/role-aware-navigation.spec.mjs",
     "test:integrations": "node --test tests/integration-availability.test.mjs",
     "test:e2e:pilot-ux": "playwright test e2e/pilot-ux.spec.mjs",
-    "test:auth:full": "node --test tests/auth-smoke.test.mjs tests/auth-regression.test.mjs tests/auth-oauth-regression.test.mjs tests/auth-password-reset.test.mjs tests/role-access.test.mjs tests/research-admin.test.mjs tests/pilot-entitlements.test.mjs tests/billing-plans.test.mjs tests/billing-flow.test.mjs tests/coach-group-membership.test.mjs tests/coach-invitation-api.test.mjs tests/coach-invitation-migration.test.mjs tests/protocol-lifecycle.test.mjs tests/delete-account.test.mjs tests/workout-compliance.test.mjs tests/training-calculations.test.mjs tests/training-insights.test.mjs tests/coach-import-health.test.mjs tests/stream-analysis.test.mjs tests/admin-demo.test.mjs tests/activity-sync.test.mjs tests/strava-lifecycle.test.mjs tests/workout-comments.test.mjs tests/readiness.test.mjs tests/billing-webhook.test.mjs tests/billing-webhook-sql.test.mjs tests/account-data.test.mjs tests/staging-safety.test.mjs tests/subscription-tiers.test.mjs tests/volume-trends.test.mjs tests/daily-loop.test.mjs tests/workout-match.test.mjs tests/message-lifecycle.test.mjs tests/ai-deferral.test.mjs",
+    "test:auth:full": "node --test tests/auth-smoke.test.mjs tests/auth-regression.test.mjs tests/auth-oauth-regression.test.mjs tests/auth-password-reset.test.mjs tests/role-access.test.mjs tests/research-admin.test.mjs tests/pilot-entitlements.test.mjs tests/billing-plans.test.mjs tests/billing-flow.test.mjs tests/coach-group-membership.test.mjs tests/coach-invitation-api.test.mjs tests/coach-invitation-migration.test.mjs tests/protocol-lifecycle.test.mjs tests/delete-account.test.mjs tests/workout-compliance.test.mjs tests/training-calculations.test.mjs tests/training-insights.test.mjs tests/coach-import-health.test.mjs tests/stream-analysis.test.mjs tests/admin-demo.test.mjs tests/activity-sync.test.mjs tests/strava-lifecycle.test.mjs tests/workout-comments.test.mjs tests/readiness.test.mjs tests/billing-webhook.test.mjs tests/billing-webhook-sql.test.mjs tests/account-data.test.mjs tests/staging-safety.test.mjs tests/subscription-tiers.test.mjs tests/volume-trends.test.mjs tests/daily-loop.test.mjs tests/workout-match.test.mjs tests/message-lifecycle.test.mjs tests/ai-deferral.test.mjs tests/pilot-release.test.mjs tests/pilot-release-api.test.mjs",
     "test:billing": "node --test tests/billing-plans.test.mjs tests/billing-flow.test.mjs tests/billing-webhook.test.mjs tests/billing-webhook-sql.test.mjs",
     "test:e2e:billing": "playwright test e2e/billing-review.spec.mjs",
     "test:trust": "node --test tests/account-data.test.mjs tests/delete-account.test.mjs tests/staging-safety.test.mjs tests/subscription-tiers.test.mjs tests/volume-trends.test.mjs",
@@ -29,7 +29,9 @@
     "test:e2e:messages": "playwright test e2e/messaging-critical.spec.mjs e2e/message-database.spec.mjs --workers=1",
     "test:messages": "node --test tests/daily-loop.test.mjs tests/message-lifecycle.test.mjs",
     "test:ai-deferral": "node --test tests/ai-deferral.test.mjs",
-    "test:e2e:ai-deferral": "playwright test e2e/ai-deferral.spec.mjs --workers=1"
+    "test:e2e:ai-deferral": "playwright test e2e/ai-deferral.spec.mjs --workers=1",
+    "test:pilot-release": "node --test tests/pilot-release.test.mjs tests/readiness.test.mjs tests/pilot-release-api.test.mjs",
+    "verify:pilot-release": "node scripts/verify-pilot-release.mjs"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",

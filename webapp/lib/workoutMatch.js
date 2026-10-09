@@ -19,7 +19,7 @@ export async function decideWorkoutMatch(admin, actorId, body) {
   });
   if (!error) return { status: 200, workout: data };
   if (error.code === '23505') return { status: 409, error: 'This activity is already linked to another workout. Unlink it there first, then retry.' };
-  if (error.code === '40001') return { status: 409, error: 'This workout changed in another session. Close and reopen it before changing the match.' };
+  if (['PT409','40001'].includes(error.code)) return { status: 409, error: 'This workout changed in another session. Close and reopen it before changing the match.' };
   if (error.code === '42501') return { status: 403, error: 'Only the athlete can change this workout match.' };
   if (error.code === '22023') return { status: 400, error: 'This imported activity is no longer available. Reload the calendar and choose another activity.' };
   console.error('[workout-match] save failed:', error.code);

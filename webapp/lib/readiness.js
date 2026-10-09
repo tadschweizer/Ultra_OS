@@ -2,7 +2,7 @@
  * Dependency readiness checks, kept separate from liveness (/api/health).
  *
  * Liveness answers "is the process up". Readiness answers "can it serve
- * pilot traffic": the database must answer a trivial query within a bound.
+ * pilot traffic": the database and required feature schema must pass within a bound.
  * Results expose only status and latency, never provider messages, hostnames,
  * or environment-variable names.
  */
@@ -40,6 +40,15 @@ export function databaseProbe(getClient) {
   return async () => {
     const client = getClient();
     return client.from('athletes').select('id').limit(1);
+  };
+}
+
+/** A reachable database can still lack the schema required by the deployed app. */
+export function schemaProbe(getClient) {
+  return async () => {
+    const result = await getClient().rpc('pilot_schema_readiness');
+    if (result.error || result.data !== true) return { error: true };
+    return { error: null };
   };
 }
 

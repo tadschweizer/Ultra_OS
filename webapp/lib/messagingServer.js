@@ -30,7 +30,7 @@ export async function inboxSummary(admin, actor) {
 
 export function messagingFailure(res, error) {
   if (error?.code === '42501') return res.status(403).json({ error: 'No active coaching relationship.' });
-  if (error?.code === '40001') return res.status(409).json({ error: 'This draft or message changed in another session. Review it before retrying.' });
+  if (['PT409','40001'].includes(error?.code)) return res.status(409).json({ error: 'This draft or message changed in another session. Review it before retrying.' });
   if (error?.code === '22023') return res.status(400).json({ error: 'Please review your message and try again.' });
   return res.status(503).json({ error: 'Messages are unavailable. Your draft has not been discarded. Please retry.' });
 }
