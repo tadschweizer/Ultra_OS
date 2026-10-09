@@ -52,6 +52,7 @@ Apply these sources in this order, individually, after reviewing current preflig
 | 3 | `20261008231639_message_delivery_and_drafts.sql` | Merged PR #131: private drafts, preferences, email outbox and signed-handler RPCs |
 | 4 | `20261009204246_message_foreign_key_indexes.sql` | Three additive indexes identified by post-release hosted advisors |
 | 5 | `20261009204853_pilot_conflict_responses.sql` | Stable PT409 conflicts for stale drafts, altered message retries and workout matches |
+| 6 | `20261009205343_pilot_notification_preferences.sql` | Missing legacy athlete preference column and expanded metadata readiness |
 
 The dependency repair intentionally precedes the older timestamps. This is a targeted
 history-drift release, not a chronological full-chain push. Do **not** apply the
@@ -162,6 +163,7 @@ migration versions differ from source timestamps; preserve this exact mapping.
 | `20261008231639_message_delivery_and_drafts.sql` | `20261009204211` |
 | `20261009204246_message_foreign_key_indexes.sql` | `20261009204323` |
 | `20261009204853_pilot_conflict_responses.sql` | `20261009205027` |
+| `20261009205343_pilot_notification_preferences.sql` | `20261009205417` |
 
 Fresh preflight now returns `ready: true`, `repair_allowed: false`, no missing base
 columns and zero duplicate activity links. The actual hosted GET-only Data API check
@@ -195,3 +197,21 @@ and service-only grants remain intact. Server handlers recognize the new code as
 remain unchanged. Full regression now passes **432/432**, including actual SQL
 assertions that all three final functions emit PT409 and preserve drafts on conflict.
 The hosted readiness probe still passes after this additional owner-authorized repair.
+
+## Hosted reply dependency repair and two-account evidence
+
+Signed athlete replies returned safe 503. A rolled-back QA-only function diagnostic
+identified missing `athletes.notification_preferences`; this legacy column was assumed
+by the merged message function but absent remotely. The sixth source adds an empty
+JSONB preference object and expands readiness to require it. The isolated release fixture
+now starts without that column, applies the exact forward repair and verifies an
+athlete reply creates its coach notification. Loss of the column fails readiness.
+
+Approved browser-session API checks now pass: draft save/reload, retry deduplication,
+matching draft removal on send, actual message persistence, athlete unread 1 then 0
+after acknowledgment, athlete reply persistence, coach unread 1 and its corresponding
+notification. Notification preferences return 200, email remains unavailable/off.
+PT409 is prompt at the database/API layer; the old app maps it to 503 until the final
+head rolls out. Final release must repeat conflict acceptance with actual HTTP 409.
+The expanded GET-only verifier includes athlete preferences and all calendar-selected
+workout columns, for eleven contracts in total.

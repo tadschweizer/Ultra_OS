@@ -38,6 +38,8 @@ test('exact prerequisite, workout and messaging migrations work together with na
     assert.deepEqual(f.releaseStages,[false,false]);
     assert.equal(await f.rpc('pilot_schema_readiness'),true);
     assert.equal((await f.send()).code,200);
+    assert.equal((await f.send('13300000-0000-4000-8000-000000000002','athlete','Reply')).code,200);
+    assert.equal((await f.pg.query('select count(*)::int n from coach_notifications')).rows[0].n,1);
     const res=response();
     await createReadinessHandler({getClient:()=>({...f.admin,from:()=>({select:()=>({limit:async()=>({data:[]})})})}),alert(){}})({method:'GET'},res);
     assert.equal(res.code,200);
@@ -58,6 +60,7 @@ test('schema readiness detects lost functions, client grants, RLS and unique mat
       'alter table coach_messages disable row level security',
       'drop index planned_workouts_one_activity_per_athlete',
       'alter table athletes drop column email_verified_at',
+      'alter table athletes drop column notification_preferences',
       'drop function public.finish_message_email(uuid,uuid,text,text,text)',
     ]) {
       await f.pg.exec('reset role;begin;');

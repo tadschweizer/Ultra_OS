@@ -883,3 +883,9 @@ Hosted QA found a draft-conflict timeout. The targeted fifth repair,
 PT409 in the three functions. Full regression passes 432/432; final-head CI and
 post-deployment QA must verify the actual HTTP 409 responses. See the runbook for
 the confirmed Supabase issue and source-to-remote release mapping.
+
+A sixth targeted repair adds the missing legacy athlete notification preference column
+and requires it in schema readiness. Live signed QA now verifies coach-to-athlete delivery,
+athlete replies/coach notification, exact unread 1 then 0, draft reload and send retries.
+The hosted GET-only verifier now checks eleven contracts, including full workout columns.
+Email remains off; the labelled QA pair does not establish mailbox delivery.

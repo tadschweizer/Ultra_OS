@@ -10,7 +10,7 @@ test('release verifier uses only authenticated GET and zero-row table probes', a
     if(!url.pathname.includes('/rpc/'))assert.equal(url.searchParams.get('limit'),'0');
     return {ok:true,json:async()=>url.pathname.includes('/rpc/')?true:[]};
   }});
-  assert.equal(report.ready,true);assert.equal(requests.length,10);
+  assert.equal(report.ready,true);assert.equal(requests.length,11);
   assert.equal(JSON.stringify(report).includes('private-test-key'),false);
 });
 

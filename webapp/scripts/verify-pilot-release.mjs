@@ -8,7 +8,8 @@ const surfaces = {
   message_preferences:'athlete_id,email_enabled,badge_enabled',
   message_drafts:'owner_id,coach_id,athlete_id,sender_role,body,version,client_message_id',
   message_email_deliveries:'message_id,recipient_id,status,lease_token,expires_at',
-  planned_workouts:'id,activity_match_mode',
+  athletes:'id,notification_preferences,email_verified_at,session_version',
+  planned_workouts:'id,athlete_id,coach_id,workout_date,sport,title,description,structure,objective,coach_instructions,target_metric,planned_if,visibility,export_status,sync_provider,planned_duration_min,planned_distance_km,planned_distance_unit,planned_tss,order_index,status,completed_activity_id,activity_match_mode,completed_duration_min,completed_distance_km,athlete_rpe,athlete_comment,coach_feedback,library_workout_id,created_at,updated_at',
   workout_comments:'id,athlete_id,planned_workout_id,activity_id,read_at',
 };
 

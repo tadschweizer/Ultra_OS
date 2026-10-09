@@ -19,6 +19,7 @@ with signatures(signature) as (values
     ('planned_workouts','activity_match_mode','text'),
     ('athletes','email_verified_at','timestamptz'),
     ('athletes','session_version','int4'),
+    ('athletes','notification_preferences','jsonb'),
     ('coach_athlete_relationships','group_name','text'),
     ('coach_groups','description','text'),
     ('workout_comments','activity_id','uuid'),
