@@ -2,7 +2,9 @@
 
 This branch contains a standalone, public research prototype in `coach-demo/`. It does not import the real app, bypass its authentication, or connect to its database. The six athletes and all training history and conversations are fictional. It represents coaching workflows for research, not verified availability of every illustrated feature in the live product.
 
-**Public demo:** [Open Threshold coach research demo](https://threshold-coach-research.tadschweizer.chatgpt.site). Sites deployment succeeded with public access on October 7, 2026. This URL opens without a Threshold account.
+**Public demo:** [Open Threshold coach research demo](https://threshold-coach-research.tadschweizer.chatgpt.site). Sites version 2 deployment succeeded on October 9, 2026, preserving public access. This URL opens without a Threshold account.
+
+October 9 update: the demo follows the current product’s grouped navigation, amber mountain logo, cream sidebar, pill buttons, rounded cards, race countdown, and Coach Command Center structure. The fidelity reference is remote main `1830b14`, including `DesktopSidebar.js`, `siteNavigation.js`, `globals.css`, and the current coach page source. This remains a static demo with local sample data; it is not the real app with its authentication disabled.
 
 ## Use it with coaches
 
@@ -36,6 +38,10 @@ Record, per coach: current tool and job, task attempted, completed without help 
 - Autosaved feedback, feature-use ratings, optional local exploration counts, readable download.
 - Browser Back/Forward and direct links such as `/#calendar` and `/#athlete/maya`.
 
+The October 9 version adds Command Center Triage / Load Trends / Notes / Alerts, Basic / Advanced depth, protocol status and compliance targets, invitation previews, shared text documents, group membership and batch assignments, seven Coach Tools calculators, athlete readiness and sample import reports, Dashboard, Race Calendar / Blueprint, Daily Check-in, intervention logging/history, Progress, Explorer, Research saved-reading workflow, Connections, account and athlete settings, notification preferences, pricing reference, and support. Mobile has the product’s bottom navigation and a full Navigation menu.
+
+These pages preserve the product’s workflows at demo depth. Calculator formulas are adapted from the current `webapp/pages/coach/tools.js`. Imports, study entries, service connections, invitation delivery, and account entitlements remain explicitly illustrative. The demo does not execute email, billing, device OAuth, live research search, or AI generation.
+
 Sample distances, sleep, adherence percentages, and historical charts are seeded examples. They do not recalculate when editing a future workout. Connections are clearly labeled illustrations, with no device integration. There are no automatic athlete replies, email delivery, billing, AI generation, or real accounts.
 
 ## How data works
@@ -63,9 +69,9 @@ The static demo has no dependency install or build step. The existing `webapp/` 
 
 ## Update or host it elsewhere
 
-The current public link is hosted by Sites. Future edits should reuse the project in `coach-demo/site-hosting.json` and the existing publishing checkout, then synchronize and package a new version with the Sites skill. Ask Codex to “update the existing coach research demo and republish it at the same URL”; no new Site registration is needed. The canonical editable copy remains on this GitHub branch. Copy only the four runtime files into the publishing checkout’s `dist/` before source synchronization; do not copy secrets, repository metadata, or local participant data. Revalidate changed workflows before publication.
+The current public link is hosted by Sites. Future edits should reuse the project in `coach-demo/site-hosting.json` and the existing publishing checkout, then synchronize and package a new version with the Sites skill. Ask Codex to “update the existing coach research demo and republish it at the same URL”; no new Site registration is needed. The canonical editable copy remains on this GitHub branch. Copy only the six runtime files (`index.html`, `app.js`, `threshold.js`, `styles.css`, `threshold.css`, `favicon.svg`) into the publishing checkout’s `dist/` before source synchronization; do not copy secrets, repository metadata, or local participant data. Revalidate changed workflows before publication.
 
-Edit `coach-demo/app.js` for sample data and interactions, `styles.css` for design, and `index.html` for the outer layout. Only the contents of `coach-demo/` need hosting. Hash-based navigation means there is no special server routing to configure. `vercel.json` adds security and no-index headers on Vercel. No-index discourages search indexing; it is not access control, and the public URL can be forwarded.
+Edit `coach-demo/app.js` for the original daily-loop data and interactions; `threshold.js` contains the expanded product workflows and navigation. `styles.css` supplies the original base styles and `threshold.css` reconciles them to the current product. `index.html` supplies the outer layout. Only the runtime contents of `coach-demo/` need hosting. Hash-based navigation means there is no special server routing to configure. `vercel.json` adds security and no-index headers on Vercel. No-index discourages search indexing; it is not access control, and the public URL can be forwarded.
 
 For a managed Vercel project later, select this branch and set the **Root Directory** to `coach-demo`, **Framework Preset** to **Other**, and leave build/install commands empty. Public access must be enabled on the separate demo project; do not change protection on the real application. You can attach a custom demo domain later without rebuilding the demo. Keep the published URL stable when running the same research round.
 

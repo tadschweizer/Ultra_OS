@@ -1,4 +1,28 @@
-# Coach demo verification — 2026-10-07
+# Coach demo verification — updated 2026-10-09
+
+## October 9 product-fidelity revision
+
+Reference source: fetched remote main `1830b14`, with `DesktopSidebar.js`, `MobileBottomNav.js`, `siteNavigation.js`, `globals.css`, `tailwind.config.js`, and coach / athlete page source. The demo remains in `demo/coach-research`; unrelated local application work was left untouched.
+
+| Product area | Demo coverage | Boundary |
+| --- | --- | --- |
+| App shell | Actual mountain favicon, grouped Coaching / My Training / Platform / Help / Account navigation, cream sidebar, amber accents, pill buttons, rounded cards, race countdown, mobile bottom tabs and Navigation menu | Static shell adapted from the source, not a production signed-in session |
+| Command Center | Triage questions/feed/roster, Load Trends, Notes, Alerts, KPIs, Basic/Advanced depth | Historical metrics and alerts are fictional fixtures |
+| Advanced workspace | Protocols with dates/targets/status, invitation preview, template links, shared text documents, coach profile | No email delivery or account creation |
+| Coach Groups | Create group, edit membership, assign a workout or protocol to each group member | Assignments affect only the visitor’s demo calendar |
+| Coach Tools | HR zones (three methods), Riegel prediction, training paces, cycling power, swim CSS, pace conversion, fitness ramp planner | Product formulas with editable sample inputs; no automated prescription |
+| Athlete file | Training, notes, messages, check-ins, readiness domains, shared documents, sample TrainingPeaks import report | No real athlete or file import |
+| Training / races | Dashboard, check-in, intervention logs/history, progress, exploratory sample comparison, race creation/editing, saved race strategy | Demo-depth forms; no causal inference from fixtures |
+| Research / connections | Search sample reading, save and read summaries, inspect provider and import status | Entries are explicitly illustrative; no live PubMed or device connection |
+| Account / help | Persist profile/baselines/preferences, mark notifications read, pricing reference, support, feedback export | No purchase, deletion of real accounts, or real notification delivery |
+
+Final browser verification passed **128 checks**: 45 existing daily-loop checks plus 83 added feature and viewport checks. The latter cover group assignments, literal document rendering, invitation non-delivery, calculator results and invalid input, race/blueprint persistence, intervention history, daily check-in, saved reading, profile and notification preferences, reset of new fixtures, and all 27 routes at 390 px and 320 px. No browser JavaScript errors or remote application requests occurred. A calculator-grid overflow at 320 px was corrected and the complete checks rerun successfully. Desktop and mobile screenshots were visually inspected.
+
+Evidence: `scripts/coach-demo-feature-check.js` and updated `scripts/check-coach-demo.ps1`; raw log `output/coach-demo/browser-check-v2.log`; screenshots `desktop-v2.png` and `mobile-v2.png`. Syntax checks on both JavaScript bundles and `git diff --check` pass. This is desktop/mobile-browser verification, not a physical-phone test.
+
+Sites confirmed version 2 deployment **succeeded** on October 9 at https://threshold-coach-research.tadschweizer.chatgpt.site, using pushed source `fe93e2015d3f255e8e401752b32aae7947238a01`. The exact seven-file archive was saved against that commit. Publication IDs are recorded in `coach-demo/site-hosting.json`. The existing public audience and URL are preserved. This is demo publication evidence, separate from real-product acceptance.
+
+## Original October 7 baseline
 
 Scope: `coach-demo/` only, based on remote main `a9d83c2` in the separate `demo/coach-research` worktree. The main application and its authentication are unchanged. Browser validation used Node 22 and the Playwright CLI against the standalone local static server.
 

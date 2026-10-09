@@ -6,4 +6,7 @@ $taskCli = Get-Item -LiteralPath (Join-Path $env:LOCALAPPDATA 'npm-cache/_npx/31
 if (-not $taskCli) { throw 'First run: npx --yes --package @playwright/cli playwright-cli --help' }
 # Invoke Node directly so Windows cmd.exe does not impose its smaller argument limit.
 node $taskCli.FullName -s=coach-demo run-code $taskCode
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+$taskFeatureCode = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'coach-demo-feature-check.js') -Raw
+node $taskCli.FullName -s=coach-demo run-code $taskFeatureCode
 exit $LASTEXITCODE

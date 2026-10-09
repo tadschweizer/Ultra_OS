@@ -10,25 +10,29 @@
   <title>Threshold · Coach demo</title>
   <link rel="icon" href="./favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./threshold.css">
   <script src="./app.js" defer></script>
+  <script src="./threshold.js" defer></script>
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
   <div class="demo-banner"><span><strong>COACH DEMO</strong> Fictional athletes. Try things freely.</span><span>Changes stay in this browser. <button id="reset" type="button">Reset demo</button></span></div>
   <div class="workspace">
     <aside class="sidebar">
-      <a href="#overview" class="brand"><span class="brand-mark">T<span>↗</span></span><span>Threshold<small>THE COACHING WORKSPACE</small></span></a>
+      <a href="#overview" class="brand"><img src="./favicon.svg" width="28" height="28" alt=""><span>Threshold</span></a>
       <div class="workspace-label"><span class="avatar dark">AC</span><span>Alex’s coaching studio<small>Sample workspace · 6 athletes</small></span></div>
       <nav aria-label="Main navigation" id="nav"></nav>
       <div class="sidebar-bottom"><div class="small-label">YOUR FIRST LOOK</div><p>What would you use in your coaching day?</p><a href="#feedback" class="button outline light">Share your take <span>↗</span></a><small>About 3 minutes. No sign-in.</small></div>
       <div class="coach"><span class="avatar">AC</span><span>Alex Carter<small>Fictional coach</small></span><span class="online" title="Demo workspace"></span></div>
     </aside>
     <div class="content-wrap">
-      <header class="topbar"><span class="breadcrumb">Coach workspace <span>/</span> <b id="crumb">Overview</b></span><a href="#guide" class="text-link">How to explore <span>↗</span></a></header>
+      <header class="topbar"><span class="breadcrumb">THRESHOLD <span>·</span> <b id="crumb">Coach Command Center</b></span><div class="actions"><a href="#feedback" class="text-link">Demo feedback</a><button class="button small outline" type="button" data-action="site-menu">Navigation ☰</button></div></header>
+      <div class="race-countdown"><a href="#race-plan">NEXT RACE <b>City Marathon</b> <span>25 days · Eli Torres</span> <strong>Open race blueprint →</strong></a></div>
       <main id="main" tabindex="-1"></main>
       <footer>Threshold research demo <span>·</span> All names, training, and conversations are fictional. <a href="#feedback">Leave feedback</a></footer>
     </div>
   </div>
+  <nav class="mobile-bottom" aria-label="Mobile navigation"><a href="#overview">Roster</a><a href="#calendar">Calendar</a><a href="#messages">Messages</a><a href="#dashboard">Train</a><button data-action="site-menu">More</button></nav>
   <dialog id="dialog" aria-labelledby="dialog-title"></dialog>
   <div id="toast" role="status" aria-live="polite"></div>
 </body>

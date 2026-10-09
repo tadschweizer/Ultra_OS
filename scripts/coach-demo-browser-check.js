@@ -60,11 +60,12 @@ async (page) => {
   await page.getByRole('button',{name:'Save workout',exact:true}).click();
   check((await stored()).workouts.some(w=>w.athlete==='nora' && w.week===1 && w.title==='Easy aerobic run'), 'Library assignment creates an editable calendar session');
   await go('insights');
-  await page.getByRole('button',{name:'Add protocol',exact:false}).first().click();
-  await page.locator('#protocol-form [name=title]').fill('Recovery routine');
-  await page.locator('#protocol-form [name=detail]').fill('Log sleep and energy for one sample week.');
+  await page.getByRole('tab',{name:'Protocols',exact:true}).click();
+  await page.getByRole('button',{name:'Assign protocol',exact:true}).click();
+  await page.locator('#x-protocol-form [name=title]').selectOption('Sleep consistency');
+  await page.locator('#x-protocol-form [name=detail]').fill('Log sleep and energy for one sample week.');
   await page.getByRole('button',{name:'Assign in demo',exact:true}).click();
-  check((await stored()).protocols.at(-1).title==='Recovery routine', 'Protocol assignment saved');
+  check((await stored()).protocols.at(-1).title==='Sleep consistency', 'Protocol assignment saved');
   await go('preview/maya');
   await page.locator('[data-action=complete][data-id="maya-3"]').click();
   check((await stored()).workouts.find(w=>w.id==='maya-3').done, 'Athlete completion updates shared demo state');
