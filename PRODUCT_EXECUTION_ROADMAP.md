@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
 Last updated: 2026-10-09<br>
-Status: PRs #130/#131/#132 are merged; production serves `1830b14`. Live read-only SQL/Data API checks still confirm missing workout-match, messaging, document and group dependencies. PR #133 now includes the complete P0 audit plus a targeted prerequisite repair, schema-aware readiness, document/session revocation and retry-safe group membership. Local Node 22 regression 431/431, integrations 4/4, build and critical browser 129 passed / 3 existing skips pass. Production repair/release and real-pilot acceptance remain open.<br>
+Status: The owner-authorized October 9 Supabase release is applied: message/document/group prerequisites, workout-match decisions, messaging lifecycle and three follow-up foreign-key indexes. Live metadata readiness and all ten hosted Data API checks pass. PR #133 includes the complete P0 audit, schema-aware readiness, document/session revocation and retry-safe membership; application rollout awaits final-head CI. Local regression 431/431, integration 4/4 and critical browser 129 passed / 3 existing skips. Parent acceptance remains open.<br>
 Current milestone: M0 — make the closed coach pilot work end to end<br>
-Next item: Review and authorize the exact three-source technical release in `PILOT_TECHNICAL_READINESS.md` (new prerequisite repair, merged PR #130 workout-match source, merged PR #131 lifecycle source), then verify hosted Data API and the approved QA pair. P0-018 measurement preparation is ready; actual phone timing and two-week participant observation remain open. Technical readiness work does not need participant feedback. No production write/provider activation or paid staging is authorized by this preparation.
+Next item: Finish the authorized PR #133 application release after final-head CI; verify production readiness and approved post-enrollment QA journeys. Fresh-account enrollment, actual phone timing, protected email-worker/provider activation and two-week participant observation remain separate gates. Technical readiness work does not need participant feedback.
 
 ## Purpose
 
@@ -96,7 +96,8 @@ athlete, and use the experience on a phone without Tad or an administrator repai
 ### Technical readiness without waiting for feedback — October 9
 
 The complete audit below still controls parent closure. [PR #133](https://github.com/tadschweizer/Ultra_OS/pull/133)
-now prepares the technical release; it does not apply it. See `PILOT_TECHNICAL_READINESS.md`
+prepared the targeted release; the owner authorized the production database application
+on October 9. The three dependencies and follow-up foreign-key indexes are now applied. See `PILOT_TECHNICAL_READINESS.md`
 for the exact three-source order, safe read-only preflight, hosted API check and rollback.
 `pilot-observation.csv` is a blank measurement record; no participant timings were invented.
 
@@ -110,7 +111,8 @@ for the exact three-source order, safe read-only preflight, hosted API check and
   required CI regression execution: **431/431** local tests; integrations **4/4**;
   production build passed; desktop/mobile critical **129 passed / 3 existing skips**.
 - Live preflight: `repair_allowed: true`, no missing base columns, zero duplicate links;
-  current `ready: false`. GET-only zero-row hosted API checks confirm missing dependencies.
+  the initial `ready: false` is resolved. Fresh `ready: true` and all ten GET-only hosted
+  API checks pass after the authorized release. Source-to-remote mappings are in the runbook.
 - CI enforcement remains unverified: rulesets `[]`, classic protection denied (403).
   Measurement preparation is complete; enforced required checks and participant observation are not.
 
@@ -129,7 +131,7 @@ No checkbox is advanced by this documentation audit.
 | P0-004 — Pilot access | Grant/provision/revoke implementation merged | Approved coach receives an honest expiring entitlement; verify normal access and expiry/revocation. |
 | P0-005 — Check-in entitlement | Server entitlement and abuse limits implemented | Linked pilot athlete completes seven normal daily check-ins without product-limit blockage. |
 | P0-006 — Fast check-in | Dedicated flow and failure retention implemented | Time an actual returning athlete at 30 seconds or less; verify persisted triage signals. |
-| P0-007 — Coach mobile path | Navigation/invite/group entry implemented | All M0 actions on a physical phone; messaging/shared-document schema gaps currently prevent full-loop acceptance. |
+| P0-007 — Coach mobile path | Navigation/invite/group entry implemented | All M0 actions on a physical phone; October 9 repairs resolve messaging/shared-document schema gaps; full-loop acceptance remains. |
 | P0-008 — Honest integrations | Placeholder cleanup and Strava lifecycle merged | Actual provider OAuth/import/disconnect/webhook/worker acceptance and honest configured availability; separate provider approval gates remain. |
 | P0-009 — Onboarding/empty states | Canonical linking, group entry and retained failed answers implemented | Real coach/athlete onboarding and no-data/save-failure journeys on phone and desktop. |
 | P0-010 — Billing safety | PR #127 merged; October 9 live schema/RPC/grant preflight passes | Full application Stripe SDK authentication, hosted 3DS/async settlement and provider acceptance in test mode; never repeat applied migrations just because source timestamps differ. |
@@ -140,34 +142,37 @@ No checkbox is advanced by this documentation audit.
 | P0-013B — Research authorization | Canonical admin guard and signed-handler tests merged | Verify deployed non-admin denial without mutations; privileged CRUD remains isolated. |
 | P0-013C — Readiness/alerts | Bounded readiness and tagged failure reporting implemented | Accept or resolve reduced alerting scope; external rule/monitor previously declined. Live failure behavior is not established by healthy probes. |
 | P0-013D — Isolation/revocation | Local isolation tests and earlier schema audit exist | Hosted cross-athlete/revoked access, privileged routes, current RLS and real-role acceptance; recheck historical COROS RLS finding before any narrowly scoped repair. |
-| P0-014 — Workout reliability | PR #130 merged | Production lacks `activity_match_mode` and decision RPC; apply exact reviewed migration after authorization, then verify import/correction/retry/timezone behavior and phone timing. |
-| P0-015 — Messaging | PR #131 merged; durable server drafts, exact counts and private leased email outbox implemented | Production lacks `coach_messages` and the lifecycle schema. Review missing prerequisites, then exact migration; hosted Data API/advisors, worker contention, two-account/reconnect/revocation/phone and consenting real-mailbox acceptance remain. |
+| P0-014 — Workout reliability | PR #130 merged | Exact reviewed migration applied October 9; hosted column/RPC/API readiness passes. Verify import/correction/retry/timezone behavior and phone timing. |
+| P0-015 — Messaging | PR #131 merged; durable server drafts, exact counts and private leased email outbox implemented | Message and lifecycle dependencies applied October 9; hosted Data API and reviewed advisors pass. Worker contention, two-account/reconnect/revocation/phone and consenting real-mailbox acceptance remain. |
 | P0-016 — Athlete navigation | Daily-loop navigation/Today implementation merged | Physical-phone agenda, non-drag editing, retained context and accessible full-loop acceptance. |
 | P0-017 — AI deferral/claims | PR #132 merged and deployed; final PR evidence reports 419 regression, 4 integration and 129 browser passes / 3 skips | Deployed guard/no-deferred-requests and existing participant-data preservation acceptance. No further deferral build is queued. |
 | P0-018 — Usability/retention | CI coverage exists; required enforcement unverified; observation not completed | Prepare measurement sheet and first-session script now; verify required checks, then observe one coach/up to five athletes for two weeks after technical gates pass. Time planning/check-in/logging; record saves, support, unread failures, corrections and repeat use. Compare representative TrainingPeaks tasks before parity claims. |
 
 #### Execution order
 
-1. **Release readiness first (P0-014/015/013):** use the prepared three-source release
+1. **Release readiness first (P0-014/015/013):** database sources are applied; finish
+   final-head CI and the authorized PR #133 app release. The prepared release
    in `PILOT_TECHNICAL_READINESS.md`, starting with the new targeted prerequisite repair.
    Review the exact source and current
-   target prerequisites. Production currently lacks the workout-match column/RPC,
+   target prerequisites. The October 9 application resolves the previously missing workout-match column/RPC,
    `coach_messages`, `coach_shared_docs`, and messaging preferences/lifecycle functions.
    P0-015's merged source is `20261008231639_message_delivery_and_drafts.sql` from PR #131;
    do not deploy the superseded `20261007200545_messaging_delivery.sql` from the separate
    local branch. Review missing legacy message/document dependencies individually.
    P0-014's exact source remains `20261007162647_workout_match_decisions.sql`.
-   No broad `supabase db push`, automatic history repair or production write is authorized here.
+   The owner authorized the targeted release on October 9; no broad `supabase db push` or automatic history repair is included.
 2. **Next bounded work batch (P0-018 preparation, about one to two hours):** verify
    branch protection/rulesets and required Auth Smoke check; prepare a simple task-time,
    error and repeat-use record plus a moderated first-session script (now prepared in
    `pilot-observation.csv` and `PILOT_TECHNICAL_READINESS.md`). CI running is
    already implemented; the last PR audit could not read classic branch protection
    (403) and found no public rulesets, so enforcement remains unverified.
-3. **Controlled acceptance:** once dependencies work, run the normal coach/athlete
-   enrollment, entitlement, check-in, workout, message, draft, unread and revocation
-   journeys on desktop and a physical phone. Use the separately approved labelled QA
-   pair within `QA_ACCOUNTS.md` scope; no real billing/destructive production tests.
+3. **Controlled acceptance:** verify fresh-account signup and email verification with
+   appropriate consenting new accounts; the manually provisioned QA pair cannot cover
+   those enrollment gates. Use the approved labelled pair within `QA_ACCOUNTS.md` for
+   post-enrollment entitlement, check-in, workout, message, draft, unread and revocation
+   journeys. Verify desktop and a physical phone separately; no real billing or
+   destructive production tests.
    Opt-in message email needs verified provider and protected POST scheduler setup.
 4. **Observe and close M0:** seven normal check-in days and the two-week P0-018 study
    take actual elapsed days. Resolve remaining provider/billing/trust/authorization gates,
@@ -863,3 +868,12 @@ October 8 P0-017 checkpoint: [PR #132](https://github.com/tadschweizer/Ultra_OS/
 October 8 merge preparation: Tad authorized merging the current PRs. PR #128 merged as `6be3c1a`. The PR #131/main conflicts were confined to roadmap status text and the already-merged PR #130 label; resolved using the newer implementation evidence while preserving the Suunto onboarding record. Imported activity connection metadata changes from PR #128 are retained. Release migration and real-pilot gates remain open.
 
 October 8 combined-branch verification: PR #132 includes the resolved PR #131 integration head `7a496da` and the merged PR #128 calendar import-source metadata. Its roadmap conflicts preserve the newer P0-017 evidence plus Suunto onboarding and merge history. No application conflict required a behavioral change. P0-018 remains the next item; release and real-pilot parent acceptance gates stay open.
+
+### Authorized technical release — October 9
+
+Supabase plugin confirmed target `jzfctjaaowdvubhqswpa`, applied only the reviewed
+three-source repair plus three additive foreign-key indexes, and verified metadata
+readiness plus all ten hosted Data API checks. New foreign-key advisor findings are
+cleared. Intentional service-only RLS notices and existing legacy warnings are recorded
+in `PILOT_TECHNICAL_READINESS.md`. Focused final release checks pass 21/21.
+PR #133 final-head application rollout follows green CI.

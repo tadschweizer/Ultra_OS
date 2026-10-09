@@ -40,7 +40,7 @@ active coaches. Coach document failures return safe retry messages. Group member
 upserts use the actual group/athlete conflict key so retrying an add does not duplicate
 or fail. Signed-handler/SQL tests cover persistence, isolation and revocation.
 
-## Exact release package — authorization required
+## Exact release package — owner authorized October 9
 
 Target: existing UltraOS Supabase project **`jzfctjaaowdvubhqswpa`**.
 Apply these sources in this order, individually, after reviewing current preflight:
@@ -50,14 +50,15 @@ Apply these sources in this order, individually, after reviewing current preflig
 | 1 | `20261009201251_pilot_release_prerequisites.sql` | Missing message/document/membership dependencies, group description, metadata readiness |
 | 2 | `20261007162647_workout_match_decisions.sql` | Merged PR #130: persistent workout-match decisions and unique activity links |
 | 3 | `20261008231639_message_delivery_and_drafts.sql` | Merged PR #131: private drafts, preferences, email outbox and signed-handler RPCs |
+| 4 | `20261009204246_message_foreign_key_indexes.sql` | Three additive indexes identified by post-release hosted advisors |
 
 The dependency repair intentionally precedes the older timestamps. This is a targeted
 history-drift release, not a chronological full-chain push. Do **not** apply the
 unmerged alternative `20261007200545_messaging_delivery.sql`. Do not reapply the October
 4 billing/Strava sources: their remote versions differ and their actual schema is ready.
 
-No live mutation is part of this preparation. `AGENTS.md` requires explicit owner
-authorization for production deployment and service configuration. Email remains off;
+The owner authorized applying this targeted package through the Supabase plugin and
+releasing PR #133 on October 9. The three sources were applied successfully. Email remains off;
 activating a real provider or protected POST scheduler is a separate reviewed action.
 
 ## Release steps
@@ -147,3 +148,35 @@ been invented in this package.
 
 Technical fixes can proceed without these observations. The observations establish
 human usability and retention; they cannot be replaced by mocked browser timings.
+
+## Authorized database release checkpoint — October 9, 20:42 UTC
+
+Applied through the Supabase plugin to the confirmed healthy UltraOS project. Remote
+migration versions differ from source timestamps; preserve this exact mapping.
+
+| Source | Remote migration version |
+| --- | --- |
+| `20261009201251_pilot_release_prerequisites.sql` | `20261009204148` |
+| `20261007162647_workout_match_decisions.sql` | `20261009204157` |
+| `20261008231639_message_delivery_and_drafts.sql` | `20261009204211` |
+| `20261009204246_message_foreign_key_indexes.sql` | `20261009204323` |
+
+Fresh preflight now returns `ready: true`, `repair_allowed: false`, no missing base
+columns and zero duplicate activity links. The actual hosted GET-only Data API check
+passes all ten contracts, including readiness and embedded group membership.
+
+Hosted security advisors add only six informational RLS-without-policy findings for
+the new service-only tables. This is intentional: client grants are denied and signed
+server handlers authorize access. See [RLS advisor explanation](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy).
+Existing mutable-search-path/definer/Auth warnings were present before this package.
+Performance advisors identified three uncovered new foreign keys; the fourth additive
+source was applied and the three new foreign-key findings are cleared. New unused-index notices are expected until actual traffic uses them.
+See [foreign-key advisor explanation](https://supabase.com/docs/guides/database/database-linter?lint=0001_unindexed_foreign_keys).
+
+Auth Smoke passed for `fe93e96` (run 158). Application release and approved two-account
+acceptance will be recorded after the final reviewed head passes CI and deploys.
+Fresh-account signup/email verification require separate accounts; these manually
+provisioned QA identities only cover post-enrollment journeys.
+
+Final additive index source is included in the isolated release fixture; focused release
+checks pass **21/21** after that change.

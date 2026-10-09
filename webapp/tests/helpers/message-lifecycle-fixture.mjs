@@ -82,6 +82,7 @@ export async function fixture({ releasePrerequisites=false }={}){
     releaseStages.push((await pg.query('select public.pilot_schema_readiness() as ready')).rows[0].ready);
   }
   await pg.exec(migration);
+  if(releasePrerequisites)await pg.exec(readFileSync(new URL('../../supabase/migrations/20261009204246_message_foreign_key_indexes.sql',import.meta.url),'utf8'));
   await pg.exec('grant usage on schema public to service_role;grant select,insert,update,delete on all tables in schema public to service_role;set role service_role;');
   const admin=client(pg);const opts={getClient:()=>admin};
   const handlers={messages:createCoachMessagesHandler(opts),center:createMessageCenterHandler(opts),draft:createMessageDraftHandler(opts),preferences:createMessagePreferencesHandler({...opts,emailAvailable:()=>true})};
