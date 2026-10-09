@@ -96,7 +96,7 @@ export const TIER_FEATURES = {
   coach_pro: COACH_PRO_FEATURES,
 };
 
-// Announced on the pricing page but not granted to any tier yet.
+// Reserved feature identifiers, not advertised or granted during the closed pilot.
 export const COMING_SOON_FEATURES = Object.freeze(['ai_analysis', 'coach_ai']);
 
 export const FEATURE_UNLOCK_LABELS = {

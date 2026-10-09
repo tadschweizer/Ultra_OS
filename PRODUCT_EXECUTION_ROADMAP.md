@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
 Last updated: 2026-10-08<br>
-Status: PR #128 is merged on main `6be3c1a`; PR #130 remains merged. The P0-015 durable draft/unread/notification lifecycle batch is implemented in [PR #131](https://github.com/tadschweizer/Ultra_OS/pull/131), code `6cea21d`; Node 22 regression 415/415, integration 4/4, critical browser 115 passed / 3 existing skips and production build pass. Desktop/mobile and SQL evidence plus exact release prerequisites are in `P0_015_MESSAGING_VERIFICATION.md`. Production release and parent acceptance remain open; no production writes or real notification emails were performed.<br>
+Status: PR #128 is merged on main `6be3c1a`; PR #130 remains merged. Tad authorized merging PRs #131 and #132 on October 8. P0-015 is implemented in [PR #131](https://github.com/tadschweizer/Ultra_OS/pull/131), final head `46c5492`, with green GitHub CI. P0-017 is published in [PR #132](https://github.com/tadschweizer/Ultra_OS/pull/132), code `6af6629`, stacked on #131, and locally verified: regression 418/418, integration 4/4, production build passed, desktop/mobile critical browser 127 passed / 3 existing viewport skips. Evidence: `P0_017_AI_DEFERRAL_VERIFICATION.md`. Production release and parent acceptance remain open.<br>
 Current milestone: M0 — make the closed coach pilot work end to end<br>
-Next item: P0-017 — inventory and defer AI server routes/scheduled work and pilot UI entry points, align product claims, preserve manual planning and deterministic calculations. Review P0-015 PR #131 with its generated migration and protected delivery scheduler checklist. P0-014's exact migration/release, coach-message/shared-document schema repair, real two-account and physical-phone acceptance, and other external gates remain open. No paid staging is authorized; production release/schema/configuration changes require separate explicit authorization.
+Next item: P0-018 — prepare and run measured daily-loop usability/retention acceptance after technical release gates pass. P0-017 is implemented in PR #132 (`6af6629`), stacked on PR #131; see `P0_017_AI_DEFERRAL_VERIFICATION.md`. Complete the separately authorized migration/release, schema repair, physical-phone/two-account and notification-provider acceptance gates. No paid staging or production changes are authorized.
 
 ## Purpose
 
@@ -358,6 +358,7 @@ in place. Existing milestones remain the larger parity roadmap.
   - Verify a phone agenda view and non-drag editing; retain calendar context after mutations.
 
 - [ ] **P0-017 — Defer AI and align product claims**
+  - October 8 local checkpoint: immutable release capability blocks four Exa endpoints, research draft generation and direct library calls; automatic race/protocol UI is deferred. Manual catalog/race entry, human research editing and deterministic calculations remain. Landing and pilot claims now describe the available manual loop. Node 22 regression 418/418, integrations 4/4, build, focused browser 12/12 and expanded critical browser 127 passed / 3 existing skips. Evidence: `P0_017_AI_DEFERRAL_VERIFICATION.md`. Controlled deployed acceptance remains open.
   - Inventory AI labels, generation/search/enrichment routes, scheduled work, and deterministic logic.
   - Disable deferred generation on the server and remove its pilot UI entry points and sales claims.
   - Keep manual planning, coach feedback, workout totals, and transparent deterministic calculations.
@@ -748,4 +749,7 @@ Items remain here until evidence moves them into a milestone. They are not commi
 - Additional recovery/wellness providers after core activity and workout delivery are stable.
 - Broad social/community features.
 
+October 8 P0-017 checkpoint: [PR #132](https://github.com/tadschweizer/Ultra_OS/pull/132), implementation `6af6629`, stacked on PR #131. Five deferred APIs and their library entry points fail closed; local automatic race/protocol recommendations are unavailable; manual race entry/catalog selection and human research editing remain, with deterministic training calculations. Marketing and pilot guidance describe the manual loop and data limits. Regression 418/418, integration 4/4, production build, focused desktop/mobile 12/12, and critical browser 127 passed / 3 existing skips. Evidence and release prerequisites: `P0_017_AI_DEFERRAL_VERIFICATION.md`. Next item advances to P0-018 measured real-pilot usability and retention. No production changes or participant observation are claimed; P0-017 stays unchecked pending controlled deployed acceptance.
 October 8 merge preparation: Tad authorized merging the current PRs. PR #128 merged as `6be3c1a`. The PR #131/main conflicts were confined to roadmap status text and the already-merged PR #130 label; resolved using the newer implementation evidence while preserving the Suunto onboarding record. Imported activity connection metadata changes from PR #128 are retained. Release migration and real-pilot gates remain open.
+
+October 8 combined-branch verification: PR #132 includes the resolved PR #131 integration head `7a496da` and the merged PR #128 calendar import-source metadata. Its roadmap conflicts preserve the newer P0-017 evidence plus Suunto onboarding and merge history. No application conflict required a behavioral change. P0-018 remains the next item; release and real-pilot parent acceptance gates stay open.

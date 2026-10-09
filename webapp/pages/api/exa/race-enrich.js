@@ -1,4 +1,5 @@
-import { enrichRace } from '../../../lib/exa';
+import { requireAutomatedAssistance } from '../../../lib/releaseCapabilities.js';
+import { enrichRace } from '../../../lib/exa.js';
 import { getAthleteIdFromRequest } from '../../../lib/auth/sessionCookies.js';
 
 export default async function handler(req, res) {
@@ -11,6 +12,8 @@ export default async function handler(req, res) {
     res.status(405).end();
     return;
   }
+
+  if (!requireAutomatedAssistance(res)) return;
 
   const name = typeof req.query.name === 'string' ? req.query.name.trim() : '';
   if (!name) {

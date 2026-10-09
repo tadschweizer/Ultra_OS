@@ -409,7 +409,7 @@ export default function Settings() {
               </div>
             </Section>
 
-            <Section title="Fueling + Hydration Baselines" body="Your current long-run carb and hydration norms. Used to calculate gaps vs race-day targets in the Race Blueprint.">
+            <Section title="Fueling + Hydration Baselines" body="Record your current long-run carb and hydration norms for review with your coach.">
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
                   <FieldLabel tip="your current gut training baseline">Long-Run Carb Intake (g/hr)</FieldLabel>
@@ -488,7 +488,7 @@ export default function Settings() {
               </div>
             </Section>
 
-            <Section title="Heart Rate Zones" body="Zone 2 ceiling is used by the Race Blueprint and AI analysis to flag aerobic drift. Set these manually or use the calculator.">
+            <Section title="Heart Rate Zones" body="Your zones are used in calculated training-load and aerobic-drift comparisons. Set these manually or use the calculator.">
               {/* Zone calculator */}
               <div className="rounded-[18px] border border-accent/25 bg-accent/6 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">Zone Calculator</p>

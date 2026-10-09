@@ -1,4 +1,5 @@
-import { buildResearchDraft } from '../../../lib/researchDrafts';
+import { requireAutomatedAssistance } from '../../../lib/releaseCapabilities.js';
+import { buildResearchDraft } from '../../../lib/researchDrafts.js';
 import { getAthleteIdFromRequest } from '../../../lib/auth/sessionCookies.js';
 
 export default function handler(req, res) {
@@ -13,6 +14,8 @@ export default function handler(req, res) {
     res.status(405).end();
     return;
   }
+
+  if (!requireAutomatedAssistance(res)) return;
 
   const body = req.body || {};
   if (!body.title) {

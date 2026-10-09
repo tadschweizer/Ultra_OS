@@ -1,19 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 
-export default function RaceSearchInput({ value, onChange, onSelect, placeholder = 'Search races…', className = '' }) {
+export default function RaceSearchInput({ value, onChange, onSelect, placeholder = 'Search races…', className = '', id, ariaLabel }) {
   const [catalogResults, setCatalogResults] = useState([]);
-  const [webResults, setWebResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
 
-  const hasResults = catalogResults.length > 0 || webResults.length > 0;
+  const hasResults = catalogResults.length > 0;
 
   useEffect(() => {
     const q = (value || '').trim();
     if (q.length < 2) {
       setCatalogResults([]);
-      setWebResults([]);
       setOpen(false);
       return;
     }
@@ -27,18 +25,8 @@ export default function RaceSearchInput({ value, onChange, onSelect, placeholder
         const catalog = catalogRes.ok ? (await catalogRes.json()).races || [] : [];
         if (!cancelled) setCatalogResults(catalog);
 
-        // Only call Exa when catalog has sparse results
-        if (!cancelled && catalog.length < 4) {
-          try {
-            const exaRes = await fetch(`/api/exa/race-search?q=${encodeURIComponent(q + ' race')}&num=6`);
-            const web = exaRes.ok ? (await exaRes.json()).races || [] : [];
-            if (!cancelled) setWebResults(web);
-          } catch (_) {
-            // Exa is an optional fallback — silently skip on error
-          }
-        } else if (!cancelled) {
-          setWebResults([]);
-        }
+      } catch {
+        if (!cancelled) setCatalogResults([]);
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -82,28 +70,12 @@ export default function RaceSearchInput({ value, onChange, onSelect, placeholder
     });
   }
 
-  function handleWebSelect(result) {
-    setOpen(false);
-    const name = result.title || '';
-    onChange(name);
-    onSelect({
-      source: 'web',
-      name,
-      url: result.url,
-      event_date: result.event_date || null,
-      distance_miles: result.distance_miles || null,
-      location: result.location || null,
-      race_type: null,
-      elevation_gain_ft: result.elevation_gain_ft || null,
-      terrain: result.terrain || null,
-      highlights: result.highlights || [],
-    });
-  }
-
   return (
     <div ref={containerRef} className={`relative ${className}`}>
       <div className="relative">
         <input
+          id={id}
+          aria-label={ariaLabel}
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -130,7 +102,7 @@ export default function RaceSearchInput({ value, onChange, onSelect, placeholder
                 <button
                   key={race.id}
                   type="button"
-                  onMouseDown={() => handleCatalogSelect(race)}
+                  onClick={() => handleCatalogSelect(race)}
                   className="w-full px-4 py-2.5 text-left transition-colors hover:bg-paper"
                 >
                   <p className="text-sm font-semibold text-ink">{race.name}</p>
@@ -144,34 +116,6 @@ export default function RaceSearchInput({ value, onChange, onSelect, placeholder
                       .filter(Boolean)
                       .join(' · ')}
                   </p>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {webResults.length > 0 && (
-            <div className={`pb-1 ${catalogResults.length > 0 ? 'border-t border-ink/6' : ''}`}>
-              <p className="px-4 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-ink/35">
-                From the web
-              </p>
-              {webResults.map((result, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onMouseDown={() => handleWebSelect(result)}
-                  className="w-full px-4 py-2.5 text-left transition-colors hover:bg-paper"
-                >
-                  <div className="flex items-start gap-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-ink">{result.title}</p>
-                      {result.highlights?.[0] && (
-                        <p className="mt-0.5 line-clamp-1 text-xs text-ink/50">{result.highlights[0]}</p>
-                      )}
-                    </div>
-                    <span className="mt-0.5 shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
-                      Web
-                    </span>
-                  </div>
                 </button>
               ))}
             </div>

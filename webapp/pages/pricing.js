@@ -62,12 +62,10 @@ const athletePlans = [
       'Fitness, fatigue + form (CTL / ATL / TSB), 84 days',
       'Weekly training load, ramp rate + monotony',
       'HR drift + aerobic decoupling on every steady session',
-      'Training-response correlations + insight cards',
+      'Calculated training-response correlations',
       'Training-load spike alerts',
       'Explorer: chart any input against any outcome',
-      'Race Blueprint fueling, hydration + race-week plan',
     ],
-    comingSoon: 'AI training review and suggestions are coming later to Pro at no extra cost.',
     billing: {
       monthly: { price: '$18', checkoutPlan: 'pro_monthly', note: 'Billed monthly — cancel anytime', cta: 'Start Pro' },
       annual: { price: '$13.25', checkoutPlan: 'pro_annual', note: '$159 billed annually — save $57/yr', cta: 'Start Pro Annual' },
@@ -108,7 +106,6 @@ const coachPlans = [
       'Athlete Pro analytics for your own training',
       'Every athlete on your roster gets Athlete Core free',
     ],
-    comingSoon: 'AI roster triage, drafted athlete summaries, and plan suggestions are coming later to Coach Pro.',
     billing: {
       monthly: { price: '$79', note: 'Per month', cta: 'Join the coach pilot' },
       annual: { price: '$66', note: '$790 billed annually', cta: 'Join the coach pilot' },
@@ -133,17 +130,15 @@ const comparisonRows = [
   { label: 'Fitness / fatigue / form (CTL, ATL, TSB)', tiers: ['pro', 'coach_pro'] },
   { label: 'HR drift + aerobic decoupling', tiers: ['pro', 'coach_pro'] },
   { label: 'Training-response correlations + Explorer', tiers: ['pro', 'coach_pro'] },
-  { label: 'Race Blueprint', tiers: ['pro', 'coach_pro'] },
   { label: 'Coach Command Center, calendar + assignments', tiers: ['coach_essentials', 'coach_pro'] },
   { label: 'Roster athletes get Athlete Core', tiers: ['coach_essentials', 'coach_pro'] },
   { label: 'Per-athlete load trends + ramp planner', tiers: ['coach_pro'] },
-  { label: 'AI analysis + suggestions', tiers: [], comingSoon: ['pro', 'coach_pro'] },
 ];
 
 const faq = [
   {
-    q: 'Does Pro use AI?',
-    a: 'Not yet. Every Pro metric — fitness, fatigue, form, HR drift, decoupling, correlations — is calculated directly from your synced data with published training-load models. AI review and suggestions will be added to Pro later at no extra cost.',
+    q: 'How are the training metrics calculated?',
+    a: 'Fitness, fatigue, form, HR drift, decoupling and correlations use calculations applied to your logged or imported data. Missing inputs and model assumptions affect the result. Automatic reviews and generated plans are not included in the closed pilot.',
   },
   {
     q: 'Do my athletes need their own paid plan?',

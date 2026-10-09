@@ -757,9 +757,9 @@ export default function Dashboard() {
   );
   const overallTrainingStatus = useMemo(() => {
     const readiness = Math.min(100, Math.round((trainingSummary.activityCount * 5) + (trainingSummary.interventions * 7) + (settings?.hr_zone_3_min ? 15 : 0) + (currentRace?.event_date ? 20 : 0)));
-    if (readiness >= 80) return { label: 'On track', score: readiness, tone: 'text-emerald-500' };
-    if (readiness >= 55) return { label: 'Building momentum', score: readiness, tone: 'text-amber-500' };
-    return { label: 'Foundation mode', score: readiness, tone: 'text-ink/70' };
+    if (readiness >= 80) return { label: 'More history available', score: readiness, tone: 'text-emerald-500' };
+    if (readiness >= 55) return { label: 'Some history available', score: readiness, tone: 'text-amber-500' };
+    return { label: 'Limited history', score: readiness, tone: 'text-ink/70' };
   }, [trainingSummary, settings, currentRace]);
   const funFacts = useMemo(() => {
     const longestActivity = activities.reduce((best, activity) => ((activity?.distance || 0) > (best?.distance || 0) ? activity : best), null);
@@ -956,7 +956,7 @@ export default function Dashboard() {
             <div>
               <p className="text-sm font-semibold text-ink">Welcome to Threshold, {athlete?.name?.split(' ')[0] || 'athlete'}.</p>
               <p className="mt-1 text-sm leading-6 text-ink/65">
-                Strava is connected. Now work through the three steps below and you&apos;ll have your first insight within a few sessions.
+                Strava is connected. Use the steps below to build your training history. Calculated comparisons need enough comparable records.
               </p>
             </div>
           </div>
@@ -976,11 +976,11 @@ export default function Dashboard() {
                 <p className="mt-3 text-base leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
                   {interventions.length > 0
                     ? `${interventions.length} interventions logged — keep building your protocol foundation.`
-                    : 'Log your first intervention to start building your readiness score.'}
+                    : 'Log your first intervention to start your training history.'}
                 </p>
               ) : (
                 <p className="mt-3 text-base leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
-                  Set a target race to activate your race blueprint and readiness dashboard.
+                  Set a target race to keep your training and intervention history in context.
                 </p>
               )}
               <div className="mt-8 flex flex-wrap gap-3">
@@ -1036,18 +1036,18 @@ export default function Dashboard() {
               style={{ background: 'linear-gradient(135deg, var(--color-surface-dark) 0%, var(--color-surface-dark-raised) 100%)' }}
             >
               <p className="ui-eyebrow" style={{ color: 'var(--color-accent-amber-light)' }}>
-                Race-readiness · {currentRace.name}
+                Race records · {currentRace.name}
               </p>
               <div className="mt-4 flex items-end gap-5">
                 <span
                   className="font-mono tabular-nums font-semibold leading-none"
                   style={{ fontSize: 72, color: 'var(--color-accent-amber-light)' }}
                 >
-                  {interventions.length > 0 ? Math.min(40 + interventions.length * 3, 98) : '—'}
+                  {interventions.length}
                 </span>
                 <div style={{ paddingBottom: 8 }}>
                   <p className="text-sm font-medium text-white/90">
-                    {interventions.length > 0 ? 'Keep building your protocol log' : 'Log interventions to build your score'}
+                    Intervention records
                   </p>
                   <p className="mt-1 text-xs" style={{ color: 'var(--color-text-muted-on-dark)' }}>
                     {interventions.length} interventions logged
@@ -1090,7 +1090,7 @@ export default function Dashboard() {
                 <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>days</span>
               </div>
               <div className="mt-5 flex gap-2">
-                <a href="/race-plan" className="ui-button-secondary py-2 text-sm">View blueprint</a>
+                <a href="/races" className="ui-button-secondary py-2 text-sm">Race calendar</a>
                 <a href="/log-intervention" className="ui-button-ghost py-2 text-sm">Log intervention</a>
               </div>
             </div>
@@ -1120,7 +1120,7 @@ export default function Dashboard() {
         {showWelcomeChecklist ? (
           <section className="mb-10 rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
             <p className="text-sm uppercase tracking-[0.25em] text-accent">Getting started</p>
-            <h2 className="font-display mt-3 text-2xl font-semibold text-ink">Three steps to your first insight</h2>
+            <h2 className="font-display mt-3 text-2xl font-semibold text-ink">Three steps to review your training</h2>
             <div className="mt-6 grid gap-3 md:grid-cols-3">
               <a
                 href={currentRace ? '/log-intervention' : '#target-race-setup'}
@@ -1144,7 +1144,7 @@ export default function Dashboard() {
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ink/10 text-xs font-bold text-ink/50">2</span>
                   <p className="text-sm font-semibold text-ink">Fill in your baselines</p>
                 </div>
-                <p className="mt-2 pl-10 text-xs leading-5 text-ink/55">HR zones, fueling anchors, sweat rate. Makes your insights personal instead of generic.</p>
+                <p className="mt-2 pl-10 text-xs leading-5 text-ink/55">HR zones, fueling anchors, sweat rate. Adds context for calculated training comparisons.</p>
               </a>
               <a
                 href="/log-intervention"
@@ -1164,9 +1164,10 @@ export default function Dashboard() {
         <>
         <section className="grid gap-4 md:grid-cols-5">
           <article className="rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-            <p className="text-sm uppercase tracking-[0.22em] text-accent">Overall Status</p>
+            <p className="text-sm uppercase tracking-[0.22em] text-accent">Data coverage</p>
             <p className={`mt-4 text-3xl font-semibold ${overallTrainingStatus.tone}`}>{overallTrainingStatus.label}</p>
-            <p className="mt-2 text-sm text-ink/65">Readiness score: {overallTrainingStatus.score}/100</p>
+            <p className="mt-2 text-sm text-ink/65">Coverage score: {overallTrainingStatus.score}/100</p>
+            <p className="mt-2 text-xs text-ink/65">Based on logged sessions, interventions, zones and a target race. This is a data-completeness heuristic, not race readiness.</p>
           </article>
           <article className="rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
             <p className="text-sm uppercase tracking-[0.22em] text-accent">Connections</p>
@@ -1181,9 +1182,9 @@ export default function Dashboard() {
             <p className="mt-4 text-3xl font-semibold text-ink">{trainingSummary.interventions}</p>
           </article>
           <article className="rounded-[28px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-            <p className="text-sm uppercase tracking-[0.22em] text-accent">AI Readiness</p>
+            <p className="text-sm uppercase tracking-[0.22em] text-accent">Heart-rate zones</p>
             <p className="mt-4 text-3xl font-semibold text-ink">
-              {settings?.hr_zone_3_min ? 'Seeded' : 'Needs setup'}
+              {settings?.hr_zone_3_min ? 'Set' : 'Needs setup'}
             </p>
           </article>
         </section>
@@ -1224,7 +1225,7 @@ export default function Dashboard() {
 
           <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
             <div className="flex items-center justify-between">
-              <p className="text-sm uppercase tracking-[0.25em] text-accent">AI Insights + Fun Facts</p>
+              <p className="text-sm uppercase tracking-[0.25em] text-accent">Calculated training observations</p>
               <span className="rounded-full bg-paper px-3 py-1 text-xs text-ink/70">Current</span>
             </div>
             <div className="mt-4 rounded-[22px] bg-panel px-4 py-3 text-sm text-paper">

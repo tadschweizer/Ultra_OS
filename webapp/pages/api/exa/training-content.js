@@ -1,4 +1,5 @@
-import { searchTrainingContent } from '../../../lib/exa';
+import { requireAutomatedAssistance } from '../../../lib/releaseCapabilities.js';
+import { searchTrainingContent } from '../../../lib/exa.js';
 import { getAthleteIdFromRequest } from '../../../lib/auth/sessionCookies.js';
 
 export default async function handler(req, res) {
@@ -11,6 +12,8 @@ export default async function handler(req, res) {
     res.status(405).end();
     return;
   }
+
+  if (!requireAutomatedAssistance(res)) return;
 
   const sport = typeof req.query.sport === 'string' ? req.query.sport.trim() : '';
   if (!sport) {

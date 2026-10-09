@@ -291,26 +291,26 @@ function LegacyInviteJoin({ router, token }) {
             You&apos;re invited to Threshold
           </h1>
           <p className="mt-3 text-center text-sm leading-6 text-ink/60">
-            Connect your Strava account to create your athlete profile. Threshold will track your training interventions and surface what actually works for you — as an individual.
+            Connect your Strava account to create your athlete profile. Keep your training and intervention history together, and review calculated comparisons with your coach.
           </p>
 
           <div className="mt-8 space-y-3">
             <div className="rounded-[18px] border border-ink/10 bg-paper px-4 py-3">
               <div>
                 <p className="text-sm font-semibold text-ink">N=1 correlations</p>
-                <p className="mt-0.5 text-xs leading-5 text-ink/55">See what interventions actually move the needle for your body</p>
+                <p className="mt-0.5 text-xs leading-5 text-ink/55">Review associations in your logged data, with sample limits</p>
               </div>
             </div>
             <div className="rounded-[18px] border border-ink/10 bg-paper px-4 py-3">
               <div>
-                <p className="text-sm font-semibold text-ink">72+ research studies</p>
+                <p className="text-sm font-semibold text-ink">Research library</p>
                 <p className="mt-0.5 text-xs leading-5 text-ink/55">Curated endurance research with plain-English takeaways</p>
               </div>
             </div>
             <div className="rounded-[18px] border border-ink/10 bg-paper px-4 py-3">
               <div>
-                <p className="text-sm font-semibold text-ink">Race blueprints</p>
-                <p className="mt-0.5 text-xs leading-5 text-ink/55">Build and log race plans, then debrief what worked</p>
+                <p className="text-sm font-semibold text-ink">Race records</p>
+                <p className="mt-0.5 text-xs leading-5 text-ink/55">Record race details and results for review with your coach</p>
               </div>
             </div>
           </div>

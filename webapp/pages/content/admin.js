@@ -96,7 +96,6 @@ export default function ContentAdmin() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
-  const [drafting, setDrafting] = useState(false);
 
   const navLinks = [
     { href: '/dashboard', label: 'Threshold Home' },
@@ -220,38 +219,6 @@ export default function ContentAdmin() {
     }
   }
 
-  async function handleDraftGeneration() {
-    setDrafting(true);
-    setMessage('');
-
-    try {
-      const res = await fetch('/api/research-library/draft', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setMessage(`Error: ${data.error}`);
-        return;
-      }
-
-      setForm((current) => ({
-        ...current,
-        plain_english_summary: data.draft.plain_english_summary,
-        practical_takeaway: data.draft.practical_takeaway,
-        commentary: data.draft.commentary,
-      }));
-      setMessage('Draft copy generated. Review before publishing.');
-    } catch (error) {
-      console.error(error);
-      setMessage('Error: Failed to generate draft copy.');
-    } finally {
-      setDrafting(false);
-    }
-  }
-
   async function handleDelete(id) {
     const confirmed = window.confirm('Delete this library entry?');
     if (!confirmed) return;
@@ -327,7 +294,7 @@ export default function ContentAdmin() {
             {message ? <p className="mb-4 rounded-2xl border border-accent/25 bg-accent/10 px-4 py-3 text-sm text-ink">{message}</p> : null}
             <div className="grid gap-4 md:grid-cols-2">
               <div className="md:col-span-2">
-                <label className="mb-1 block text-sm font-semibold text-ink">Title</label>
+                <label htmlFor="research-title" className="mb-1 block text-sm font-semibold text-ink">Title</label>
                 <input type="text" value={form.title} onChange={(event) => setFormValue('title', event.target.value)} className={fieldClassName()} />
               </div>
               <div>
@@ -376,16 +343,16 @@ export default function ContentAdmin() {
                 </div>
               </div>
               <div className="md:col-span-2">
-                <label className="mb-1 block text-sm font-semibold text-ink">Plain-English Summary</label>
-                <textarea value={form.plain_english_summary} onChange={(event) => setFormValue('plain_english_summary', event.target.value)} rows={4} className={fieldClassName()} />
+                <label htmlFor="research-plain_english_summary" className="mb-1 block text-sm font-semibold text-ink">Plain-English Summary</label>
+                <textarea id="research-plain_english_summary" value={form.plain_english_summary} onChange={(event) => setFormValue('plain_english_summary', event.target.value)} rows={4} className={fieldClassName()} />
               </div>
               <div className="md:col-span-2">
-                <label className="mb-1 block text-sm font-semibold text-ink">Practical Takeaway</label>
-                <textarea value={form.practical_takeaway} onChange={(event) => setFormValue('practical_takeaway', event.target.value)} rows={3} className={fieldClassName()} />
+                <label htmlFor="research-practical_takeaway" className="mb-1 block text-sm font-semibold text-ink">Practical Takeaway</label>
+                <textarea id="research-practical_takeaway" value={form.practical_takeaway} onChange={(event) => setFormValue('practical_takeaway', event.target.value)} rows={3} className={fieldClassName()} />
               </div>
               <div className="md:col-span-2">
-                <label className="mb-1 block text-sm font-semibold text-ink">Commentary</label>
-                <textarea value={form.commentary} onChange={(event) => setFormValue('commentary', event.target.value)} rows={3} className={fieldClassName()} />
+                <label htmlFor="research-commentary" className="mb-1 block text-sm font-semibold text-ink">Commentary</label>
+                <textarea id="research-commentary" value={form.commentary} onChange={(event) => setFormValue('commentary', event.target.value)} rows={3} className={fieldClassName()} />
               </div>
               <div className="md:col-span-2">
                 <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-ink/50">Sport Relevance Scores (0 – 5)</p>
@@ -430,9 +397,6 @@ export default function ContentAdmin() {
             <div className="mt-5 flex flex-wrap gap-3">
               <button type="submit" className="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-paper">
                 {form.id ? 'Update Entry' : 'Create Entry'}
-              </button>
-              <button type="button" onClick={handleDraftGeneration} className="rounded-full border border-ink/10 px-5 py-3 text-sm font-semibold text-ink">
-                {drafting ? 'Generating Draft...' : 'Generate Draft'}
               </button>
               <button type="button" onClick={() => setForm(emptyForm)} className="rounded-full border border-ink/10 px-5 py-3 text-sm font-semibold text-ink">
                 New Draft

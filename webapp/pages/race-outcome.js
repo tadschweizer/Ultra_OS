@@ -84,7 +84,6 @@ export default function RaceOutcomePage() {
 
   const navLinks = [
     { href: '/dashboard', label: 'Threshold Home' },
-    { href: '/race-plan', label: 'Race Blueprint' },
     { href: '/history', label: 'Intervention History' },
     { href: '/insights', label: 'Insights' },
   ];
@@ -216,7 +215,6 @@ export default function RaceOutcomePage() {
           <NavMenu
             label="Race outcome navigation"
             links={navLinks}
-            primaryLink={{ href: '/race-plan', label: 'Race Blueprint', variant: 'secondary' }}
           />
         </div>
 
@@ -225,7 +223,7 @@ export default function RaceOutcomePage() {
           <p className="text-sm uppercase tracking-[0.35em] text-accent">Post-Race Log</p>
           <h1 className="font-display mt-3 text-4xl leading-tight md:text-5xl">How did it go?</h1>
           <p className="mt-3 text-sm leading-6 text-ink/65">
-            Your race data is the most valuable thing you can log. Every outcome you capture becomes input for your next race blueprint.
+            Record your race results and notes so you and your coach can review preparation alongside the outcome.
           </p>
         </section>
 
@@ -498,7 +496,7 @@ export default function RaceOutcomePage() {
           </button>
 
           <p className="pb-8 text-center text-xs text-ink/35">
-            Your race outcomes are private and used only to generate personalized insights.
+            Your race outcomes are saved to your account so you can review your preparation and results.
           </p>
 
         </form>

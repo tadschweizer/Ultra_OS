@@ -1,3 +1,5 @@
+import { RELEASE_CAPABILITIES } from '../lib/releaseCapabilities.js';
+import DeferredAssistancePage from '../components/DeferredAssistancePage.js';
 import { useEffect, useMemo, useState } from 'react';
 import NavMenu from '../components/NavMenu';
 import UpgradePrompt from '../components/UpgradePrompt';
@@ -216,7 +218,7 @@ function StatRow({ label, value, sub }) {
 }
 
 // ─── Main page ────────────────────────────────────────────────────────────────
-export default function RacePlanPage() {
+function RaceBlueprintBuilder() {
   const navLinks = [
     { href: '/dashboard', label: 'Threshold Home' },
     { href: '/guide', label: 'Guide' },
@@ -833,4 +835,8 @@ export default function RacePlanPage() {
       </div>
     </main>
   );
+}
+
+export default function RacePlanPage() {
+  return RELEASE_CAPABILITIES.automatedAssistance ? <RaceBlueprintBuilder /> : <DeferredAssistancePage />;
 }

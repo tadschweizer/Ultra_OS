@@ -14,7 +14,6 @@ const sheetSections = [
     ),
     items: [
       { href: '/insights', label: 'Insights', description: 'N=1 correlations from your data' },
-      { href: '/race-plan', label: 'Race Blueprint', description: 'Plan your next race' },
       { href: '/race-outcome', label: 'Race Debrief', description: 'Log a completed race' },
       { href: '/explorer', label: 'Explorer', description: 'Browse all activities' },
     ],
