@@ -1,7 +1,7 @@
 # Threshold Product Execution Roadmap
 
 Last updated: 2026-10-09<br>
-Status: The owner-authorized October 9 Supabase release is applied: message/document/group prerequisites, workout-match decisions, messaging lifecycle and three follow-up foreign-key indexes. Live metadata readiness and all ten hosted Data API checks pass. PR #133 includes the complete P0 audit, schema-aware readiness, document/session revocation and retry-safe membership; application rollout awaits final-head CI. Local regression 431/431, integration 4/4 and critical browser 129 passed / 3 existing skips. Parent acceptance remains open.<br>
+Status: The owner-authorized October 9 Supabase release is applied: message/document/group prerequisites, workout-match decisions, messaging lifecycle and three follow-up foreign-key indexes. Hosted QA exposed a PostgREST conflict retry loop; a fifth repair uses stable PT409 responses for drafts, sends and workout decisions. Live metadata readiness and all ten hosted Data API checks pass. PR #133 includes the complete P0 audit, schema-aware readiness, document/session revocation and retry-safe membership; application rollout awaits final-head CI. Local regression 432/432, integration 4/4 and critical browser 129 passed / 3 existing skips. Parent acceptance remains open.<br>
 Current milestone: M0 — make the closed coach pilot work end to end<br>
 Next item: Finish the authorized PR #133 application release after final-head CI; verify production readiness and approved post-enrollment QA journeys. Fresh-account enrollment, actual phone timing, protected email-worker/provider activation and two-week participant observation remain separate gates. Technical readiness work does not need participant feedback.
 
@@ -877,3 +877,9 @@ readiness plus all ten hosted Data API checks. New foreign-key advisor findings 
 cleared. Intentional service-only RLS notices and existing legacy warnings are recorded
 in `PILOT_TECHNICAL_READINESS.md`. Focused final release checks pass 21/21.
 PR #133 final-head application rollout follows green CI.
+
+Hosted QA found a draft-conflict timeout. The targeted fifth repair,
+`20261009204853_pilot_conflict_responses.sql`, replaces application 40001 errors with
+PT409 in the three functions. Full regression passes 432/432; final-head CI and
+post-deployment QA must verify the actual HTTP 409 responses. See the runbook for
+the confirmed Supabase issue and source-to-remote release mapping.

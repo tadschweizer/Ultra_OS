@@ -7,6 +7,29 @@ import { createCoachSharedDocsHandler } from '../pages/api/coach/shared-docs.js'
 import { createAthleteSharedDocsHandler } from '../pages/api/athlete/shared-docs.js';
 import { createCoachGroupsHandler } from '../pages/api/coach/groups.js';
 import { signAthleteSession } from '../lib/auth/sessionCookies.js';
+import { decideWorkoutMatch } from '../lib/workoutMatch.js';
+
+test('hosted version conflicts use PT409 without the transient serialization retry code', async () => {
+  const f=await fixture({releasePrerequisites:true});
+  try {
+    const body={mode:'coach',athlete_id:athlete,body:'Keep this draft'};
+    const saved=await f.invoke('draft',{method:'PUT',body});
+    assert.equal(saved.code,200);
+    const stale=await f.invoke('draft',{method:'PUT',body:{...body,body:'Stale edit'}});
+    assert.equal(stale.code,409);
+    assert.equal((await f.invoke('draft',{query:{athlete_id:athlete}})).body.draft.body,'Keep this draft');
+    assert.equal((await f.send()).code,200);
+    assert.equal((await f.send(undefined,'coach','Changed retry')).code,409);
+    const args={p_actor_id:athlete,p_workout_id:plan,p_action:'reject',p_activity_id:null,p_expected_updated_at:'2000-01-01T00:00:00Z'};
+    await assert.rejects(f.rpc('decide_workout_activity_match',args),error=>error.code==='PT409');
+    const result=await decideWorkoutMatch(f.admin,athlete,{id:plan,match_action:'reject',expected_updated_at:args.p_expected_updated_at});
+    assert.equal(result.status,409);
+    const definitions=(await f.pg.query(`select prosrc from pg_proc where proname in ('save_message_draft','send_direct_message','decide_workout_activity_match')`)).rows;
+    assert.equal(definitions.length,3);
+    for(const row of definitions){assert.ok(row.prosrc.includes('PT409'));assert.ok(!row.prosrc.includes('40001'));}
+    assert.equal(await f.rpc('pilot_schema_readiness'),true);
+  } finally {await f.close();}
+});
 
 test('exact prerequisite, workout and messaging migrations work together with native private grants', async () => {
   const f=await fixture({releasePrerequisites:true});

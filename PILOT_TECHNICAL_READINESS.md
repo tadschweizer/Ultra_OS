@@ -51,6 +51,7 @@ Apply these sources in this order, individually, after reviewing current preflig
 | 2 | `20261007162647_workout_match_decisions.sql` | Merged PR #130: persistent workout-match decisions and unique activity links |
 | 3 | `20261008231639_message_delivery_and_drafts.sql` | Merged PR #131: private drafts, preferences, email outbox and signed-handler RPCs |
 | 4 | `20261009204246_message_foreign_key_indexes.sql` | Three additive indexes identified by post-release hosted advisors |
+| 5 | `20261009204853_pilot_conflict_responses.sql` | Stable PT409 conflicts for stale drafts, altered message retries and workout matches |
 
 The dependency repair intentionally precedes the older timestamps. This is a targeted
 history-drift release, not a chronological full-chain push. Do **not** apply the
@@ -107,7 +108,7 @@ membership records or workout decisions to undo an application release.
 
 ## Verification and current limits
 
-- Node 22 full regression **431/431**; integration **4/4**; production build passed;
+- Node 22 full regression **432/432**; integration **4/4**; production build passed;
   desktop/mobile critical browser **129 passed / 3 existing viewport skips**. Seven
   new isolated SQL/handler groups, two readiness contracts and three Data API verifier
   cases are included in the full regression. Final results are also in the roadmap.
@@ -160,6 +161,7 @@ migration versions differ from source timestamps; preserve this exact mapping.
 | `20261007162647_workout_match_decisions.sql` | `20261009204157` |
 | `20261008231639_message_delivery_and_drafts.sql` | `20261009204211` |
 | `20261009204246_message_foreign_key_indexes.sql` | `20261009204323` |
+| `20261009204853_pilot_conflict_responses.sql` | `20261009205027` |
 
 Fresh preflight now returns `ready: true`, `repair_allowed: false`, no missing base
 columns and zero duplicate activity links. The actual hosted GET-only Data API check
@@ -180,3 +182,16 @@ provisioned QA identities only cover post-enrollment journeys.
 
 Final additive index source is included in the isolated release fixture; focused release
 checks pass **21/21** after that change.
+
+## Hosted conflict repair discovered during acceptance
+
+Actual signed QA requests saved/reloaded a draft but a conflicting PUT timed out.
+Supabase documents that application-raised `40001` triggers infinite PostgREST retries:
+[Supabase conflict troubleshooting](https://supabase.com/docs/guides/troubleshooting/high-cpu-and-infinite-transaction-retries-when-using-custom-error-codes-in-rpc-functions-77326b).
+The fifth source replaces only the three existing function bodies, changing application
+conflicts to `PT409`. Ownership checks, signatures, INVOKER mode, empty search paths
+and service-only grants remain intact. Server handlers recognize the new code as HTTP
+409 and retain the old transient-error mapping for compatibility. Historical sources
+remain unchanged. Full regression now passes **432/432**, including actual SQL
+assertions that all three final functions emit PT409 and preserve drafts on conflict.
+The hosted readiness probe still passes after this additional owner-authorized repair.
