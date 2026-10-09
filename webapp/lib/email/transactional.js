@@ -44,16 +44,18 @@ const HEADING = 'font-size:24px; font-weight:700; color:#131816; margin:0 0 12px
 const BODY = 'font-size:15px; line-height:1.7; color:#555F5A; margin:0 0 16px;';
 const FINE = 'font-size:13px; line-height:1.7; color:#8A938F; margin:16px 0 0;';
 
-async function send({ to, subject, html }) {
+async function send({ to, subject, html, idempotencyKey }) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return { ok: true, skipped: true };
 
   try {
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
+      signal: AbortSignal.timeout(10000),
       headers: {
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
+        ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
       },
       body: JSON.stringify({ from: FROM, to, subject, html }),
     });
@@ -63,10 +65,12 @@ async function send({ to, subject, html }) {
       console.error('[email] Resend rejected the send:', response.status, subject);
       return {
         ok: false,
-        failureCategory: response.status >= 500 ? 'provider_unavailable' : 'provider_rejected',
+        failureCategory: response.status >= 500 || [408, 409, 429].includes(response.status) ? 'provider_unavailable' : 'provider_rejected',
       };
     }
-    return { ok: true };
+    if (!idempotencyKey) return { ok: true };
+    const payload = await response.json().catch(() => ({}));
+    return { ok: true, providerId: payload.id || null };
   } catch (error) {
     console.error('[email] send failed:', subject, error?.message);
     return { ok: false, failureCategory: 'provider_unavailable' };
@@ -154,4 +158,18 @@ export async function sendCoachInvitationEmail({ coachName, email, inviteUrl, ex
       <p style="${FINE}">This invitation expires ${escapeHtml(expiry)} UTC. If you were not expecting it, you can ignore this email and no connection will be created.</p>
     `),
   });
+}
+
+
+// Keep private conversation text, names and training details out of email.
+export async function sendMessageNotificationEmail({ email, messageId, mode, athleteId }) {
+  if (!process.env.RESEND_API_KEY) return { ok: false, failureCategory: 'unconfigured' };
+  const query = new URLSearchParams({ mode, athlete_id: athleteId });
+  const url = `${getSiteUrl()}/messages?${query}`;
+  return send({ to: email, subject: 'New message in Threshold',
+    idempotencyKey: `threshold-message/${messageId}`,
+    html: layout(`<p style="${HEADING}">You have a new message.</p>
+      <p style="${BODY}">Sign in to Threshold to read your conversation.</p>
+      ${button(escapeHtml(url), 'Open Messages')}
+      <p style="${FINE}">You can turn these emails off in Messages → Notification preferences.</p>`) });
 }

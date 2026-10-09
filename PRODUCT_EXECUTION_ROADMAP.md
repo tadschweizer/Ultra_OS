@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
 Last updated: 2026-10-08<br>
-Status: PR #130 is merged into main as `4f2038f` (confirmed October 8); production migration/schema and deployed-source acceptance have not been reverified in this session. PR #129 previously had a matching READY production deployment. The October 7 P0-014 workout-match correction slice is locally verified (403 regression tests, 103 critical browser passes / 3 skips, 24 daily-loop browser passes, Node 22 build). Its production migration/release and parent acceptance remain open; see `P0_WORKOUT_MATCH_VERIFICATION.md`. No production writes were performed in this session.<br>
+Status: PR #128 is merged on main `6be3c1a`; PR #130 remains merged. The P0-015 durable draft/unread/notification lifecycle batch is implemented in [PR #131](https://github.com/tadschweizer/Ultra_OS/pull/131), code `6cea21d`; Node 22 regression 415/415, integration 4/4, critical browser 115 passed / 3 existing skips and production build pass. Desktop/mobile and SQL evidence plus exact release prerequisites are in `P0_015_MESSAGING_VERIFICATION.md`. Production release and parent acceptance remain open; no production writes or real notification emails were performed.<br>
 Current milestone: M0 — make the closed coach pilot work end to end<br>
-Next item: Verify the production schema and deployed source after PR #130 merged; the exact P0-014 migration must be present before the matching application can work. Any production repair requires explicit authorization. Then tackle P0-015 notification preferences/delivery lifecycle, durable drafts and all-history unread aggregation. Real two-account and physical-phone acceptance, existing coach-message/shared-document schema repair, and the other external gates remain open. No paid staging is authorized; production release/schema/configuration changes require separate authorization.
+Next item: P0-017 — inventory and defer AI server routes/scheduled work and pilot UI entry points, align product claims, preserve manual planning and deterministic calculations. Review P0-015 PR #131 with its generated migration and protected delivery scheduler checklist. P0-014's exact migration/release, coach-message/shared-document schema repair, real two-account and physical-phone acceptance, and other external gates remain open. No paid staging is authorized; production release/schema/configuration changes require separate explicit authorization.
 
 ## Purpose
 
@@ -321,7 +321,7 @@ in place. Existing milestones remain the larger parity roadmap.
   If Supabase remains unavailable, continue B locally and document the blocked staging checks.
 
 - [ ] **P0-014 — Reliable workout creation and logging**
-  - October 7 match-correction checkpoint ([PR #130](https://github.com/tadschweizer/Ultra_OS/pull/130), implementation `efed738`): durable confirm/reject/replace/unlink and explicit automatic restore; owner-scoped imported actuals, duplicate-link protection, stale conflicts, retry-safe decisions and cross-range calendar placement. Node 22 regression 403/403; critical browser 103 passed / 3 skips; daily-loop browser 24/24; build and isolated PostgreSQL checks pass. See `P0_WORKOUT_MATCH_VERIFICATION.md`. Exact new migration and controlled deployed/physical-phone acceptance remain open; no production writes.
+  - October 7 match-correction checkpoint ([merged PR #130](https://github.com/tadschweizer/Ultra_OS/pull/130), implementation `efed738`): durable confirm/reject/replace/unlink and explicit automatic restore; owner-scoped imported actuals, duplicate-link protection, stale conflicts, retry-safe decisions and cross-range calendar placement. Node 22 regression 403/403; critical browser 103 passed / 3 skips; daily-loop browser 24/24; build and isolated PostgreSQL checks pass. See `P0_WORKOUT_MATCH_VERIFICATION.md`. Exact new migration and controlled deployed/physical-phone acceptance remain open; no production writes.
   - October 5 local implementation checkpoint: retained save failures, blank actuals, completion correction/undo, unplanned logging, durable workout-create retries, validation and conservative import matching.
     Node 22 regression 394/394; critical browser suite 89 passed / 3 viewport skips; expanded
     daily-loop journeys 16/16; real isolated Supabase 6/6 check groups. Evidence and remaining
@@ -334,6 +334,7 @@ in place. Existing milestones remain the larger parity roadmap.
   - Returning athlete target: log completion within 30 seconds, excluding optional written notes.
 
 - [ ] **P0-015 — One dependable messaging experience**
+  - October 8 local implementation checkpoint ([PR #131](https://github.com/tadschweizer/Ultra_OS/pull/131), code `6cea21d`): server-persisted/versioned per-recipient drafts, retry-safe atomic send/outbox, shared all-history unread summaries, owned email/badge preferences, generic private-content-free alerts, leased bounded delivery worker, delivery status and scoped account export. Node 22 regression 415/415, integration 4/4, critical browser 115 passed / 3 existing skips and build pass; SQL and desktop/mobile evidence in `P0_015_MESSAGING_VERIFICATION.md`. Target-schema migration, protected scheduler/provider activation, hosted advisors and real phone/mailbox acceptance remain open. No production writes or real emails.
   - October 5 local implementation checkpoint: one canonical composer, four-second refresh, per-recipient drafts, durable retries, cursor history and loaded-message read acknowledgements.
     Node 22 regression 394/394; critical browser suite 89 passed / 3 viewport skips; expanded
     daily-loop journeys 16/16; real isolated Supabase 6/6 check groups. Evidence and remaining
@@ -691,6 +692,8 @@ accounts are unavailable; the previous INACTIVE observation below is historical.
 
 ## Progress log
 
+October 8 P0-015 checkpoint: [PR #131](https://github.com/tadschweizer/Ultra_OS/pull/131), implementation `6cea21d`, completes the local durable-draft/unread/notification batch. PostgreSQL and actual signed-session handler checks verify persistence, stale tabs, exact retries after lost commit responses, atomic rollback, all-history counts, owned preferences, protected worker leases, retry/expiry bounds, revoked/unverified recipients, RLS/grants and account cascades. Full regression 415/415; integration 4/4; critical browser 115 passed / 3 existing skips; Node 22 build passes. Browser evidence, limitations, remaining P0 list and exact release order: `P0_015_MESSAGING_VERIFICATION.md`. PR #130 is confirmed merged on main `4f2038f`. P0-015 and other parent items remain open for controlled release/live acceptance; next implementation is P0-017. No production deployment/database/configuration change or real notification email.
+
 October 7 P0-014 match-correction checkpoint: saved athlete decisions, explicit manual-to-import linking, duplicate-link protection, stale-edit conflicts, lost-response retries, provider-deletion handling and cross-range calendar visibility are locally verified. Node 22 regression 403/403; critical browser 103 passed / 3 skips; expanded daily-loop 24/24; production build and seven isolated PostgreSQL groups pass. Read-only checks confirm PR #129's READY production deployment on `a9d83c2`, zero existing/duplicate links, the new migration still absent and `coach_messages` still absent. Evidence and release order: `P0_WORKOUT_MATCH_VERIFICATION.md`. P0-014 stays open; P0-015 notification lifecycle is the next implementation batch. No production deployment, database write or service configuration change.
 
 October 3 Strava checkpoint: owner authorized implementation assuming approval and will
@@ -744,3 +747,5 @@ Items remain here until evidence moves them into a milestone. They are not commi
 - AI-generated plans or workouts before the manual planning model is reliable.
 - Additional recovery/wellness providers after core activity and workout delivery are stable.
 - Broad social/community features.
+
+October 8 merge preparation: Tad authorized merging the current PRs. PR #128 merged as `6be3c1a`. The PR #131/main conflicts were confined to roadmap status text and the already-merged PR #130 label; resolved using the newer implementation evidence while preserving the Suunto onboarding record. Imported activity connection metadata changes from PR #128 are retained. Release migration and real-pilot gates remain open.

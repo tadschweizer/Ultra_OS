@@ -14,7 +14,7 @@ test('archive redacts nested credentials while preserving training values and no
 });
 test('archive paginates every personal table, scopes to signed owner and handles settings primary key',async()=>{
   const calls=[];
-  const admin={from(table){return {select(){return this;},eq(column,value){assert.equal(column,'athlete_id');assert.equal(value,id);return this;},order(column){calls.push([table,column]);return this;},async range(start,end){return {data:start===0?[{id:'1',notes:'first'},{id:'2',notes:'second'}]:start===2?[{id:'3',notes:'third'}]:[]};}};}};
+  const admin={from(table){return {select(){return this;},eq(column,value){assert.equal(column,table==='message_drafts'?'owner_id':table==='message_email_deliveries'?'recipient_id':'athlete_id');assert.equal(value,id);return this;},order(column){calls.push([table,column]);return this;},async range(start,end){return {data:start===0?[{id:'1',notes:'first'},{id:'2',notes:'second'}]:start===2?[{id:'3',notes:'third'}]:[]};}};}};
   const archive=await collectAccountExport(admin,{id,strava_refresh_token:'private'},{pageSize:2});
   assert.equal(archive.sections.interventions.length,3);assert.equal(archive.sections.profile.strava_refresh_token,undefined);
   assert.ok(calls.some(([table,column])=>table==='athlete_settings'&&column==='athlete_id'));

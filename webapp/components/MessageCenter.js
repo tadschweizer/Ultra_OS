@@ -110,6 +110,7 @@ export default function MessageCenter() {
   if (!summary || !summary.has_messaging) return null;
 
   const unread = summary.unread_total || 0;
+  const badgeUnread = summary.badge_enabled === false ? 0 : unread;
   const conversations = summary.conversations || [];
   const sessionThreads = summary.workout_threads || [];
   const myRole = summary.role;
@@ -120,13 +121,13 @@ export default function MessageCenter() {
       <button
         type="button"
         onClick={() => { setOpen((v) => !v); if (!open) { refresh(); } }}
-        aria-label={unread ? `Messages (${unread} unread)` : 'Messages'}
+        aria-label={badgeUnread ? `Messages (${badgeUnread} unread)` : 'Messages'}
         className="fixed bottom-24 right-4 z-[64] flex h-12 w-12 items-center justify-center rounded-full border border-ink/10 bg-white text-ink shadow-[0_4px_20px_rgba(19,24,22,0.14)] transition hover:scale-105 lg:bottom-auto lg:top-4 lg:right-5"
       >
         <ChatIcon className="h-5 w-5" />
-        {unread > 0 && (
+        {badgeUnread > 0 && (
           <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white ring-2 ring-white">
-            {unread > 99 ? '99+' : unread}
+            {badgeUnread > 99 ? '99+' : badgeUnread}
           </span>
         )}
       </button>
