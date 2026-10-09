@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
-Last updated: 2026-10-08<br>
-Status: PR #128 is merged on main `6be3c1a`; PR #130 remains merged. Tad authorized merging PRs #131 and #132 on October 8. P0-015 is implemented in [PR #131](https://github.com/tadschweizer/Ultra_OS/pull/131), final head `46c5492`, with green GitHub CI. P0-017 is published in [PR #132](https://github.com/tadschweizer/Ultra_OS/pull/132), code `6af6629`, stacked on #131, and locally verified: regression 418/418, integration 4/4, production build passed, desktop/mobile critical browser 127 passed / 3 existing viewport skips. Evidence: `P0_017_AI_DEFERRAL_VERIFICATION.md`. Production release and parent acceptance remain open.<br>
+Last updated: 2026-10-09<br>
+Status: PRs #130, #131 and #132 are merged. Remote main is `1830b14`; `mythreshold.co` serves READY production deployment `dpl_EJW3CheGpF7LbYKrxbKKh3KnNkeL` on that commit. Read-only Supabase checks still find the workout-match and messaging schema missing. Code deployment therefore does not establish a working pilot. Billing/Strava schema preflight passes. See the verified P0 status and next-work queue below. Parent acceptance remains open.<br>
 Current milestone: M0 — make the closed coach pilot work end to end<br>
-Next item: P0-018 — prepare and run measured daily-loop usability/retention acceptance after technical release gates pass. P0-017 is implemented in PR #132 (`6af6629`), stacked on PR #131; see `P0_017_AI_DEFERRAL_VERIFICATION.md`. Complete the separately authorized migration/release, schema repair, physical-phone/two-account and notification-provider acceptance gates. No paid staging or production changes are authorized.
+Next item: P0-018 preparation: confirm required CI enforcement and prepare the timed coach/athlete observation record. Before participant observation, resolve P0-014/015 migration prerequisites, shared-document schema repair and controlled two-account/physical-phone acceptance. P0-017 is already merged and deployed; verify its deployed behavior rather than rebuild it. Production migration/provider/configuration changes require explicit authorization; no paid staging is authorized.
 
 ## Purpose
 
@@ -92,6 +92,80 @@ Checkbox meanings:
 
 Goal: One coach can sign up, invite an athlete, receive daily check-ins, plan/review work, message the
 athlete, and use the experience on a phone without Tad or an administrator repairing records by hand.
+
+### Verified P0 deliverables and next work — October 9
+
+This snapshot supersedes older “draft”, “next implementation” and missing billing-schema
+statements in the historical checkpoints. It covers every P0 parent and P0-013 slice.
+Unchecked means acceptance remains open; it does not mean the feature needs rebuilding.
+No checkbox is advanced by this documentation audit.
+
+| Deliverable | Verified position | Work remaining before completion |
+| --- | --- | --- |
+| P0-001 — Invitations | Checked; existing PR #108 release/acceptance evidence | Retain invite regression coverage; no new implementation queued. |
+| P0-002 — Invitation email | Checked; existing real-mailbox and persisted-failure evidence | Retain delivery/copy-link coverage; invitation email does not prove message-alert email delivery. |
+| P0-003 — Roles | Canonical role/auth implementation merged; prior schema evidence recorded | Normal fresh-account enrollment, refresh/new session and server authorization acceptance. |
+| P0-004 — Pilot access | Grant/provision/revoke implementation merged | Approved coach receives an honest expiring entitlement; verify normal access and expiry/revocation. |
+| P0-005 — Check-in entitlement | Server entitlement and abuse limits implemented | Linked pilot athlete completes seven normal daily check-ins without product-limit blockage. |
+| P0-006 — Fast check-in | Dedicated flow and failure retention implemented | Time an actual returning athlete at 30 seconds or less; verify persisted triage signals. |
+| P0-007 — Coach mobile path | Navigation/invite/group entry implemented | All M0 actions on a physical phone; messaging/shared-document schema gaps currently prevent full-loop acceptance. |
+| P0-008 — Honest integrations | Placeholder cleanup and Strava lifecycle merged | Actual provider OAuth/import/disconnect/webhook/worker acceptance and honest configured availability; separate provider approval gates remain. |
+| P0-009 — Onboarding/empty states | Canonical linking, group entry and retained failed answers implemented | Real coach/athlete onboarding and no-data/save-failure journeys on phone and desktop. |
+| P0-010 — Billing safety | PR #127 merged; October 9 live schema/RPC/grant preflight passes | Full application Stripe SDK authentication, hosted 3DS/async settlement and provider acceptance in test mode; never repeat applied migrations just because source timestamps differ. |
+| P0-011 — Trust/support | Threshold LLC pages, export and protected deletion implemented | Correspondence address and retention/processor review; external Auth/uploaded-file/backup cleanup acceptance separately from database deletion. |
+| P0-012 — Test environment/CI | Node 22 regression, integration, build, desktop/mobile and accessibility run in Auth Smoke | Required-check enforcement, full legacy migration-chain/hosted Auth/provider acceptance and physical-phone script. No paid staging approved. |
+| P0-013 — Backend/authorization parent | A complete; B/C implemented; D remains acceptance work | Close the remaining slice criteria below before closing the parent. |
+| P0-013A — Release baseline | Checked historical baseline; current main/deployment/schema refreshed in this audit | Recheck immediately before any authorized release; baseline is not account acceptance. |
+| P0-013B — Research authorization | Canonical admin guard and signed-handler tests merged | Verify deployed non-admin denial without mutations; privileged CRUD remains isolated. |
+| P0-013C — Readiness/alerts | Bounded readiness and tagged failure reporting implemented | Accept or resolve reduced alerting scope; external rule/monitor previously declined. Live failure behavior is not established by healthy probes. |
+| P0-013D — Isolation/revocation | Local isolation tests and earlier schema audit exist | Hosted cross-athlete/revoked access, privileged routes, current RLS and real-role acceptance; recheck historical COROS RLS finding before any narrowly scoped repair. |
+| P0-014 — Workout reliability | PR #130 merged | Production lacks `activity_match_mode` and decision RPC; apply exact reviewed migration after authorization, then verify import/correction/retry/timezone behavior and phone timing. |
+| P0-015 — Messaging | PR #131 merged; durable server drafts, exact counts and private leased email outbox implemented | Production lacks `coach_messages` and the lifecycle schema. Review missing prerequisites, then exact migration; hosted Data API/advisors, worker contention, two-account/reconnect/revocation/phone and consenting real-mailbox acceptance remain. |
+| P0-016 — Athlete navigation | Daily-loop navigation/Today implementation merged | Physical-phone agenda, non-drag editing, retained context and accessible full-loop acceptance. |
+| P0-017 — AI deferral/claims | PR #132 merged and deployed; final PR evidence reports 419 regression, 4 integration and 129 browser passes / 3 skips | Deployed guard/no-deferred-requests and existing participant-data preservation acceptance. No further deferral build is queued. |
+| P0-018 — Usability/retention | CI coverage exists; required enforcement unverified; observation not completed | Prepare measurement sheet and first-session script now; verify required checks, then observe one coach/up to five athletes for two weeks after technical gates pass. Time planning/check-in/logging; record saves, support, unread failures, corrections and repeat use. Compare representative TrainingPeaks tasks before parity claims. |
+
+#### Execution order
+
+1. **Release readiness first (P0-014/015/013):** review the exact source and current
+   target prerequisites. Production currently lacks the workout-match column/RPC,
+   `coach_messages`, `coach_shared_docs`, and messaging preferences/lifecycle functions.
+   P0-015's merged source is `20261008231639_message_delivery_and_drafts.sql` from PR #131;
+   do not deploy the superseded `20261007200545_messaging_delivery.sql` from the separate
+   local branch. Review missing legacy message/document dependencies individually.
+   P0-014's exact source remains `20261007162647_workout_match_decisions.sql`.
+   No broad `supabase db push`, automatic history repair or production write is authorized here.
+2. **Next bounded work batch (P0-018 preparation, about one to two hours):** verify
+   branch protection/rulesets and required Auth Smoke check; prepare a simple task-time,
+   error and repeat-use record plus a moderated first-session script. CI running is
+   already implemented; the last PR audit could not read classic branch protection
+   (403) and found no public rulesets, so enforcement remains unverified.
+3. **Controlled acceptance:** once dependencies work, run the normal coach/athlete
+   enrollment, entitlement, check-in, workout, message, draft, unread and revocation
+   journeys on desktop and a physical phone. Use the separately approved labelled QA
+   pair within `QA_ACCOUNTS.md` scope; no real billing/destructive production tests.
+   Opt-in message email needs verified provider and protected POST scheduler setup.
+4. **Observe and close M0:** seven normal check-in days and the two-week P0-018 study
+   take actual elapsed days. Resolve remaining provider/billing/trust/authorization gates,
+   close only evidenced parent criteria, then advance to M1 calendar work.
+
+#### Evidence checked in this audit
+
+- GitHub: PR #127 merged `2841ac8`; #130 `4f2038f`; #131 `66d941a`; #132 `1830b14`.
+  Fetched remote main is `1830b1478338dd8416f93260ad1f79ed2606e57c`.
+- Vercel: both public domains alias READY production deployment
+  `dpl_EJW3CheGpF7LbYKrxbKKh3KnNkeL`, whose Git source is the same #132 merge commit.
+- Supabase `jzfctjaaowdvubhqswpa`: read-only schema inventory confirms the missing
+  workout-match and coach-message/document objects. Recent migration history contains
+  only the October 4 tier/billing/Strava sources under remote versions `20261004125923`,
+  `20261004125933`, `20261004125934`; neither new workout/messaging migration is recorded.
+  Actual billing/Strava preflight returns `ready: true`: nine functions have service-only
+  execution and empty search paths; all three private tables have RLS and no client access.
+- Implementation evidence: `P0_WORKOUT_MATCH_VERIFICATION.md`,
+  `P0_015_MESSAGING_VERIFICATION.md`, `P0_017_AI_DEFERRAL_VERIFICATION.md`,
+  `P0_010_012_EXTERNAL_ACCEPTANCE.md`, and the parent checkpoints below. Test totals are
+  attributed to their recorded PR runs; this documentation audit did not rerun application
+  suites, exchange participant messages, send real email or perform production writes.
 
 ### Pilot blockers
 
@@ -218,6 +292,8 @@ athlete, and use the experience on a phone without Tad or an administrator repai
   - Incomplete onboarding fields display an actionable error.
 
 - [ ] **P0-010 — Fix high-risk billing behavior before any pilot touches billing**
+  - October 9 verification: PR #127 is merged and live billing/Strava preflight passes.
+    The earlier migration-apply blocker is resolved; provider/application acceptance remains open.
   - October 1 P0-010A local checkpoint: read-only billing review; protected JSON POST for checkout,
     portal and sync; signed expiring price/account/subscription reviews; Stripe hosted explicit
     plan-change confirmation; idempotent checkout/customer creation and unfinished-checkout reuse;
@@ -238,6 +314,8 @@ athlete, and use the experience on a phone without Tad or an administrator repai
   - Tests cover upgrade, downgrade, repeat submission, failed payment, and webhook replay/order.
 
 - [ ] **P0-011 — Publish minimum trust and support surfaces**
+  - October 9 reconciliation: merged PR #127 identifies Threshold LLC; operator identity
+    is supplied. Address, retention/processor review and external cleanup acceptance remain open.
   - October 1 local checkpoint: public Privacy/Terms/Support pages, user-provided support email,
     coach-sharing/cancellation copy, protected paginated personal archive, typed revocable-session
     deletion with billing failure stop, and Strava attribution. Desktop/mobile, keyboard and axe
@@ -317,8 +395,8 @@ in place. Existing milestones remain the larger parity roadmap.
     revoked coach access, privileged routes, staging RLS, and outstanding P0-003 real-account tests.
     Record evidence and complete the parent only after every remaining criterion passes.
 
-  First-session scope: A plus the focused B repair if feasible; stop before C or any P0-014–018 work.
-  If Supabase remains unavailable, continue B locally and document the blocked staging checks.
+  Historical first-session scope was A plus the focused B repair. The current verified queue
+  above supersedes that scope; C and P0-014–017 now have implementation checkpoints.
 
 - [ ] **P0-014 — Reliable workout creation and logging**
   - October 7 match-correction checkpoint ([merged PR #130](https://github.com/tadschweizer/Ultra_OS/pull/130), implementation `efed738`): durable confirm/reject/replace/unlink and explicit automatic restore; owner-scoped imported actuals, duplicate-link protection, stale conflicts, retry-safe decisions and cross-range calendar placement. Node 22 regression 403/403; critical browser 103 passed / 3 skips; daily-loop browser 24/24; build and isolated PostgreSQL checks pass. See `P0_WORKOUT_MATCH_VERIFICATION.md`. Exact new migration and controlled deployed/physical-phone acceptance remain open; no production writes.
@@ -334,6 +412,8 @@ in place. Existing milestones remain the larger parity roadmap.
   - Returning athlete target: log completion within 30 seconds, excluding optional written notes.
 
 - [ ] **P0-015 — One dependable messaging experience**
+  - October 9 verification: PR #131 merged as `66d941a` and its app code is deployed in
+    #132. Its migration and legacy message prerequisites remain absent in production.
   - October 8 local implementation checkpoint ([PR #131](https://github.com/tadschweizer/Ultra_OS/pull/131), code `6cea21d`): server-persisted/versioned per-recipient drafts, retry-safe atomic send/outbox, shared all-history unread summaries, owned email/badge preferences, generic private-content-free alerts, leased bounded delivery worker, delivery status and scoped account export. Node 22 regression 415/415, integration 4/4, critical browser 115 passed / 3 existing skips and build pass; SQL and desktop/mobile evidence in `P0_015_MESSAGING_VERIFICATION.md`. Target-schema migration, protected scheduler/provider activation, hosted advisors and real phone/mailbox acceptance remain open. No production writes or real emails.
   - October 5 local implementation checkpoint: one canonical composer, four-second refresh, per-recipient drafts, durable retries, cursor history and loaded-message read acknowledgements.
     Node 22 regression 394/394; critical browser suite 89 passed / 3 viewport skips; expanded
@@ -358,6 +438,8 @@ in place. Existing milestones remain the larger parity roadmap.
   - Verify a phone agenda view and non-drag editing; retain calendar context after mutations.
 
 - [ ] **P0-017 — Defer AI and align product claims**
+  - October 9 verification: PR #132 merged as `1830b14`; production is READY on that
+    source. Verify deployed behavior and preserved participant data before closing acceptance.
   - October 8 local checkpoint: immutable release capability blocks four Exa endpoints, research draft generation and direct library calls; automatic race/protocol UI is deferred. Manual catalog/race entry, human research editing and deterministic calculations remain. Landing and pilot claims now describe the available manual loop. Node 22 regression 418/418, integrations 4/4, build, focused browser 12/12 and expanded critical browser 127 passed / 3 existing skips. Evidence: `P0_017_AI_DEFERRAL_VERIFICATION.md`. Controlled deployed acceptance remains open.
   - Inventory AI labels, generation/search/enrichment routes, scheduled work, and deterministic logic.
   - Disable deferred generation on the server and remove its pilot UI entry points and sales claims.
@@ -692,6 +774,8 @@ accounts are unavailable; the previous INACTIVE observation below is historical.
 | 2026-09-28 | Do not add a Sentry alert rule or uptime monitor | Owner declined; keep the readiness check manual for the closed pilot |
 
 ## Progress log
+
+October 9 P0 deliverables audit: verified merged PRs #130/#131/#132, fetched main `1830b14`, matching READY production and read-only Supabase schema/grants. Merged PR #131 supersedes the unmerged feature/p0-messaging-delivery implementation and its different migration. Added a complete P0-001–018 / P0-013A–D closure matrix and ordered next queue: release prerequisites, P0-018 measurement/required-CI preparation, controlled phone/two-account acceptance, then elapsed pilot observation. Billing/Strava migration repair is confirmed; workout/message/document schema gaps remain. No parent checkbox advanced, application suite rerun or production write.
 
 October 8 P0-015 checkpoint: [PR #131](https://github.com/tadschweizer/Ultra_OS/pull/131), implementation `6cea21d`, completes the local durable-draft/unread/notification batch. PostgreSQL and actual signed-session handler checks verify persistence, stale tabs, exact retries after lost commit responses, atomic rollback, all-history counts, owned preferences, protected worker leases, retry/expiry bounds, revoked/unverified recipients, RLS/grants and account cascades. Full regression 415/415; integration 4/4; critical browser 115 passed / 3 existing skips; Node 22 build passes. Browser evidence, limitations, remaining P0 list and exact release order: `P0_015_MESSAGING_VERIFICATION.md`. PR #130 is confirmed merged on main `4f2038f`. P0-015 and other parent items remain open for controlled release/live acceptance; next implementation is P0-017. No production deployment/database/configuration change or real notification email.
 
