@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
 Last updated: 2026-10-09<br>
-Status: The owner-authorized October 9 Supabase release is applied: message/document/group prerequisites, workout-match decisions, messaging lifecycle and three follow-up foreign-key indexes. Hosted QA exposed a PostgREST conflict retry loop; a fifth repair uses stable PT409 responses for drafts, sends and workout decisions. Live metadata readiness and all ten hosted Data API checks pass. PR #133 includes the complete P0 audit, schema-aware readiness, document/session revocation and retry-safe membership; application rollout awaits final-head CI. Local regression 432/432, integration 4/4 and critical browser 129 passed / 3 existing skips. Parent acceptance remains open.<br>
+Status: PR #133 merged as `1d1e0b6` and is deployed READY on both public domains. Six targeted Supabase sources repair pilot prerequisites, workout decisions, messaging lifecycle, foreign-key indexes, stable conflict responses and legacy notification preferences. Both readiness checks and all eleven hosted Data API contracts pass. Actual signed QA passes drafts, two-way messages/notifications, exact unread counts, concurrent leases, group retries, workout corrections and relationship/session revocation. Final regression 432/432, focused release 22/22, integration 4/4, build and final-head CI pass. Real-mailbox, fresh-account, physical-phone and participant acceptance remain open.<br>
 Current milestone: M0 — make the closed coach pilot work end to end<br>
-Next item: Finish the authorized PR #133 application release after final-head CI; verify production readiness and approved post-enrollment QA journeys. Fresh-account enrollment, actual phone timing, protected email-worker/provider activation and two-week participant observation remain separate gates. Technical readiness work does not need participant feedback.
+Next item: P0-015 email provider/protected POST scheduler setup and consenting real-mailbox acceptance; verify fresh-account enrollment and the physical-phone M0 loop, then collect the prepared P0-018 measurements. The database/app technical release is complete; do not reapply its migrations or rebuild the merged drafts/unread implementation. Keep parent checkboxes open until their remaining acceptance criteria pass.
 
 ## Purpose
 
@@ -150,8 +150,8 @@ No checkbox is advanced by this documentation audit.
 
 #### Execution order
 
-1. **Release readiness first (P0-014/015/013):** database sources are applied; finish
-   final-head CI and the authorized PR #133 app release. The prepared release
+1. **Release readiness first (P0-014/015/013):** database sources are applied; final-head CI and the authorized PR #133 app release are complete. Continue with
+   the remaining provider/physical-phone acceptance gates. The prepared release
    in `PILOT_TECHNICAL_READINESS.md`, starting with the new targeted prerequisite repair.
    Review the exact source and current
    target prerequisites. The October 9 application resolves the previously missing workout-match column/RPC,
@@ -889,3 +889,22 @@ and requires it in schema readiness. Live signed QA now verifies coach-to-athlet
 athlete replies/coach notification, exact unread 1 then 0, draft reload and send retries.
 The hosted GET-only verifier now checks eleven contracts, including full workout columns.
 Email remains off; the labelled QA pair does not establish mailbox delivery.
+
+### Final deployed technical evidence — October 9
+
+PR #133 merged `1d1e0b6`; final-head [Auth Smoke run 161](https://github.com/tadschweizer/Ultra_OS/actions/runs/37990325629)
+and Vercel checks passed. READY production `dpl_GsKkYVtBW87jTCmbXrkfREp5v8QG`
+serves that Git source. Both domains pass health/schema readiness and all eleven hosted
+Data API contracts pass. Exact six-source mappings and live QA outcomes are in
+`PILOT_TECHNICAL_READINESS.md`. These final results supersede the earlier pending-rollout
+notes in this session's checkpoints.
+
+Signed live QA verifies drafts, send retries, two-way messages and coach notification,
+exact unread 1 then 0, group membership retry/roster denial, documents, workout
+reject/auto persistence and stale-edit 409, non-admin research denial, concurrent
+notification leases/fencing, relationship revocation and stale-session 401. Only the
+labelled pair received test records; temporary relationship/session/outbox/preference
+changes were restored. No email was sent, and email preference availability remains off.
+Final regression 432/432 and focused release 22/22 pass. No P0 parent is closed by
+these checks alone: actual phone, enrollment, provider/mailbox and elapsed-day participant
+gates remain. No paid staging or repository protection configuration was changed.

@@ -1,7 +1,9 @@
 # Pilot technical readiness without participant feedback
 
-Prepared October 9, 2026. Review: PR #133. This package prepares the system to
-work before usability observation. It does not claim production repair or pilot acceptance.
+Released October 9, 2026 through merged PR #133 (`1d1e0b6`). Production deployment
+`dpl_GsKkYVtBW87jTCmbXrkfREp5v8QG` serves that commit on both public domains.
+Database repair and technical QA are verified below. Participant/phone and real-mailbox
+acceptance remain open; this does not close every P0 parent.
 
 ## What can be completed independently
 
@@ -43,7 +45,8 @@ or fail. Signed-handler/SQL tests cover persistence, isolation and revocation.
 ## Exact release package — owner authorized October 9
 
 Target: existing UltraOS Supabase project **`jzfctjaaowdvubhqswpa`**.
-Apply these sources in this order, individually, after reviewing current preflight:
+These six sources are already applied. Do not replay them on this project. For a
+separately reviewed target with the same missing prerequisites, their dependency order is:
 
 | Order | Exact source in `webapp/supabase/migrations/` | Purpose |
 | --- | --- | --- |
@@ -72,7 +75,7 @@ activating a real provider or protected POST scheduler is a separate reviewed ac
    Before this exact package, require `repair_allowed: true`, an empty
    `missing_base_columns` list and `duplicate_activity_links: 0`. Missing or partially
    present objects require a fresh review; never delete duplicates to make a check pass.
-3. Apply only the three exact sources in the table, checking success after each.
+3. Apply only the exact reviewed sources in the table, checking success after each.
    A partial failure stops release. Do not retry an already applied migration blindly.
 4. Rerun the read-only preflight. Require `ready: true`. Run hosted security/performance
    advisors and resolve findings introduced by this release before application rollout.
@@ -215,3 +218,37 @@ PT409 is prompt at the database/API layer; the old app maps it to 503 until the 
 head rolls out. Final release must repeat conflict acceptance with actual HTTP 409.
 The expanded GET-only verifier includes athlete preferences and all calendar-selected
 workout columns, for eleven contracts in total.
+
+## Final application release and live acceptance — October 9, 21:09 UTC
+
+- Final PR head `bd95983` passed [Auth Smoke run 161](https://github.com/tadschweizer/Ultra_OS/actions/runs/37990325629)
+  and Vercel status. PR #133 merged as `1d1e0b6188ba9538a60a2820fb8b8ff081ce0fd7`.
+  Production deployment `dpl_GsKkYVtBW87jTCmbXrkfREp5v8QG` is READY with that Git source.
+- Both `mythreshold.co` and `www.mythreshold.co` return 200 for health and readiness;
+  readiness reports database and schema `ok`. All eleven hosted GET-only Data API
+  contracts pass, including full calendar columns and athlete preferences.
+- Actual signed QA verifies draft persistence, identical-send retry deduplication,
+  matching draft removal, coach/athlete delivery, exact unread 1 then 0, and the
+  coach notification. The real Messages UI saves/reloads a draft and sends it once;
+  the 390 px layout fits the viewport. This is browser emulation, not physical-phone acceptance.
+- Final deployed draft conflict returns 409 promptly. Assigned workout reject/auto
+  decisions persist; a stale correction returns 409. Non-admin research access returns 403.
+- Shared document visibility passes. Adding the QA athlete to a new QA group twice
+  returns 200 and stores one membership; an out-of-roster add is rejected. Only that
+  newly created QA group was removed after the check.
+- Hosted concurrent claim requests lease exactly one QA notification job. Stale and
+  reused completion leases are rejected. No provider request/email is made; QA preference
+  and outbox state are restored. The queue is empty and there are no email opt-ins afterward.
+- Temporarily pausing only the labelled QA relationship hides its document and denies
+  coach document access, draft access and message sending with 403. Rotating only that
+  QA athlete session invalidates document/inbox reads with 401. Relationship and session
+  state are restored; no ordinary account or billing record is changed.
+- Local final regression **432/432**, focused release **22/22**, integration **4/4**,
+  build passed; final-head CI reran the full desktop/mobile critical journeys successfully.
+
+The independent production technical checks are complete for this package. Email alerts
+remain unavailable/off until provider and protected POST scheduler activation is reviewed
+and configured; no real mailbox delivery is claimed. Fresh-account enrollment, actual
+phone task timing, seven check-in days and two-week observation remain human/provider
+acceptance work. Existing legacy security/performance advisories and required-check
+enforcement are recorded separately, rather than marked resolved by this release.

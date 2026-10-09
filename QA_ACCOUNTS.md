@@ -61,3 +61,15 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\qa-browser.ps1 -Mo
 
 Investigate migration/schema history before preparing a narrowly scoped repair. Do not run
 a broad migration push. The production schema was not changed during these checks.
+
+## October 9 release recheck
+
+PR #133 and six targeted Supabase repairs resolve the missing messaging/document/group
+dependencies. The approved pair signs in normally and passes two-way messaging, coach
+notifications, exact unread counts, saved draft reload/send/retry, group retries, shared
+documents and workout reject/auto/stale-edit checks. Non-admin research access is denied.
+Scoped relationship/session revocation checks pass, with temporary state restored.
+Hosted concurrent notification leases/fencing pass without sending email; preference
+and outbox state are restored. See `PILOT_TECHNICAL_READINESS.md` for release mappings
+and evidence. Email remains off; this pair still does not prove enrollment, mailbox
+delivery or physical-phone/participant acceptance.
