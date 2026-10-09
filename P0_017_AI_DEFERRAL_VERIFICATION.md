@@ -1,6 +1,6 @@
 # P0-017: pilot assistance deferral and product claims
 
-Date: 2026-10-08. Branch: `feature/p0-017-ai-deferral`, stacked on P0-015 PR #131 at `46c5492`. Implementation: [draft PR #132](https://github.com/tadschweizer/Ultra_OS/pull/132), code `6af6629`. This checkpoint covers code and isolated verification, not a production release.
+Date: 2026-10-08. Branch: `feature/p0-017-ai-deferral`, stacked on P0-015 PR #131 at `46c5492`. Implementation: [PR #132](https://github.com/tadschweizer/Ultra_OS/pull/132), code `6af6629`. This checkpoint covers code and isolated verification, not a production release.
 
 ## Release policy
 
@@ -45,6 +45,6 @@ Server tests call the actual API handlers with signed session cookies and attemp
 
 ## Release and remaining work
 
-Review and merge PR #131 first, then retarget this stacked PR to main and verify the resulting head. P0-015's documented migration and delivery-worker prerequisites still apply to the combined release. P0-017 adds no database migration or service configuration. A controlled release must check the deployed guard, absence of deferred requests and preservation of existing participant data before P0-017's parent checkbox is closed.
+Tad authorized merging the current PRs on October 8. PR #132 is retargeted to main and includes the resolved PR #131 integration branch and PR #128. Verify the combined head before merging. P0-015's documented migration and delivery-worker prerequisites still apply to the combined release. P0-017 adds no database migration or service configuration. A controlled release must check the deployed guard, absence of deferred requests and preservation of existing participant data before P0-017's parent checkbox is closed.
 
 Next roadmap item is P0-018: the expanded build/regression/critical journeys already run in CI, but required-check configuration, measured task times, two-week real coach/athlete observation and TrainingPeaks task comparisons remain open. P0-014/015/016 release and physical-phone acceptance and the earlier M0 external gates remain open. See the roadmap and P0-015 verification document for the complete remaining P0 list.
