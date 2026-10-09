@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
 Last updated: 2026-10-09<br>
-Status: PRs #130, #131 and #132 are merged. Remote main is `1830b14`; `mythreshold.co` serves READY production deployment `dpl_EJW3CheGpF7LbYKrxbKKh3KnNkeL` on that commit. Read-only Supabase checks still find the workout-match and messaging schema missing. Code deployment therefore does not establish a working pilot. Billing/Strava schema preflight passes. See the verified P0 status and next-work queue below. Parent acceptance remains open.<br>
+Status: PRs #130/#131/#132 are merged; production serves `1830b14`. Live read-only SQL/Data API checks still confirm missing workout-match, messaging, document and group dependencies. PR #133 now includes the complete P0 audit plus a targeted prerequisite repair, schema-aware readiness, document/session revocation and retry-safe group membership. Local Node 22 regression 431/431, integrations 4/4, build and critical browser 129 passed / 3 existing skips pass. Production repair/release and real-pilot acceptance remain open.<br>
 Current milestone: M0 — make the closed coach pilot work end to end<br>
-Next item: P0-018 preparation: confirm required CI enforcement and prepare the timed coach/athlete observation record. Before participant observation, resolve P0-014/015 migration prerequisites, shared-document schema repair and controlled two-account/physical-phone acceptance. P0-017 is already merged and deployed; verify its deployed behavior rather than rebuild it. Production migration/provider/configuration changes require explicit authorization; no paid staging is authorized.
+Next item: Review and authorize the exact three-source technical release in `PILOT_TECHNICAL_READINESS.md` (new prerequisite repair, merged PR #130 workout-match source, merged PR #131 lifecycle source), then verify hosted Data API and the approved QA pair. P0-018 measurement preparation is ready; actual phone timing and two-week participant observation remain open. Technical readiness work does not need participant feedback. No production write/provider activation or paid staging is authorized by this preparation.
 
 ## Purpose
 
@@ -93,6 +93,27 @@ Checkbox meanings:
 Goal: One coach can sign up, invite an athlete, receive daily check-ins, plan/review work, message the
 athlete, and use the experience on a phone without Tad or an administrator repairing records by hand.
 
+### Technical readiness without waiting for feedback — October 9
+
+The complete audit below still controls parent closure. [PR #133](https://github.com/tadschweizer/Ultra_OS/pull/133)
+now prepares the technical release; it does not apply it. See `PILOT_TECHNICAL_READINESS.md`
+for the exact three-source order, safe read-only preflight, hosted API check and rollback.
+`pilot-observation.csv` is a blank measurement record; no participant timings were invented.
+
+- New repair source: `20261009201251_pilot_release_prerequisites.sql`, applied first.
+  It creates missing message/document/group membership tables, adds the missing group
+  description field and installs service-only metadata readiness. Existing-object or
+  partial-release collisions stop the reviewed release; existing participant history stays intact.
+- `/api/ready` now requires feature schema as well as database connectivity. Shared
+  documents honour revoked sessions/relationships; group adds retry on the composite key.
+- Combined isolated SQL/actual signed handlers and transport checks are included in
+  required CI regression execution: **431/431** local tests; integrations **4/4**;
+  production build passed; desktop/mobile critical **129 passed / 3 existing skips**.
+- Live preflight: `repair_allowed: true`, no missing base columns, zero duplicate links;
+  current `ready: false`. GET-only zero-row hosted API checks confirm missing dependencies.
+- CI enforcement remains unverified: rulesets `[]`, classic protection denied (403).
+  Measurement preparation is complete; enforced required checks and participant observation are not.
+
 ### Verified P0 deliverables and next work — October 9
 
 This snapshot supersedes older “draft”, “next implementation” and missing billing-schema
@@ -127,7 +148,9 @@ No checkbox is advanced by this documentation audit.
 
 #### Execution order
 
-1. **Release readiness first (P0-014/015/013):** review the exact source and current
+1. **Release readiness first (P0-014/015/013):** use the prepared three-source release
+   in `PILOT_TECHNICAL_READINESS.md`, starting with the new targeted prerequisite repair.
+   Review the exact source and current
    target prerequisites. Production currently lacks the workout-match column/RPC,
    `coach_messages`, `coach_shared_docs`, and messaging preferences/lifecycle functions.
    P0-015's merged source is `20261008231639_message_delivery_and_drafts.sql` from PR #131;
@@ -137,7 +160,8 @@ No checkbox is advanced by this documentation audit.
    No broad `supabase db push`, automatic history repair or production write is authorized here.
 2. **Next bounded work batch (P0-018 preparation, about one to two hours):** verify
    branch protection/rulesets and required Auth Smoke check; prepare a simple task-time,
-   error and repeat-use record plus a moderated first-session script. CI running is
+   error and repeat-use record plus a moderated first-session script (now prepared in
+   `pilot-observation.csv` and `PILOT_TECHNICAL_READINESS.md`). CI running is
    already implemented; the last PR audit could not read classic branch protection
    (403) and found no public rulesets, so enforcement remains unverified.
 3. **Controlled acceptance:** once dependencies work, run the normal coach/athlete
@@ -774,6 +798,8 @@ accounts are unavailable; the previous INACTIVE observation below is historical.
 | 2026-09-28 | Do not add a Sentry alert rule or uptime monitor | Owner declined; keep the readiness check manual for the closed pilot |
 
 ## Progress log
+
+October 9 technical readiness preparation (PR #133): traced live group description/membership gaps in addition to the message/document and workout/lifecycle gaps. Prepared exact prerequisite repair and a read-only before/after preflight; combined all three release sources in isolated SQL, with grant/RLS/index/function failure checks. Added schema-aware readiness, document session/relationship revocation and retry-safe group membership plus a GET-only zero-row Data API verifier. Node 22 regression 431/431; integrations 4/4; build; critical desktop/mobile browser 129 passed / 3 existing skips. Measurement CSV/script prepared; CI required enforcement remains unreadable/unverified. No production migration, app release, provider activation or participant observation.
 
 October 9 P0 deliverables audit: verified merged PRs #130/#131/#132, fetched main `1830b14`, matching READY production and read-only Supabase schema/grants. Merged PR #131 supersedes the unmerged feature/p0-messaging-delivery implementation and its different migration. Added a complete P0-001–018 / P0-013A–D closure matrix and ordered next queue: release prerequisites, P0-018 measurement/required-CI preparation, controlled phone/two-account acceptance, then elapsed pilot observation. Billing/Strava migration repair is confirmed; workout/message/document schema gaps remain. No parent checkbox advanced, application suite rerun or production write.
 

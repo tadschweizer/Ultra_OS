@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/nextjs';
 import { createClient } from '@supabase/supabase-js';
-import { databaseProbe, evaluateReadiness } from '../../lib/readiness.js';
+import { databaseProbe, schemaProbe, evaluateReadiness } from '../../lib/readiness.js';
 
 function getReadinessClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -33,7 +33,7 @@ export function createReadinessHandler({
       return;
     }
     const { ready, results } = await evaluateReadiness({
-      checks: { database: databaseProbe(getClient) },
+      checks: { database: databaseProbe(getClient), schema: schemaProbe(getClient) },
       timeoutMs,
       now,
     });

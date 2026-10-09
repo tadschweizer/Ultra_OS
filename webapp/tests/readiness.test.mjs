@@ -8,7 +8,10 @@ function response() {
   return { code: null, body: null, headers: {}, setHeader(k, v) { this.headers[k] = v; },
     status(code) { this.code = code; return this; }, json(body) { this.body = body; return this; } };
 }
-const clientReturning = (result) => () => ({ from() { return { select() { return { limit: async () => result }; } }; } });
+const clientReturning = (result, schema = { data: true }) => () => ({
+  from() { return { select() { return { limit: async () => result }; } }; },
+  async rpc(name) { assert.equal(name, 'pilot_schema_readiness'); return schema; },
+});
 async function call(options, method = 'GET') {
   const alerts = [];
   const handler = createReadinessHandler({ alert: (r) => alerts.push(r), ...options });
@@ -29,8 +32,27 @@ test('ready: healthy database returns 200 with no alert', async () => {
   assert.equal(res.code, 200);
   assert.equal(res.body.status, 'ready');
   assert.equal(res.body.checks.database.status, 'ok');
+  assert.equal(res.body.checks.schema.status, 'ok');
   assert.equal(res.headers['Cache-Control'], 'no-store');
   assert.equal(alerts.length, 0);
+});
+
+test('reachable database with missing release schema returns 503 without leaking metadata', async () => {
+  for (const schema of [{ data: false }, { data: null }, { data: 'true' },
+    { error: { message: 'private missing coach_messages' } }]) {
+    const { res, alerts } = await call({ getClient: clientReturning({ data: [] }, schema) });
+    assert.equal(res.code, 503);
+    assert.equal(res.body.checks.database.status, 'ok');
+    assert.equal(res.body.checks.schema.status, 'down');
+    assert.equal(alerts.length, 1);
+    assert.equal(JSON.stringify(res.body).includes('coach_messages'), false);
+  }
+});
+
+test('HEAD performs the same dependency readiness checks', async () => {
+  const { res } = await call({ getClient: clientReturning({ data: [] }, { data: false }) }, 'HEAD');
+  assert.equal(res.code, 503);
+  assert.equal(res.body.checks.schema.status, 'down');
 });
 
 test('not ready: database error returns 503, alerts, and leaks no provider detail', async () => {
