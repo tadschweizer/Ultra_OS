@@ -69,7 +69,7 @@ function client(pg) {
   };
 }
 
-async function fixture() {
+async function fixture({ stravaConnected = true } = {}) {
   const pg = new PGlite();
   await pg.exec(`create role anon; create role authenticated; create role service_role bypassrls;
     create schema auth; create function auth.uid() returns uuid language sql as 'select null::uuid';
@@ -96,7 +96,10 @@ async function fixture() {
   const admin = client(pg);
   const handler = createPlannedWorkoutsHandler({ getAdmin: () => admin,
     resolveAthlete: async req => (await resolveEffectiveAthleteId(req, admin)).athleteId,
-    fetchActivities: async (_admin, actor, start, end) => JSON.parse(JSON.stringify((await pg.query('select * from strava_activities where athlete_id=$1 and local_date between $2 and $3',[actor,start,end])).rows)),
+    fetchActivities: async (_admin, actor, start, end) => ({
+      activities: JSON.parse(JSON.stringify((await pg.query('select * from strava_activities where athlete_id=$1 and local_date between $2 and $3',[actor,start,end])).rows)),
+      stravaConnected,
+    }),
   });
   const row = async (id = plan) => (await pg.query('select * from planned_workouts where id=$1',[id])).rows[0];
   async function invoke(body = {}, { actor = owner, method = 'PATCH', query = {} } = {}) {
@@ -180,6 +183,7 @@ test('calendar GET reserves confirmed activities from plans outside the range an
     assert.equal(result.body.workouts.find(w=>w.id===secondPlan).status,'planned'); assert.equal(result.body.activities.length,0);
     assert.equal(result.body.workouts.find(w=>w.id===plan).display_date,'2026-10-04');
     assert.equal(result.body.match_activities[0].linked_workout_id,plan);
+    assert.equal(result.body.import_source.strava_connected,true);
     result = await f.invoke({}, {method:'GET',query:{start:'2026-09-01',end:'2026-09-01'}});
     assert.equal(result.code,200,JSON.stringify(result.body)); assert.equal(result.body.workouts[0].linked_activity.id,activity);
     assert.equal(result.body.workouts[0].display_date,'2026-10-04');
@@ -230,4 +234,18 @@ test('calendar link lookup is batched and retains confirmed sessions beyond one 
     assert.equal(result.body.match_activities.filter(a=>a.linked_workout_id).length,105);
     assert.equal(result.body.activities.filter(a=>a.name==='Historical linked run').length,0);
   } finally {await f.pg.close();}
+});
+
+
+test('calendar reports disconnected imports while retaining stored activities and match candidates', async () => {
+  const f = await fixture({ stravaConnected: false });
+  try {
+    await f.pg.query("update planned_workouts set activity_match_mode='manual' where athlete_id=$1", [owner]);
+    const result = await f.invoke({}, { method: 'GET', query: { start: '2026-10-04', end: '2026-10-05' } });
+    assert.equal(result.code, 200, JSON.stringify(result.body));
+    assert.equal(result.body.import_source.strava_connected, false);
+    assert.ok(result.body.workouts.length > 0);
+    assert.ok(result.body.activities.some(a => a.id === replacement));
+    assert.ok(result.body.match_activities.some(a => a.id === activity));
+  } finally { await f.pg.close(); }
 });

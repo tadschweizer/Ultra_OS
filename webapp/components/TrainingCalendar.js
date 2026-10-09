@@ -1454,7 +1454,7 @@ function ProgressMeter({ label, actual, planned, formatValue, unit = '' }) {
   );
 }
 
-export default function TrainingCalendar({ athleteId = null, role = 'athlete' }) {
+export default function TrainingCalendar({ athleteId = null, athleteName = '', role = 'athlete' }) {
   const router = useRouter();
   const anchorMonday = useMemo(() => mondayOf(new Date()), []);
   const [pastWeeks, setPastWeeks] = useState(INITIAL_PAST_WEEKS);
@@ -1463,6 +1463,8 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
   const [notes, setNotes] = useState([]);
   const [events, setEvents] = useState([]);
   const [activities, setActivities] = useState([]);
+  // Assume connected until the server says otherwise so the notice never flashes.
+  const [stravaConnected, setStravaConnected] = useState(true);
   const [matchActivities, setMatchActivities] = useState([]);
   const [library, setLibrary] = useState([]);
   const [distanceUnitPref, setDistanceUnitPref] = useState('mi');
@@ -1506,6 +1508,7 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
       const workoutsData = await workoutsRes.json();
       setWorkouts(workoutsData.workouts || []);
       setActivities(workoutsData.activities || []);
+      setStravaConnected(workoutsData.import_source?.strava_connected !== false);
       setMatchActivities(workoutsData.match_activities || []);
       if (notesRes?.ok) {
         const notesData = await notesRes.json();
@@ -1918,6 +1921,15 @@ export default function TrainingCalendar({ athleteId = null, role = 'athlete' })
       </div>
 
       {error && <p role="alert" className="mt-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>}
+
+      {/* Without an import source, an empty calendar means "nothing synced",
+          not "didn't train" — say so, so the coach doesn't read it as a bug. */}
+      {role === 'coach' && !loading && !stravaConnected && (
+        <p className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          {`${athleteName || 'This athlete'} hasn’t connected Strava. Assigned workouts, manually logged workouts, `
+            + 'and previously imported activities can still appear here. New Strava activities won’t import until they connect.'}
+        </p>
+      )}
 
       {/* Library panel */}
       {role === 'coach' && libraryOpen && (

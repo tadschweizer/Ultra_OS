@@ -104,8 +104,11 @@ async function fetchActivitiesForRange(admin, athleteId, start, end) {
   const needsHistory = Number.isFinite(rangeStartMs)
     && rangeStartMs < Date.now() - INCREMENTAL_WINDOW_MS;
 
-  await syncAthleteActivities(admin, athleteId, needsHistory ? { since: `${start}T00:00:00Z` } : {});
-  return getStoredActivities(admin, athleteId, start, end);
+  const sync = await syncAthleteActivities(admin, athleteId, needsHistory ? { since: `${start}T00:00:00Z` } : {});
+  const activities = await getStoredActivities(admin, athleteId, start, end);
+  // The sync reports not_connected before any throttling, so this is reliable
+  // on every request. It lets a coach tell "no training" from "no import source".
+  return { activities, stravaConnected: sync?.reason !== 'not_connected' };
 }
 
 /**
@@ -223,7 +226,7 @@ return async function handler(req, res) {
         ? req.query.end
         : toDateKey(defaultEnd);
 
-      const [{ data: rangeWorkouts, error }, activities] = await Promise.all([
+      const [{ data: rangeWorkouts, error }, { activities, stravaConnected }] = await Promise.all([
         admin
           .from('planned_workouts')
           .select(WORKOUT_COLUMNS)
@@ -284,6 +287,7 @@ return async function handler(req, res) {
         match_activities: availableActivities.map((a) => ({ ...toCalendarActivity(a),
           linked_workout_id: linkOwners.get(String(a.id)) || null })),
         range: { start, end },
+        import_source: { strava_connected: stravaConnected },
       });
       return;
     }
