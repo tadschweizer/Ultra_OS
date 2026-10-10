@@ -1,0 +1,176 @@
+
+> threshold@0.1.0 build
+> next build
+
+[@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated and will be removed in a future version. Use webpack.treeshake.removeDebugLogging instead. (Not supported with Turbopack.)
+Γû▓ Next.js 16.2.11 (Turbopack)
+- Experiments (use with caution):
+  ┬╖ clientTraceMetadata
+
+ΓÜá The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Running TypeScript ...
+  Finished TypeScript in 88ms ...
+  Creating an optimized production build ...
+[@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated and will be removed in a future version. Use webpack.treeshake.removeDebugLogging instead. (Not supported with Turbopack.)
+Browserslist: browsers data (caniuse-lite) is 7 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+Γ£ô Compiled successfully in 5.9s
+  Running next.config.js provided runAfterProductionCompile ...
+Γ£ô Completed runAfterProductionCompile in 399ms
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/41) ...
+  Generating static pages using 7 workers (10/41)
+  Generating static pages using 7 workers (20/41)
+  Generating static pages using 7 workers (30/41)
+Γ£ô Generating static pages using 7 workers (41/41) in 166ms
+  Finalizing page optimization ...
+
+Route (pages)
+Γöî Γùï /
+Γö£   /_app
+Γö£ ╞Æ /404
+Γö£ Γùï /account
+Γö£ Γùï /admin
+Γö£ Γùï /admin/pilot-access
+Γö£ ╞Æ /api/account-export
+Γö£ ╞Æ /api/activities
+Γö£ ╞Æ /api/activity-details
+Γö£ ╞Æ /api/admin/athletes
+Γö£ ╞Æ /api/admin/demo
+Γö£ ╞Æ /api/admin/impersonate
+Γö£ ╞Æ /api/admin/integration-interest
+Γö£ ╞Æ /api/admin/pilot-access
+Γö£ ╞Æ /api/admin/recent-logs
+Γö£ ╞Æ /api/admin/set-tier
+Γö£ ╞Æ /api/athlete/shared-docs
+Γö£ ╞Æ /api/auth/change-password
+Γö£ ╞Æ /api/auth/login
+Γö£ ╞Æ /api/auth/logout
+Γö£ ╞Æ /api/auth/request-password-reset
+Γö£ ╞Æ /api/auth/resend-verification
+Γö£ ╞Æ /api/auth/reset-password
+Γö£ ╞Æ /api/auth/role-intent
+Γö£ ╞Æ /api/auth/session
+Γö£ ╞Æ /api/auth/sign-out-everywhere
+Γö£ ╞Æ /api/auth/signup
+Γö£ ╞Æ /api/billing/checkout
+Γö£ ╞Æ /api/billing/portal
+Γö£ ╞Æ /api/billing/preview
+Γö£ ╞Æ /api/billing/sync
+Γö£ ╞Æ /api/billing/webhook
+Γö£ ╞Æ /api/calendar-notes
+Γö£ ╞Æ /api/coach-assignments
+Γö£ ╞Æ /api/coach-connection
+Γö£ ╞Æ /api/coach-profile
+Γö£ ╞Æ /api/coach-roster
+Γö£ ╞Æ /api/coach/accept-invitation
+Γö£ ╞Æ /api/coach/athlete-detail
+Γö£ ╞Æ /api/coach/connection-requests
+Γö£ ╞Æ /api/coach/dashboard
+Γö£ ╞Æ /api/coach/groups
+Γö£ ╞Æ /api/coach/import-followup
+Γö£ ╞Æ /api/coach/invitations
+Γö£ ╞Æ /api/coach/messages
+Γö£ ╞Æ /api/coach/notes
+Γö£ ╞Æ /api/coach/profile-update
+Γö£ ╞Æ /api/coach/protocols
+Γö£ ╞Æ /api/coach/relationships
+Γö£ ╞Æ /api/coach/shared-docs
+Γö£ ╞Æ /api/coach/templates
+Γö£ ╞Æ /api/connectors/scheduler
+Γö£ ╞Æ /api/coros/callback
+Γö£ ╞Æ /api/coros/login
+Γö£ ╞Æ /api/coros/sync
+Γö£ ╞Æ /api/current-protocol-assignment
+Γö£ ╞Æ /api/delete-account
+Γö£ ╞Æ /api/exa/news-feed
+Γö£ ╞Æ /api/exa/race-enrich
+Γö£ ╞Æ /api/exa/race-search
+Γö£ ╞Æ /api/exa/training-content
+Γö£ ╞Æ /api/garmin/callback
+Γö£ ╞Æ /api/garmin/login
+Γö£ ╞Æ /api/garmin/sync
+Γö£ ╞Æ /api/health
+Γö£ ╞Æ /api/integration-interest
+Γö£ ╞Æ /api/integrations/status
+Γö£ ╞Æ /api/interventions
+Γö£ ╞Æ /api/invites
+Γö£ ╞Æ /api/log-intervention
+Γö£ ╞Æ /api/me
+Γö£ ╞Æ /api/message-center
+Γö£ ╞Æ /api/message-drafts
+Γö£ ╞Æ /api/message-preferences
+Γö£ ╞Æ /api/messages/deliver-pending
+Γö£ ╞Æ /api/notifications
+Γö£ ╞Æ /api/onboarding
+Γö£ ╞Æ /api/oura/callback
+Γö£ ╞Æ /api/oura/login
+Γö£ ╞Æ /api/oura/sync
+Γö£ ╞Æ /api/planned-workouts
+Γö£ ╞Æ /api/race-catalog
+Γö£ ╞Æ /api/race-events
+Γö£ ╞Æ /api/race-outcomes
+Γö£ ╞Æ /api/races
+Γö£ ╞Æ /api/ready
+Γö£ ╞Æ /api/research-library
+Γö£ ╞Æ /api/research-library/admin
+Γö£ ╞Æ /api/research-library/draft
+Γö£ ╞Æ /api/research-library/pubmed-search
+Γö£ ╞Æ /api/set-invite-cookie
+Γö£ ╞Æ /api/settings
+Γö£ ╞Æ /api/strava/callback
+Γö£ ╞Æ /api/strava/connection
+Γö£ ╞Æ /api/strava/login
+Γö£ ╞Æ /api/strava/refresh-pending
+Γö£ ╞Æ /api/strava/webhook/[token]
+Γö£ ╞Æ /api/ultrahuman/callback
+Γö£ ╞Æ /api/ultrahuman/login
+Γö£ ╞Æ /api/ultrahuman/sync
+Γö£ ╞Æ /api/webhooks/coros/activities
+Γö£ ╞Æ /api/workout-comments
+Γö£ ╞Æ /api/workout-export
+Γö£ ╞Æ /api/workout-library
+Γö£ Γùï /auth/callback
+Γö£ Γùï /billing/checkout
+Γö£ Γùï /calendar
+Γö£ Γùï /check-in
+Γö£ Γùï /coach-command-center
+Γö£ Γùï /coach/athletes/[athleteId]
+Γö£ Γùï /coach/groups
+Γö£ Γùï /coach/tools
+Γö£ Γùï /coach/training-calendar
+Γö£ ╞Æ /coaches
+Γö£ Γùï /connections
+Γö£ Γùï /content
+Γö£ Γùï /content/admin
+Γö£ Γùï /dashboard
+Γö£ Γùï /explorer
+Γö£ Γùï /forgot-password
+Γö£ Γùï /guide
+Γö£ Γùï /history
+Γö£ Γùï /insights
+Γö£ Γùï /interventions/[id]
+Γö£ Γùï /invite
+Γö£ Γùï /join
+Γö£ Γùï /log-intervention
+Γö£ Γùï /login
+Γö£ Γùï /messages
+Γö£ Γùï /notifications
+Γö£ Γùï /onboarding
+Γö£ Γùï /pricing
+Γö£ Γùï /privacy
+Γö£ Γùï /progress
+Γö£ Γùï /race-outcome
+Γö£ Γùï /race-plan
+Γö£ Γùï /races
+Γö£ Γùï /reset-password
+Γö£ Γùï /settings
+Γö£ Γùï /signup
+Γö£ Γùï /support
+Γöö Γùï /terms
+
+╞Æ Proxy (Middleware)
+
+Γùï  (Static)   prerendered as static content
+╞Æ  (Dynamic)  server-rendered on demand

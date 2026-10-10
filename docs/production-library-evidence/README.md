@@ -10,6 +10,8 @@ Exact contract and backend mapper dependency: [PRODUCTION_LIBRARY_CONTRACT.md](.
 
 Independent QA at `4eadc767` found F6 (GET outage falsely rendered empty) and F7 (uncertain create retry duplicated a template). Both now have bounded repairs and failed-before/pass-after regressions. See [F6/F7 repair evidence](F6_F7_REPAIR.md) for the new migration, exact retry protocol, test output and remaining acceptance gate. The older results below describe the initial metadata slice; they do not accept the revised implementation or the combined runtime.
 
+The parent subsequently requested porting the combined checkpoint's fast-response pointer double-click guard. [Exact port/evidence](DOUBLECLICK_PORT.md) records its matching WorkoutEditor runtime and regression; intentional subsequent and keyboard saves remain distinct. No combined conflict resolution or synthetic namespace is published through this PR.
+
 ## Checks on 2026-10-10
 
 | Check | Result |

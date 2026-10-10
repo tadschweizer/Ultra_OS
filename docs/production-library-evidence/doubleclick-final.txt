@@ -1,0 +1,51 @@
+[WebServer] (node:18420) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:33484) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] [@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated and will be removed in a future version. Use webpack.treeshake.removeDebugLogging instead.
+[WebServer] [@sentry/nextjs] It appears you've configured a `sentry.server.config.js` file. Please ensure to put this file's content into the `register()` function of a Next.js instrumentation file instead. To ensure correct functionality of the SDK, `Sentry.init` must be called inside of an instrumentation file. Learn more about setting up an instrumentation file in Next.js: https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation. You can safely delete the `sentry.server.config.js` file afterward.
+[WebServer] [@sentry/nextjs] Could not find a Next.js instrumentation file. This indicates an incomplete configuration of the Sentry SDK. An instrumentation file is required for the Sentry SDK to be initialized on the server: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#create-initialization-config-files (you can suppress this warning by setting SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING=1 as environment variable)
+[WebServer] [@sentry/nextjs] It appears you've configured a `sentry.edge.config.js` file. Please ensure to put this file's content into the `register()` function of a Next.js instrumentation file instead. To ensure correct functionality of the SDK, `Sentry.init` must be called inside of an instrumentation file. Learn more about setting up an instrumentation file in Next.js: https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation. You can safely delete the `sentry.edge.config.js` file afterward.
+[WebServer] [@sentry/nextjs] DEPRECATION WARNING: It is recommended renaming your `sentry.client.config.js` file, or moving its content to `instrumentation-client.ts`. When using Turbopack `sentry.client.config.js` will no longer work. Read more about the `instrumentation-client.ts` file: https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation-client
+[WebServer] ΓÜá The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+(node:29136) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/auth/sessionCookies.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 12 tests using 1 worker
+
+(node:30992) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:30992) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:30992) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/auth/sessionCookies.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+[workout-library] failed: column "objective" does not exist
+[workout-library] failed: column "objective" does not exist
+[workout-library] failed: column "objective" does not exist
+  ok 1 [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:20:1 ΓÇ║ F6 library outages never assert empty data; retry recovers and refresh preserves known templates (4.9s)
+  ok 2 [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:50:35 ΓÇ║ F7 committed response loss retries once in editor; deliberate next save gets a fresh operation (3.7s)
+  ok 3 [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:50:35 ΓÇ║ F7 committed response loss retries once after refresh; deliberate next save gets a fresh operation (4.6s)
+  ok 4 [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:93:1 ΓÇ║ library validation can be corrected; uncertain save keeps original intent through edits, close and retry (3.5s)
+  ok 5 [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:119:1 ΓÇ║ fast acknowledgement ignores the second pointer event while later intentional clicks and keyboard saves remain new (3.5s)
+  ok 6 [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:149:1 ΓÇ║ real calendar editor saves a full prescription through the signed library API and SQL, reloads and deletes (4.7s)
+(node:8892) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:8892) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:8892) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/auth/sessionCookies.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+[workout-library] failed: column "objective" does not exist
+[workout-library] failed: column "objective" does not exist
+[workout-library] failed: column "objective" does not exist
+  ok 7 [mobile-chromium] ΓÇ║ e2e\workout-library.spec.mjs:20:1 ΓÇ║ F6 library outages never assert empty data; retry recovers and refresh preserves known templates (5.0s)
+  ok 8 [mobile-chromium] ΓÇ║ e2e\workout-library.spec.mjs:50:35 ΓÇ║ F7 committed response loss retries once in editor; deliberate next save gets a fresh operation (3.9s)
+  ok 9 [mobile-chromium] ΓÇ║ e2e\workout-library.spec.mjs:50:35 ΓÇ║ F7 committed response loss retries once after refresh; deliberate next save gets a fresh operation (4.8s)
+  ok 10 [mobile-chromium] ΓÇ║ e2e\workout-library.spec.mjs:93:1 ΓÇ║ library validation can be corrected; uncertain save keeps original intent through edits, close and retry (3.9s)
+  ok 11 [mobile-chromium] ΓÇ║ e2e\workout-library.spec.mjs:119:1 ΓÇ║ fast acknowledgement ignores the second pointer event while later intentional clicks and keyboard saves remain new (3.7s)
+  ok 12 [mobile-chromium] ΓÇ║ e2e\workout-library.spec.mjs:149:1 ΓÇ║ real calendar editor saves a full prescription through the signed library API and SQL, reloads and deletes (5.6s)
+
+  12 passed (1.0m)

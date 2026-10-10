@@ -575,7 +575,11 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
               <button
                 type="button"
                 disabled={saving}
-                onClick={async () => {
+                onClick={async (event) => {
+                  // A fast acknowledgement can finish before the second click
+                  // in a double-click. It is still one pointer action; later
+                  // deliberate clicks and keyboard activation may create anew.
+                  if (event.detail > 1) return;
                   if (savingRef.current) return;
                   savingRef.current = true;
                   setSaving(true);

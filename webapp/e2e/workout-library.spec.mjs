@@ -116,6 +116,36 @@ test('library validation can be corrected; uncertain save keeps original intent 
   }finally{await f.close();}
 });
 
+test('fast acknowledgement ignores the second pointer event while later intentional clicks and keyboard saves remain new',async({page},info)=>{
+  test.setTimeout(60000);const f=await libraryFixture(),writes=[];
+  try {
+    if(info.project.name==='mobile-chromium')await page.setViewportSize({width:320,height:844});
+    await signedLibraryRoutes(page,f,async(req,body)=>{
+      if(req.method()!=='POST')return null;writes.push(body);return f.invokeLibrary({method:'POST',body});
+    });
+    await page.goto('/coach/training-calendar');await page.getByRole('button',{name:'+ Plan workout',exact:true}).click();
+    const editor=page.getByRole('dialog',{name:'Workout editor'}),save=editor.getByRole('button',{name:'Save to library',exact:true});
+    await editor.getByLabel('Workout title',{exact:true}).fill('Fast pointer acknowledgement');
+    await save.click();await expect(editor.getByText('Saved to library.',{exact:true})).toBeVisible();
+    // Explicitly deliver click two after the real first transaction completes.
+    // This controls the failure race without substituting a fake save response.
+    // Locator.click({clickCount:2}) emits a whole extra two-click sequence.
+    // Native down/up with count2 emits only the second event of this sequence.
+    const bounds=await save.boundingBox();expect(bounds).not.toBeNull();
+    await page.mouse.move(bounds.x+bounds.width/2,bounds.y+bounds.height/2);
+    await page.mouse.down({clickCount:2});await page.mouse.up({clickCount:2});
+    await expect(editor.getByText('Saved to library.',{exact:true})).toBeVisible();
+    let rows=(await f.invokeLibrary()).body.workouts.filter(w=>w.name==='Fast pointer acknowledgement');
+    expect(rows).toHaveLength(1);expect(writes).toHaveLength(1);
+    await save.click();await expect(editor.getByText('Saved to library.',{exact:true})).toBeVisible();
+    rows=(await f.invokeLibrary()).body.workouts.filter(w=>w.name==='Fast pointer acknowledgement');
+    expect(rows).toHaveLength(2);expect(writes[1].client_request_id).not.toBe(writes[0].client_request_id);
+    await save.focus();await page.keyboard.press('Enter');await expect(editor.getByText('Saved to library.',{exact:true})).toBeVisible();
+    rows=(await f.invokeLibrary()).body.workouts.filter(w=>w.name==='Fast pointer acknowledgement');
+    expect(rows).toHaveLength(3);expect(writes[2].client_request_id).not.toBe(writes[1].client_request_id);
+  }finally{await f.close();}
+});
+
 test('real calendar editor saves a full prescription through the signed library API and SQL, reloads and deletes',async({page},info)=>{
   test.setTimeout(60000);
   const f=await libraryFixture();const writes=[];
@@ -143,7 +173,7 @@ test('real calendar editor saves a full prescription through the signed library 
     await editor.getByLabel('Workout visibility').selectOption('coach_private');
     await editor.getByLabel('Planned duration (min)',{exact:true}).fill('58');
     await editor.getByLabel('Planned distance',{exact:true}).fill('6');
-    await editor.getByRole('button',{name:'Save to library',exact:true}).click();
+    await editor.getByRole('button',{name:'Save to library',exact:true}).dblclick();
     await expect(editor.getByText('Saved to library.',{exact:true})).toBeVisible();
     // Existing calendar editor stores canonical km rounded to two decimals.
     expect(writes).toHaveLength(1);expect(writes[0].planned_distance_km).toBe(9.66);
