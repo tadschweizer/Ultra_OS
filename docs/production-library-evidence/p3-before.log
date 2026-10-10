@@ -1,0 +1,52 @@
+(node:24204) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/workoutCompliance.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£û O1 synthetic template PATCH shares validation, persists, isolates stores and assigns edited metadata (8.5647ms)
+Γ£ö QA F4: selecting/closing details replaces stale deep links while retaining participant context (0.8697ms)
+Γ£ö QA F5: matching changes attribution, retaining every weekly actual metric once through reload/unlink (3.2208ms)
+Γ£ö QA F1: shared production library payload and demo reuse retain private prescription (1.0291ms)
+Γ£ö QA F2: missing/partial actuals never substitute planned TSS; recorded and linked loads count once (0.861ms)
+Γ£ö QA F3: consumed failure emits a state change without saving; reset disarms pending failure (0.719ms)
+Γ£ö deterministic fixtures and refresh persistence; sessions are independent (1.2384ms)
+Γ£ö full plan ΓåÆ athlete partial completion ΓåÆ coach feedback and adjustment ΓåÆ athlete update (1.1833ms)
+Γ£ö role restrictions, private draft filtering and cross-athlete denial (0.7403ms)
+Γ£ö create retry key prevents duplicates, validation retains state (1.5467ms)
+Γ£ö duplicates and copy-week retain all plan fields and clear completion/discussion (1.1624ms)
+Γ£ö skip and undo preserve unknown actuals and do not derive completion from plan (0.5503ms)
+Γ£ö activity linking cannot double count and unlink retains the activity (10.5807ms)
+Γ£ö stale workout write conflicts instead of replacing latest change (0.4875ms)
+Γ£ö role-correct direct messages, exact acknowledgements and retry idempotency (0.7446ms)
+Γ£ö drafts are isolated per role/recipient, durable and version checked (0.7457ms)
+Γ£ö failure simulation and storage errors cannot claim saved success (0.6397ms)
+Γ£ö check-in updates all fields; corrupt storage warns; unsupported provider endpoints fail closed (0.5042ms)
+Γä╣ tests 18
+Γä╣ suites 0
+Γä╣ pass 17
+Γä╣ fail 1
+Γä╣ cancelled 0
+Γä╣ skipped 0
+Γä╣ todo 0
+Γä╣ duration_ms 200.1885
+
+Γ£û failing tests:
+
+test at ..\coach-demo\tests\adapter.test.mjs:24:1
+Γ£û O1 synthetic template PATCH shares validation, persists, isolates stores and assigns edited metadata (8.5647ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + undefined
+  - '0af54181-f22d-46d9-bd88-ace8191a9a9e'
+
+      at TestContext.<anonymous> (file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/coach-demo/tests/adapter.test.mjs:45:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: '0af54181-f22d-46d9-bd88-ace8191a9a9e',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

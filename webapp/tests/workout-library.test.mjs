@@ -171,3 +171,23 @@ test('unconfirmed browser operations survive reload, reject changed intent and s
   values.set(libraryCreateStorageKey(coach),'broken');assert.throws(()=>prepareLibraryCreate(storage,coach,payload,randomUUID));
   assert.throws(()=>prepareLibraryCreate({...storage,setItem:()=>{throw new Error('Storage unavailable');}},'new-coach',payload,randomUUID),/Storage unavailable/);
 });
+
+test('F9 pace conversion preserves independent units and values until explicitly requested',async()=>{
+  const {initializeTargetUnits,convertPaceTarget}=await import('../lib/workoutTargetUnits.js');
+  const steps=[{target_type:'pace',target_units:'min/km',target_min:6.2,target_max:7.4,calibration:'retain'},
+    {target_type:'pace',target_units:'min/mi',target_min:10,target_max:null},
+    ...[['heart_rate','bpm'],['power','W'],['rpe','RPE'],['zone','zone']].map(([target_type,target_units])=>({target_type,target_units,target_min:0,target_max:150})),
+    {target_type:'pace',target_units:null,target_min:'6:24',target_max:''},
+    {target_type:'pace',target_units:'custom',target_min:0,target_max:undefined}];
+  for(const unit of ['mi','km'])assert.deepEqual(initializeTargetUnits(steps,unit),steps);
+  const mile=convertPaceTarget(steps[0],'min/mi');assert.equal(mile.target_min,6.2*1.609344);assert.equal(mile.target_max,7.4*1.609344);
+  assert.equal(mile.calibration,'retain');assert.deepEqual(steps[0],{target_type:'pace',target_units:'min/km',target_min:6.2,target_max:7.4,calibration:'retain'});
+  assert.ok(Math.abs(convertPaceTarget(mile,'min/km').target_min-6.2)<1e-12);
+  assert.equal(convertPaceTarget(steps[1],'min/km').target_max,null);
+  const clock=convertPaceTarget({...steps[0],target_min:'6:24',target_max:''},'min/mi');assert.equal(clock.target_min,6.4*1.609344);assert.equal(clock.target_max,'');
+  assert.equal(convertPaceTarget({...steps[0],target_min:0},'min/mi').target_min,0);
+  assert.throws(()=>convertPaceTarget({...steps[0],target_min:'easy'},'min/mi'),/numeric pace/);
+  assert.throws(()=>convertPaceTarget({...steps[0],target_min:Number.MAX_VALUE},'min/mi'),/finite pace/);
+  assert.throws(()=>convertPaceTarget(steps[7],'min/mi'),/cannot be converted/);
+  assert.equal(initializeTargetUnits([{target_type:'pace',target_min:6}], 'km')[0].target_units,'min/km');
+});

@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
 import { libraryFixture } from '../tests/helpers/library-fixture.mjs';
 import { owner, coach, athlete } from '../tests/helpers/message-lifecycle-fixture.mjs';
+import { planFixture, owner as planOwner, other as planCoach, plan as assignedPlanId } from '../tests/helpers/plan-prescription-fixture.mjs';
 
 async function signedLibraryRoutes(page,f,intercept=()=>null) {
   await page.route('**/api/**',async route=>{
@@ -276,4 +277,66 @@ test('real calendar editor saves a full prescription through the signed library 
     await expect(page.getByText('Trail economy prescription',{exact:true})).not.toBeVisible();
     expect((await f.invokeLibrary()).body.workouts.some(w=>w.id===row.id)).toBe(false);
   }finally {await f.close();}
+});
+
+const structure = [
+  {type:'cooldown',repeat:1,duration_min:5.25,intensity:'easy',target_type:'pace',target_min:6.2,target_max:7.4,target_units:'min/km',notes:'Keep exact',extra:'retained'},
+  {type:'work',repeat:1,duration_min:2,intensity:'easy',target_type:'pace',target_min:10,target_max:null,target_units:'min/mi'},
+  ...[['heart_rate','bpm',150,160],['power','W',0,250],['rpe','RPE',3,5],['zone','zone',2,3]].map(([target_type,target_units,target_min,target_max])=>({type:'work',repeat:1,duration_min:1,intensity:'easy',target_type,target_units,target_min,target_max})),
+];
+test('F9 assigned plan edits preserve independent target units through signed SQL and athlete reload',async({page},info)=>{
+  const owner=planOwner,other=planCoach,plan=assignedPlanId;
+  test.setTimeout(60000);const f=await planFixture({stravaConnected:false});let actor=other;const writes=[];
+  const today=new Date().toISOString().slice(0,10);
+  const tomorrow=new Date(Date.parse(today+'T12:00:00Z')+86400000).toISOString().slice(0,10);
+  const external=[];page.on('request',req=>{if(!new URL(req.url()).hostname.match(/^(127\.0\.0\.1|localhost)$/))external.push(req.url());});
+  try{
+    if(info.project.name==='mobile-chromium')await page.setViewportSize({width:320,height:900});
+    await f.pg.query('update planned_workouts set workout_date=$1,structure=$2,planned_distance_unit=$3 where id=$4',[today,JSON.stringify(structure),'mi',plan]);
+    await page.route('**/api/**',async route=>{
+      const req=route.request(),u=new URL(req.url());let result={code:200,body:{settings:{distance_unit:'mi'},events:[],notes:[],comments:[],notifications:[],unreadCount:0,workouts:[]}};
+      if(u.pathname==='/api/me')result.body={athlete:{id:actor,name:'Isolated runner',onboarding_complete:true,primary_role:actor===other?'coach':'athlete',subscription_tier:actor===other?'coach_pro':'free'},account:{primary_role:actor===other?'coach':'athlete',capabilities:{athlete:true,coach:actor===other},coach_access:{eligible:actor===other}}};
+      if(u.pathname==='/api/coach/relationships')result.body={relationships:[{athlete_id:owner,status:'active',athlete:{name:'Isolated runner'}}]};
+      if(u.pathname==='/api/planned-workouts'){
+        const body=req.postData()?req.postDataJSON():{};if(req.method()==='PATCH')writes.push(body);
+        result=await f.invoke(body,{actor,method:req.method(),query:Object.fromEntries(u.searchParams)});
+      }
+      if(u.pathname==='/api/workout-library')result=await f.invokeLibrary(req.postData()?req.postDataJSON():{},{actor,method:req.method(),query:Object.fromEntries(u.searchParams)});
+      await route.fulfill({status:result.code,contentType:'application/json',body:JSON.stringify(result.body)});
+    });
+    const open=async()=>{
+      await page.goto(`/coach/training-calendar?athlete_id=${owner}&workout=${plan}`);
+      await page.getByRole('dialog',{name:'Workout details'}).getByRole('button',{name:'Edit workout',exact:true}).click();
+      return page.getByRole('dialog',{name:'Workout editor'});
+    };
+    let editor=await open();await editor.getByLabel('Planned duration (min)',{exact:true}).fill('25');
+    await editor.getByLabel('Workout date',{exact:true}).fill(tomorrow);
+    await editor.getByPlaceholder('Coach instructions (separate from description)',{exact:true}).fill('Only instructions changed');
+    expect(await editor.locator('input:invalid,select:invalid').evaluateAll(nodes=>nodes.map(n=>({value:n.value,label:n.getAttribute('aria-label'),message:n.validationMessage})))).toEqual([]);
+    await editor.getByRole('button',{name:'Save workout',exact:true}).click();await expect(editor).not.toBeVisible();
+    expect(writes[0].structure).toEqual(structure);expect((await f.row()).structure).toEqual(structure);
+    actor=owner;await page.goto(`/calendar?workout=${plan}`);await page.reload();
+    const details=page.getByRole('dialog',{name:'Workout details'});await expect(details).toContainText('min/km');await expect(details).toContainText('min/mi');
+    await expect(details).toContainText(/power 0.250 W/);
+    await page.screenshot({path:`../output/library-f9-athlete-${info.project.name}.png`,fullPage:true});
+    expect((await f.invoke({}, {actor:owner,method:'GET',query:{start:today,end:tomorrow}})).body.workouts.find(w=>w.id===plan).structure).toEqual(structure);
+    actor=other;editor=await open();await editor.getByLabel('Distance unit',{exact:true}).selectOption('km');
+    await editor.getByRole('button',{name:'Save to library',exact:true}).click();await expect(editor.getByText('Saved to library.',{exact:true})).toBeVisible();
+    expect((await f.pg.query('select structure from workout_library')).rows[0].structure).toEqual(structure);
+    await editor.getByRole('button',{name:'Save workout',exact:true}).click();await expect(editor).not.toBeVisible();expect((await f.row()).structure).toEqual(structure);
+    editor=await open();await editor.getByLabel('Pace target unit',{exact:true}).first().selectOption('min/mi');
+    await editor.getByRole('button',{name:'Save workout',exact:true}).click();await expect(editor).not.toBeVisible();
+    const converted=[{...structure[0],target_units:'min/mi',target_min:6.2*1.609344,target_max:7.4*1.609344},...structure.slice(1)];
+    expect((await f.row()).structure).toEqual(converted);
+    actor=owner;await page.goto(`/calendar?workout=${plan}`);await page.reload();await expect(details).toContainText('min/mi');
+    expect((await f.invoke({}, {actor:owner,method:'GET',query:{start:today,end:tomorrow}})).body.workouts.find(w=>w.id===plan).structure).toEqual(converted);
+    actor=other;editor=await open();await editor.getByLabel('Target minimum',{exact:true}).first().fill('easy');
+    await editor.getByLabel('Pace target unit',{exact:true}).first().selectOption('min/km');
+    await expect(editor.getByText('Enter a numeric pace or minutes:seconds before converting its unit.',{exact:true})).toBeVisible();
+    await expect(editor.getByLabel('Pace target unit',{exact:true}).first()).toHaveValue('min/mi');
+    await editor.getByRole('button',{name:'Close',exact:true}).click();expect((await f.row()).structure).toEqual(converted);
+    expect((await f.invoke({id:plan,structure:[]},{actor:null})).code).toBe(401);
+    expect((await f.invoke({id:plan,structure:[]},{actor:owner})).code).toBe(400);expect((await f.row()).structure).toEqual(converted);
+    expect(external).toEqual([]);
+  }finally{await f.close();}
 });

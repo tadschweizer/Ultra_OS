@@ -421,6 +421,7 @@ export class DemoStore {
             );
           const w = {
             ...pick(plan, PLAN),
+            ...(lib ? { library_workout_id: lib.id } : {}),
             ...pick(body, ACTUAL),
             id: newId(),
             athlete_id: target,

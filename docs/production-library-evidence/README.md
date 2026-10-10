@@ -1,5 +1,10 @@
 # Production library metadata verification
 
+Latest repair: [F9/P3 target-unit preservation and synthetic source provenance](F9_PRESCRIPTION.md).
+Independent `4a9cdec` QA passed F8/O1 and blocked full transfer on F9; the new
+delta preserves assigned prescriptions through unrelated edits and supports
+deliberate per-step pace conversion. Combined acceptance remains open.
+
 PR #135, branch `feature/production-library-messages`, base PR #134 `6f1d3f4f3633095a0aac9e83600b77b3ce2bb596`. Online main was verified as `fa8ebe2b377784007b4a40b4e982f92a11224075`. The frozen synthetic preview/runtime is unchanged. This evidence concerns actual production library code, not a demo-only adapter.
 
 ## Implemented

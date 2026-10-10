@@ -42,6 +42,7 @@ test('O1 synthetic template PATCH shares validation, persists, isolates stores a
   const after=await call(refreshed,'/api/planned-workouts','POST',{library_workout_id:created.id,workout_date:'2026-10-15'});
   assert.equal(before.workout.coach_instructions,'Original');assert.equal(after.workout.coach_instructions,'Revised recovery');
   assert.equal(after.workout.planned_if,0);assert.equal(after.workout.planned_tss,null);
+  assert.equal(after.workout.library_workout_id,created.id);
   await call(refreshed,'/api/workout-library','PATCH',{id:created.id,planned_duration_min:null,planned_distance_km:null,planned_if:null});
   const cleared=await call(refreshed,'/api/planned-workouts','POST',{library_workout_id:created.id,workout_date:'2026-10-16'});
   for(const key of ['planned_duration_min','planned_distance_km','planned_if','planned_tss'])assert.equal(cleared.workout[key],null);

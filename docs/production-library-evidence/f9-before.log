@@ -1,0 +1,67 @@
+[WebServer] (node:33004) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:18804) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] [@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated and will be removed in a future version. Use webpack.treeshake.removeDebugLogging instead.
+[WebServer] [@sentry/nextjs] It appears you've configured a `sentry.server.config.js` file. Please ensure to put this file's content into the `register()` function of a Next.js instrumentation file instead. To ensure correct functionality of the SDK, `Sentry.init` must be called inside of an instrumentation file. Learn more about setting up an instrumentation file in Next.js: https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation. You can safely delete the `sentry.server.config.js` file afterward.
+[WebServer] [@sentry/nextjs] Could not find a Next.js instrumentation file. This indicates an incomplete configuration of the Sentry SDK. An instrumentation file is required for the Sentry SDK to be initialized on the server: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#create-initialization-config-files (you can suppress this warning by setting SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING=1 as environment variable)
+[WebServer] [@sentry/nextjs] It appears you've configured a `sentry.edge.config.js` file. Please ensure to put this file's content into the `register()` function of a Next.js instrumentation file instead. To ensure correct functionality of the SDK, `Sentry.init` must be called inside of an instrumentation file. Learn more about setting up an instrumentation file in Next.js: https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation. You can safely delete the `sentry.edge.config.js` file afterward.
+[WebServer] [@sentry/nextjs] DEPRECATION WARNING: It is recommended renaming your `sentry.client.config.js` file, or moving its content to `instrumentation-client.ts`. When using Turbopack `sentry.client.config.js` will no longer work. Read more about the `instrumentation-client.ts` file: https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation-client
+[WebServer] ΓÜá The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+(node:23320) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/pages/api/planned-workouts.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:17568) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:17568) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:17568) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/pages/api/planned-workouts.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+  x  1 [desktop-chromium] ΓÇ║ e2e\plan-prescription.spec.mjs:9:1 ΓÇ║ F9 assigned plan edits preserve independent target units through signed SQL and athlete reload (4.2s)
+
+
+  1) [desktop-chromium] ΓÇ║ e2e\plan-prescription.spec.mjs:9:1 ΓÇ║ F9 assigned plan edits preserve independent target units through signed SQL and athlete reload
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 1[39m
+    [31m+ Received  + 1[39m
+
+    [33m@@ -6,11 +6,11 @@[39m
+    [2m      "notes": "Keep exact",[22m
+    [2m      "repeat": 1,[22m
+    [2m      "target_max": 7.4,[22m
+    [2m      "target_min": 6.2,[22m
+    [2m      "target_type": "pace",[22m
+    [32m-     "target_units": "min/km",[39m
+    [31m+     "target_units": "min/mi",[39m
+    [2m      "type": "cooldown",[22m
+    [2m    },[22m
+    [2m    Object {[22m
+    [2m      "duration_min": 2,[22m
+    [2m      "intensity": "easy",[22m
+
+      32 |     expect(await editor.locator('input:invalid,select:invalid').evaluateAll(nodes=>nodes.map(n=>({value:n.value,label:n.getAttribute('aria-label'),message:n.validationMessage})))).toEqual([]);
+      33 |     await editor.getByRole('button',{name:'Save workout',exact:true}).click();await expect(editor).not.toBeVisible();
+    > 34 |     expect(writes[0].structure).toEqual(structure);expect((await f.row()).structure).toEqual(structure);
+         |                                 ^
+      35 |     actor=owner;await page.goto(`/calendar?workout=${plan}`);await page.reload();
+      36 |     const details=page.getByRole('dialog',{name:'Workout details'});await expect(details).toContainText('min/km');await expect(details).toContainText('min/mi');
+      37 |     await page.screenshot({path:`../output/library-f9-athlete-${info.project.name}.png`,fullPage:true});
+        at C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\e2e\plan-prescription.spec.mjs:34:33
+
+    attachment #2: trace (application/zip) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    test-results\plan-prescription-F9-assig-9dbf5-gned-SQL-and-athlete-reload-desktop-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\plan-prescription-F9-assig-9dbf5-gned-SQL-and-athlete-reload-desktop-chromium\trace.zip
+
+    ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+
+  1 failed
+    [desktop-chromium] ΓÇ║ e2e\plan-prescription.spec.mjs:9:1 ΓÇ║ F9 assigned plan edits preserve independent target units through signed SQL and athlete reload

@@ -1,6 +1,7 @@
 import { useWorkspaceTransport } from '../lib/WorkspaceTransport';
 import { libraryWorkoutPayload } from '../lib/libraryWorkoutPayload';
 import { libraryEditPayload, libraryCanonicalDistance, libraryDisplayDistance } from '../lib/libraryEditPayload';
+import { targetUnitLabel, initializeTargetUnits, convertPaceTarget } from '../lib/workoutTargetUnits';
 import useWorkoutLibrary from '../lib/useWorkoutLibrary';
 import useLibraryCreate from '../lib/useLibraryCreate';
 import { calendarSelectionUrl } from '../lib/calendarSelection';
@@ -177,19 +178,6 @@ const TARGET_TYPES = [
   { id: 'rpe', label: 'RPE' },
 ];
 
-// The unit shown beside the target inputs. Pace tracks the athlete's distance
-// unit (min/mi vs min/km); everything else is fixed.
-function targetUnitLabel(targetType, distanceUnit = 'mi') {
-  switch (targetType) {
-    case 'pace': return distanceUnit === 'km' ? 'min/km' : 'min/mi';
-    case 'heart_rate': return 'bpm';
-    case 'power': return 'W';
-    case 'zone': return 'zone';
-    case 'rpe': return 'RPE';
-    default: return '';
-  }
-}
-
 function targetPlaceholders(targetType) {
   switch (targetType) {
     case 'pace': return ['6:24', '7:15'];
@@ -215,10 +203,10 @@ function StepField({ label, children }) {
   );
 }
 
-function StepRow({ step, onChange, onRemove, distanceUnit = 'mi', preserveTargetUnits = false, disabled = false }) {
+function StepRow({ step, onChange, onRemove, onConvertPace, disabled = false }) {
   const targetType = step.target_type || 'open';
   const showTarget = targetType !== 'open';
-  const unitLabel = preserveTargetUnits ? step.target_units ?? targetUnitLabel(targetType, distanceUnit) : targetUnitLabel(targetType, distanceUnit);
+  const unitLabel = step.target_units;
   const [minPlaceholder, maxPlaceholder] = targetPlaceholders(targetType);
 
   return (
@@ -247,7 +235,7 @@ function StepRow({ step, onChange, onRemove, distanceUnit = 'mi', preserveTarget
           <input
             type="number"
             min="0"
-            step={preserveTargetUnits ? 'any' : '0.5'}
+            step="any"
             value={step.duration_min ?? ''}
             onChange={(e) => onChange({ ...step, duration_min: e.target.value === '' ? '' : Number(e.target.value) })}
             title="Minutes per repeat"
@@ -287,6 +275,7 @@ function StepRow({ step, onChange, onRemove, distanceUnit = 'mi', preserveTarget
         <div className="flex flex-wrap items-center gap-2 rounded-xl bg-white/60 px-2 py-1.5">
           <span className={stepLabelClass}>Target</span>
           <input
+            aria-label="Target minimum"
             value={step.target_min ?? ''}
             onChange={(e) => onChange({ ...step, target_min: e.target.value })}
             placeholder={minPlaceholder}
@@ -294,12 +283,19 @@ function StepRow({ step, onChange, onRemove, distanceUnit = 'mi', preserveTarget
           />
           <span className="text-xs text-ink/40">–</span>
           <input
+            aria-label="Target maximum"
             value={step.target_max ?? ''}
             onChange={(e) => onChange({ ...step, target_max: e.target.value })}
             placeholder={maxPlaceholder}
             className="w-20 rounded-xl border border-ink/10 bg-white px-2 py-1.5 text-xs text-ink"
           />
           {unitLabel && <span className="text-xs font-medium text-ink/55">{unitLabel}</span>}
+          {targetType === 'pace' && ['min/km','min/mi'].includes(unitLabel) && <label className="text-xs text-ink/55">
+            Convert pace <select aria-label="Pace target unit" value={unitLabel} onChange={e=>onConvertPace(e.target.value)}
+              className="rounded-lg border border-ink/10 bg-white px-1.5 py-1">
+              <option value="min/km">per km</option><option value="min/mi">per mile</option>
+            </select>
+          </label>}
           <span className="text-[10px] text-ink/40">Leave max blank for a single target.</span>
         </div>
       )}
@@ -320,7 +316,7 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
     const unit = base.planned_distance_unit || defaultDistanceUnit || 'mi';
     return {
       ...base,
-      structure: Array.isArray(base.structure) ? base.structure : [],
+      structure: initializeTargetUnits(Array.isArray(base.structure) ? base.structure : [], unit),
       planned_distance_unit: unit,
       // Editable value shown in the athlete's preferred unit; the canonical
       // km value is recomputed from this on save.
@@ -361,7 +357,12 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
   function updateStep(index, step) {
     dirty.current.add('structure');
     setForm((f) => ({ ...f, structure: f.structure.map((s, i) => (i === index ?
-      libraryEdit && s.target_type !== step.target_type ? {...step,target_units:targetUnitLabel(step.target_type || 'open',distanceUnit)} : step : s)) }));
+      s.target_type !== step.target_type ? {...step,target_units:targetUnitLabel(step.target_type || 'open',distanceUnit)} : step : s)) }));
+  }
+
+  function changePaceUnit(index, unit) {
+    try { updateStep(index, convertPaceTarget(form.structure[index], unit)); setMessage(''); }
+    catch (error) { setMessage(error.message); }
   }
 
   async function handleSubmit(e) {
@@ -370,12 +371,8 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
     savingRef.current = true;
     setSaving(true);
     setMessage('');
-    // Stamp each step's target units so the read-only detail view renders the
-    // right suffix (min/mi, bpm, W, …) without recomputing.
-    const structure = (form.structure || []).map((step) => ({
-      ...step,
-      target_units: targetUnitLabel(step.target_type || 'open', distanceUnit),
-    }));
+    // Preserve the prescription unless a target edit explicitly changed it.
+    const structure = form.structure;
     const result = await onSave(libraryEdit ? libraryEditPayload(form, dirty.current) : {
       ...form,
       structure,
@@ -527,7 +524,7 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
               <input
                 type="number"
                 min="0"
-                step={libraryEdit ? 'any' : '0.1'}
+                step="any"
                 disabled={!canEditPlan || saving}
                 aria-label={form.logCompletion ? "Actual distance" : "Planned distance"} value={form.planned_distance}
                 placeholder={structureTotals.distanceKm ? kmToUnit(structureTotals.distanceKm, distanceUnit) : ''}
@@ -570,8 +567,7 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
                 <StepRow
                   key={i}
                   step={step}
-                  distanceUnit={distanceUnit}
-                  preserveTargetUnits={libraryEdit}
+                  onConvertPace={(unit) => changePaceUnit(i, unit)}
                   disabled={saving}
                   onChange={(next) => updateStep(i, next)}
                   onRemove={() => { dirty.current.add('structure'); setForm((f) => ({ ...f, structure: f.structure.filter((_, j) => j !== i) })); }}
@@ -604,10 +600,7 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
                   setMessage('');
                   const ok = await onSaveToLibrary({
                     ...form,
-                    structure: (form.structure || []).map((step) => ({
-                      ...step,
-                      target_units: targetUnitLabel(step.target_type || 'open', distanceUnit),
-                    })),
+                    structure: form.structure,
                     planned_tss: tssEstimate,
                     planned_distance_km: unitToKm(form.planned_distance, distanceUnit),
                     planned_distance_unit: distanceUnit,
@@ -882,7 +875,7 @@ function WorkoutDetail({ workout, matchActivities = [], role, onUpdate, onEdit, 
                     {step.duration_min ? `${step.duration_min}min` : ''}
                     {step.distance_km ? ` ${step.distance_km}km` : ''}
                     {' '}@ {INTENSITY_ZONES.find((z) => z.id === step.intensity)?.label || step.intensity}
-                    {step.target_type && step.target_type !== 'open' ? ` · ${step.target_type}${step.target_min ? ` ${step.target_min}` : ''}${step.target_max ? `–${step.target_max}` : ''}${step.target_units ? ` ${step.target_units}` : ''}` : ''}
+                    {step.target_type && step.target_type !== 'open' ? ` · ${step.target_type}${step.target_min != null && step.target_min !== '' ? ` ${step.target_min}` : ''}${step.target_max != null && step.target_max !== '' ? `–${step.target_max}` : ''}${step.target_units ? ` ${step.target_units}` : ''}` : ''}
                   </span>
                   {step.notes && <span className="text-ink/50">— {step.notes}</span>}
                 </div>

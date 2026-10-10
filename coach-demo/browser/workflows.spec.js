@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import fs from "node:fs";
 import crypto from "node:crypto";
+import { seed } from '../seed.js';
 
 test("static artifact identity and closed network policy", async ({
   page,
@@ -76,6 +77,42 @@ const openWorkout = async (page, title) => {
   ).toBeVisible();
 };
 const dialog = (page) => page.getByRole("dialog", { name: "Workout details" });
+for(const width of [1440,390,320])test(`F9/P3 synthetic assignment preserves target prescriptions and source at ${width}px`,async({page})=>{
+  await page.setViewportSize({width,height:900});await navigate(page,'calendar');
+  await expect(page.getByRole('button',{name:'Library (1)',exact:true})).toBeVisible();
+  const targets=[{type:'cooldown',repeat:1,duration_min:5.25,intensity:'easy',target_type:'pace',target_min:6.2,target_max:7.4,target_units:'min/km',notes:'Stored pace',extra:'keep'},
+    {type:'work',repeat:1,duration_min:3,intensity:'easy',target_type:'pace',target_min:10,target_max:null,target_units:'min/mi'},
+    ...[['heart_rate','bpm',150,160],['power','W',0,250],['rpe','RPE',3,5],['zone','zone',2,3]].map(([target_type,target_units,target_min,target_max])=>({type:'work',repeat:1,duration_min:1,intensity:'easy',target_type,target_units,target_min,target_max}))];
+  await page.evaluate(({key,targets,s})=>{Object.assign(s.library[0],{structure:targets,planned_distance_unit:'mi'});sessionStorage.setItem(key,JSON.stringify(s));},{key:KEY,targets,s:seed()});
+  await page.reload();await page.getByRole('button',{name:'Library (1)',exact:true}).click();
+  const card=page.locator('div.rounded-2xl').filter({has:page.getByRole('button',{name:'Delete Easy run + strides from library',exact:true})}).last();
+  await card.getByLabel('Add library workout on').fill('2026-10-10');await card.getByRole('button',{name:'Add',exact:true}).click();
+  await expect(card.getByText('Added to calendar.',{exact:true})).toBeVisible();
+  let assigned=(await state(page)).workouts.find(w=>w.title==='Easy run + strides');
+  expect(assigned.library_workout_id).toBe('lib-easy');expect(assigned.structure).toEqual(targets);
+  await navigate(page,'calendar','coach','demo-robin',{workout:assigned.id});
+  await dialog(page).getByRole('button',{name:'Edit workout',exact:true}).click();
+  const editor=page.getByRole('dialog',{name:'Workout editor'});
+  await editor.getByLabel('Planned duration (min)',{exact:true}).fill('25');await editor.getByLabel('Workout date',{exact:true}).fill('2026-10-11');
+  await editor.getByPlaceholder('Coach instructions (separate from description)',{exact:true}).fill('Only instructions changed');
+  await editor.getByRole('button',{name:'Save workout',exact:true}).click();await expect(editor).not.toBeVisible();
+  assigned=(await state(page)).workouts.find(w=>w.id===assigned.id);expect(assigned.structure).toEqual(targets);expect(assigned.library_workout_id).toBe('lib-easy');
+  await navigate(page,'calendar','athlete','demo-robin',{workout:assigned.id});await page.reload();
+  await expect(dialog(page)).toContainText('min/km');await expect(dialog(page)).toContainText('min/mi');
+  await expect(dialog(page)).toContainText(/power 0.250 W/);
+  await page.screenshot({path:`../output/library-f9-synthetic-athlete-${width}.png`,fullPage:true});
+  await navigate(page,'calendar','coach','demo-robin',{workout:assigned.id});await dialog(page).getByRole('button',{name:'Edit workout',exact:true}).click();
+  await editor.getByLabel('Distance unit',{exact:true}).selectOption('km');
+  await editor.getByRole('button',{name:'Save to library',exact:true}).click();await expect(editor.getByText('Saved to library.',{exact:true})).toBeVisible();
+  expect((await state(page)).library.find(w=>w.id!=='lib-easy').structure).toEqual(targets);
+  await editor.getByLabel('Pace target unit',{exact:true}).first().selectOption('min/mi');
+  await editor.getByRole('button',{name:'Save workout',exact:true}).click();await expect(editor).not.toBeVisible();
+  assigned=(await state(page)).workouts.find(w=>w.id===assigned.id);expect(assigned.structure[0]).toEqual({...targets[0],target_min:6.2*1.609344,target_max:7.4*1.609344,target_units:'min/mi'});
+  expect(assigned.structure.slice(1)).toEqual(targets.slice(1));
+  await navigate(page,'calendar','athlete','demo-robin',{workout:assigned.id});await page.reload();
+  await expect(dialog(page)).toContainText('min/mi');expect((await state(page)).workouts.find(w=>w.id===assigned.id).library_workout_id).toBe('lib-easy');
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
 for (const width of [1440, 320]) test(`O1 local synthetic template edit, refresh and athlete assignment at ${width}px`,async({page})=>{
   await page.setViewportSize({width,height:900});await navigate(page,'calendar');
   await page.getByRole('button',{name:'Library (1)',exact:true}).click();
