@@ -20,9 +20,9 @@ Browserslist: browsers data (caniuse-lite) is 7 months old. Please run:
 Γ£ô Completed runAfterProductionCompile in 296ms
   Collecting page data using 7 workers ...
   Generating static pages using 7 workers (0/41) ...
-  Generating static pages using 7 workers (10/41) 
-  Generating static pages using 7 workers (20/41) 
-  Generating static pages using 7 workers (30/41) 
+  Generating static pages using 7 workers (10/41)
+  Generating static pages using 7 workers (20/41)
+  Generating static pages using 7 workers (30/41)
 Γ£ô Generating static pages using 7 workers (41/41) in 148ms
   Finalizing page optimization ...
 
@@ -174,4 +174,3 @@ Route (pages)
 
 Γùï  (Static)   prerendered as static content
 ╞Æ  (Dynamic)  server-rendered on demand
-

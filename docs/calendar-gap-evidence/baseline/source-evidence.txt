@@ -1,9 +1,9 @@
 
 AGENTS.md:1-18
 1: # Repository Work Instructions
-2: 
+2:
 3: For product or implementation work, read `PRODUCT_EXECUTION_ROADMAP.md` before making changes.
-4: 
+4:
 5: - Treat its Current milestone and Next item as the default work queue unless the user explicitly
 6:   changes priority.
 7: - Do not mark an item complete when code is merely written. Run the listed tests, verify its
@@ -12,21 +12,21 @@ AGENTS.md:1-18
 10: - Keep each change focused on one roadmap item or one tightly related group.
 11: - Do not deploy to production or change production service configuration without explicit user
 12:   authorization.
-13: 
-14: 
+13:
+14:
 
 PRODUCT_EXECUTION_ROADMAP.md:1-7
 1: # Threshold Product Execution Roadmap
-2: 
+2:
 3: Last updated: 2026-10-09<br>
 4: Status: PR #133 merged as `1d1e0b6` and is deployed READY on both public domains. Six targeted Supabase sources repair pilot prerequisites, workout decisions, messaging lifecycle, foreign-key indexes, stable conflict responses and legacy notification preferences. Both readiness checks and all eleven hosted Data API contracts pass. Actual signed QA passes drafts, two-way messages/notifications, exact unread counts, concurrent leases, group retries, workout corrections and relationship/session revocation. Final regression 432/432, focused release 22/22, integration 4/4, build and final-head CI pass. Real-mailbox, fresh-account, physical-phone and participant acceptance remain open.<br>
 5: Current milestone: M0 — make the closed coach pilot work end to end<br>
 6: Next item: P0-015 email provider/protected POST scheduler setup and consenting real-mailbox acceptance; verify fresh-account enrollment and the physical-phone M0 loop, then collect the prepared P0-018 measurements. The database/app technical release is complete; do not reapply its migrations or rebuild the merged drafts/unread implementation. Keep parent checkboxes open until their remaining acceptance criteria pass.
-7: 
+7:
 
 webapp/pages/api/planned-workouts.js:22-60
 22: const INCREMENTAL_WINDOW_MS = 60 * 86400000;
-23: 
+23:
 24: const PLANNING_FIELDS = [
 25:   'workout_date',
 26:   'sport',
@@ -47,7 +47,7 @@ webapp/pages/api/planned-workouts.js:22-60
 41:   'export_status',
 42:   'sync_provider',
 43: ];
-44: 
+44:
 45: // Fields an athlete may change on a coach-assigned workout (completion only).
 46: const ATHLETE_COMPLETION_FIELDS = [
 47:   'status',
@@ -57,7 +57,7 @@ webapp/pages/api/planned-workouts.js:22-60
 51:   'athlete_rpe',
 52:   'athlete_comment',
 53: ];
-54: 
+54:
 55: const WORKOUT_COLUMNS = `
 56:   id, athlete_id, coach_id, workout_date, sport, title, description, structure,
 57:   objective, coach_instructions, target_metric, planned_if, visibility, export_status, sync_provider,
@@ -69,7 +69,7 @@ webapp/pages/api/planned-workouts.js:215-293
 215:           return;
 216:         }
 217:       }
-218: 
+218:
 219:       const today = new Date();
 220:       const defaultStart = new Date(today.getTime() - 14 * 86400000);
 221:       const defaultEnd = new Date(today.getTime() + 28 * 86400000);
@@ -79,7 +79,7 @@ webapp/pages/api/planned-workouts.js:215-293
 225:       const end = typeof req.query.end === 'string' && req.query.end
 226:         ? req.query.end
 227:         : toDateKey(defaultEnd);
-228: 
+228:
 229:       const [{ data: rangeWorkouts, error }, { activities, stravaConnected }] = await Promise.all([
 230:         admin
 231:           .from('planned_workouts')
@@ -91,12 +91,12 @@ webapp/pages/api/planned-workouts.js:215-293
 237:           .order('order_index', { ascending: true }),
 238:         fetchActivities(admin, targetAthleteId, start, end),
 239:       ]);
-240: 
+240:
 241:       if (error) {
 242:         res.status(500).json({ error: 'Could not load workouts. Please retry.' });
 243:         return;
 244:       }
-245: 
+245:
 246:       // Bring the confirmed plan along when its activity falls in the visible
 247:       // range, even if the original plan date is elsewhere. Reserving the
 248:       // activity alone would hide the completed session from this calendar.
@@ -114,11 +114,11 @@ webapp/pages/api/planned-workouts.js:215-293
 260:       }
 261:       const availableActivities = [...activities, ...linkedActivities];
 262:       const linkOwners = new Map(workouts.filter((w) => w.completed_activity_id).map((w) => [w.completed_activity_id, w.id]));
-263: 
+263:
 264:       // Fulfill a plan from an activity up to a day off the planned date, so a
 265:       // long run done Sunday still completes a Saturday plan.
 266:       const decorated = decorateWorkoutsWithCompliance(workouts || [], availableActivities, { toleranceDays: 1 });
-267: 
+267:
 268:       // Any synced activity a plan didn't consume is shown on its own day, so
 269:       // past training is visible even where nothing was scheduled.
 270:       const consumed = new Set();
@@ -129,12 +129,12 @@ webapp/pages/api/planned-workouts.js:215-293
 275:       const unplannedActivities = (activities || [])
 276:         .filter((a) => a?.start_date && !consumed.has(String(a.id)))
 277:         .map(toCalendarActivity);
-278: 
+278:
 279:       const [workoutComments, activityComments] = await Promise.all([
 280:         fetchCommentCounts(admin, 'planned_workout_id', decorated.map((w) => w.id)),
 281:         fetchCommentCounts(admin, 'activity_id', unplannedActivities.map((a) => a.id)),
 282:       ]);
-283: 
+283:
 284:       res.status(200).json({
 285:         workouts: decorated.map((w) => ({ ...w, comment_count: workoutComments.get(w.id) || 0 })),
 286:         activities: unplannedActivities.map((a) => ({ ...a, comment_count: activityComments.get(a.id) || 0 })),
@@ -154,7 +154,7 @@ webapp/pages/api/planned-workouts.js:295-370
 299:         return res.status(400).json({ error: 'Invalid workout retry key.' });
 300:       }
 301:       const targetAthleteId = body.athlete_id || sessionAthleteId;
-302: 
+302:
 303:       let coachProfile = null;
 304:       if (targetAthleteId !== sessionAthleteId) {
 305:         coachProfile = await getCoachProfileFor(admin, sessionAthleteId, targetAthleteId);
@@ -163,7 +163,7 @@ webapp/pages/api/planned-workouts.js:295-370
 308:           return;
 309:         }
 310:       }
-311: 
+311:
 312:       // ── Copy a whole week of planning forward ────────────────────────────
 313:       if (body.action === 'copy_week') {
 314:         if (!body.from_week_start || !body.to_week_start) {
@@ -175,7 +175,7 @@ webapp/pages/api/planned-workouts.js:295-370
 320:         const offsetDays = Math.round(
 321:           (new Date(`${body.to_week_start}T00:00:00Z`) - fromStart) / 86400000
 322:         );
-323: 
+323:
 324:         const { data: sourceWorkouts, error: sourceError } = await admin
 325:           .from('planned_workouts')
 326:           .select(WORKOUT_COLUMNS)
@@ -190,7 +190,7 @@ webapp/pages/api/planned-workouts.js:295-370
 335:           res.status(400).json({ error: 'No workouts found in the source week.' });
 336:           return;
 337:         }
-338: 
+338:
 339:         const clones = sourceWorkouts.map((w) => {
 340:           const date = new Date(`${w.workout_date}T00:00:00Z`);
 341:           date.setUTCDate(date.getUTCDate() + offsetDays);
@@ -210,7 +210,7 @@ webapp/pages/api/planned-workouts.js:295-370
 355:             library_workout_id: w.library_workout_id,
 356:           };
 357:         });
-358: 
+358:
 359:         const { data: created, error: insertError } = await admin
 360:           .from('planned_workouts')
 361:           .insert(clones)
@@ -222,12 +222,12 @@ webapp/pages/api/planned-workouts.js:295-370
 367:         res.status(200).json({ workouts: created || [] });
 368:         return;
 369:       }
-370: 
+370:
 
 webapp/pages/api/planned-workouts.js:416-443
 416:         return;
 417:       }
-418: 
+418:
 419:       if (targetAthleteId === sessionAthleteId && body.status === 'completed') {
 420:         for (const field of ATHLETE_COMPLETION_FIELDS) if (body[field] !== undefined) payload[field] = body[field];
 421:       }
@@ -236,7 +236,7 @@ webapp/pages/api/planned-workouts.js:416-443
 424:       if (payload.status !== 'completed') fillPlannedTotals(payload);
 425:       if (payload.status === 'completed') payload.activity_match_mode = 'manual';
 426:       if (body.client_request_id) payload.id = body.client_request_id;
-427: 
+427:
 428:       const { data: created, error: insertError } = await admin
 429:         .from('planned_workouts')
 430:         .insert(payload)
@@ -289,7 +289,7 @@ webapp/components/TrainingCalendar.js:1669-1701
 1679:       return true;
 1680:     } finally { pendingMutations.current.delete(key); }
 1681:   }, [reload]);
-1682: 
+1682:
 1683:   const saveNote = useCallback((form) => mutateCalendar('/api/calendar-notes', {
 1684:     method: form.id ? 'PATCH' : 'POST', body: { ...form, athlete_id: athleteId || undefined },
 1685:   }), [athleteId, mutateCalendar]);
@@ -313,11 +313,11 @@ webapp/components/TrainingCalendar.js:1669-1701
 webapp/components/TrainingCalendar.js:1380-1437
 1380:   return `${startLabel} – ${endLabel}`;
 1381: }
-1382: 
+1382:
 1383: function sumBy(items, pick) {
 1384:   return items.reduce((total, item) => total + (Number(pick(item)) || 0), 0);
 1385: }
-1386: 
+1386:
 1387: /**
 1388:  * Weekly rollup covering both halves of the week: what was planned, and what
 1389:  * actually happened. Actuals combine completed plans with imported activities
@@ -328,12 +328,12 @@ webapp/components/TrainingCalendar.js:1380-1437
 1394:   const planned = summarizeWeek(workouts);
 1395:   const imported = days.flatMap((day) => day.activities);
 1396:   const completedWorkouts = workouts.filter((w) => w.status === 'completed');
-1397: 
+1397:
 1398:   const actualDurationMin = planned.completedDurationMin + sumBy(imported, (a) => a.duration_min);
 1399:   const actualDistanceKm = planned.completedDistanceKm + sumBy(imported, (a) => a.distance_km);
 1400:   const actualTss = sumBy(completedWorkouts, (w) => w.completed_tss ?? w.planned_tss)
 1401:     + sumBy(imported, (a) => a.tss);
-1402: 
+1402:
 1403:   // Per-sport actuals drive the breakdown rows in the week rail.
 1404:   const bySport = new Map();
 1405:   const addSport = (sport, durationMin, distanceKm) => {
@@ -346,7 +346,7 @@ webapp/components/TrainingCalendar.js:1380-1437
 1412:   };
 1413:   completedWorkouts.forEach((w) => addSport(w.sport, w.completed_duration_min, w.completed_distance_km));
 1414:   imported.forEach((a) => addSport(a.sport, a.duration_min, a.distance_km));
-1415: 
+1415:
 1416:   return {
 1417:     ...planned,
 1418:     completedSessionCount: planned.completedCount + imported.length,
@@ -360,13 +360,13 @@ webapp/components/TrainingCalendar.js:1380-1437
 1426:     hasActuals: planned.completedCount + imported.length > 0,
 1427:   };
 1428: }
-1429: 
+1429:
 1430: /** Planned-vs-actual progress bar used in the week rail. */
 1431: function ProgressMeter({ label, actual, planned, formatValue, unit = '' }) {
 1432:   const hasPlan = Number(planned) > 0;
 1433:   const pct = hasPlan ? Math.min(100, Math.round((actual / planned) * 100)) : (actual > 0 ? 100 : 0);
 1434:   const onTarget = hasPlan && pct >= 95;
-1435: 
+1435:
 1436:   return (
 1437:     <div>
 
@@ -383,7 +383,7 @@ webapp/pages/api/me.js:94-112
 103:       .eq('athlete_id', athleteId)
 104:       .gte('start_date', new Date(Date.now() - 42 * 86400000).toISOString()),
 105:   ]);
-106: 
+106:
 107:   const loadMetrics = buildLoadMetrics({
 108:     interventions: interventionLoadRes.data || [],
 109:     activities: activityLoadRes.data || [],
@@ -402,7 +402,7 @@ webapp/pages/api/me.js:158-164
 
 webapp/lib/loadRollups.js:1-113
 1: import { computeActivityTrimp, ewmaSeries } from './trainingLoad';
-2: 
+2:
 3: /**
 4:  * Server-side load rollup for /api/me. Shares the TRIMP + EWMA model with
 5:  * lib/trainingLoad so the dashboard, calendar header, and progress page all
@@ -412,31 +412,31 @@ webapp/lib/loadRollups.js:1-113
 9:  * fueling, recovery protocols) are NOT training stress, so they only fill in
 10:  * as a rough fallback when an athlete has no synced activities at all.
 11:  */
-12: 
+12:
 13: function toDateOnly(dateLike) {
 14:   const date = new Date(dateLike);
 15:   if (Number.isNaN(date.getTime())) return null;
 16:   date.setHours(0, 0, 0, 0);
 17:   return date;
 18: }
-19: 
+19:
 20: function parseMinutes(value) {
 21:   if (value === null || value === undefined || value === '') return 0;
 22:   const parsed = Number.parseFloat(String(value));
 23:   return Number.isFinite(parsed) ? parsed : 0;
 24: }
-25: 
+25:
 26: function interventionLoadScore(item) {
 27:   const duration = parseMinutes(item?.dose_duration);
 28:   const intensity = Number.isFinite(item?.subjective_feel) ? item.subjective_feel : 5;
 29:   return duration * Math.max(1, intensity) / 6; // scale toward TRIMP range
 30: }
-31: 
+31:
 32: export function buildDailyLoadSeries({ interventions = [], activities = [], lookbackDays = 42, now = new Date() } = {}) {
 33:   const endDate = toDateOnly(now) || new Date();
 34:   const startDate = new Date(endDate);
 35:   startDate.setDate(endDate.getDate() - (lookbackDays - 1));
-36: 
+36:
 37:   const points = Array.from({ length: lookbackDays }).map((_, index) => {
 38:     const day = new Date(startDate);
 39:     day.setDate(startDate.getDate() + index);
@@ -445,11 +445,11 @@ webapp/lib/loadRollups.js:1-113
 42:       load: 0,
 43:     };
 44:   });
-45: 
+45:
 46:   const pointMap = new Map(points.map((point) => [point.key, point]));
-47: 
+47:
 48:   const hasActivities = (activities || []).some((item) => Number(item?.moving_time) > 0);
-49: 
+49:
 50:   (activities || []).forEach((item) => {
 51:     const date = toDateOnly(item.start_date || item.start_time || item.date);
 52:     if (!date) return;
@@ -457,7 +457,7 @@ webapp/lib/loadRollups.js:1-113
 54:     if (!pointMap.has(key)) return;
 55:     pointMap.get(key).load += computeActivityTrimp(item);
 56:   });
-57: 
+57:
 58:   if (!hasActivities) {
 59:     (interventions || []).forEach((item) => {
 60:       const date = toDateOnly(item.date || item.inserted_at);
@@ -467,10 +467,10 @@ webapp/lib/loadRollups.js:1-113
 64:       pointMap.get(key).load += interventionLoadScore(item);
 65:     });
 66:   }
-67: 
+67:
 68:   return points;
 69: }
-70: 
+70:
 71: export function buildLoadMetrics(payload = {}) {
 72:   const daily = buildDailyLoadSeries(payload);
 73:   const loads = daily.map((point) => point.load);
@@ -480,7 +480,7 @@ webapp/lib/loadRollups.js:1-113
 77:   const acute = acuteSeries[latestIndex] || 0;
 78:   const chronic = chronicSeries[latestIndex] || 0;
 79:   const form = chronic - acute;
-80: 
+80:
 81:   return {
 82:     acute: Number(acute.toFixed(1)),
 83:     chronic: Number(chronic.toFixed(1)),
@@ -494,7 +494,7 @@ webapp/lib/loadRollups.js:1-113
 91:     explainability: 'Exponentially-weighted training load from synced activities (7-day fatigue vs 42-day fitness).',
 92:   };
 93: }
-94: 
+94:
 95: export function buildLoadStatus(metrics) {
 96:   if (!metrics) return { label: 'Unknown', tone: 'neutral' };
 97:   if (metrics.form < -30) return { label: 'High strain', tone: 'red' };
@@ -503,7 +503,7 @@ webapp/lib/loadRollups.js:1-113
 100:   if (metrics.form > 5) return { label: 'Fresh', tone: 'green' };
 101:   return { label: 'Balanced', tone: 'green' };
 102: }
-103: 
+103:
 
 webapp/lib/trainingLoad.js:38-60
 38:  * when configured; falls back to population defaults so the series still
@@ -513,11 +513,11 @@ webapp/lib/trainingLoad.js:38-60
 42: export function computeActivityTrimp(activity, settings = {}) {
 43:   const minutes = (Number(activity?.moving_time) || 0) / 60;
 44:   if (minutes <= 0) return 0;
-45: 
+45:
 46:   const restingHr = Number(settings?.resting_hr) || DEFAULT_RESTING_HR;
 47:   const maxHr = Number(settings?.max_hr) || DEFAULT_MAX_HR;
 48:   const avgHr = Number(activity?.average_heartrate) || 0;
-49: 
+49:
 50:   let hrReserve;
 51:   if (avgHr > restingHr && maxHr > restingHr) {
 52:     hrReserve = Math.min(1, (avgHr - restingHr) / (maxHr - restingHr));
@@ -527,7 +527,7 @@ webapp/lib/trainingLoad.js:38-60
 56:     const rpe = Number(activity?.perceived_exertion) || 0;
 57:     hrReserve = rpe > 0 ? Math.min(0.95, Math.max(0.3, rpe / 10)) : DEFAULT_INTENSITY_WITHOUT_HR;
 58:   }
-59: 
+59:
 60:   return minutes * hrReserve * 0.64 * Math.exp(1.92 * hrReserve);
 
 webapp/pages/dashboard.js:816-830
@@ -544,7 +544,7 @@ webapp/pages/dashboard.js:816-830
 826:             </div>
 827:           </section>
 828:         )}
-829: 
+829:
 830:         <div className="mb-6 flex items-center justify-between rounded-full border border-ink/10 bg-white/70 px-4 py-3 backdrop-blur">
 
 webapp/pages/calendar.js:40-60
@@ -566,36 +566,36 @@ webapp/pages/calendar.js:40-60
 55:             </div>
 56:           )}
 57:         </section>
-58: 
+58:
 59:         {/* The calendar is the single source of truth for this week's sessions —
 60:             no duplicate list above it. */}
 
 webapp/supabase/migrations/20260611120000_add_training_calendar.sql:48-145
 48: CREATE TABLE IF NOT EXISTS public.planned_workouts (
 49:   id                     uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-50: 
+50:
 51:   athlete_id             uuid        NOT NULL
 52:                                      REFERENCES public.athletes(id) ON DELETE CASCADE,
-53: 
+53:
 54:   -- Null when the athlete planned the workout themselves
 55:   coach_id               uuid        REFERENCES public.coach_profiles(id) ON DELETE SET NULL,
-56: 
+56:
 57:   workout_date           date        NOT NULL,
 58:   sport                  text        NOT NULL DEFAULT 'run',
 59:   title                  text        NOT NULL,
 60:   description            text,
 61:   structure              jsonb       NOT NULL DEFAULT '[]'::jsonb,
-62: 
+62:
 63:   planned_duration_min   numeric,
 64:   planned_distance_km    numeric,
 65:   planned_tss            numeric,
-66: 
+66:
 67:   -- Position within the day when multiple workouts are scheduled
 68:   order_index            integer     NOT NULL DEFAULT 0,
-69: 
+69:
 70:   status                 text        NOT NULL DEFAULT 'planned'
 71:                                      CHECK (status IN ('planned', 'completed', 'skipped')),
-72: 
+72:
 73:   -- Completion data (manual entry or matched from a synced activity)
 74:   completed_activity_id  text,
 75:   completed_duration_min numeric,
@@ -603,21 +603,21 @@ webapp/supabase/migrations/20260611120000_add_training_calendar.sql:48-145
 77:   athlete_rpe            integer     CHECK (athlete_rpe BETWEEN 1 AND 10),
 78:   athlete_comment        text,
 79:   coach_feedback         text,
-80: 
+80:
 81:   library_workout_id     uuid        REFERENCES public.workout_library(id) ON DELETE SET NULL,
-82: 
+82:
 83:   created_at             timestamptz NOT NULL DEFAULT now(),
 84:   updated_at             timestamptz NOT NULL DEFAULT now()
 85: );
-86: 
+86:
 87: CREATE INDEX IF NOT EXISTS idx_planned_workouts_athlete_date
 88:   ON public.planned_workouts (athlete_id, workout_date);
-89: 
+89:
 90: CREATE INDEX IF NOT EXISTS idx_planned_workouts_coach_id
 91:   ON public.planned_workouts (coach_id);
-92: 
+92:
 93: ALTER TABLE public.planned_workouts ENABLE ROW LEVEL SECURITY;
-94: 
+94:
 95: -- Coaches manage workouts they assigned
 96: CREATE POLICY "planned_workouts: coaches manage own"
 97:   ON public.planned_workouts FOR ALL
@@ -630,7 +630,7 @@ webapp/supabase/migrations/20260611120000_add_training_calendar.sql:48-145
 104:          AND a.supabase_user_id  = auth.uid()
 105:     )
 106:   );
-107: 
+107:
 108: -- Athletes can read everything on their own calendar
 109: CREATE POLICY "planned_workouts: athletes read own"
 110:   ON public.planned_workouts FOR SELECT
@@ -642,7 +642,7 @@ webapp/supabase/migrations/20260611120000_add_training_calendar.sql:48-145
 116:          AND a.supabase_user_id = auth.uid()
 117:     )
 118:   );
-119: 
+119:
 120: -- Athletes manage workouts they planned themselves (coach_id IS NULL)
 121: CREATE POLICY "planned_workouts: athletes manage self-planned"
 122:   ON public.planned_workouts FOR ALL
@@ -655,7 +655,7 @@ webapp/supabase/migrations/20260611120000_add_training_calendar.sql:48-145
 129:          AND a.supabase_user_id = auth.uid()
 130:     )
 131:   );
-132: 
+132:
 133: -- Athletes can update completion fields on coach-assigned workouts; column
 134: -- restrictions are enforced in the API layer (service role), this policy
 135: -- covers direct client access.
@@ -681,7 +681,7 @@ webapp/supabase/migrations/20260617120000_trainingpeaks_parity_foundation.sql:4-
 11:   ADD COLUMN IF NOT EXISTS sync_provider text,
 12:   ADD COLUMN IF NOT EXISTS sync_error text,
 13:   ADD COLUMN IF NOT EXISTS paired_manually boolean NOT NULL DEFAULT false;
-14: 
+14:
 
 webapp/supabase/migrations/20261007162647_workout_match_decisions.sql:1-12
 1: -- Saved athlete decisions override the calendar's automatic suggestions.
@@ -689,10 +689,10 @@ webapp/supabase/migrations/20261007162647_workout_match_decisions.sql:1-12
 3: alter table public.planned_workouts
 4:   add column activity_match_mode text not null default 'auto'
 5:   check (activity_match_mode in ('auto', 'manual'));
-6: 
+6:
 7: update public.planned_workouts set activity_match_mode = 'manual'
 8: where status <> 'planned' or completed_activity_id is not null;
-9: 
+9:
 10: create unique index planned_workouts_one_activity_per_athlete
 11:   on public.planned_workouts (athlete_id, completed_activity_id)
 12:   where completed_activity_id is not null;
