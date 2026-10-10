@@ -69,6 +69,15 @@ validation errors and assignment using the revised metadata. The frozen hosted
 static preview is not rebuilt or published; this adapter addition affects only
 the future combined source build.
 
+Final transfer edge case: a template with duration 40 and explicitly cleared TSS
+was incorrectly assigned with calculated TSS 33 by the old synthetic adapter.
+`o1-null-transfer-before.log` reproduces that failure. Library assignment now
+copies the saved prescription exactly, including explicit null duration,
+distance, IF and TSS; directly planned workouts still derive their existing
+totals. The extended synthetic browser case verifies a second assignment keeps
+null TSS and the first assignment retains its previous zero. No native backend
+owner file or API behavior changes in this follow-up.
+
 Final native checks: **16/16** library browser cases, **442/442** production/auth
 regressions and production build PASS. Shared-validator native/synthetic tests:
 **28/28** (10 signed-library tests + 18 adapter tests). Built local synthetic O1

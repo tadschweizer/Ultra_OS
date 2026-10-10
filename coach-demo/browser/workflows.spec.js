@@ -96,6 +96,14 @@ for (const width of [1440, 320]) test(`O1 local synthetic template edit, refresh
   await expect(card.getByText('Added to calendar.',{exact:true})).toBeVisible();
   s=await state(page);const assigned=s.workouts.find(w=>w.title==='Edited synthetic trail');
   expect(assigned.coach_instructions).toBe('Relax on the descents');expect(assigned.planned_if).toBe(0);expect(assigned.planned_tss).toBe(0);
+  await page.getByRole('button',{name:'Edit Edited synthetic trail in library',exact:true}).click();
+  await editor.getByLabel('Planned TSS',{exact:true}).fill('');await editor.getByRole('button',{name:'Save template',exact:true}).click();
+  await expect(editor).not.toBeVisible();await card.getByLabel('Add library workout on').fill('2026-10-12');
+  await card.getByRole('button',{name:'Add',exact:true}).click();
+  await expect.poll(async()=> (await state(page)).workouts.filter(w=>w.title==='Edited synthetic trail').length).toBe(2);
+  expect((await state(page)).workouts.find(w=>w.title==='Edited synthetic trail'&&w.workout_date==='2026-10-12').planned_tss).toBe(null);
+  // Use the first assignment to prove later template edits do not alter it.
+  expect((await state(page)).workouts.find(w=>w.id===assigned.id).planned_tss).toBe(0);
   await navigate(page,'overview','athlete');await openWorkout(page,'Edited synthetic trail');
   await expect(dialog(page)).toContainText('Relax on the descents');
   await page.screenshot({path:`../output/library-o1-synthetic-athlete-${width}.png`});

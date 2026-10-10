@@ -24,7 +24,7 @@ const storage = () => {
 test('O1 synthetic template PATCH shares validation, persists, isolates stores and assigns edited metadata',async()=>{
   const saved=storage(),s=new DemoStore(saved),request=s.transport('coach','demo-robin');
   const {workout:created}=await call(request,'/api/workout-library','POST',{
-    name:'Editable synthetic trail',sport:'run',planned_distance_km:9.656064,planned_distance_unit:'mi',
+    name:'Editable synthetic trail',sport:'run',planned_duration_min:40,planned_distance_km:9.656064,planned_distance_unit:'mi',
     objective:null,coach_instructions:'Original',planned_if:0,planned_tss:0,structure:[],visibility:'coach_private',target_metric:'heart_rate'});
   const before=await call(request,'/api/planned-workouts','POST',{library_workout_id:created.id,workout_date:'2026-10-14'});
   const body={id:created.id,coach_instructions:'Revised recovery',planned_if:0,planned_tss:null,objective:null,visibility:'athlete_visible'};
@@ -42,6 +42,9 @@ test('O1 synthetic template PATCH shares validation, persists, isolates stores a
   const after=await call(refreshed,'/api/planned-workouts','POST',{library_workout_id:created.id,workout_date:'2026-10-15'});
   assert.equal(before.workout.coach_instructions,'Original');assert.equal(after.workout.coach_instructions,'Revised recovery');
   assert.equal(after.workout.planned_if,0);assert.equal(after.workout.planned_tss,null);
+  await call(refreshed,'/api/workout-library','PATCH',{id:created.id,planned_duration_min:null,planned_distance_km:null,planned_if:null});
+  const cleared=await call(refreshed,'/api/planned-workouts','POST',{library_workout_id:created.id,workout_date:'2026-10-16'});
+  for(const key of ['planned_duration_min','planned_distance_km','planned_if','planned_tss'])assert.equal(cleared.workout[key],null);
   const isolated=await call(new DemoStore(storage()).transport('coach','demo-robin'),'/api/workout-library');
   assert.equal(isolated.workouts.some(w=>w.id===created.id),false);
   s.reset();assert.equal((await call(request,'/api/workout-library')).workouts.some(w=>w.id===created.id),false);

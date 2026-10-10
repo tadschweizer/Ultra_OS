@@ -419,7 +419,7 @@ export class DemoStore {
               { error: "Workout title and date are required." },
               400,
             );
-          const w = fillPlanTotals({
+          const w = {
             ...pick(plan, PLAN),
             ...pick(body, ACTUAL),
             id: newId(),
@@ -429,7 +429,11 @@ export class DemoStore {
             activity_match_mode: "manual",
             visibility: plan.visibility || "athlete_visible",
             updated_at: now,
-          });
+          };
+          // A library assignment copies the saved prescription exactly,
+          // including a deliberately cleared load/duration/distance. Only
+          // directly planned workouts derive omitted totals here.
+          if (!lib) fillPlanTotals(w);
           next.workouts.push(w);
           if (body.client_request_id)
             next.requests[body.client_request_id] = w.id;
