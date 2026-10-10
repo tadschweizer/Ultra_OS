@@ -1,0 +1,165 @@
+[WebServer] (node:18800) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] [@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated and will be removed in a future version. Use webpack.treeshake.removeDebugLogging instead.
+
+Running 2 tests using 1 worker
+
+(node:2776) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-4/release-pr135/webapp/pages/api/planned-workouts.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-4\release-pr135\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:11608) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:11608) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-4/release-pr135/webapp/pages/api/planned-workouts.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-4\release-pr135\webapp\package.json.
+  ok 1 [desktop-chromium] ΓÇ║ e2e\calendar-load-layout.spec.mjs:5:1 ΓÇ║ athlete load and status remain complete at 320px, 390px and desktop with actuals and long labels (3.5s)
+(node:29020) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:29020) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-4/release-pr135/webapp/pages/api/planned-workouts.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-4\release-pr135\webapp\package.json.
+  x  2 [mobile-chromium] ΓÇ║ e2e\calendar-load-layout.spec.mjs:5:1 ΓÇ║ athlete load and status remain complete at 320px, 390px and desktop with actuals and long labels (7.0s)
+
+
+  1) [mobile-chromium] ΓÇ║ e2e\calendar-load-layout.spec.mjs:5:1 ΓÇ║ athlete load and status remain complete at 320px, 390px and desktop with actuals and long labels 
+
+    Error: 320px empty-actuals: page has no horizontal scroll
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeLessThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: <= [32m320[39m
+    Received:    [31m348[39m
+
+      66 |         // Mobile innerWidth can itself expand with overflow. Compare against
+      67 |         // the requested layout width, not the already-expanded innerWidth.
+    > 68 |         expect.soft(root.root, `${width}px ${phase}: page has no horizontal scroll`).toBeLessThanOrEqual(width);
+         |                                                                                      ^
+      69 |         for (const card of cards) {
+      70 |           expect.soft(card.left, `${width}px ${phase}: ${card.text} starts inside viewport`).toBeGreaterThanOrEqual(0);
+      71 |           expect.soft(card.right, `${width}px ${phase}: ${card.text} ends inside viewport`).toBeLessThanOrEqual(width);
+        at C:\Users\BAS\Documents\Codex\2026-10-09\task-4\release-pr135\webapp\e2e\calendar-load-layout.spec.mjs:68:86
+
+    Error: 320px empty-actuals: StatusNo training load data ends inside viewport
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeLessThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: <= [32m320[39m
+    Received:    [31m347.515625[39m
+
+      69 |         for (const card of cards) {
+      70 |           expect.soft(card.left, `${width}px ${phase}: ${card.text} starts inside viewport`).toBeGreaterThanOrEqual(0);
+    > 71 |           expect.soft(card.right, `${width}px ${phase}: ${card.text} ends inside viewport`).toBeLessThanOrEqual(width);
+         |                                                                                             ^
+      72 |           expect(card.hidden).toBe(false);
+      73 |           expect(['hidden', 'clip'].includes(card.overflow)).toBe(false);
+      74 |         }
+        at C:\Users\BAS\Documents\Codex\2026-10-09\task-4\release-pr135\webapp\e2e\calendar-load-layout.spec.mjs:71:93
+
+    Error: 320px recorded-actuals: page has no horizontal scroll
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeLessThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: <= [32m320[39m
+    Received:    [31m362[39m
+
+      66 |         // Mobile innerWidth can itself expand with overflow. Compare against
+      67 |         // the requested layout width, not the already-expanded innerWidth.
+    > 68 |         expect.soft(root.root, `${width}px ${phase}: page has no horizontal scroll`).toBeLessThanOrEqual(width);
+         |                                                                                      ^
+      69 |         for (const card of cards) {
+      70 |           expect.soft(card.left, `${width}px ${phase}: ${card.text} starts inside viewport`).toBeGreaterThanOrEqual(0);
+      71 |           expect.soft(card.right, `${width}px ${phase}: ${card.text} ends inside viewport`).toBeLessThanOrEqual(width);
+        at C:\Users\BAS\Documents\Codex\2026-10-09\task-4\release-pr135\webapp\e2e\calendar-load-layout.spec.mjs:68:86
+
+    Error: 320px recorded-actuals: StatusBalanced ends inside viewport
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeLessThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: <= [32m320[39m
+    Received:    [31m361.03125[39m
+
+      69 |         for (const card of cards) {
+      70 |           expect.soft(card.left, `${width}px ${phase}: ${card.text} starts inside viewport`).toBeGreaterThanOrEqual(0);
+    > 71 |           expect.soft(card.right, `${width}px ${phase}: ${card.text} ends inside viewport`).toBeLessThanOrEqual(width);
+         |                                                                                             ^
+      72 |           expect(card.hidden).toBe(false);
+      73 |           expect(['hidden', 'clip'].includes(card.overflow)).toBe(false);
+      74 |         }
+        at C:\Users\BAS\Documents\Codex\2026-10-09\task-4\release-pr135\webapp\e2e\calendar-load-layout.spec.mjs:71:93
+
+    Error: 320px long-status: page has no horizontal scroll
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeLessThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: <= [32m320[39m
+    Received:    [31m684[39m
+
+      66 |         // Mobile innerWidth can itself expand with overflow. Compare against
+      67 |         // the requested layout width, not the already-expanded innerWidth.
+    > 68 |         expect.soft(root.root, `${width}px ${phase}: page has no horizontal scroll`).toBeLessThanOrEqual(width);
+         |                                                                                      ^
+      69 |         for (const card of cards) {
+      70 |           expect.soft(card.left, `${width}px ${phase}: ${card.text} starts inside viewport`).toBeGreaterThanOrEqual(0);
+      71 |           expect.soft(card.right, `${width}px ${phase}: ${card.text} ends inside viewport`).toBeLessThanOrEqual(width);
+        at C:\Users\BAS\Documents\Codex\2026-10-09\task-4\release-pr135\webapp\e2e\calendar-load-layout.spec.mjs:68:86
+
+    Error: 320px long-status: StatusHighTrainingLoadStatusWithUnbrokenSyntheticFixtureLabel ends inside viewport
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeLessThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: <= [32m320[39m
+    Received:    [31m683.59375[39m
+
+      69 |         for (const card of cards) {
+      70 |           expect.soft(card.left, `${width}px ${phase}: ${card.text} starts inside viewport`).toBeGreaterThanOrEqual(0);
+    > 71 |           expect.soft(card.right, `${width}px ${phase}: ${card.text} ends inside viewport`).toBeLessThanOrEqual(width);
+         |                                                                                             ^
+      72 |           expect(card.hidden).toBe(false);
+      73 |           expect(['hidden', 'clip'].includes(card.overflow)).toBe(false);
+      74 |         }
+        at C:\Users\BAS\Documents\Codex\2026-10-09\task-4\release-pr135\webapp\e2e\calendar-load-layout.spec.mjs:71:93
+
+    Error: 390px long-status: page has no horizontal scroll
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeLessThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: <= [32m390[39m
+    Received:    [31m685[39m
+
+      66 |         // Mobile innerWidth can itself expand with overflow. Compare against
+      67 |         // the requested layout width, not the already-expanded innerWidth.
+    > 68 |         expect.soft(root.root, `${width}px ${phase}: page has no horizontal scroll`).toBeLessThanOrEqual(width);
+         |                                                                                      ^
+      69 |         for (const card of cards) {
+      70 |           expect.soft(card.left, `${width}px ${phase}: ${card.text} starts inside viewport`).toBeGreaterThanOrEqual(0);
+      71 |           expect.soft(card.right, `${width}px ${phase}: ${card.text} ends inside viewport`).toBeLessThanOrEqual(width);
+        at C:\Users\BAS\Documents\Codex\2026-10-09\task-4\release-pr135\webapp\e2e\calendar-load-layout.spec.mjs:68:86
+
+    Error: 390px long-status: StatusHighTrainingLoadStatusWithUnbrokenSyntheticFixtureLabel ends inside viewport
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeLessThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: <= [32m390[39m
+    Received:    [31m683.59375[39m
+
+      69 |         for (const card of cards) {
+      70 |           expect.soft(card.left, `${width}px ${phase}: ${card.text} starts inside viewport`).toBeGreaterThanOrEqual(0);
+    > 71 |           expect.soft(card.right, `${width}px ${phase}: ${card.text} ends inside viewport`).toBeLessThanOrEqual(width);
+         |                                                                                             ^
+      72 |           expect(card.hidden).toBe(false);
+      73 |           expect(['hidden', 'clip'].includes(card.overflow)).toBe(false);
+      74 |         }
+        at C:\Users\BAS\Documents\Codex\2026-10-09\task-4\release-pr135\webapp\e2e\calendar-load-layout.spec.mjs:71:93
+
+    attachment #9: trace (application/zip) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    ..\output\calendar-load-layout\baseline\calendar-load-layout-athle-e6942-ith-actuals-and-long-labels-mobile-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace ..\output\calendar-load-layout\baseline\calendar-load-layout-athle-e6942-ith-actuals-and-long-labels-mobile-chromium\trace.zip
+
+    ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+
+  1 failed
+    [mobile-chromium] ΓÇ║ e2e\calendar-load-layout.spec.mjs:5:1 ΓÇ║ athlete load and status remain complete at 320px, 390px and desktop with actuals and long labels 
+  1 passed (14.5s)
