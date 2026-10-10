@@ -28,7 +28,7 @@ To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\
   x  1 [mobile-chromium] ΓÇ║ e2e\message-workspace.spec.mjs:7:1 ΓÇ║ F8 inbox outage is unavailable, preserves known conversations, and retry verifies empty versus existing (15.1s)
 
 
-  1) [mobile-chromium] ΓÇ║ e2e\message-workspace.spec.mjs:7:1 ΓÇ║ F8 inbox outage is unavailable, preserves known conversations, and retry verifies empty versus existing 
+  1) [mobile-chromium] ΓÇ║ e2e\message-workspace.spec.mjs:7:1 ΓÇ║ F8 inbox outage is unavailable, preserves known conversations, and retry verifies empty versus existing
 
     Error: [31mTimed out 5000ms waiting for [39m[2mexpect([22m[31mlocator[39m[2m).[22mnot[2m.[22mtoBeVisible[2m()[22m
 
