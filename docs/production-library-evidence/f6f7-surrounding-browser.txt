@@ -1,0 +1,88 @@
+[WebServer] (node:1244) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:28608) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] [@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated and will be removed in a future version. Use webpack.treeshake.removeDebugLogging instead.
+[WebServer] [@sentry/nextjs] It appears you've configured a `sentry.server.config.js` file. Please ensure to put this file's content into the `register()` function of a Next.js instrumentation file instead. To ensure correct functionality of the SDK, `Sentry.init` must be called inside of an instrumentation file. Learn more about setting up an instrumentation file in Next.js: https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation. You can safely delete the `sentry.server.config.js` file afterward.
+[WebServer] [@sentry/nextjs] Could not find a Next.js instrumentation file. This indicates an incomplete configuration of the Sentry SDK. An instrumentation file is required for the Sentry SDK to be initialized on the server: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#create-initialization-config-files (you can suppress this warning by setting SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING=1 as environment variable)
+[WebServer] [@sentry/nextjs] It appears you've configured a `sentry.edge.config.js` file. Please ensure to put this file's content into the `register()` function of a Next.js instrumentation file instead. To ensure correct functionality of the SDK, `Sentry.init` must be called inside of an instrumentation file. Learn more about setting up an instrumentation file in Next.js: https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation. You can safely delete the `sentry.edge.config.js` file afterward.
+[WebServer] [@sentry/nextjs] DEPRECATION WARNING: It is recommended renaming your `sentry.client.config.js` file, or moving its content to `instrumentation-client.ts`. When using Turbopack `sentry.client.config.js` will no longer work. Read more about the `instrumentation-client.ts` file: https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation-client
+[WebServer] ΓÜá The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+[WebServer] Browserslist: browsers data (caniuse-lite) is 7 months old. Please run:
+[WebServer]   npx update-browserslist-db@latest
+[WebServer]   Why you should do it regularly: https://github.com/browserslist/update-db#readme
+(node:30316) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/workoutCompliance.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 46 tests using 1 worker
+
+(node:10816) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:10816) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:10816) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/workoutCompliance.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+  ok 1 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:63:1 ΓÇ║ completion keeps unknown actuals blank, recovers from failure, permits correction and undo (8.4s)
+  ok 2 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:90:1 ΓÇ║ athlete can log an unplanned workout from the mobile entry point (1.7s)
+  ok 3 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:101:1 ΓÇ║ recipient drafts stay separate and failed retries reuse the same message identity (1.7s)
+  ok 4 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:117:1 ΓÇ║ incoming reply refreshes without reload and acknowledges only the displayed messages (5.8s)
+  ok 5 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:126:1 ΓÇ║ floating conversation opens the canonical inbox with the selected recipient (1.5s)
+  ok 6 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:135:1 ΓÇ║ older history remains visible after automatic refresh (5.9s)
+  ok 7 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:147:1 ΓÇ║ Today exposes planned training and coach feedback; phone navigation opens logging (3.1s)
+  ok 8 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:173:1 ΓÇ║ athlete rejects an automatic match, refreshes, and explicitly restores automatic matching (2.8s)
+  ok 9 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:191:1 ΓÇ║ athlete replaces a suggested match, retains failed selection, confirms, reloads, then unlinks (4.3s)
+  ok 10 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:217:1 ΓÇ║ confirmed match survives a lost response and a retry of the same selection (1.7s)
+  ok 11 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:230:1 ΓÇ║ coach can inspect a suggested match but athlete match controls stay absent (1.9s)
+  ok 12 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:239:1 ΓÇ║ triage template opens once and does not refill the composer after sending (1.1s)
+  ok 13 [desktop-chromium] ΓÇ║ e2e\pilot-access.spec.mjs:44:1 ΓÇ║ public coach signup and pricing explain separate pilot approval (4.4s)
+  ok 14 [desktop-chromium] ΓÇ║ e2e\pilot-access.spec.mjs:70:1 ΓÇ║ coach role alone is locked; approved pilot opens workspace; revocation survives refresh (2.7s)
+  ok 15 [desktop-chromium] ΓÇ║ e2e\pilot-access.spec.mjs:83:1 ΓÇ║ athlete saves seven useful daily check-ins, then sees revoked access without losing history (7.1s)
+  ok 16 [desktop-chromium] ΓÇ║ e2e\pilot-access.spec.mjs:111:1 ΓÇ║ administrator provisions and revokes pilot using the form (1.5s)
+  ok 17 [desktop-chromium] ΓÇ║ e2e\pilot-access.spec.mjs:130:1 ΓÇ║ entitlement failure removes cached pilot claim and displays a retry message (1.6s)
+  ok 18 [desktop-chromium] ΓÇ║ e2e\pilot-access.spec.mjs:141:1 ΓÇ║ entitlement failure is explicit in a new session without cached account data (1.5s)
+[workout-library] failed: column "objective" does not exist
+[workout-library] failed: column "objective" does not exist
+[workout-library] failed: column "objective" does not exist
+  ok 19 [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:20:1 ΓÇ║ F6 library outages never assert empty data; retry recovers and refresh preserves known templates (4.1s)
+  ok 20 [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:50:35 ΓÇ║ F7 committed response loss retries once in editor; deliberate next save gets a fresh operation (3.7s)
+  ok 21 [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:50:35 ΓÇ║ F7 committed response loss retries once after refresh; deliberate next save gets a fresh operation (4.5s)
+  ok 22 [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:93:1 ΓÇ║ library validation can be corrected; uncertain save keeps original intent through edits, close and retry (3.5s)
+  ok 23 [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:119:1 ΓÇ║ real calendar editor saves a full prescription through the signed library API and SQL, reloads and deletes (4.5s)
+(node:25044) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:25044) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:25044) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/workoutCompliance.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+  ok 24 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:63:1 ΓÇ║ completion keeps unknown actuals blank, recovers from failure, permits correction and undo (4.0s)
+  ok 25 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:90:1 ΓÇ║ athlete can log an unplanned workout from the mobile entry point (1.9s)
+  ok 26 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:101:1 ΓÇ║ recipient drafts stay separate and failed retries reuse the same message identity (1.2s)
+  ok 27 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:117:1 ΓÇ║ incoming reply refreshes without reload and acknowledges only the displayed messages (4.9s)
+  ok 28 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:126:1 ΓÇ║ floating conversation opens the canonical inbox with the selected recipient (1.7s)
+  ok 29 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:135:1 ΓÇ║ older history remains visible after automatic refresh (5.9s)
+  ok 30 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:147:1 ΓÇ║ Today exposes planned training and coach feedback; phone navigation opens logging (2.6s)
+  ok 31 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:173:1 ΓÇ║ athlete rejects an automatic match, refreshes, and explicitly restores automatic matching (3.5s)
+  ok 32 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:191:1 ΓÇ║ athlete replaces a suggested match, retains failed selection, confirms, reloads, then unlinks (5.2s)
+  ok 33 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:217:1 ΓÇ║ confirmed match survives a lost response and a retry of the same selection (1.9s)
+  ok 34 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:230:1 ΓÇ║ coach can inspect a suggested match but athlete match controls stay absent (1.5s)
+  ok 35 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:239:1 ΓÇ║ triage template opens once and does not refill the composer after sending (1.1s)
+  ok 36 [mobile-chromium] ΓÇ║ e2e\pilot-access.spec.mjs:44:1 ΓÇ║ public coach signup and pricing explain separate pilot approval (3.4s)
+  ok 37 [mobile-chromium] ΓÇ║ e2e\pilot-access.spec.mjs:70:1 ΓÇ║ coach role alone is locked; approved pilot opens workspace; revocation survives refresh (2.1s)
+  ok 38 [mobile-chromium] ΓÇ║ e2e\pilot-access.spec.mjs:83:1 ΓÇ║ athlete saves seven useful daily check-ins, then sees revoked access without losing history (7.4s)
+  ok 39 [mobile-chromium] ΓÇ║ e2e\pilot-access.spec.mjs:111:1 ΓÇ║ administrator provisions and revokes pilot using the form (1.3s)
+  ok 40 [mobile-chromium] ΓÇ║ e2e\pilot-access.spec.mjs:130:1 ΓÇ║ entitlement failure removes cached pilot claim and displays a retry message (1.6s)
+  ok 41 [mobile-chromium] ΓÇ║ e2e\pilot-access.spec.mjs:141:1 ΓÇ║ entitlement failure is explicit in a new session without cached account data (1.4s)
+[workout-library] failed: column "objective" does not exist
+[workout-library] failed: column "objective" does not exist
+[workout-library] failed: column "objective" does not exist
+  ok 42 [mobile-chromium] ΓÇ║ e2e\workout-library.spec.mjs:20:1 ΓÇ║ F6 library outages never assert empty data; retry recovers and refresh preserves known templates (4.4s)
+  ok 43 [mobile-chromium] ΓÇ║ e2e\workout-library.spec.mjs:50:35 ΓÇ║ F7 committed response loss retries once in editor; deliberate next save gets a fresh operation (3.5s)
+  ok 44 [mobile-chromium] ΓÇ║ e2e\workout-library.spec.mjs:50:35 ΓÇ║ F7 committed response loss retries once after refresh; deliberate next save gets a fresh operation (4.7s)
+  ok 45 [mobile-chromium] ΓÇ║ e2e\workout-library.spec.mjs:93:1 ΓÇ║ library validation can be corrected; uncertain save keeps original intent through edits, close and retry (4.0s)
+  ok 46 [mobile-chromium] ΓÇ║ e2e\workout-library.spec.mjs:119:1 ΓÇ║ real calendar editor saves a full prescription through the signed library API and SQL, reloads and deletes (5.5s)
+
+  46 passed (2.9m)

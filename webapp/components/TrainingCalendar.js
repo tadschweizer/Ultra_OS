@@ -1,5 +1,7 @@
 import { useWorkspaceTransport } from '../lib/WorkspaceTransport';
 import { libraryWorkoutPayload } from '../lib/libraryWorkoutPayload';
+import useWorkoutLibrary from '../lib/useWorkoutLibrary';
+import useLibraryCreate from '../lib/useLibraryCreate';
 import { calendarSelectionUrl } from '../lib/calendarSelection';
 import { summarizeCalendarWeek } from '../lib/calendarSummary';
 import { useDialogFocus } from '../lib/useDialogFocus';
@@ -577,6 +579,7 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
                   if (savingRef.current) return;
                   savingRef.current = true;
                   setSaving(true);
+                  setMessage('');
                   const ok = await onSaveToLibrary({
                     ...form,
                     structure: (form.structure || []).map((step) => ({
@@ -1417,7 +1420,7 @@ function ProgressMeter({ label, actual, planned, formatValue, unit = '' }) {
   );
 }
 
-export default function TrainingCalendar({ athleteId = null, athleteName = '', role = 'athlete' }) {
+export default function TrainingCalendar({ athleteId = null, athleteName = '', role = 'athlete', libraryOwnerId = null }) {
   const { request, today, preserveLibraryPlanMetadata } = useWorkspaceTransport();
   const calendarMutation = useCallback((url, options) => performCalendarMutation(url, { ...options, request }), [request]);
   const router = useRouter();
@@ -1431,7 +1434,11 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
   // Assume connected until the server says otherwise so the notice never flashes.
   const [stravaConnected, setStravaConnected] = useState(true);
   const [matchActivities, setMatchActivities] = useState([]);
-  const [library, setLibrary] = useState([]);
+  const {library,setLibrary,loaded:libraryLoaded,loading:libraryLoading,error:libraryError,reload:loadLibrary}=useWorkoutLibrary({request,enabled:role==='coach'});
+  const libraryConfirmed=useCallback((workout)=>{
+    setLibrary(previous=>[workout,...previous.filter(item=>item.id!==workout.id)]);loadLibrary();
+  },[setLibrary,loadLibrary]);
+  const libraryCreate=useLibraryCreate({coachId:libraryOwnerId,request,onConfirmed:libraryConfirmed});
   const [distanceUnitPref, setDistanceUnitPref] = useState('mi');
   const [loading, setLoading] = useState(true);
   const [loadingEarlier, setLoadingEarlier] = useState(false);
@@ -1503,14 +1510,6 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
   useEffect(() => {
     reload();
   }, [reload]);
-
-  useEffect(() => {
-    if (role !== 'coach') return;
-    request('/api/workout-library')
-      .then((r) => (r.ok ? r.json() : { workouts: [] }))
-      .then((d) => setLibrary(d.workouts || []))
-      .catch(() => {});
-  }, [role, request]);
 
   // Distance-unit preference — new workouts default to it (per-workout choice
   // still wins on edit).
@@ -1643,9 +1642,9 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
   const deleteNote = useCallback((id) => mutateCalendar(`/api/calendar-notes?id=${encodeURIComponent(id)}`,
     { method: 'DELETE' }, () => setNoteEditor(null)), [mutateCalendar]);
   const saveEvent = useCallback((body) => mutateCalendar('/api/race-events', { body }), [mutateCalendar]);
-  const saveToLibrary = useCallback((form) => mutateCalendar('/api/workout-library', {
-    body: libraryWorkoutPayload(form, { preservePlanMetadata: preserveLibraryPlanMetadata }),
-  }, (result) => setLibrary((previous) => [result.workout, ...previous.filter((item) => item.id !== result.workout.id)])), [mutateCalendar, preserveLibraryPlanMetadata]);
+  const saveToLibrary = useCallback((form) => libraryCreate.save(
+    libraryWorkoutPayload(form, { preservePlanMetadata: preserveLibraryPlanMetadata })
+  ), [libraryCreate.save, preserveLibraryPlanMetadata]);
   const applyLibraryWorkout = useCallback((libraryWorkoutId, date) => mutateCalendar('/api/planned-workouts', {
     body: { athlete_id: athleteId || undefined, library_workout_id: libraryWorkoutId, workout_date: date },
   }), [athleteId, mutateCalendar]);
@@ -1864,7 +1863,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
         <div className="flex items-center gap-2">
           {role === 'coach' && (
             <button onClick={() => setLibraryOpen((v) => !v)} className={`rounded-full px-4 py-2 text-sm font-semibold ${libraryOpen ? 'bg-panel text-paper' : 'border border-ink/10 text-ink/70 hover:bg-ink/5'}`}>
-              Library ({library.length})
+              Library ({libraryLoaded ? library.length : libraryError ? 'unavailable' : 'loading'})
             </button>
           )}
           <button
@@ -1877,6 +1876,12 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
       </div>
 
       {error && <p role="alert" className="mt-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>}
+      {role==='coach'&&(libraryCreate.pending||libraryCreate.error)&&(
+        <div className="mt-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-ink">
+          <p role={libraryCreate.error?'alert':'status'}>{libraryCreate.error||'A library save is unconfirmed. Retry it safely before creating another template.'}</p>
+          {libraryCreate.pending&&<button disabled={libraryCreate.saving} onClick={libraryCreate.retry} className="mt-2 min-h-11 rounded-full border border-ink/20 px-4 py-2 font-semibold disabled:opacity-60">{libraryCreate.saving?'Confirming library save...':'Retry unconfirmed library save'}</button>}
+        </div>
+      )}
 
       {/* Without an import source, an empty calendar means "nothing synced",
           not "didn't train" — say so, so the coach doesn't read it as a bug. */}
@@ -1891,7 +1896,12 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
       {role === 'coach' && libraryOpen && (
         <div className="mt-4 rounded-[24px] border border-ink/10 bg-white p-4">
           <p className="text-xs uppercase tracking-[0.25em] text-accent">Workout library</p>
-          {!library.length ? (
+          {libraryError&&<div role="alert" className="mt-3 text-sm text-ink">
+            <p>{libraryError}</p>
+            {!!library.length&&<p>{libraryLoaded?'Showing the last loaded templates.':'Showing known templates; the total could not be verified.'}</p>}
+          </div>}
+          <button disabled={libraryLoading} onClick={loadLibrary} className="mt-3 min-h-11 rounded-full border border-ink/20 px-4 py-2 text-sm font-semibold text-ink disabled:opacity-60">{libraryLoading?'Loading library...':libraryError?'Retry library load':'Refresh library'}</button>
+          {libraryLoaded&&!libraryError&&!library.length ? (
             <p className="mt-3 text-sm text-ink/55">No saved workouts yet. Open a workout and use “Save to library”.</p>
           ) : (
             <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">

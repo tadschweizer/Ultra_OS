@@ -6,6 +6,7 @@ import { createWorkoutLibraryHandler } from '../../pages/api/workout-library.js'
 export const legacyId = '88888888-8888-4888-8888-888888888888';
 export const foreignCoach = '99999999-9999-4999-8999-999999999999';
 export const metadataMigration = readFileSync(new URL('../../supabase/migrations/20261010025811_workout_library_plan_metadata.sql', import.meta.url), 'utf8');
+export const createMigration = readFileSync(new URL('../../supabase/migrations/20261010042931_workout_library_create_idempotency.sql', import.meta.url), 'utf8');
 export async function libraryFixture() {
   const f = await fixture();
   try {
@@ -22,6 +23,7 @@ export async function libraryFixture() {
   await f.pg.exec(`insert into workout_library(id,coach_id,name) values('${legacyId}','${coach}','Legacy easy run');`);
   const before = (await f.pg.query(`select policyname,qual,with_check from pg_policies where tablename='workout_library'`)).rows;
   await f.pg.exec(metadataMigration);
+  await f.pg.exec(createMigration);
   await f.pg.exec(`grant select,insert,update,delete on workout_library to service_role; set role service_role;`);
   const handler = createWorkoutLibraryHandler({getClient:()=>f.admin});
   // Other browser fixtures configure their own local deployment origin. Use

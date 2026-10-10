@@ -1,8 +1,10 @@
 import { test } from 'node:test';
+import { randomUUID } from 'node:crypto';
 import assert from 'node:assert/strict';
 import { normalizeLibraryPayload } from '../pages/api/workout-library.js';
 import { libraryWorkoutPayload } from '../lib/libraryWorkoutPayload.js';
-import { libraryFixture, metadataMigration, legacyId, foreignCoach } from './helpers/library-fixture.mjs';
+import { libraryFixture, metadataMigration, createMigration, legacyId, foreignCoach } from './helpers/library-fixture.mjs';
+import { readLibraryCreate, prepareLibraryCreate, confirmLibraryCreate, libraryCreateStorageKey } from '../lib/libraryCreateOperation.js';
 import { owner, athlete, stranger, coach } from './helpers/message-lifecycle-fixture.mjs';
 
 export const prescription = {
@@ -56,7 +58,7 @@ test('real signed endpoint saves/reloads/patches metadata, filters ownership and
     assert.equal((await f.invokeLibrary({actor:athlete})).code,403);
     for(const method of ['POST','PATCH','DELETE'])assert.equal((await f.invokeLibrary({method,origin:'https://evil.example',body:libraryWorkoutPayload(prescription)})).code,403);
     assert.equal((await f.invokeLibrary({method:'POST',contentType:'text/plain',body:{name:'No'}})).code,415);
-    const created=await f.invokeLibrary({method:'POST',body:{...libraryWorkoutPayload(prescription),coach_id:foreignCoach}});
+    const created=await f.invokeLibrary({method:'POST',body:{...libraryWorkoutPayload(prescription),client_request_id:randomUUID(),coach_id:foreignCoach}});
     assert.equal(created.code,200,JSON.stringify(created.body));const id=created.body.workout.id;
     assert.equal(created.body.workout.coach_id,coach);assert.deepEqual(created.body.workout.structure,prescription.structure);
     const reloaded=(await f.invokeLibrary()).body.workouts.find(w=>w.id===id);
@@ -85,7 +87,71 @@ test('unavailable metadata schema returns truthful service failure without leaki
 test('signed library fixture uses the active isolated deployment origin regardless of other fixture import order',async()=>{
   const previous=process.env.NEXT_PUBLIC_SITE_URL;process.env.NEXT_PUBLIC_SITE_URL='http://127.0.0.1:3000';
   const f=await libraryFixture();try{
-    assert.equal((await f.invokeLibrary({method:'POST',body:{name:'Correct test origin'}})).code,200);
+    assert.equal((await f.invokeLibrary({method:'POST',body:{name:'Correct test origin',client_request_id:randomUUID()}})).code,200);
     assert.equal((await f.invokeLibrary({method:'POST',origin:'https://other.example',body:{name:'Wrong origin'}})).code,403);
   }finally{process.env.NEXT_PUBLIC_SITE_URL=previous;await f.close();}
+});
+
+test('F7 signed create retries replay one durable coach-scoped receipt and reject changed intent',async()=>{
+  const f=await libraryFixture();try{
+    const client_request_id=randomUUID(),body={...libraryWorkoutPayload(prescription),client_request_id};
+    const first=await f.invokeLibrary({method:'POST',body});assert.equal(first.code,200,JSON.stringify(first.body));
+    const replay=await f.invokeLibrary({method:'POST',body});assert.equal(replay.code,200);
+    assert.equal(replay.body.workout.id,first.body.workout.id);assert.equal(replay.body.replayed,true);
+    const reordered=await f.invokeLibrary({method:'POST',body:{...body,structure:body.structure.map(step=>Object.fromEntries(Object.entries(step).reverse()))}});
+    assert.equal(reordered.body.workout.id,first.body.workout.id);
+    const receipt=(await f.pg.query('select * from workout_library_create_requests')).rows[0];
+    assert.match(receipt.payload_hash,/^[0-9a-f]{64}$/);assert.equal(Object.hasOwn(receipt,'payload'),false);
+    assert.equal((await f.invokeLibrary()).body.workouts.length,2);
+    assert.equal((await f.invokeLibrary({method:'POST',body:{...body,objective:'Changed intent'}})).code,409);
+    const intentional=await f.invokeLibrary({method:'POST',body:{...body,client_request_id:randomUUID()}});
+    assert.equal(intentional.code,200);assert.notEqual(intentional.body.workout.id,first.body.workout.id);
+    const other=await f.invokeLibrary({actor:stranger,method:'POST',body});
+    assert.equal(other.code,200);assert.equal(other.body.workout.coach_id,foreignCoach);assert.notEqual(other.body.workout.id,first.body.workout.id);
+    // Editing cannot alter the immutable original intent or duplicate on replay.
+    await f.invokeLibrary({method:'PATCH',body:{id:first.body.workout.id,name:'Edited template'}});
+    const afterEdit=await f.invokeLibrary({method:'POST',body});assert.equal(afterEdit.body.workout.name,'Edited template');
+    await f.invokeLibrary({method:'DELETE',query:{id:first.body.workout.id}});
+    assert.equal((await f.invokeLibrary({method:'POST',body})).code,410);
+    for(const key of [undefined,null,'bad'])assert.equal((await f.invokeLibrary({method:'POST',body:{name:'Invalid key',client_request_id:key}})).code,400);
+  }finally{await f.close();}
+});
+
+test('create receipt migration is repeatable, service-only, atomic on failure and safe for overlapping retries',async()=>{
+  const f=await libraryFixture();try{
+    await f.pg.exec('reset role;');await f.pg.exec(createMigration);
+    assert.equal((await f.pg.query("select relrowsecurity from pg_class where oid='workout_library_create_requests'::regclass")).rows[0].relrowsecurity,true);
+    for(const role of ['anon','authenticated']) {
+      assert.equal((await f.pg.query(`select has_table_privilege('${role}','workout_library_create_requests','select') as allowed`)).rows[0].allowed,false);
+      assert.equal((await f.pg.query(`select has_function_privilege('${role}','create_workout_library_once(uuid,uuid,jsonb)','execute') as allowed`)).rows[0].allowed,false);
+      await f.pg.exec(`set role ${role};`);
+      await assert.rejects(f.pg.query('select * from workout_library_create_requests'),/permission denied/);
+      await assert.rejects(f.pg.query('select create_workout_library_once($1,$2,$3)',[coach,randomUUID(),{name:'Spoofed'}]),/permission denied/);
+      await f.pg.exec('reset role;');
+    }
+    assert.equal((await f.pg.query("select prosecdef from pg_proc where proname='create_workout_library_once'")).rows[0].prosecdef,false);
+    const body={name:'Atomic trail create',client_request_id:randomUUID()};
+    await f.pg.exec('alter table workout_library rename column objective to unavailable_objective; set role service_role;');
+    assert.equal((await f.invokeLibrary({method:'POST',body})).code,503);
+    assert.equal((await f.pg.query('select count(*)::int as n from workout_library_create_requests')).rows[0].n,0);
+    await f.pg.exec('reset role; alter table workout_library rename column unavailable_objective to objective; set role service_role;');
+    const retries=await Promise.all([f.invokeLibrary({method:'POST',body}),f.invokeLibrary({method:'POST',body})]);
+    assert.deepEqual(retries.map(r=>r.code),[200,200]);assert.equal(retries[0].body.workout.id,retries[1].body.workout.id);
+    assert.equal((await f.pg.query('select count(*)::int as n from workout_library_create_requests')).rows[0].n,1);
+    assert.equal((await f.invokeLibrary()).body.workouts.length,2);
+  }finally{await f.close();}
+});
+
+test('unconfirmed browser operations survive reload, reject changed intent and stay scoped to a coach',()=>{
+  const values=new Map(),storage={getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v),removeItem:k=>values.delete(k)};
+  const payload=libraryWorkoutPayload(prescription),first=prepareLibraryCreate(storage,coach,payload,randomUUID);
+  assert.equal(readLibraryCreate(storage,coach).id,first.id);
+  assert.equal(prepareLibraryCreate(storage,coach,{...payload,structure:payload.structure.map(step=>Object.fromEntries(Object.entries(step).reverse()))},randomUUID).id,first.id);
+  assert.throws(()=>prepareLibraryCreate(storage,coach,{...payload,name:'Different intent'},randomUUID),/Retry the unconfirmed/);
+  const other=prepareLibraryCreate(storage,foreignCoach,payload,randomUUID);assert.notEqual(other.id,first.id);
+  confirmLibraryCreate(storage,coach,randomUUID());assert.equal(readLibraryCreate(storage,coach).id,first.id);
+  confirmLibraryCreate(storage,coach,first.id);assert.equal(readLibraryCreate(storage,coach),null);
+  assert.notEqual(prepareLibraryCreate(storage,coach,payload,randomUUID).id,first.id);
+  values.set(libraryCreateStorageKey(coach),'broken');assert.throws(()=>prepareLibraryCreate(storage,coach,payload,randomUUID));
+  assert.throws(()=>prepareLibraryCreate({...storage,setItem:()=>{throw new Error('Storage unavailable');}},'new-coach',payload,randomUUID),/Storage unavailable/);
 });

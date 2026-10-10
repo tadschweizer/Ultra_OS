@@ -85,10 +85,20 @@ export function createWorkoutLibraryHandler({ getClient = getSupabaseAdminClient
       }
       if (req.method === 'POST') {
         const payload = normalizeLibraryPayload(req.body, { create: true });
-        const { data, error } = await admin.from('workout_library').insert({ ...payload, coach_id: coachId })
-          .select(LIBRARY_COLUMNS).single();
+        const requestId = req.body.client_request_id;
+        if (typeof requestId !== 'string' || !UUID.test(requestId)) invalid('A valid library create operation id is required.');
+        const { data: receipt, error: createError } = await admin.rpc('create_workout_library_once', {
+          p_coach_id: coachId, p_request_id: requestId, p_payload: payload,
+        });
+        if (createError) throw createError;
+        if (receipt?.status === 'conflict') return res.status(409).json({ error: 'This save already belongs to a different prescription. Retry the original save; start a new save for another template.' });
+        if (receipt?.status === 'deleted') return res.status(410).json({ error: 'The template from this save was deleted. It was not recreated. Use a new save for an intentional new template.' });
+        if (receipt?.status !== 'saved' || !UUID.test(receipt.id)) throw new Error('Invalid library create receipt.');
+        const { data, error } = await admin.from('workout_library').select(LIBRARY_COLUMNS)
+          .eq('id', receipt.id).eq('coach_id', coachId).maybeSingle();
         if (error) throw error;
-        return res.status(200).json({ workout: data });
+        if (!data) return res.status(410).json({ error: 'The saved template was deleted. It was not recreated.' });
+        return res.status(200).json({ workout: data, replayed: receipt.replayed === true });
       }
       const id = req.method === 'DELETE' ? req.query?.id || req.body?.id : req.body?.id;
       if (typeof id !== 'string' || !UUID.test(id)) invalid('A valid library workout id is required.');

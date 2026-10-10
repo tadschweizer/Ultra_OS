@@ -8,6 +8,8 @@ The shared editor payload sends objective, separate coach instructions, planned 
 
 Exact contract and backend mapper dependency: [PRODUCTION_LIBRARY_CONTRACT.md](../../PRODUCTION_LIBRARY_CONTRACT.md).
 
+Independent QA at `4eadc767` found F6 (GET outage falsely rendered empty) and F7 (uncertain create retry duplicated a template). Both now have bounded repairs and failed-before/pass-after regressions. See [F6/F7 repair evidence](F6_F7_REPAIR.md) for the new migration, exact retry protocol, test output and remaining acceptance gate. The older results below describe the initial metadata slice; they do not accept the revised implementation or the combined runtime.
+
 ## Checks on 2026-10-10
 
 | Check | Result |
@@ -33,7 +35,7 @@ For an isolated port, create a local config importing `./playwright.config.mjs` 
 
 ## Release prerequisites and limits
 
-Do not deploy this expanded library API before applying its additive migration in the authorized release. This task prepared/tested the migration locally and did not execute any real database migration. Full assignment parity also requires the parallel backend owner's validated five-field library mapper; this PR deliberately does not edit planned-workouts, copy-week, load calculations, `/api/me` or calendarMutation. Storage/browser save/read/delete are proven here; actual assignment is that owner's separate real-handler test obligation. Physical iPhone/Safari, hosted Data API and production migration execution are not run. Existing library POST has no durable idempotency key; the editor prevents overlapping clicks, but retry after an uncertain committed response can create another template. No new provider sends, payment actions, auth bypass, merge or production deployment occurred.
+Do not deploy this expanded library API before applying both additive library migrations in the authorized release. This task prepared/tested migrations locally and did not execute any real database migration. Full assignment parity also requires the parallel backend owner's validated five-field library mapper; this PR deliberately does not edit planned-workouts, copy-week, load calculations, `/api/me` or calendarMutation. Physical iPhone/Safari, hosted Data API and production migration execution are not run. The original `4eadc767` POST lacked durable idempotency; independent F7 reproduced that risk. The revised endpoint uses an atomic coach-scoped receipt and stable browser retry key, detailed in the linked repair evidence. No new provider sends, payment actions, auth bypass, merge or manual deployment occurred.
 
 Independent review/acceptance of this new implementation remains open; the earlier synthetic-runtime QA does not accept this production slice.
 
