@@ -15,15 +15,15 @@
 Browserslist: browsers data (caniuse-lite) is 7 months old. Please run:
   npx update-browserslist-db@latest
   Why you should do it regularly: https://github.com/browserslist/update-db#readme
-Γ£ô Compiled successfully in 3.9s
+Γ£ô Compiled successfully in 4.2s
   Running next.config.js provided runAfterProductionCompile ...
-Γ£ô Completed runAfterProductionCompile in 594ms
+Γ£ô Completed runAfterProductionCompile in 331ms
   Collecting page data using 7 workers ...
   Generating static pages using 7 workers (0/41) ...
   Generating static pages using 7 workers (10/41) 
   Generating static pages using 7 workers (20/41) 
   Generating static pages using 7 workers (30/41) 
-Γ£ô Generating static pages using 7 workers (41/41) in 132ms
+Γ£ô Generating static pages using 7 workers (41/41) in 128ms
   Finalizing page optimization ...
 
 Route (pages)

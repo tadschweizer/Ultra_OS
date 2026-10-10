@@ -1768,6 +1768,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
       )}
       {detailActivity && (
         <ActivityDetail
+          key={detailActivity.id}
           activity={detailActivity}
           role={role}
           distanceUnit={distanceUnitPref}
@@ -1777,6 +1778,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
       )}
       {detailWorkout && (
         <WorkoutDetail
+          key={detailWorkout.id}
           workout={detailWorkout}
           matchActivities={matchActivities}
           role={role}

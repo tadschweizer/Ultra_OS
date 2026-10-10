@@ -91,6 +91,25 @@ for (const width of [1440, 390, 320])
       dialog(page).getByText("Steady trail run", { exact: true }),
     ).toBeVisible();
     expect(page.url()).toContain("workout=seed-0-3");
+    // A same-calendar deep link must reset unsaved entry/discussion state too.
+    await page.getByLabel("Actual duration in minutes").fill("11");
+    await navigate(page, "calendar", "athlete", "demo-river", {
+      workout: "seed-0-2",
+    });
+    await expect(
+      dialog(page).getByText("Recovery run", { exact: true }),
+    ).toBeVisible();
+    await expect(page.getByLabel("Actual duration in minutes")).toHaveValue(
+      "",
+    );
+    await page.getByLabel("Actual duration in minutes").fill("22");
+    await navigate(page, "calendar", "athlete", "demo-river", {
+      workout: "seed-0-3",
+    });
+    await expect(
+      dialog(page).getByText("Steady trail run", { exact: true }),
+    ).toBeVisible();
+    await expect(page.getByLabel("Actual duration in minutes")).toHaveValue("");
     await page.getByRole("button", { name: "Close", exact: true }).click();
     await expect(dialog(page)).toBeHidden();
     expect(page.url()).not.toContain("workout=");

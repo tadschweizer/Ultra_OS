@@ -14,6 +14,8 @@ Independent retest of runtime `683a5eb` **clears F1/F2/F3**, including preserved
 
 The library metadata extension is intentionally **demo-only storage capability**. The production API/database library schema is unchanged and still does not persist objective, separate instructions, IF, target metric or visibility. This preview must not be represented as evidence that the production library persistence defect is fixed. No authentication or protected API handler changes are included.
 
+F4 also keys each detail dialog by workout/activity identity. Following another same-calendar deep link discards unsaved completion/discussion inputs from the previous item. The browser regression enters different unsaved durations on each of two planned workouts and verifies each switch restores the newly selected item's blank actuals rather than carrying values over.
+
 Updated source, checks and immutable deployment identity are recorded in `DEMO_VERIFICATION.md` and `coach-demo/preview-identity.json`. A new independent exact-build retest is required; none of these repairs alone establishes acceptance. Physical-phone verification remains open.
 
 Corrected runtime `683a5ebf42a6e86e56b62544f7b79d303a71aeda` is READY at https://ultra-os-tb77-9vifc1i44-tadschweizers-projects.vercel.app, deployment `dpl_HGAsRETr6kkg1doGUmdrwqyAZMt4`. Self-verification: adapter 15/15, dedicated F1/F2 browser subset 3/3, complete local browser suite 18/18, complete hosted suite 18/18, production auth regression 432/432, static and Next builds passed. Hosted assets match local SHA-256 hashes, API probes return 404, and tested page interactions have zero API/external requests or JavaScript errors. Await independent retest against this exact identity.

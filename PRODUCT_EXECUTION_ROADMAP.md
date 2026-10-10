@@ -962,3 +962,5 @@ Final adapter/helper 17/17, full local browser 21/21, F4/F5 browser subset 3/3,
 production auth regression 432/432 and both builds pass. New pinned static
 publication and independent F4/F5 retest follow on the same draft PR #134.
 Prior previews/evidence remain; no API/auth/schema or production settings change.
+
+Final F4 dialog identity check also verifies unsaved actual inputs reset on both same-calendar deep-link switches. Full local browser 21/21 and final Next/static builds pass; the dedicated branch receives a new immutable static preview and hosted full-suite run before independent handoff.
