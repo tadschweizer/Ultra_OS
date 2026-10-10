@@ -2,7 +2,7 @@
 
 Last updated: 2026-10-10<br>
 Status: PR #133 merged as `1d1e0b6` and is deployed READY on both public domains. Six targeted Supabase sources repair pilot prerequisites, workout decisions, messaging lifecycle, foreign-key indexes, stable conflict responses and legacy notification preferences. Both readiness checks and all eleven hosted Data API contracts pass. Actual signed QA passes drafts, two-way messages/notifications, exact unread counts, concurrent leases, group retries, workout corrections and relationship/session revocation. Final regression 432/432, focused release 22/22, integration 4/4, build and final-head CI pass. Real-mailbox, fresh-account, physical-phone and participant acceptance remain open.<br>
-Current milestone: M0 - make the closed coach pilot work end to end; separately authorized synthetic demo undergoing independent QA repairs<br>
+Current milestone: M0 - make the closed coach pilot work end to end; corrected synthetic demo awaiting independent exact-build retest<br>
 Next item: Independently retest the corrected isolated synthetic demo, including F1/F2/F3 in DEMO_QA_FIXES.md, using DEMO_VERIFICATION.md and DEMO_PARITY_MATRIX.md. Production queue remains P0-015 email provider/protected POST scheduler setup and consenting real-mailbox acceptance; verify fresh-account enrollment and the physical-phone M0 loop, then collect the prepared P0-018 measurements. The database/app technical release is complete; do not reapply its migrations or rebuild the merged drafts/unread implementation. Keep parent checkboxes open until their remaining acceptance criteria pass.
 
 ## Purpose
@@ -941,3 +941,12 @@ widths), production auth regression 432/432, and both builds pass. Corrected
 immutable publication and independent exact-build retest follow on PR #134.
 The production library schema and API are unchanged; full prescription metadata
 is a deliberately local demo capability. No acceptance checkbox is closed.
+
+Corrected runtime 683a5ebf42a6e86e56b62544f7b79d303a71aeda is READY at
+https://ultra-os-tb77-9vifc1i44-tadschweizers-projects.vercel.app,
+deployment dpl_HGAsRETr6kkg1doGUmdrwqyAZMt4. Full hosted suite passes 18/18,
+including F1/F2/F3; exact asset hashes, closed CSP, absent API routes and no
+page API/external requests are verified. Prior rejected preview/evidence remain
+available. Current preview identity and fresh screenshots/output accompany the
+branch. Independent exact-build retest remains open; no merge or live-domain
+promotion is authorized.
