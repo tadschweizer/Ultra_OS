@@ -922,3 +922,11 @@ publication identity will be in coach-demo/preview-identity.json. Independent
 parent QA and physical-phone acceptance remain open. No production milestone
 checkbox is closed by this simulation, and no production service configuration
 or existing public Sites version was changed.
+
+Draft PR #134: https://github.com/tadschweizer/Ultra_OS/pull/134. Runtime commit
+edccc86a83b2c2e21cbad13f78ca0f3330ec3e5e is served by READY static preview
+https://ultra-os-tb77-r0amr2xjc-tadschweizers-projects.vercel.app,
+deployment dpl_jvfAeqF1FmmJZSat33oHCCcLV889. All 15 hosted browser tests pass;
+asset SHA-256 identity, CSP and absent protected API routes are verified.
+Exact identity, test output and screenshots accompany this branch. Independent
+QA is pending; this entry is a review handoff, not an acceptance declaration.

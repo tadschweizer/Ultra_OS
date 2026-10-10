@@ -1,0 +1,28 @@
+
+> threshold-synthetic-demo@3.0.0 test
+> node --test tests/*.test.mjs
+
+(node:5660) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/source/webapp/lib/workoutCompliance.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\source\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö deterministic fixtures and refresh persistence; sessions are independent (7.9533ms)
+Γ£ö full plan ΓåÆ athlete partial completion ΓåÆ coach feedback and adjustment ΓåÆ athlete update (1.7705ms)
+Γ£ö role restrictions, private draft filtering and cross-athlete denial (1.0262ms)
+Γ£ö create retry key prevents duplicates, validation retains state (1.4998ms)
+Γ£ö duplicates and copy-week retain all plan fields and clear completion/discussion (1.2051ms)
+Γ£ö skip and undo preserve unknown actuals and do not derive completion from plan (0.832ms)
+Γ£ö activity linking cannot double count and unlink retains the activity (11.5515ms)
+Γ£ö stale workout write conflicts instead of replacing latest change (0.556ms)
+Γ£ö role-correct direct messages, exact acknowledgements and retry idempotency (1.7147ms)
+Γ£ö drafts are isolated per role/recipient, durable and version checked (1.051ms)
+Γ£ö failure simulation and storage errors cannot claim saved success (0.8043ms)
+Γ£ö check-in updates all fields; corrupt storage warns; unsupported provider endpoints fail closed (0.5338ms)
+Γä╣ tests 12
+Γä╣ suites 0
+Γä╣ pass 12
+Γä╣ fail 0
+Γä╣ cancelled 0
+Γä╣ skipped 0
+Γä╣ todo 0
+Γä╣ duration_ms 124.9302

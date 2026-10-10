@@ -24,3 +24,5 @@ The sample date is fixed at October 9, 2026. Each tab uses `sessionStorage['thre
 Try: select Robin Vale as coach; create a structured run and next workout; switch to athlete and log partial actuals/RPE/context; switch back to coach, review feedback/check-in, send a message and reduce the next plan; switch to athlete, see updates and reply; reload; reset. Demo boundaries includes a one-shot save failure for testing retained answers and retry.
 
 Existing public Sites identity is preserved in `site-hosting.json`; this revision's validation preview is separate. Do not overwrite that public Site before independent QA acceptance. Neither merging nor production deployment is authorized.
+
+READY immutable preview: https://ultra-os-tb77-r0amr2xjc-tadschweizers-projects.vercel.app. Draft PR: https://github.com/tadschweizer/Ultra_OS/pull/134. Runtime source is `edccc86a83b2c2e21cbad13f78ca0f3330ec3e5e`; later evidence/tooling changes do not change that artifact. See `preview-identity.json` and `../DEMO_VERIFICATION.md`. Local and hosted browser suites each pass 15/15; independent acceptance remains pending.

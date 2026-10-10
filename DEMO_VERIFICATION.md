@@ -1,6 +1,6 @@
 # Synthetic demo verification and independent QA handoff
 
-Source base: `fa8ebe2b377784007b4a40b4e982f92a11224075` from online `tadschweizer/Ultra_OS/main`. Dedicated branch: `demo/synthetic-transfer`. Runtime/deployment identities will be recorded in `coach-demo/preview-identity.json` after publication. This is a static preview; no production service configuration, authentication, Supabase records, providers, email or payments were changed.
+Source base: `fa8ebe2b377784007b4a40b4e982f92a11224075` from online `tadschweizer/Ultra_OS/main`. Dedicated branch: `demo/synthetic-transfer`. Runtime source: `edccc86a83b2c2e21cbad13f78ca0f3330ec3e5e`. [Draft PR #134](https://github.com/tadschweizer/Ultra_OS/pull/134). READY deployment: `dpl_jvfAeqF1FmmJZSat33oHCCcLV889`, [immutable preview](https://ultra-os-tb77-r0amr2xjc-tadschweizers-projects.vercel.app). Exact runtime/deployment identities and checks are recorded in `coach-demo/preview-identity.json`; the later evidence commit changes documentation/deployment tooling only. This is a static preview; no production service configuration, authentication, Supabase records, providers, email or payments were changed.
 
 ## Reproduce
 
@@ -15,6 +15,8 @@ npx vite preview --host 127.0.0.1 --port 4173
 
 No login or secrets are needed. `DEMO_CHROME` can select an installed Chromium executable. `DEMO_BASE_URL` selects the immutable hosted preview for the same browser suite. The suite compares the hosted JS/CSS SHA-256 hashes to the local build, checks CSP, and verifies protected API paths do not exist on the static host.
 
+The deployment payload contains only `dist` files and the header configuration. Set `$env:DEMO_VERCEL_ROOT='webapp'` and run `node scripts/preview-files.mjs` to reproduce its base64 file manifest: the existing Vercel project root requires the `webapp/` prefix and a per-deployment `@vercel/static` builder. No project settings or production aliases were changed. The first unwrapped preview failed with `NOW_SANDBOX_WORKER_ROOTDIR_NOT_EXIST` and never served the app; it is superseded by the READY identity above. Direct API publication was used because the CLI had no signed-in account; no credentials were added.
+
 Production regressions, from `webapp`:
 
 ```powershell
@@ -27,13 +29,13 @@ npm run build
 
 - Adapter: 12/12 tests pass, including isolated persistence/reset, role restrictions, all planning fields, idempotent requests and mismatched retry keys, compliance/matching, message/draft/read lifecycle, unsupported endpoint rejection and storage failure.
 - Production regression: 432/432 pass, including signed handler/integration guard tests. Production Next build passes. No lint script exists in this repository; no separate lint success is claimed.
-- Browser: the full local suite exercises the real editor and messages components at 1440, 390 and 320px. Every scenario asserts no JavaScript page errors and no page requests to API paths or external origins. Final local and hosted totals are recorded with the preview identity.
+- Browser: 15/15 local (33.8s) and 15/15 hosted (38.0s) pass, exercising the real editor and messages components at 1440, 390 and 320px. Every scenario asserts no JavaScript page errors and no page requests to API paths or external origins. Hosted JS/CSS hashes match the local artifact, the response enforces `connect-src 'none'`, and explicit host probes of planned-workouts, coach/messages, message-drafts and admin/demo return 404. The host probes use the test request fixture and do not originate from the demo page.
 - Full sequence: coach creates structured work and a separate next workout; athlete logs 35min/5.2km, RPE 8 and context; coach reviews actuals, comments, sends a message and reduces the next workout from 60 to 40min; athlete sees the adjustment and replies as athlete. Unread clears, role/recipient drafts remain isolated, reload persists changes.
 - Additional browser checks: failed save and retry without losing fields, repeated duplicate/copy clicks, structured library assignment, reschedule, private draft visibility, check-in/triage, matching/unlinking, imported activity discussion, missing distance correction, skip/undo, reset confirmation/cancel/focus/Escape, navigation/history, empty new athlete, independent tab seed, local JSON export contents, and no horizontal overflow in five views.
 - Anonymous local production probes return 401 for planned workouts/comments; messages/drafts/admin demo return 503 with service configuration absent. They fail closed. The signed handler regression establishes the configured authentication behavior; these local 503s are not described as 401 checks.
 - Shared source changes are explicit transport/clock injection with native-fetch defaults, the missing activity-detail dialog focus ref, and access to the existing copy-week action on mobile. `_app`, middleware and production API/auth handlers are unchanged.
 
-Screenshots in `docs/demo-evidence` capture the actual tested desktop and phone-width pages. Raw logs, browser HTML report and traces are generated locally and ignored by Git; pass counts and command results are the supporting record, not screenshots alone.
+Screenshots in `docs/demo-evidence` capture the actual tested hosted desktop and phone-width pages. That directory also includes hosted browser/adapter output, production build output and the production regression totals. Full raw logs, browser HTML report and traces are generated locally and ignored by Git; pass counts and command results are the supporting record, not screenshots alone. A local static build archive is pinned by SHA-256 in `preview-identity.json`.
 
 ## Independent acceptance required
 

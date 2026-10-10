@@ -19,6 +19,17 @@ files.push({
   data: fs.readFileSync("vercel.json").toString("base64"),
   encoding: "base64",
 });
+// Existing Vercel project's root is webapp. Static builders apply only to this
+// deployment payload; project settings and production source are untouched.
+if (process.env.DEMO_VERCEL_ROOT) {
+  if (process.env.DEMO_VERCEL_ROOT !== "webapp") throw new Error("Unsupported deployment root");
+  const config = JSON.parse(fs.readFileSync("vercel.json", "utf8"));
+  config.builds = [{ src: "**", use: "@vercel/static" }];
+  for (const file of files) {
+    if (file.file === "vercel.json") file.data = Buffer.from(JSON.stringify(config)).toString("base64");
+    file.file = `webapp/${file.file}`;
+  }
+}
 const serialized = JSON.stringify(files);
 const offset = Number(process.argv[2] || 0);
 const length = Number(process.argv[3] || serialized.length);
