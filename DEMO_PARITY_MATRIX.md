@@ -4,12 +4,14 @@ Authoritative source: online main `fa8ebe2b377784007b4a40b4e982f92a11224075`, fr
 
 This demo is a separate static build. It imports current application components, never the production AppShell, authentication, API handlers, admin seeder, Supabase or provider clients. A dependency-injected transport defaults to ordinary fetch in production; the demo supplies a closed browser-local adapter with no network fallback. Production middleware and guards are unchanged. See [DEMO_VERIFICATION.md](DEMO_VERIFICATION.md) for commands, evidence and outstanding independent QA.
 
+Independent QA rejected the first runtime (`edccc86`) on library metadata/visibility loss, planned-TSS substitution and a stale failure banner. [DEMO_QA_FIXES.md](DEMO_QA_FIXES.md) records repairs and regressions. The corrected build requires a new exact-build retest; the first runtime's self-test results are historical evidence, not acceptance.
+
 | Workflow / current source | Transfer | Status | Verification |
 | --- | --- | --- | --- |
 | Coach roster, triage / coach-command-center, coachTriageRules | Four varied running/trail athletes; selection, completion/check-in alerts, recent context | Supported with adapted shell/triage | Selection isolation and check-in alert updates exercised |
 | Daily/weekly planning / TrainingCalendar | Actual component, scrolling weeks, day menu, non-drag editing | Supported | Create/edit/reschedule/cancel at desktop, 390 and 320px |
 | Structured editor / TrainingCalendar | Actual steps/repeats/duration/distance/intensity/pace/HR/power/RPE targets; objective/instructions/IF/visibility | Supported | Saved repeat/HR fields retained; private draft hidden from athlete |
-| Workout library / TrainingCalendar | Actual save/library assignment UI, local templates | Supported | Save, assign, repeated-click protection; adapter deletion test |
+| Workout library / TrainingCalendar | Actual save/library assignment UI, local templates | Supported with demo-only metadata extension; independent retest pending | Save/assign retains objective, separate instructions, IF, targets/units and private visibility; repeated-click protection; adapter deletion test |
 | Copy week / TrainingCalendar | Actual UI plus mobile access and single-workout duplicate | Supported with deliberate adapter differences | Date shift, full planning fields retained, actuals/comments cleared, repeat request idempotency |
 | Planned vs completed / TrainingCalendar, WeeklyReconciliation, workoutCompliance, activityFormat | Actual detail/log/skip/undo/correct/feedback/discussion; shared compliance and totals | Supported | Full coach -> athlete -> coach -> athlete loop; partial and missing actuals |
 | Imported activity correction / TrainingCalendar, workoutCompliance | Synthetic trail activity details and match/unlink/reject/auto | Partial | Match/unlink and detail/discussion tested; real imports excluded |
@@ -22,7 +24,7 @@ This demo is a separate static build. It imports current application components,
 | Invitations/signup/session/billing/deletion/provider sync/email/device delivery | Real auth retained in app; external actions unavailable | Excluded | No credentials, real-data/provider calls or misleading delivery; production guard regression passes |
 | Publication/independent QA | Dedicated branch/PR and immutable static preview | Independent QA pending | Self-verification does not establish independent acceptance; existing public Sites version remains unchanged |
 
-Deliberate contract differences: synthetic copy/duplicate/library save requests are idempotent even where the production copy-week endpoint can replay a copy; every planning field is retained. Fixture rollups use the shared compliance helpers with meaningful actual metrics rather than the older static demo summaries. The simulation uses a fixed date and bounded local data; it does not claim database, import or delivery parity.
+Deliberate contract differences: synthetic copy/duplicate/library save requests are idempotent even where the production copy-week endpoint can replay a copy; every planning field is retained. The demo explicitly opts into storing library objective, separate instructions, IF, target metric and visibility; the narrower production API/database library schema remains unchanged and its metadata loss is not repaired by this demo. Step target units are stamped in the shared editor. Actual calendar TSS now sums recorded completed/imported or linked/matched TSS only, with an explicit count of unknown load; it never substitutes planned TSS for blank or partial actuals. The simulation uses a fixed date and bounded local data; it does not claim database, import or delivery parity.
 
 Visual thesis: retain Threshold's cream surfaces, amber actions, blue ink and readable planning workspace. The screens cover command center, selected athlete context, actual calendar/messages, check-in and honest boundaries. Production focus-managed dialogs remain interactive.
 

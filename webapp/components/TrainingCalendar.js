@@ -1,4 +1,5 @@
 import { useWorkspaceTransport } from '../lib/WorkspaceTransport';
+import { libraryWorkoutPayload } from '../lib/libraryWorkoutPayload';
 import { useDialogFocus } from '../lib/useDialogFocus';
 import { calendarMutation as performCalendarMutation } from '../lib/calendarMutation';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -10,6 +11,7 @@ import {
   estimateTss,
   summarizeStructure,
   summarizeWeek,
+  summarizeActualTss,
   toDateKey,
 } from '../lib/workoutCompliance';
 import { formatTempo, isSpeedSport } from '../lib/activityFormat';
@@ -577,6 +579,11 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
                   setSaving(true);
                   const ok = await onSaveToLibrary({
                     ...form,
+                    structure: (form.structure || []).map((step) => ({
+                      ...step,
+                      target_units: targetUnitLabel(step.target_type || 'open', distanceUnit),
+                    })),
+                    planned_tss: tssEstimate,
                     planned_distance_km: unitToKm(form.planned_distance, distanceUnit),
                     planned_distance_unit: distanceUnit,
                   });
@@ -1400,8 +1407,7 @@ function summarizeCalendarWeek(days) {
 
   const actualDurationMin = planned.completedDurationMin + sumBy(imported, (a) => a.duration_min);
   const actualDistanceKm = planned.completedDistanceKm + sumBy(imported, (a) => a.distance_km);
-  const actualTss = sumBy(completedWorkouts, (w) => w.completed_tss ?? w.planned_tss)
-    + sumBy(imported, (a) => a.tss);
+  const actualLoad = summarizeActualTss(completedWorkouts, imported);
 
   // Per-sport actuals drive the breakdown rows in the week rail.
   const bySport = new Map();
@@ -1422,7 +1428,8 @@ function summarizeCalendarWeek(days) {
     importedActivityCount: imported.length,
     actualDurationMin,
     actualDistanceKm,
-    actualTss,
+    actualTss: actualLoad.tss,
+    missingActualTssCount: actualLoad.missingCount,
     elevationGainM: sumBy(imported, (a) => a.elevation_gain_m),
     kilojoules: sumBy(imported, (a) => a.kilojoules),
     sports: [...bySport.values()].sort((a, b) => b.durationMin - a.durationMin),
@@ -1458,7 +1465,7 @@ function ProgressMeter({ label, actual, planned, formatValue, unit = '' }) {
 }
 
 export default function TrainingCalendar({ athleteId = null, athleteName = '', role = 'athlete' }) {
-  const { request, today } = useWorkspaceTransport();
+  const { request, today, preserveLibraryPlanMetadata } = useWorkspaceTransport();
   const calendarMutation = useCallback((url, options) => performCalendarMutation(url, { ...options, request }), [request]);
   const router = useRouter();
   const anchorMonday = useMemo(() => mondayOf(today || new Date()), [today]);
@@ -1692,11 +1699,8 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
     { method: 'DELETE' }, () => setNoteEditor(null)), [mutateCalendar]);
   const saveEvent = useCallback((body) => mutateCalendar('/api/race-events', { body }), [mutateCalendar]);
   const saveToLibrary = useCallback((form) => mutateCalendar('/api/workout-library', {
-    body: { name: form.title, sport: form.sport, description: form.description, structure: form.structure,
-      planned_duration_min: form.planned_duration_min === '' ? null : Number(form.planned_duration_min),
-      planned_distance_km: form.planned_distance_km === '' ? null : form.planned_distance_km,
-      planned_distance_unit: form.planned_distance_unit || 'mi' },
-  }, (result) => setLibrary((previous) => [result.workout, ...previous])), [mutateCalendar]);
+    body: libraryWorkoutPayload(form, { preservePlanMetadata: preserveLibraryPlanMetadata }),
+  }, (result) => setLibrary((previous) => [result.workout, ...previous.filter((item) => item.id !== result.workout.id)])), [mutateCalendar, preserveLibraryPlanMetadata]);
   const applyLibraryWorkout = useCallback((libraryWorkoutId, date) => mutateCalendar('/api/planned-workouts', {
     body: { athlete_id: athleteId || undefined, library_workout_id: libraryWorkoutId, workout_date: date },
   }), [athleteId, mutateCalendar]);
@@ -2193,6 +2197,9 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
                       planned={week.summary.plannedTss}
                       formatValue={(v) => Math.round(v)}
                     />
+                    {week.summary.missingActualTssCount > 0 && (
+                      <p className="text-[10px] text-ink/60">Actual TSS unknown for {week.summary.missingActualTssCount} completed session{week.summary.missingActualTssCount === 1 ? '' : 's'}; total includes recorded TSS only.</p>
+                    )}
 
                     {(week.summary.elevationGainM > 0 || week.summary.kilojoules > 0) && (
                       <div className="flex flex-wrap gap-x-2 gap-y-0.5 border-t border-ink/8 pt-1.5 text-[10px] text-ink/55">
@@ -2257,6 +2264,9 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
                   </span>
                 )}
                 <span>{week.summary.completedSessionCount} completed{week.summary.importedActivityCount ? ` · ${week.summary.importedActivityCount} imported` : ''}</span>
+                {week.summary.missingActualTssCount > 0 && (
+                  <span>Actual TSS unknown for {week.summary.missingActualTssCount} completed session{week.summary.missingActualTssCount === 1 ? '' : 's'}; total includes recorded TSS only.</span>
+                )}
               </div>
             </div>
           ))}

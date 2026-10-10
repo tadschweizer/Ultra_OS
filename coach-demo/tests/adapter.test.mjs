@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { DemoStore } from "../adapter.js";
 import { seed, KEY } from "../seed.js";
+import { libraryWorkoutPayload } from "../../webapp/lib/libraryWorkoutPayload.js";
+import { summarizeActualTss } from "../../webapp/lib/workoutCompliance.js";
 const call = async (request, url, method = "GET", body) => {
   const r = await request(url, {
     method,
@@ -16,6 +18,150 @@ const storage = () => {
     setItem: (k, v) => values.set(k, v),
   };
 };
+
+test("QA F1: library reuse retains private prescription; production payload stays within existing schema", async () => {
+  const form = {
+    title: "Private trail repeats",
+    sport: "run",
+    description: "Easy recoveries",
+    objective: "Controlled aerobic progression",
+    coach_instructions: "Stop if pain",
+    target_metric: "distance",
+    planned_if: "0.6",
+    visibility: "coach_private",
+    planned_duration_min: "25",
+    planned_distance_km: 4,
+    planned_distance_unit: "km",
+    planned_tss: 18,
+    structure: [
+      {
+        type: "work",
+        repeat: 3,
+        duration_min: 5,
+        target_type: "heart_rate",
+        target_min: "145",
+        target_max: "155",
+        target_units: "bpm",
+        notes: "Jog between",
+      },
+    ],
+  };
+  const common = libraryWorkoutPayload(form);
+  for (const key of [
+    "objective",
+    "coach_instructions",
+    "planned_if",
+    "visibility",
+    "target_metric",
+  ])
+    assert.ok(!(key in common));
+  const payload = libraryWorkoutPayload(form, { preservePlanMetadata: true });
+  const saved = storage(),
+    s = new DemoStore(saved),
+    coach = s.transport("coach", "demo-robin");
+  const { workout: template } = await call(
+    coach,
+    "/api/workout-library",
+    "POST",
+    payload,
+  );
+  const { workout: assigned } = await call(
+    coach,
+    "/api/planned-workouts",
+    "POST",
+    { library_workout_id: template.id, workout_date: "2026-10-15" },
+  );
+  for (const key of [
+    "objective",
+    "coach_instructions",
+    "target_metric",
+    "visibility",
+    "structure",
+    "planned_distance_unit",
+    "planned_distance_km",
+  ])
+    assert.deepEqual(assigned[key], payload[key]);
+  assert.equal(assigned.planned_if, 0.6);
+  assert.equal(assigned.status, "planned");
+  assert.equal(s.rows("demo-robin", "athlete").length, 0);
+  assert.deepEqual(new DemoStore(saved).state.workouts.at(-1), assigned);
+});
+
+test("QA F2: missing/partial actuals never substitute planned TSS; recorded and linked loads count once", async () => {
+  const s = new DemoStore(),
+    c = s.transport("coach", "demo-robin"),
+    a = s.transport("athlete", "demo-robin");
+  const { workout } = await call(c, "/api/planned-workouts", "POST", {
+    title: "Unknown actual load",
+    workout_date: "2026-10-09",
+    planned_duration_min: 22,
+  });
+  assert.ok(workout.planned_tss > 0);
+  await call(a, "/api/planned-workouts", "PATCH", {
+    id: workout.id,
+    status: "completed",
+    completed_duration_min: null,
+    completed_distance_km: null,
+    athlete_rpe: 5,
+  });
+  assert.deepEqual(summarizeActualTss(s.rows("demo-robin")), {
+    tss: 0,
+    missingCount: 1,
+  });
+  await call(a, "/api/planned-workouts", "PATCH", {
+    id: workout.id,
+    completed_duration_min: 10,
+  });
+  assert.deepEqual(summarizeActualTss(s.rows("demo-robin")), {
+    tss: 0,
+    missingCount: 1,
+  });
+  assert.deepEqual(
+    summarizeActualTss(
+      [
+        { planned_tss: 45, completed_tss: null },
+        { completed_tss: "" },
+        { completed_tss: 0 },
+        { completed_tss: 28 },
+        { linked_activity: { tss: 34 }, planned_tss: 99 },
+      ],
+      [{ tss: 12 }],
+    ),
+    { tss: 74, missingCount: 2 },
+  );
+});
+
+test("QA F3: consumed failure emits a state change without saving; reset disarms pending failure", async () => {
+  const s = new DemoStore(),
+    request = s.transport("coach", "demo-robin"),
+    events = [];
+  s.subscribe(() => events.push(s.failure));
+  s.failNext();
+  const before = s.state.revision;
+  const body = {
+    title: "Retry retained plan",
+    workout_date: "2026-10-09",
+    client_request_id: "qa-retry",
+  };
+  assert.equal(
+    (await call(request, "/api/planned-workouts", "POST", body)).status,
+    503,
+  );
+  assert.equal(s.state.revision, before);
+  assert.equal(s.failure, null);
+  assert.deepEqual(events, ["before", null]);
+  assert.equal(
+    (await call(request, "/api/planned-workouts", "POST", body)).status,
+    200,
+  );
+  assert.equal(
+    s.state.workouts.filter((w) => w.title === body.title).length,
+    1,
+  );
+  s.failNext();
+  s.reset();
+  assert.equal(s.failure, null);
+});
 test("deterministic fixtures and refresh persistence; sessions are independent", async () => {
   assert.deepEqual(seed(), seed());
   const saved = storage(),
@@ -126,7 +272,15 @@ test("create retry key prevents duplicates, validation retains state", async () 
     second = await call(r, "/api/planned-workouts", "POST", body);
   assert.equal(first.workout.id, second.workout.id);
   assert.equal(s.state.workouts.length, 16);
-  assert.equal((await call(r, "/api/planned-workouts", "POST", {...body,title:"Different details"})).status,409);
+  assert.equal(
+    (
+      await call(r, "/api/planned-workouts", "POST", {
+        ...body,
+        title: "Different details",
+      })
+    ).status,
+    409,
+  );
   for (const bad of [
     { title: " " },
     { workout_date: "2026-02-30" },

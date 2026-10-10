@@ -2,23 +2,40 @@ import { test, expect } from "@playwright/test";
 import fs from "node:fs";
 import crypto from "node:crypto";
 
-test("static artifact identity and closed network policy", async ({ page, request }) => {
+test("static artifact identity and closed network policy", async ({
+  page,
+  request,
+}) => {
   await page.goto("/");
-  const policy = await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute("content");
+  const policy = await page
+    .locator('meta[http-equiv="Content-Security-Policy"]')
+    .getAttribute("content");
   expect(policy).toContain("connect-src 'none'");
   const html = fs.readFileSync("dist/index.html", "utf8");
-  const assets = [...html.matchAll(/(?:src|href)="(\/assets\/[^\"]+)"/g)].map((m) => m[1]);
+  const assets = [...html.matchAll(/(?:src|href)="(\/assets\/[^\"]+)"/g)].map(
+    (m) => m[1],
+  );
   expect(assets.length).toBeGreaterThanOrEqual(2);
   for (const asset of assets) {
     const hosted = await request.get(asset);
     expect(hosted.ok()).toBeTruthy();
-    const digest = (bytes) => crypto.createHash("sha256").update(bytes).digest("hex");
-    expect(digest(await hosted.body())).toBe(digest(fs.readFileSync(`dist${asset}`)));
+    const digest = (bytes) =>
+      crypto.createHash("sha256").update(bytes).digest("hex");
+    expect(digest(await hosted.body())).toBe(
+      digest(fs.readFileSync(`dist${asset}`)),
+    );
   }
   if (process.env.DEMO_BASE_URL) {
     const document = await request.get("/");
-    expect(document.headers()["content-security-policy"]).toContain("connect-src 'none'");
-    for (const endpoint of ["planned-workouts", "coach/messages", "message-drafts", "admin/demo"]) {
+    expect(document.headers()["content-security-policy"]).toContain(
+      "connect-src 'none'",
+    );
+    for (const endpoint of [
+      "planned-workouts",
+      "coach/messages",
+      "message-drafts",
+      "admin/demo",
+    ]) {
       expect((await request.get(`/api/${endpoint}`)).status()).toBe(404);
     }
   }
@@ -59,6 +76,161 @@ const openWorkout = async (page, title) => {
   ).toBeVisible();
 };
 const dialog = (page) => page.getByRole("dialog", { name: "Workout details" });
+for (const width of [1440, 390, 320])
+  test(`QA F1/F2: visible library prescription and unknown actual load at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await navigate(page, "calendar");
+    await page
+      .getByRole("button", { name: "+ Plan workout", exact: true })
+      .click();
+    await page
+      .getByLabel("Workout title", { exact: true })
+      .fill("QA progression 3x5");
+    await page.getByLabel("Workout date", { exact: true }).fill("2026-10-09");
+    await page.getByLabel("Planned duration (min)", { exact: true }).fill("50");
+    await page.getByLabel("Planned distance", { exact: true }).fill("8");
+    await page
+      .getByPlaceholder("Workout objective / purpose")
+      .fill("Controlled aerobic progression");
+    await page
+      .getByPlaceholder("Coach instructions (separate from description)")
+      .fill("Stop if pain. Keep recoveries easy.");
+    await page.getByPlaceholder("Planned IF").fill("0.72");
+    await page.getByRole("button", { name: /Add step/ }).click();
+    await page.getByLabel("Reps", { exact: true }).fill("3");
+    await page.getByLabel("Min", { exact: true }).fill("5");
+    await page
+      .getByRole("combobox", { name: "Target", exact: true })
+      .selectOption("heart_rate");
+    await page.getByPlaceholder("150", { exact: true }).fill("145");
+    await page.getByPlaceholder("160", { exact: true }).fill("155");
+    await page
+      .getByRole("button", { name: "Save to library", exact: true })
+      .click();
+    await expect(
+      page.getByText("Saved to library.", { exact: true }),
+    ).toBeVisible();
+    await page
+      .getByRole("button", { name: "Save workout", exact: true })
+      .click();
+    await expect(page.getByRole("dialog")).toBeHidden();
+    await page.getByRole("button", { name: /Library \(/ }).click();
+    const card = page
+      .locator("div.rounded-2xl")
+      .filter({
+        has: page.getByRole("button", {
+          name: "Delete QA progression 3x5 from library",
+          exact: true,
+        }),
+      })
+      .last();
+    await card.getByLabel("Add library workout on").fill("2026-10-10");
+    await card.getByRole("button", { name: "Add", exact: true }).click();
+    await expect(
+      card.getByText("Added to calendar.", { exact: true }),
+    ).toBeVisible();
+    const assigned = (await state(page)).workouts.find(
+      (w) =>
+        w.title === "QA progression 3x5" && w.workout_date === "2026-10-10",
+    );
+    await navigate(page, "calendar", "athlete", "demo-robin", {
+      workout: assigned.id,
+    });
+    await expect(
+      dialog(page).getByText("Objective: Controlled aerobic progression", {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      dialog(page).getByText(/Stop if pain\. Keep recoveries easy\./),
+    ).toBeVisible();
+    await expect(dialog(page).getByText(/IF 0.72/)).toBeVisible();
+    await expect(dialog(page).getByText(/145.*155.*bpm/)).toBeVisible();
+    await page.screenshot({ path: `test-results/qa-library-${width}.png` });
+    await page.getByLabel("Actual duration in minutes").fill("40");
+    await page.getByLabel("Actual distance in km").fill("6.4");
+    await page
+      .getByRole("button", { name: "Mark completed", exact: true })
+      .click();
+    await expect(dialog(page).getByText(/80% of plan/)).toBeVisible();
+    await page.keyboard.press("Escape");
+    const week = page.locator('[data-week-key="2026-10-05"]');
+    await expect(
+      week
+        .getByText(
+          "Actual TSS unknown for 1 completed session; total includes recorded TSS only.",
+          { exact: true },
+        )
+        .filter({ visible: true }),
+    ).toBeVisible();
+    if (width < 1024)
+      await expect(week.getByText(/Actual 40m.*6.4 km.*TSS 0/)).toBeVisible();
+    await navigate(page, "calendar");
+    await page
+      .getByRole("button", { name: "+ Plan workout", exact: true })
+      .click();
+    await page
+      .getByLabel("Workout title", { exact: true })
+      .fill("QA blank actuals");
+    await page.getByLabel("Workout date", { exact: true }).fill("2026-10-09");
+    await page.getByLabel("Planned duration (min)", { exact: true }).fill("22");
+    await page
+      .getByRole("button", { name: "Save workout", exact: true })
+      .click();
+    await expect(page.getByRole("dialog")).toBeHidden();
+    const blank = (await state(page)).workouts.find(
+      (w) => w.title === "QA blank actuals",
+    );
+    expect(blank.planned_tss).toBeGreaterThan(0);
+    await navigate(page, "calendar", "athlete", "demo-robin", {
+      workout: blank.id,
+    });
+    await expect(page.getByLabel("Actual duration in minutes")).toHaveValue("");
+    await expect(page.getByLabel("Actual distance in km")).toHaveValue("");
+    await page.getByLabel("Workout RPE").selectOption("5");
+    await page
+      .getByRole("button", { name: "Mark completed", exact: true })
+      .click();
+    await expect(dialog(page).getByText(/Completed.*RPE 5/)).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(
+      week
+        .getByText(
+          "Actual TSS unknown for 2 completed sessions; total includes recorded TSS only.",
+          { exact: true },
+        )
+        .filter({ visible: true }),
+    ).toBeVisible();
+    if (width < 1024)
+      await expect(week.getByText(/Actual 40m.*6.4 km.*TSS 0/)).toBeVisible();
+    await week.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: `test-results/qa-load-${width}.png` });
+    await openWorkout(page, "QA blank actuals");
+    await page
+      .getByRole("button", { name: "Undo completion / skip", exact: true })
+      .click();
+    await expect(dialog(page).getByText("Not completed yet.")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(
+      week
+        .getByText(
+          "Actual TSS unknown for 1 completed session; total includes recorded TSS only.",
+          { exact: true },
+        )
+        .filter({ visible: true }),
+    ).toBeVisible();
+    await page.reload();
+    await expect(
+      week
+        .getByText(
+          "Actual TSS unknown for 1 completed session; total includes recorded TSS only.",
+          { exact: true },
+        )
+        .filter({ visible: true }),
+    ).toBeVisible();
+  });
 for (const width of [1440, 390, 320])
   test.describe(`${width}px`, () => {
     test.use({ viewport: { width, height: width === 1440 ? 1000 : 844 } });
@@ -241,7 +413,11 @@ for (const width of [1440, 390, 320])
             u.includes("/api/") || !u.startsWith(new URL(page.url()).origin),
         ),
       ).toEqual([]);
-      await page.evaluate(() => {window.scrollTo(0,0);document.activeElement?.blur();}); await page.screenshot({
+      await page.evaluate(() => {
+        window.scrollTo(0, 0);
+        document.activeElement?.blur();
+      });
+      await page.screenshot({
         path: `test-results/loop-${width}.png`,
         fullPage: true,
       });
@@ -284,6 +460,12 @@ for (const width of [1440, 390, 320])
         .click();
       await expect(page.getByText(/Simulated save failure/)).toBeVisible();
       await expect(
+        page.getByText(
+          "The next local save will fail once. Retry it to complete the simulation.",
+          { exact: true },
+        ),
+      ).toHaveCount(0);
+      await expect(
         page.getByLabel("Workout title", { exact: true }),
       ).toHaveValue("Retry run");
       await page
@@ -292,6 +474,14 @@ for (const width of [1440, 390, 320])
       await expect(
         page.getByRole("dialog", { name: "Workout editor" }),
       ).toBeHidden();
+      await expect(page.getByText(/Simulated save failure/)).toHaveCount(0);
+      await navigate(page, "overview");
+      await expect(
+        page.getByText(
+          "The next local save will fail once. Retry it to complete the simulation.",
+          { exact: true },
+        ),
+      ).toHaveCount(0);
       await page
         .getByRole("button", { name: "Reset demo", exact: true })
         .click();
@@ -377,6 +567,16 @@ for (const width of [1440, 390, 320])
     await page
       .getByLabel("Workout title", { exact: true })
       .fill("Structured private hills");
+    await page
+      .getByPlaceholder("Workout objective / purpose")
+      .fill("Private objective");
+    await page
+      .getByPlaceholder("Coach instructions (separate from description)")
+      .fill("Private instruction");
+    await page.getByPlaceholder("Planned IF").fill("0.6");
+    await page
+      .getByLabel("Primary target", { exact: true })
+      .selectOption("distance");
     await page.getByLabel("Workout date", { exact: true }).fill("2026-10-09");
     await page.getByLabel("Workout visibility").selectOption("coach_private");
     await page.getByRole("button", { name: /Add step/ }).click();
@@ -439,7 +639,10 @@ for (const width of [1440, 390, 320])
     const card = page
       .locator("div.rounded-2xl")
       .filter({
-        has: page.getByRole("button", {name: "Delete Structured private hills from library",exact:true}),
+        has: page.getByRole("button", {
+          name: "Delete Structured private hills from library",
+          exact: true,
+        }),
       })
       .last();
     await card.getByLabel("Add library workout on").fill("2026-10-11");
@@ -451,11 +654,52 @@ for (const width of [1440, 390, 320])
     expect(
       s.workouts.filter((w) => w.title === "Structured private hills"),
     ).toHaveLength(2);
+    const assigned = s.workouts.find(
+      (w) =>
+        w.title === "Structured private hills" &&
+        w.workout_date === "2026-10-11",
+    );
+    expect(assigned).toMatchObject({
+      objective: "Private objective",
+      coach_instructions: "Private instruction",
+      planned_if: 0.6,
+      target_metric: "distance",
+      visibility: "coach_private",
+    });
+    expect(assigned.structure).toEqual(original.structure);
+    await navigate(page, "calendar", "coach", "demo-robin", {
+      workout: assigned.id,
+    });
+    await page
+      .getByRole("button", { name: "Edit workout", exact: true })
+      .click();
+    await expect(
+      page.getByPlaceholder("Workout objective / purpose"),
+    ).toHaveValue("Private objective");
+    await expect(
+      page.getByPlaceholder("Coach instructions (separate from description)"),
+    ).toHaveValue("Private instruction");
+    await expect(page.getByPlaceholder("Planned IF")).toHaveValue("0.6");
+    await expect(
+      page.getByLabel("Primary target", { exact: true }),
+    ).toHaveValue("distance");
+    await expect(page.getByLabel("Workout visibility")).toHaveValue(
+      "coach_private",
+    );
+    await page.keyboard.press("Escape");
+    await navigate(page, "calendar", "athlete");
+    await expect(
+      page.getByText("Structured private hills", { exact: true }),
+    ).toHaveCount(0);
+    await navigate(page, "calendar");
     const copy = page
-      .getByTitle("Copy this week's workouts to next week").filter({visible:true})
+      .getByTitle("Copy this week's workouts to next week")
+      .filter({ visible: true })
       .first();
     await copy.dblclick();
-    expect((await state(page)).workouts.filter(w=>w.athlete_id==="demo-robin")).toHaveLength(4);
+    expect(
+      (await state(page)).workouts.filter((w) => w.athlete_id === "demo-robin"),
+    ).toHaveLength(4);
     await navigate(page, "overview");
     await page
       .getByRole("button", {
@@ -464,7 +708,9 @@ for (const width of [1440, 390, 320])
       })
       .first()
       .dblclick();
-    expect((await state(page)).workouts.filter(w=>w.athlete_id==="demo-robin")).toHaveLength(5);
+    expect(
+      (await state(page)).workouts.filter((w) => w.athlete_id === "demo-robin"),
+    ).toHaveLength(5);
     await page.getByRole("button", { name: "Reset demo", exact: true }).click();
     await expect(
       page.getByRole("button", { name: "Cancel", exact: true }),
@@ -482,7 +728,11 @@ for (const width of [1440, 390, 320])
     await expect(
       page.getByRole("button", { name: "Reset demo", exact: true }),
     ).toBeFocused();
-    await page.evaluate(() => {window.scrollTo(0,0);document.activeElement?.blur();}); await page.screenshot({
+    await page.evaluate(() => {
+      window.scrollTo(0, 0);
+      document.activeElement?.blur();
+    });
+    await page.screenshot({
       path: `test-results/overview-${width}.png`,
       fullPage: true,
     });
@@ -579,6 +829,3 @@ test("completion correction, skip/undo, cancel, missing actuals and independent 
   await expect(second.getByText(/45 min planned.*42 min actual/)).toBeVisible();
   await second.close();
 });
-
-
-

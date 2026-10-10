@@ -2,8 +2,8 @@
 
 Last updated: 2026-10-10<br>
 Status: PR #133 merged as `1d1e0b6` and is deployed READY on both public domains. Six targeted Supabase sources repair pilot prerequisites, workout decisions, messaging lifecycle, foreign-key indexes, stable conflict responses and legacy notification preferences. Both readiness checks and all eleven hosted Data API contracts pass. Actual signed QA passes drafts, two-way messages/notifications, exact unread counts, concurrent leases, group retries, workout corrections and relationship/session revocation. Final regression 432/432, focused release 22/22, integration 4/4, build and final-head CI pass. Real-mailbox, fresh-account, physical-phone and participant acceptance remain open.<br>
-Current milestone: M0 - make the closed coach pilot work end to end; separately authorized synthetic demo awaiting independent QA<br>
-Next item: Independently verify the isolated synthetic demo using DEMO_VERIFICATION.md and DEMO_PARITY_MATRIX.md. Production queue remains P0-015 email provider/protected POST scheduler setup and consenting real-mailbox acceptance; verify fresh-account enrollment and the physical-phone M0 loop, then collect the prepared P0-018 measurements. The database/app technical release is complete; do not reapply its migrations or rebuild the merged drafts/unread implementation. Keep parent checkboxes open until their remaining acceptance criteria pass.
+Current milestone: M0 - make the closed coach pilot work end to end; separately authorized synthetic demo undergoing independent QA repairs<br>
+Next item: Independently retest the corrected isolated synthetic demo, including F1/F2/F3 in DEMO_QA_FIXES.md, using DEMO_VERIFICATION.md and DEMO_PARITY_MATRIX.md. Production queue remains P0-015 email provider/protected POST scheduler setup and consenting real-mailbox acceptance; verify fresh-account enrollment and the physical-phone M0 loop, then collect the prepared P0-018 measurements. The database/app technical release is complete; do not reapply its migrations or rebuild the merged drafts/unread implementation. Keep parent checkboxes open until their remaining acceptance criteria pass.
 
 ## Purpose
 
@@ -930,3 +930,14 @@ deployment dpl_jvfAeqF1FmmJZSat33oHCCcLV889. All 15 hosted browser tests pass;
 asset SHA-256 identity, CSP and absent protected API routes are verified.
 Exact identity, test output and screenshots accompany this branch. Independent
 QA is pending; this entry is a review handoff, not an acceptance declaration.
+
+### Independent synthetic demo repairs - October 10
+
+Independent hosted QA rejected edccc86 on F1 library metadata/private-visibility
+loss, F2 planned TSS substituted for unknown actual load, and F3 consumed failure
+banner persistence. DEMO_QA_FIXES.md records each cause, bounded repair and
+regression. Full demo adapter 15/15, local browser 18/18 (including all three
+widths), production auth regression 432/432, and both builds pass. Corrected
+immutable publication and independent exact-build retest follow on PR #134.
+The production library schema and API are unchanged; full prescription metadata
+is a deliberately local demo capability. No acceptance checkbox is closed.

@@ -93,6 +93,7 @@ export class DemoStore {
     this.storage?.setItem(KEY, JSON.stringify(next));
     this.state = next;
     this.warning = "";
+    this.failure = null;
     this.emit();
   }
   failNext() {
@@ -173,6 +174,7 @@ export class DemoStore {
       const newId = () => crypto.randomUUID();
       if (method !== "GET" && this.failure === "before") {
         this.failure = null;
+        this.emit();
         return response(
           {
             error: "Simulated save failure. Your answers are retained; retry.",
@@ -442,6 +444,8 @@ export class DemoStore {
           return save({ success: true });
         }
         if (method === "POST") {
+          const error = validateWorkoutFields(body);
+          if (error) return response({ error }, 400);
           const fingerprint = JSON.stringify(body);
           const existing = next.library.find(
             (w) => w.request_fingerprint === fingerprint,

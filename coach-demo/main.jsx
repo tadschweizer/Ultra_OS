@@ -81,10 +81,10 @@ class Boundary extends React.Component {
 }
 function App() {
   const [route, setRoute] = useState(readRoute);
-  const [revision, setRevision] = useState(store.state.revision);
+  const [, setRevision] = useState(0);
   const [resetOpen, setResetOpen] = useState(false);
   const [notice, setNotice] = useState("");
-  useEffect(() => store.subscribe(() => setRevision(store.state.revision)), []);
+  useEffect(() => store.subscribe(() => setRevision((revision) => revision + 1)), []);
   useEffect(() => {
     const change = () => setRoute(readRoute());
     window.addEventListener("hashchange", change);
@@ -123,6 +123,7 @@ function App() {
     () => ({
       request: store.transport(route.role, route.id),
       today: demoToday,
+      preserveLibraryPlanMetadata: true,
     }),
     [route.role, route.id],
   );
@@ -271,6 +272,9 @@ function App() {
                   <p role="status" className="demo-notice">
                     {notice}
                   </p>
+                )}
+                {store.failure === "before" && (
+                  <p role="status" className="demo-notice">The next local save will fail once. Retry it to complete the simulation.</p>
                 )}
                 {route.view === "overview" && (
                   <main className="overview">
@@ -524,10 +528,8 @@ function App() {
                     </p>
                     <button
                       onClick={() => {
+                        setNotice("");
                         store.failNext();
-                        setNotice(
-                          "The next local save will fail once. Retry it to complete the simulation.",
-                        );
                       }}
                     >
                       Fail next save

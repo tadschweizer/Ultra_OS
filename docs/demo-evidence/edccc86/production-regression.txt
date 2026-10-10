@@ -1,5 +1,5 @@
 Command: cd webapp; npm run test:auth:full
-Γ£ö calendar reports disconnected imports while retaining stored activities and match candidates (1231.9629ms)
+Γ£ö calendar reports disconnected imports while retaining stored activities and match candidates (1733.2457ms)
 Γä╣ tests 432
 Γä╣ suites 0
 Γä╣ pass 432
@@ -7,4 +7,4 @@ Command: cd webapp; npm run test:auth:full
 Γä╣ cancelled 0
 Γä╣ skipped 0
 Γä╣ todo 0
-Γä╣ duration_ms 19075.7092
+Γä╣ duration_ms 22247.745
