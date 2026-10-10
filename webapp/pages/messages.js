@@ -49,6 +49,8 @@ export default function MessagesPage() {
   const router = useRouter();
   const [messages, setMessages] = useState([]);
   const [conversations, setConversations] = useState([]);
+  const [inboxLoaded, setInboxLoaded] = useState(false);
+  const [loadError, setLoadError] = useState('');
   const [templates, setTemplates] = useState({});
   const [athleteId, setAthleteId] = useState('');
   const [role, setRole] = useState('athlete');
@@ -75,6 +77,12 @@ export default function MessagesPage() {
   const requestedMode = router.query.mode === 'athlete' ? 'athlete' : 'coach';
 
   useEffect(() => {
+    // Cached conversations belong to this transport/account and viewer role.
+    // Recipient navigation may retain them; a role/account change may not.
+    setInboxLoaded(false); setLoadError(''); setConversations([]); setRole(requestedMode);
+  }, [request, requestedMode]);
+
+  useEffect(() => {
     const media = window.matchMedia('(max-width: 767px)');
     const update = () => setMobile(media.matches);
     update(); media.addEventListener('change', update);
@@ -96,7 +104,9 @@ export default function MessagesPage() {
       const r = await request(`/api/coach/messages?${query.toString()}`, { signal: controller.signal });
       const d = await r.json();
       if (version !== requestVersion.current) return;
-      if (!r.ok) { if (r.status === 403 || r.status === 401) { setMessages([]); setConversations([]); } throw new Error('Failed to load messages'); }
+      if (!r.ok) { if (r.status === 403 || r.status === 401) { setMessages([]); setConversations([]); setInboxLoaded(false); } throw new Error('Failed to load messages'); }
+      if (!Array.isArray(d.conversations) || !Array.isArray(d.messages)) throw new Error('Invalid inbox response');
+      setInboxLoaded(true); setLoadError('');
       setError((previous) => previous.startsWith('Unable to load') || previous.startsWith('Messages loaded') ? '' : previous);
       const nextConversations = d.conversations || [];
       const visible = viewRef.current.threadOpen && document.visibilityState !== 'hidden'
@@ -123,6 +133,7 @@ export default function MessagesPage() {
       }
     } catch (err) {
       if (version !== requestVersion.current) return;
+      setLoadError('Unable to load messages right now. Please try again.');
       setError('Unable to load messages right now. Please try again.');
     } finally {
       clearTimeout(timeout);
@@ -226,5 +237,5 @@ export default function MessagesPage() {
     if (history && !loadingOlder && !historyLoaded.current) history.scrollTop = history.scrollHeight;
   }, [messages, athleteId]);
 
-  return <MessageWorkspace {...{role,conversations,messages,athleteId,threadOpen,loading,error,sending,loadingOlder,nextCursor,selectedConversation,selectConversation,showConversations,load,historyRef,composerRef,send,draft,canSend,templates,selectedTemplate,conversationName,formatTimestamp}} templateMeta={TEMPLATE_META} loadOlder={()=>{setLoadingOlder(true);load(athleteId,{keepSelection:true,older:true});}} />;
+  return <MessageWorkspace {...{role,conversations,messages,athleteId,threadOpen,loading,error,inboxLoaded,loadError,sending,loadingOlder,nextCursor,selectedConversation,selectConversation,showConversations,load,historyRef,composerRef,send,draft,canSend,templates,selectedTemplate,conversationName,formatTimestamp}} templateMeta={TEMPLATE_META} loadOlder={()=>{setLoadingOlder(true);load(athleteId,{keepSelection:true,older:true});}} />;
 }

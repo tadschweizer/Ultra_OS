@@ -1,6 +1,6 @@
 import MessageNotificationSettings from './MessageNotificationSettings.js';
 
-export default function MessageWorkspace({role,conversations,messages,athleteId,threadOpen,loading,error,sending,loadingOlder,nextCursor,
+export default function MessageWorkspace({role,conversations,messages,athleteId,threadOpen,loading,error,inboxLoaded,loadError,sending,loadingOlder,nextCursor,
   selectedConversation,selectConversation,showConversations,load,loadOlder,historyRef,composerRef,send,draft,canSend,templates,templateMeta,selectedTemplate,conversationName,formatTimestamp}) {
   const {body,setBody,templateKey,setTemplateKey}=draft;
   return (
@@ -12,9 +12,10 @@ export default function MessageWorkspace({role,conversations,messages,athleteId,
         </header>
         <div className="grid overflow-hidden rounded-2xl border border-ink/15 bg-white md:grid-cols-[300px_minmax(0,1fr)]">
           <aside aria-label="Conversations" className={`min-w-0 border-ink/10 md:border-r ${threadOpen?'hidden md:block':'block'}`}>
-            <div className="flex items-center justify-between border-b border-ink/10 px-4 py-4"><h2 className="text-sm font-semibold">Conversations</h2><span className="text-xs text-ink/55">{conversations.length}</span></div>
+            <div className="flex items-center justify-between border-b border-ink/10 px-4 py-4"><h2 className="text-sm font-semibold">Conversations</h2><span className="text-xs text-ink/55">{inboxLoaded ? conversations.length : loadError ? 'Unavailable' : 'Loading'}</span></div>
+            {loadError&&inboxLoaded&&<p role="status" className="p-4 text-xs text-ink/60">Showing the last loaded conversations.</p>}
             {loading&&!conversations.length && <p role="status" className="p-4 text-sm text-ink/60">Loading conversations.</p>}
-            {!loading&&!conversations.length && <p className="p-4 text-sm leading-6 text-ink/60">{role==='coach'?'No active athletes found. Add athletes from the Command Center first.':'No active coach conversation found.'}</p>}
+            {!loading&&inboxLoaded&&!loadError&&!conversations.length && <p className="p-4 text-sm leading-6 text-ink/60">{role==='coach'?'No active athletes found. Add athletes from the Command Center first.':'No active coach conversation found.'}</p>}
             {!threadOpen&&error && <div className="p-4"><p role="alert" className="text-sm text-red-700">{error}</p><button onClick={()=>load('')} className="mt-2 text-sm font-semibold text-panel">Retry loading</button></div>}
             <div className="max-h-[65dvh] overflow-y-auto">
               {conversations.map(c=>{
@@ -39,7 +40,7 @@ export default function MessageWorkspace({role,conversations,messages,athleteId,
             <div ref={historyRef} tabIndex={0} aria-label="Conversation history" className="h-[42dvh] min-h-[180px] overflow-y-auto overscroll-contain px-4 py-4 md:h-[430px]">
               {loading&&<p role="status" className="text-sm text-ink/60">Loading messages.</p>}
               {error&&<div className="mb-4"><p role="alert" className="text-sm text-red-700">{error}</p>{error.startsWith('Unable to load')&&<button onClick={()=>load(athleteId,{keepSelection:true})} className="mt-2 text-sm font-semibold text-panel">Retry loading</button>}</div>}
-              {!loading&&!messages.length&&<p className="py-8 text-center text-sm text-ink/60">{selectedConversation?'No messages yet. Start the loop with a check-in.':'Choose someone to start a conversation.'}</p>}
+              {!loading&&inboxLoaded&&!loadError&&!messages.length&&<p className="py-8 text-center text-sm text-ink/60">{selectedConversation?'No messages yet. Start the loop with a check-in.':'Choose someone to start a conversation.'}</p>}
               {nextCursor&&<div className="mb-4 text-center"><button disabled={loadingOlder} onClick={loadOlder} className="min-h-11 rounded-full border border-ink/20 px-4 text-xs">{loadingOlder?'Loading.':'Load older messages'}</button></div>}
               <ol className="space-y-4">
                 {messages.map(m=>{

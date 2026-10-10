@@ -4,6 +4,36 @@ import {fixture,athlete,coach,owner} from '../tests/helpers/message-lifecycle-fi
 import {connect} from './helpers/message-database-transport.mjs';
 const second='88888888-8888-4888-8888-888888888888';
 
+test('F8 inbox outage is unavailable, preserves known conversations, and retry verifies empty versus existing',async({page},info)=>{
+  test.setTimeout(60000);const f=await fixture();
+  try{
+    if(info.project.name==='mobile-chromium')await page.setViewportSize({width:320,height:720});
+    await f.send(undefined,'athlete','Unread training question');
+    await f.pg.exec('reset role; alter function message_inbox_summary(uuid,text) rename to qa_missing_inbox; set role service_role;');
+    await connect(page,'coach',f);await page.goto('/messages?mode=coach');
+    const list=page.getByRole('complementary',{name:'Conversations'});
+    const retry=()=>page.getByRole('button',{name:'Retry loading'}).filter({visible:true});
+    await expect(page.getByRole('alert').filter({hasText:'Unable to load messages'}).filter({visible:true})).toBeVisible();
+    await expect(page.getByText('No active coach conversation found.',{exact:true})).not.toBeVisible();
+    await expect(page.getByText('No active athletes found.',{exact:false})).not.toBeVisible();
+    await expect(list.getByText('Unavailable',{exact:true})).toBeVisible();
+    await page.screenshot({path:`../output/messages-f8-unavailable-${info.project.name}.png`,fullPage:true});
+    await f.pg.exec('reset role; alter function qa_missing_inbox(uuid,text) rename to message_inbox_summary; set role service_role;');
+    await retry().click();await expect(list.getByRole('button',{name:/Open conversation with Runner/})).toBeVisible();
+    if(info.project.name==='mobile-chromium')expect((await f.pg.query('select count(*)::int n from coach_messages where read_at is null')).rows[0].n).toBe(1);
+    await f.pg.exec('reset role; alter function message_inbox_summary(uuid,text) rename to qa_missing_inbox; set role service_role;');
+    await expect(list.getByText('Showing the last loaded conversations.',{exact:true})).toBeVisible({timeout:10000});
+    await expect(list.getByRole('button',{name:/Open conversation with Runner/})).toBeVisible();
+    await page.screenshot({path:`../output/messages-f8-retained-${info.project.name}.png`,fullPage:true});
+    await f.pg.exec('reset role; alter function qa_missing_inbox(uuid,text) rename to message_inbox_summary; set role service_role;');
+    await retry().click();await expect(list.getByText('Showing the last loaded conversations.',{exact:true})).not.toBeVisible();
+    await f.pg.exec("update coach_athlete_relationships set status='paused';");
+    await page.goto('/messages?mode=coach');
+    await expect(list.getByText('No active athletes found.',{exact:false})).toBeVisible();
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  }finally{await f.close();}
+});
+
 test('visible thread alone is read; recipient drafts survive list, switching, browser Back and refresh',async({page},info)=>{
   test.setTimeout(60000);
   const f=await fixture();try {
