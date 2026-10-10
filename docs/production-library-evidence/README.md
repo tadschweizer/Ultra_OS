@@ -38,4 +38,3 @@ Do not deploy this expanded library API before applying its additive migration i
 Independent review/acceptance of this new implementation remains open; the earlier synthetic-runtime QA does not accept this production slice.
 
 Cross-fixture retest: pilot-access + workout-library specs together, both projects, **14/14 pass** in 1.3m. Final full regression **438/438 pass**. CI/independent acceptance are evaluated against the correction commit, not 3959374.
-
