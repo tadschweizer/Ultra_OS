@@ -7,6 +7,7 @@ import useLibraryCreate from '../lib/useLibraryCreate';
 import { calendarSelectionUrl } from '../lib/calendarSelection';
 import { summarizeCalendarWeek } from '../lib/calendarSummary';
 import { useDialogFocus } from '../lib/useDialogFocus';
+import { createCopyWeekRequests } from '../lib/copyWeekRequest';
 import { calendarMutation as performCalendarMutation } from '../lib/calendarMutation';
 import { createCopyWeekRequests } from '../lib/copyWeekRequest';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';

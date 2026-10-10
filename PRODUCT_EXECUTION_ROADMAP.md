@@ -2,8 +2,8 @@
 
 Last updated: 2026-10-10<br>
 Status: PR #133 merged as `1d1e0b6` and is deployed READY on both public domains. Six targeted Supabase sources repair pilot prerequisites, workout decisions, messaging lifecycle, foreign-key indexes, stable conflict responses and legacy notification preferences. Both readiness checks and all eleven hosted Data API contracts pass. Actual signed QA passes drafts, two-way messages/notifications, exact unread counts, concurrent leases, group retries, workout corrections and relationship/session revocation. Final regression 432/432, focused release 22/22, integration 4/4, build and final-head CI pass. Real-mailbox, fresh-account, physical-phone and participant acceptance remain open.<br>
-Current milestone: M0 - closed coach pilot; independent b10c309 passed the defined combined F6-F9/O1/P3 loop; PR #135 carries the exact reviewed frontend integration with PR #136 backend dependency
-Next item: Verify the ordinary PR #135 integration follow-up's exact-head CI and object-only combined tree against accepted b10c309. Preserve PR #136 private assignment/copy/load backend and PR #137 F8 messaging fixes; standalone PR #135 is not a combined deployment. See docs/production-library-evidence/REVIEWED_INTEGRATION.md. Frozen 54f2ab preview unchanged. No merge, remote migration, combined publication or manual deployment. Keep hardware, hosted Data API, independent-connection concurrency, fresh-account/provider/participant acceptance open.
+Current milestone: M0 - make the closed coach pilot work end to end; PR134 and PR137 merged; production library and calendar/privacy/load release preparation continues<br>
+Next item: Finish the user's authorized PR135/136 release. Read-only production catalog inspection confirms four new migration prerequisites are missing; hold these main merges until the exact production schema operations receive separate approval. PR137 main-combination regression, integration, build and desktop/mobile messaging validation passed before its authorized merge as 5554087; inspect its automatic deployment. Complete PR136's latest-main conflict resolution using independently accepted transport/copy behavior, verify exact-head CI, and record evidence. Do not reapply prior pilot-release migrations. Continue P0-015 provider/scheduler and consenting mailbox acceptance, fresh-account enrollment, physical-phone checks and P0-018 measurements after release preparation; keep their parent checkboxes open.
 
 ## Purpose
 
@@ -755,7 +755,7 @@ M7 removes systemic inconsistency and validates the full product before public l
 - [ ] **UX-005 — Accessibility and input coverage**
   - Keyboard, screen reader, reduced motion, contrast, focus, touch target, and zoom checks.
 
-- [ ] **UX-006 - Messaging page revamp (queued)**
+- [ ] **UX-006 - Messaging page revamp (implemented; independent acceptance pending)**
   - User request, October 10, 2026: the message page should function and look kind of like the
     iPhone messaging app. Use a familiar conversation list and chat-thread layout, clear sender
     bubbles and unread state, and an easy mobile composer with retained coach-athlete context.
@@ -766,8 +766,8 @@ M7 removes systemic inconsistency and validates the full product before public l
     keyboard navigation, focus and conversation/back navigation; draft persistence through
     reload and recipient/role switching; unread/read and send/retry regressions pass without
     losing athlete context or implying unverified external delivery.
-  - Proposed sequencing: after current demo stabilization and before a polished coach
-    presentation if the user chooses. Queued only; no redesign implementation is started.
+  - Implemented on separate branch feature/messages-native-ui after demo stabilization; before a polished coach
+    presentation, require independent acceptance of the production UI. 432 regressions, final build, 48 desktop/mobile browser scenarios and 6 final navigation/SQL cases pass; see docs/production-messaging-evidence/README.md. Keep this item open for review/hardware acceptance.
 
 - [ ] **QA-001 — Full regression matrix**
   - Email/password, verification, reset, OAuth, invitations, roles, onboarding, calendar, plans,
@@ -817,6 +817,42 @@ accounts are unavailable; the previous INACTIVE observation below is historical.
 | 2026-09-28 | Do not add a Sentry alert rule or uptime monitor | Owner declined; keep the readiness check manual for the closed pilot |
 
 ## Progress log
+
+### October 10 - isolated calendar/private-draft/load verification and focused fix
+
+Fresh main `fa8ebe2b377784007b4a40b4e982f92a11224075` reproduced duplicate week
+copies, five lost prescription fields, athlete-visible private drafts, recovery
+load labelled as synced activity, and omitted manual-completion load. Original
+runtime evidence is preserved. The authorized focused fix uses atomic copy retry
+records, full prescription mapping, private-subject boundaries across calendar,
+comments/export/inbox, and explicit actual-training provenance/unknown states.
+Local acceptance passes: 443/443 full regression and 30/30 desktop/mobile browser
+checks, plus production build. See `CALENDAR_GAP_FIX_VERIFICATION.md` for exact
+source, commands, results and rollout/rollback gates. The library mapper is tested
+against PR135's published contract checkpoint; that PR's pending library API/UI
+is not claimed complete. No production data, providers, secrets, production
+migration application, merge or production deployment occurred. Keep all parent acceptance
+checkboxes open. [Draft PR136](https://github.com/tadschweizer/Ultra_OS/pull/136)
+contains implementation `d300153aff08142425fb8ed1ed4e2dbdb8e812bf` and evidence;
+it targets main directly and remains unmerged. PR135's library migration remains
+a coordinated release dependency. Hosted concurrency/schema/participant checks
+and final-head CI are separate release gates.
+
+Independent review then reproduced a PR136 structure-only PATCH regression at
+`0a25f1e`: omitted totals had been converted to explicit null before derivation.
+The follow-up correction preserves omitted/null/zero distinctions and clears
+unavailable dimensions from replacement structures. The ninth signed-handler/SQL
+group verifies structure-only PATCH, explicit null/zero and untouched omissions;
+the updated evidence is retained with the same PR. No production rollout occurred.
+
+Two further isolated reproductions confirmed private-draft leakage in personal
+account archives and phantom in-window load from out-of-window confirmed imports.
+The archive filters before pagination; load resolves athlete-owned links
+independently of its rolling query and excludes unresolved/out-of-window links
+with explicit provenance. Signed archive/date-boundary/ownership/revocation/manual
+and deduplication regressions bring acceptance to11 groups/full regression443.
+The original and new failed-before/passed-after outputs are retained in the
+verification report. These remain draft PR136 changes, without production rollout.
 
 October 9 technical readiness preparation (PR #133): traced live group description/membership gaps in addition to the message/document and workout/lifecycle gaps. Prepared exact prerequisite repair and a read-only before/after preflight; combined all three release sources in isolated SQL, with grant/RLS/index/function failure checks. Added schema-aware readiness, document session/relationship revocation and retry-safe group membership plus a GET-only zero-row Data API verifier. Node 22 regression 431/431; integrations 4/4; build; critical desktop/mobile browser 129 passed / 3 existing skips. Measurement CSV/script prepared; CI required enforcement remains unreadable/unverified. No production migration, app release, provider activation or participant observation.
 
@@ -992,22 +1028,6 @@ release hardening for an iPhone-style messaging page. Proposed after demo stabil
 before a polished coach presentation if the user chooses; P0-015 reliability acceptance remains
 distinct. Documentation-only queue entry on PR #134; no runtime edit, merge or redesign started.
 
-### Authorized production integration inventory — October 10
+- 2026-10-10: UX-006 implementation on feature/messages-native-ui, separately based on PR #134 6f1d3f4: familiar list/thread/sender bubbles/bottom composer, visible-thread read gating, URL/back/draft isolation and late-send navigation guard; remove duplicate floating inbox on /messages. 432/432 regressions, final production build, 48/48 messaging + daily-loop browser scenarios, 6/6 final SQL/navigation cases, WCAG list/thread contrast and 320px layout pass. See docs/production-messaging-evidence/README.md. No message backend/schema/auth changes, real provider sends, production deploy/merge or frozen demo redeploy. Independent acceptance and physical hardware remain open.
 
-Fresh online main fa8ebe2b and draft PR #134 head 6f1d3f4 inspected. The user authorized production-backed demo features and iPhone-style UX-006 in dedicated unmerged follow-on work. PRODUCTION_DEMO_INTEGRATION_INVENTORY.md separates shared PR #134 views, synthetic-only behavior, existing real messaging persistence and remaining library metadata/assignment gaps. Proposed two bounded slices: library schema/API/payload with the parallel backend owner handling planned-workouts assignment mapping, and messaging UI preserving real draft/retry/read/authorization semantics. Prepared separate production-integration worktree, feature/production-library-messages, explicitly stacked on PR #134. Only inventory/roadmap documentation is changed; no runtime implementation, migration execution, real data/provider action, merge or deployment. All existing acceptance checkboxes remain unchanged.
-
-- 2026-10-10: PR #135 production library metadata implementation: shared real editor payload, coach-owned signed CRUD, additive locally tested migration; 5/5 new tests, 437/437 regressions, 17/17 adapter tests, normal production build and 2/2 desktop/mobile real-handler/SQL browser scenarios pass. See docs/production-library-evidence/README.md. CI at f52d595 was contract-only; new implementation CI and independent acceptance remain open. Assignment mapper belongs to the parallel backend task. No hosted migration/merge/deployment; frozen demo runtime 54f2ab unchanged. UX-006 continues on its own branch/PR.
-
-- 2026-10-10: Library CI at 3959374 exposed a cross-fixture test-origin mismatch; production CSRF correctly denied it. Fixed only the signed test fixture's default origin, added its regression. Final local checks: 6/6 library, 438/438 full, 14/14 pilot-access + library browser scenarios; build unchanged/pass. New-head CI/independent review pending; no hosted migration or deployment.
-
-- 2026-10-10: Independent signed QA at PR #135 4eadc767 rejected F6 (false empty library on GET503) and F7 (duplicate create after lost committed response). Same-PR repairs preserve cached templates with explicit retry and add stable coach/tab-scoped operations plus service-only transactional receipt migration. Failed-before browser/API outputs retained; 9/9 focused SQL/unit, 441/441 full, 4/4 integrations, 17/17 adapter, 46/46 surrounding browser, final 10/10 library browser and production build pass. See docs/production-library-evidence/F6_F7_REPAIR.md. Parent will bring the delta into unpublished f26adf60 for independent combined retest; no task-4 edits, migration apply, merge or manual deployment. PR #137 and frozen demo remain unchanged; acceptance stays open.
-
-- 2026-10-10: Parent-requested port of unpublished d13ec51's fast-response library-save pointer guard into PR #135 only. Native delayed double-click failed before on both projects with two distinct create keys. Exact WorkoutEditor region and three library helpers match d13ec51 (editor SHA-256 23f10ab680e79c4917266ae006765fe5f622f6e400110aac99ee1be77ff78334). Standard double-click plus controlled native second-pointer, intentional fresh-click and keyboard regressions pass with all F6/F7 cases: 12/12 browser; normal build PASS. The extra harness initially emitted a whole new sequence and was corrected without runtime/assertion changes; evidence retained in docs/production-library-evidence/DOUBLECLICK_PORT.md. Revised-head CI and parent combined acceptance remain separate gates. No combined runtime publication, other-PR edits, remote schema, merge or manual deployment.
-
-- 2026-10-10: Independent d13ec51 QA identified O1: saved-template PATCH worked but browser editing was absent. PR #135 now reuses WorkoutEditor in template mode with owner-scoped PATCH, only dirty fields, explicit TSS, tags, exact unit conversion, preserved zero/null/opaque step units and no create action. Cancel sends no write; lost acknowledgement retains inputs and retry updates the same row; validation/refresh/phone/repeated-click cases pass. 16 library browser cases plus 4 final empty-structure/account cleanup cases, 442 production/auth regressions and final build pass; see docs/production-library-evidence/O1_EDITOR.md. Earlier whole-editor d13ec51 hash match is historical: O1 changes that region while retaining the pointer/create guard. Parent combined edited-template assignment and F8 independent acceptance remain open. No API contract/schema/auth, backend-owner file, remote migration, frozen preview, merge or manual deployment change.
-
-O1 transfer also prepares the synthetic adapter PATCH for the same existing template fields, sharing the unchanged pure validation function without server imports. Local store persistence/isolation/reset, repeat updates and revised assignment are tested. The signed API identifier error helper remains server-side; an intermediate extraction regression was caught and restored before publication. Only future source builds include this fixture update; the frozen hosted preview remains unchanged.
-
-- 2026-10-10 O1 transfer follow-up: a meaningful template (40 min) with explicitly cleared TSS reproduced synthetic assignment recalculating 33 instead of preserving null. Library assignments now copy their saved prescription exactly, including cleared duration/distance/IF/TSS; directly planned workouts retain existing derivation. Extended repeated-edit/assignment SQL-shape and browser checks pass with first-assignment immutability. No native API/auth/schema, frozen hosted artifact or backend-owner file changes; final-head CI and independent combined QA remain open.
-
-- 2026-10-10: PR #135 F9/P3 repair from 18fa730 after independent 4a9cdec acceptance of F8/O1. Signed SQL browser regression reproduced min/km becoming min/mi before repair; synthetic source-ID assertion reproduced P3. Shared assigned editor/library save now preserve target bounds/units; deliberate pace conversion is explicit and mathematical. Synthetic assignments retain template source ID. Evidence: docs/production-library-evidence/F9_PRESCRIPTION.md. Exact final-head CI and unpublished combined independent retest remain required; no production/frozen-preview changes.
+- 2026-10-10: Independent d13ec51 combined QA reproduced F8: signed inbox GET outage falsely asserted empty. PR #137 now tracks verified reads separately, shows unknown availability and truthful last-loaded conversations, retries and clears role/account or unauthorized caches. Actual SQL-outage browser regression reproduced before repair; workspace 8/8 and final F8 2/2 pass, production/auth 432/432 and final production build pass. See docs/production-messaging-evidence/F8_REPAIR.md. Final combined independent/hardware acceptance remains open; no API/schema/auth/provider, frozen preview, merge or deployment change.
