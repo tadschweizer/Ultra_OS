@@ -1,0 +1,2 @@
+# Preserve the independent report's exact bytes and original SHA-256.
+QA_FINAL_RETEST.md -text

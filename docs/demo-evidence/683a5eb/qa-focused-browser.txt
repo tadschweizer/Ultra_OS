@@ -1,0 +1,25 @@
+
+> threshold-synthetic-demo@3.0.0 test:browser
+> playwright test --grep QA F1/F2
+
+[WebServer] (node:11048) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:6716) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 1 worker
+
+(node:20024) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:20024) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 1 browser\workflows.spec.js:63:39 ΓÇ║ QA F1/F2: visible library prescription and unknown actual load at 1440px (3.8s)
+  ok 2 browser\workflows.spec.js:63:39 ΓÇ║ QA F1/F2: visible library prescription and unknown actual load at 390px (4.4s)
+  ok 3 browser\workflows.spec.js:63:39 ΓÇ║ QA F1/F2: visible library prescription and unknown actual load at 320px (3.8s)
+
+  3 passed (15.4s)
+
+To open last HTML report run:
+[36m[39m
+[36m  npx playwright show-report[39m
+[36m[39m

@@ -1,0 +1,50 @@
+{
+  "sourceRepository": "https://github.com/tadschweizer/Ultra_OS",
+  "sourceBase": "fa8ebe2b377784007b4a40b4e982f92a11224075",
+  "runtimeSourceCommit": "edccc86a83b2c2e21cbad13f78ca0f3330ec3e5e",
+  "branch": "demo/synthetic-transfer",
+  "pullRequest": "https://github.com/tadschweizer/Ultra_OS/pull/134",
+  "deploymentId": "dpl_jvfAeqF1FmmJZSat33oHCCcLV889",
+  "immutableUrl": "https://ultra-os-tb77-r0amr2xjc-tadschweizers-projects.vercel.app",
+  "projectId": "prj_wMIqPdQTPQVXfYsmh1eNVPBA4taC",
+  "teamId": "team_DWc6DlROyO9iNYjQzYyyhxNn",
+  "readyState": "READY",
+  "selfVerificationRecordedAt": "2026-10-10T00:17:10Z",
+  "localBuildArchive": {
+    "file": "output/threshold-demo-edccc86.zip",
+    "sha256": "308496924d0cb74e0a3189c799fd2d63bfdc1ae4c46bb8d42000fdb0f71308cd",
+    "contents": "dist directory and unwrapped header configuration; deployment wrapper reproduced by script"
+  },
+  "target": null,
+  "aliases": [],
+  "artifactType": "static-files-only",
+  "deploymentWrapper": {
+    "rootPrefix": "webapp/",
+    "perDeploymentBuilds": [{"src": "**", "use": "@vercel/static"}],
+    "reproduce": "DEMO_VERCEL_ROOT=webapp node scripts/preview-files.mjs",
+    "productionSettingsChanged": false
+  },
+  "assets": [
+    {"file": "assets/index-BixaqdIL.css", "bytes": 28859, "sha256": "2c3679c0f147d82e28eed0386cbb8f746e669a2b827a4ed7240b3aef6714e3dd"},
+    {"file": "assets/index-KaMkKcU0.js", "bytes": 274732, "sha256": "8cc2a861fd917f4be07d711eac93d9bf8cab8302265541de4b2ff581ef6e8948"},
+    {"file": "favicon.svg", "bytes": 182, "sha256": "fb03e23aee5c008f20ba4a3fc5a10092be5dbb9a7f85e8e397f9560c97315bf8"},
+    {"file": "index.html", "bytes": 763, "sha256": "85e445d8dd710839c187df5ec14e45e5556e59b4d69741d821aaba662bb73f67"}
+  ],
+  "selfVerification": {
+    "adapter": {"pass":12,"fail":0},
+    "browserLocal": {"pass":15,"fail":0,"seconds":33.8},
+    "browserHosted": {"pass":15,"fail":0,"seconds":38.0},
+    "productionAuthRegression": {"pass":432,"fail":0},
+    "productionBuild": "passed",
+    "staticBuild": "passed",
+    "viewportWidths": [1440,390,320],
+    "demoPageApiOrExternalRequests": 0,
+    "hostedProtectedApiProbeStatus": 404,
+    "hostedAssetsMatchLocalSha256": true,
+    "hostedConnectSrc": "none"
+  },
+  "independentQa": "pending",
+  "physicalPhone": "not verified",
+  "existingSitesVersionChanged": false,
+  "supersededFailedDeployment": "dpl_G2wpVQ52wdCJ6pBDXNCGjE4Nryfy"
+}

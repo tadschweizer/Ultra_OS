@@ -1,0 +1,33 @@
+
+> threshold-synthetic-demo@3.0.0 test:browser
+> playwright test
+
+
+Running 15 tests using 1 worker
+
+(node:22064) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:22064) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  1 browser\workflows.spec.js:4:1 ΓÇ║ static artifact identity and closed network policy (1.8s)
+  ok  2 browser\workflows.spec.js:70:3 ΓÇ║ 1440px ΓÇ║ full coach / athlete loop, actuals, feedback, adjusted plan, message and reply (3.5s)
+  ok  3 browser\workflows.spec.js:256:3 ΓÇ║ 1440px ΓÇ║ draft persistence, role and recipient isolation, failed save retry, reset cancel/confirm (2.5s)
+  ok  4 browser\workflows.spec.js:325:3 ΓÇ║ 1440px ΓÇ║ check-in propagation, empty and missing states, mobile navigation and browser history (1.3s)
+  ok  5 browser\workflows.spec.js:70:3 ΓÇ║ 390px ΓÇ║ full coach / athlete loop, actuals, feedback, adjusted plan, message and reply (4.3s)
+  ok  6 browser\workflows.spec.js:256:3 ΓÇ║ 390px ΓÇ║ draft persistence, role and recipient isolation, failed save retry, reset cancel/confirm (2.5s)
+  ok  7 browser\workflows.spec.js:325:3 ΓÇ║ 390px ΓÇ║ check-in propagation, empty and missing states, mobile navigation and browser history (1.4s)
+  ok  8 browser\workflows.spec.js:70:3 ΓÇ║ 320px ΓÇ║ full coach / athlete loop, actuals, feedback, adjusted plan, message and reply (3.4s)
+  ok  9 browser\workflows.spec.js:256:3 ΓÇ║ 320px ΓÇ║ draft persistence, role and recipient isolation, failed save retry, reset cancel/confirm (2.4s)
+  ok 10 browser\workflows.spec.js:325:3 ΓÇ║ 320px ΓÇ║ check-in propagation, empty and missing states, mobile navigation and browser history (1.1s)
+  ok 11 browser\workflows.spec.js:373:39 ΓÇ║ library, reschedule, private draft, copy/duplicate and keyboard at 1440px (2.7s)
+  ok 12 browser\workflows.spec.js:373:39 ΓÇ║ library, reschedule, private draft, copy/duplicate and keyboard at 390px (3.2s)
+  ok 13 browser\workflows.spec.js:373:39 ΓÇ║ library, reschedule, private draft, copy/duplicate and keyboard at 320px (2.8s)
+  ok 14 browser\workflows.spec.js:521:1 ΓÇ║ session thread identities, activity detail and matching correction, no double count (1.8s)
+  ok 15 browser\workflows.spec.js:578:1 ΓÇ║ completion correction, skip/undo, cancel, missing actuals and independent browser sessions (1.9s)
+
+  15 passed (38.0s)
+
+To open last HTML report run:
+[36m[39m
+[36m  npx playwright show-report[39m
+[36m[39m

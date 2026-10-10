@@ -1,6 +1,8 @@
+import { useWorkspaceTransport } from './WorkspaceTransport';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export default function useMessageDraft({ role, conversation, seedBody = '', seedTemplate = 'general_checkin' }) {
+  const { request } = useWorkspaceTransport();
   const [body,setBody]=useState('');const [templateKey,setTemplateKey]=useState('general_checkin');
   const [status,setStatus]=useState('loading');const [error,setError]=useState('');
   const current=useRef(null);const value=useRef({body:'',templateKey:'general_checkin'});
@@ -11,7 +13,7 @@ export default function useMessageDraft({ role, conversation, seedBody = '', see
     const perform=async()=>{
       if(ctx.sending && !clientId)return;
       if(!ctx.ready || ctx.conflict)throw new Error('Draft must be reviewed.');
-      const response=await fetch('/api/message-drafts',{method:'PUT',keepalive:true,signal:AbortSignal.timeout(10000),headers:{'Content-Type':'application/json'},
+      const response=await request('/api/message-drafts',{method:'PUT',keepalive:true,signal:AbortSignal.timeout(10000),headers:{'Content-Type':'application/json'},
         body:JSON.stringify({mode:ctx.role,athlete_id:ctx.athleteId,body:snapshot.body,
           template_key:ctx.role==='coach' ? snapshot.templateKey : null,client_message_id:clientId,expected_version:ctx.version})});
       const data=await response.json();
@@ -24,14 +26,14 @@ export default function useMessageDraft({ role, conversation, seedBody = '', see
     };
     const task=ctx.queue.catch(()=>{}).then(perform);ctx.queue=task;
     try{return await task;}catch(e){if(current.current===ctx){setStatus(ctx.conflict?'conflict':'error');setError(e.message);}throw e;}
-  },[]);
+  },[request]);
 
   useEffect(()=>{
     if(!key){current.current=null;setBody('');setStatus('loading');return;}
     const ctx={key,role,athleteId:conversation.athlete_id,ready:false,version:null,queue:Promise.resolve(),conflict:false,retry:null};
     current.current=ctx;setBody('');setTemplateKey(seedTemplate);setStatus('loading');setError('');
     const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),10000);
-    fetch(`/api/message-drafts?${new URLSearchParams({mode:role,athlete_id:ctx.athleteId})}`,{signal:controller.signal}).then(async response=>{
+    request(`/api/message-drafts?${new URLSearchParams({mode:role,athlete_id:ctx.athleteId})}`,{signal:controller.signal}).then(async response=>{
       const data=await response.json();if(!response.ok)throw new Error('Draft could not be loaded. Retry to avoid replacing a saved draft.');
       if(current.current!==ctx)return;
       const next={body:data.draft?.body ?? seedBody,templateKey:data.draft?.template_key || seedTemplate};
@@ -71,7 +73,7 @@ export default function useMessageDraft({ role, conversation, seedBody = '', see
   async function reload() {
     const ctx=current.current;if(!ctx)return;
     try {
-      const response=await fetch(`/api/message-drafts?${new URLSearchParams({mode:ctx.role,athlete_id:ctx.athleteId})}`,{signal:AbortSignal.timeout(10000)});
+      const response=await request(`/api/message-drafts?${new URLSearchParams({mode:ctx.role,athlete_id:ctx.athleteId})}`,{signal:AbortSignal.timeout(10000)});
       const data=await response.json();if(!response.ok)throw new Error();
       const next={body:data.draft?.body || '',templateKey:data.draft?.template_key || 'general_checkin'};
       ctx.ready=true;ctx.conflict=false;ctx.version=data.draft?.version || null;ctx.saved=JSON.stringify(next);
