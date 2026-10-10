@@ -2,7 +2,7 @@
 
 Independent hosted QA rejected runtime `edccc86a83b2c2e21cbad13f78ca0f3330ec3e5e` on three reproducible findings. That immutable preview and its identity remain available; its original self-test evidence is preserved in `docs/demo-evidence/edccc86` and `coach-demo/evidence/preview-edccc86.json`. Passing self-tests did not establish acceptance.
 
-Independent retest of runtime `683a5eb` **clears F1/F2/F3**, including preserved visible/private library fields, missing actual-TSS honesty, and consumed retry notices. Overall acceptance is still held on two additional pre-existing seeded defects, F4/F5 below. The `683a5eb` preview, identity and self-test evidence are retained in `coach-demo/evidence/preview-683a5eb.json` and `docs/demo-evidence/683a5eb`. Independent QA originals in the separate QA task were read without modification. Physical-phone availability remains blocked.
+Historical retest of runtime `683a5eb` **cleared F1/F2/F3**, including preserved visible/private library fields, missing actual-TSS honesty, and consumed retry notices. At that retest, overall acceptance was held on two additional pre-existing seeded defects, F4/F5 below. The `683a5eb` preview, identity and self-test evidence are retained in `coach-demo/evidence/preview-683a5eb.json` and `docs/demo-evidence/683a5eb`. Independent QA originals in the separate QA task were read without modification. Physical-phone availability remains blocked.
 
 | Finding | Cause | Repair | Focused regression |
 | --- | --- | --- | --- |
@@ -16,9 +16,15 @@ The library metadata extension is intentionally **demo-only storage capability**
 
 F4 also keys each detail dialog by workout/activity identity. Following another same-calendar deep link discards unsaved completion/discussion inputs from the previous item. The browser regression enters different unsaved durations on each of two planned workouts and verifies each switch restores the newly selected item's blank actuals rather than carrying values over.
 
-Updated source, checks and immutable deployment identity are recorded in `DEMO_VERIFICATION.md` and `coach-demo/preview-identity.json`. A new independent exact-build retest is required; none of these repairs alone establishes acceptance. Physical-phone verification remains open.
+Updated source, checks and immutable deployment identity are recorded in `DEMO_VERIFICATION.md` and `coach-demo/preview-identity.json`. At repair handoff, a new independent exact-build retest was required; none of these repairs alone established acceptance. Physical-phone verification remains open.
 
 Corrected runtime `683a5ebf42a6e86e56b62544f7b79d303a71aeda` is READY at https://ultra-os-tb77-9vifc1i44-tadschweizers-projects.vercel.app, deployment `dpl_HGAsRETr6kkg1doGUmdrwqyAZMt4`. Self-verification: adapter 15/15, dedicated F1/F2 browser subset 3/3, complete local browser suite 18/18, complete hosted suite 18/18, production auth regression 432/432, static and Next builds passed. Hosted assets match local SHA-256 hashes, API probes return 404, and tested page interactions have zero API/external requests or JavaScript errors. Await independent retest against this exact identity.
 
 
 Final F4/F5 handoff runtime `54f2ab181848baf022c2fc59ce0c5c492f00da1d`, deployment `dpl_EtjWEJQQ4gY6xA7UW7aFvf8SeB2B`, [immutable preview](https://ultra-os-tb77-fbct852gc-tadschweizers-projects.vercel.app). Adapter/helper 17/17, full local 21/21 (1.0m), full hosted 21/21 (1.2m), production auth regression 432/432, final Next/static builds pass. Ready for independent exact-build retest; no acceptance claim. The intermediate 20113c37 artifact stays immutable and is superseded before handoff.
+
+### Independent final retest — 2026-10-10 01:47:49–01:53:51 UTC
+
+Runtime `54f2ab181848baf022c2fc59ce0c5c492f00da1d` receives **limited PASS for the agreed synthetic daily-coaching demo scope**. F4/F5 clear at 1440/390/320px; F1–F3 smoke and the core coaching loop pass. The reviewer independently matched all served file hashes/bytes to the manifest at `cb3136fd`; zero API/external requests and JavaScript errors were observed. See [the exact report](docs/demo-evidence/independent-54f2ab/QA_FINAL_RETEST.md) and [evidence index/archive](docs/demo-evidence/independent-54f2ab/README.md). Earlier handoff statements above describe their historical state and remain preserved.
+
+Measured work/kJ retention, physical phones/Safari/Firefox and production library persistence/production regression were **NOT RUN** by this independent retest; the report lists additional untested branches. Tested elevation retention does not establish work/kJ retention. Production library metadata preservation remains demo-only. This clears observed F1–F5 holds in the tested scope, not full Threshold parity. Runtime and preview stay unchanged; PR #134 remains draft and unmerged.

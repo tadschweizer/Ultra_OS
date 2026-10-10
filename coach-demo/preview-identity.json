@@ -82,7 +82,7 @@
     "hostedAssetsMatchLocalSha256": true,
     "hostedConnectSrc": "none"
   },
-  "independentQa": "F1-F2-F3-cleared-on-683a5eb; current-exact-build-F4-F5-and-full-regression-retest-pending",
+  "independentQa": "limited-PASS-agreed-synthetic-daily-coaching-scope; F1-F5-cleared-in-tested-paths; not-full-app-parity",
   "qaRepairScope": [
     "F1-library-metadata-and-private-visibility",
     "F2-unknown-actual-load",
@@ -113,5 +113,58 @@
     "deploymentId": "dpl_5mkNKdDmixtQwXzerJCjgRgRqHGs",
     "immutableUrl": "https://ultra-os-tb77-fio2eebgm-tadschweizers-projects.vercel.app",
     "independentQa": "not-submitted; superseded-before-handoff-by-dialog-input-identity-regression"
+  },
+  "independentAcceptance": {
+    "outcome": "limited PASS",
+    "scope": "agreed synthetic daily-coaching demo",
+    "testedRuntimeSourceCommit": "54f2ab181848baf022c2fc59ce0c5c492f00da1d",
+    "testedManifestEvidenceHead": "cb3136fd2d0d252526bfb1316e695373ebaf864e",
+    "testWindowUtc": {
+      "start": "2026-10-10T01:47:49Z",
+      "end": "2026-10-10T01:53:51Z"
+    },
+    "report": "../docs/demo-evidence/independent-54f2ab/QA_FINAL_RETEST.md",
+    "reportSha256": "882174f70496aa99785c7c109150120510f33af43c1eb81aa6e6fde5f97a0c20",
+    "archive": "../docs/demo-evidence/independent-54f2ab/threshold-final-retest-54f2ab.zip",
+    "archiveSha256": "b13707f02659fe9c08325045eba5197b596fff0c046028d49e913e0b2c6155cb",
+    "servedIdentityEvidence": "independently fetched all four files; byte lengths and SHA-256 match cb3136fd manifest; HTTP does not directly prove Git/deployment ID",
+    "observations": {
+      "F4F5ViewportWidths": [
+        1440,
+        390,
+        320
+      ],
+      "F1F2F3": "PASS smoke in tested paths",
+      "coreCoachAthleteLoop": "PASS",
+      "apiOrExternalRequestsObserved": 0,
+      "javascriptPageErrorsObserved": 0,
+      "protectedShapedGetProbes": {
+        "count": 5,
+        "status": 404,
+        "exhaustiveAuthAudit": false
+      }
+    },
+    "notRun": [
+      "measured mechanical work/kJ retention",
+      "physical phone/Safari/Firefox",
+      "production library persistence/production regression suite",
+      "all target types/automatic-match approval/adversarial duplicate races",
+      "calendar/message/copy mutation failure branches/log-form cancellation/local export"
+    ],
+    "implementerCountsRerunByIndependentQa": false,
+    "runtimeCi": {
+      "headSha": "54f2ab181848baf022c2fc59ce0c5c492f00da1d",
+      "runId": "38014218602",
+      "conclusion": "success"
+    },
+    "priorEvidenceHeadCi": {
+      "headSha": "cb3136fd2d0d252526bfb1316e695373ebaf864e",
+      "runId": "38014420545",
+      "conclusion": "success"
+    },
+    "documentedAtUtc": "2026-10-10T02:00:12.877Z",
+    "runtimeChangedForDocumentation": false,
+    "manualRedeploymentForDocumentation": false,
+    "mergeAuthorized": false
   }
 }
