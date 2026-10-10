@@ -1,7 +1,7 @@
-import { getSupabaseAdminClient } from '../../lib/authServer';
-import { canLogCheckIn, buildUsageSnapshot, getFeatureList, getIncludedAthletes, getSubscriptionTierLabel, normalizeSubscriptionTier } from '../../lib/subscriptionTiers';
-import { isFastCheckIn } from '../../lib/checkIn';
-import { buildLoadMetrics, buildLoadStatus } from '../../lib/loadRollups';
+import { getSupabaseAdminClient } from '../../lib/authServer.js';
+import { canLogCheckIn, buildUsageSnapshot, getFeatureList, getIncludedAthletes, getSubscriptionTierLabel, normalizeSubscriptionTier } from '../../lib/subscriptionTiers.js';
+import { isFastCheckIn } from '../../lib/checkIn.js';
+import { buildLoadMetrics, buildLoadStatus } from '../../lib/loadRollups.js';
 import { clearAthleteCookie, renewAthleteCookieIfStale } from '../../lib/auth/sessionCookies.js';
 import { resolveEffectiveAthleteId } from '../../lib/auth/requireAthlete.js';
 import { isValidAthleteId } from '../../lib/auth/contracts.js';
@@ -13,8 +13,9 @@ import { loadCheckInEntitlement, loadCoachEntitlement } from '../../lib/pilotEnt
  * Admin impersonation: reports the TARGET athlete's profile with an
  * `impersonating` block so the client can show the read-only banner.
  */
-export default async function handler(req, res) {
-  const admin = getSupabaseAdminClient();
+export function createMeHandler({ getAdmin = getSupabaseAdminClient } = {}) {
+return async function handler(req, res) {
+  const admin = getAdmin();
   const { athleteId, isImpersonating, session } = await resolveEffectiveAthleteId(req, admin);
 
   if (!athleteId) {
@@ -91,21 +92,24 @@ export default async function handler(req, res) {
   if (lastCheckInError) console.error(lastCheckInError);
   const lastCheckIn = (recentCheckIns || []).find(isFastCheckIn) || null;
 
-  const [interventionLoadRes, activityLoadRes] = await Promise.all([
+  const [manualLoadRes, activityLoadRes] = await Promise.all([
     admin
-      .from('interventions')
-      .select('date, inserted_at, dose_duration, subjective_feel')
+      .from('planned_workouts')
+      .select('id, workout_date, status, visibility, completed_activity_id, completed_duration_min, athlete_rpe')
       .eq('athlete_id', athleteId)
-      .gte('inserted_at', new Date(Date.now() - 42 * 86400000).toISOString()),
+      .eq('status', 'completed')
+      .eq('visibility', 'athlete_visible')
+      .gte('workout_date', new Date(Date.now() - 41 * 86400000).toISOString().slice(0, 10)),
     admin
       .from('strava_activities')
       .select('*')
       .eq('athlete_id', athleteId)
       .gte('start_date', new Date(Date.now() - 42 * 86400000).toISOString()),
   ]);
+  if (manualLoadRes.error || activityLoadRes.error) return res.status(503).json({ error: 'Training load is unavailable. Please refresh to try again.' });
 
   const loadMetrics = buildLoadMetrics({
-    interventions: interventionLoadRes.data || [],
+    workouts: manualLoadRes.data || [],
     activities: activityLoadRes.data || [],
     lookbackDays: 42,
   });
@@ -170,3 +174,5 @@ export default async function handler(req, res) {
     }),
   });
 }
+}
+export default createMeHandler();

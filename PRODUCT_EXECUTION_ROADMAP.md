@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
-Last updated: 2026-10-09<br>
+Last updated: 2026-10-10<br>
 Status: PR #133 merged as `1d1e0b6` and is deployed READY on both public domains. Six targeted Supabase sources repair pilot prerequisites, workout decisions, messaging lifecycle, foreign-key indexes, stable conflict responses and legacy notification preferences. Both readiness checks and all eleven hosted Data API contracts pass. Actual signed QA passes drafts, two-way messages/notifications, exact unread counts, concurrent leases, group retries, workout corrections and relationship/session revocation. Final regression 432/432, focused release 22/22, integration 4/4, build and final-head CI pass. Real-mailbox, fresh-account, physical-phone and participant acceptance remain open.<br>
-Current milestone: M0 — make the closed coach pilot work end to end<br>
-Next item: P0-015 email provider/protected POST scheduler setup and consenting real-mailbox acceptance; verify fresh-account enrollment and the physical-phone M0 loop, then collect the prepared P0-018 measurements. The database/app technical release is complete; do not reapply its migrations or rebuild the merged drafts/unread implementation. Keep parent checkboxes open until their remaining acceptance criteria pass.
+Current milestone: M0 - make the closed coach pilot work end to end; focused calendar/private-draft/load fixes are prepared for review, with hosted acceptance pending<br>
+Next item: Review the isolated calendar/private-draft/load fix and coordinate its library-schema dependency with PR135; staging and rollout require separate authorization. Continue P0-015 email provider/protected POST scheduler setup and consenting real-mailbox acceptance; verify fresh-account enrollment and the physical-phone M0 loop, then collect the prepared P0-018 measurements. Do not reapply the prior pilot-release migrations. Keep parent checkboxes open until their remaining acceptance criteria pass.
 
 ## Purpose
 
@@ -803,6 +803,23 @@ accounts are unavailable; the previous INACTIVE observation below is historical.
 | 2026-09-28 | Do not add a Sentry alert rule or uptime monitor | Owner declined; keep the readiness check manual for the closed pilot |
 
 ## Progress log
+
+### October 10 - isolated calendar/private-draft/load verification and focused fix
+
+Fresh main `fa8ebe2b377784007b4a40b4e982f92a11224075` reproduced duplicate week
+copies, five lost prescription fields, athlete-visible private drafts, recovery
+load labelled as synced activity, and omitted manual-completion load. Original
+runtime evidence is preserved. The authorized focused fix uses atomic copy retry
+records, full prescription mapping, private-subject boundaries across calendar,
+comments/export/inbox, and explicit actual-training provenance/unknown states.
+Local acceptance passes: 440/440 full regression and 30/30 desktop/mobile browser
+checks, plus production build. See `CALENDAR_GAP_FIX_VERIFICATION.md` for exact
+source, commands, results and rollout/rollback gates. The library mapper is tested
+against PR135's published contract checkpoint; that PR's pending library API/UI
+is not claimed complete. No production data, providers, secrets, production
+migration application, merge or deployment occurred. Keep all parent acceptance
+checkboxes open. Final commit/PR identity is recorded in the separate review
+artifact when published.
 
 October 9 technical readiness preparation (PR #133): traced live group description/membership gaps in addition to the message/document and workout/lifecycle gaps. Prepared exact prerequisite repair and a read-only before/after preflight; combined all three release sources in isolated SQL, with grant/RLS/index/function failure checks. Added schema-aware readiness, document session/relationship revocation and retry-safe group membership plus a GET-only zero-row Data API verifier. Node 22 regression 431/431; integrations 4/4; build; critical desktop/mobile browser 129 passed / 3 existing skips. Measurement CSV/script prepared; CI required enforcement remains unreadable/unverified. No production migration, app release, provider activation or participant observation.
 
