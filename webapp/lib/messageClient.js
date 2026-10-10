@@ -5,10 +5,10 @@ export function notifyMessagesChanged() {
 
 // Acknowledge only messages actually loaded, never a reply arriving in between
 // the GET and acknowledgement. Failed writes must leave unread indicators intact.
-export async function acknowledgeMessages(messages, role, athleteId) {
+export async function acknowledgeMessages(messages, role, athleteId, request = fetch) {
   const ids = messages.filter((m) => m.sender_role !== role && !m.read_at).map((m) => m.id);
   if (!ids.length || document.visibilityState === 'hidden') return true;
-  const response = await fetch('/api/message-center', {
+  const response = await request('/api/message-center', {
     method: 'POST', signal: AbortSignal.timeout(10000), headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'mark_read', scope: 'conversation', mode: role, athlete_id: athleteId, message_ids: ids }),
   });

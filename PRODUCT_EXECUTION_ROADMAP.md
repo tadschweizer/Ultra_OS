@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
-Last updated: 2026-10-09<br>
+Last updated: 2026-10-10<br>
 Status: PR #133 merged as `1d1e0b6` and is deployed READY on both public domains. Six targeted Supabase sources repair pilot prerequisites, workout decisions, messaging lifecycle, foreign-key indexes, stable conflict responses and legacy notification preferences. Both readiness checks and all eleven hosted Data API contracts pass. Actual signed QA passes drafts, two-way messages/notifications, exact unread counts, concurrent leases, group retries, workout corrections and relationship/session revocation. Final regression 432/432, focused release 22/22, integration 4/4, build and final-head CI pass. Real-mailbox, fresh-account, physical-phone and participant acceptance remain open.<br>
-Current milestone: M0 — make the closed coach pilot work end to end<br>
-Next item: P0-015 email provider/protected POST scheduler setup and consenting real-mailbox acceptance; verify fresh-account enrollment and the physical-phone M0 loop, then collect the prepared P0-018 measurements. The database/app technical release is complete; do not reapply its migrations or rebuild the merged drafts/unread implementation. Keep parent checkboxes open until their remaining acceptance criteria pass.
+Current milestone: M0 - make the closed coach pilot work end to end; separately authorized synthetic demo awaiting independent QA<br>
+Next item: Independently verify the isolated synthetic demo using DEMO_VERIFICATION.md and DEMO_PARITY_MATRIX.md. Production queue remains P0-015 email provider/protected POST scheduler setup and consenting real-mailbox acceptance; verify fresh-account enrollment and the physical-phone M0 loop, then collect the prepared P0-018 measurements. The database/app technical release is complete; do not reapply its migrations or rebuild the merged drafts/unread implementation. Keep parent checkboxes open until their remaining acceptance criteria pass.
 
 ## Purpose
 
@@ -908,3 +908,17 @@ changes were restored. No email was sent, and email preference availability rema
 Final regression 432/432 and focused release 22/22 pass. No P0 parent is closed by
 these checks alone: actual phone, enrollment, provider/mailbox and elapsed-day participant
 gates remain. No paid staging or repository protection configuration was changed.
+
+### Authorized synthetic demo - October 10
+
+Built on verified online main fa8ebe2b377784007b4a40b4e982f92a11224075 in an
+isolated checkout, after inspecting the earlier demo branch. Shared real calendar,
+structured editor, completion/reconciliation and messages/draft views use a closed
+synthetic transport; production authentication and API handlers remain unchanged.
+Adapter 12/12, browser 15/15 (desktop, 390 and 320px) and production regression
+432/432 pass; production and static builds pass. The dedicated branch is
+demo/synthetic-transfer. See DEMO_PARITY_MATRIX.md and DEMO_VERIFICATION.md;
+publication identity will be in coach-demo/preview-identity.json. Independent
+parent QA and physical-phone acceptance remain open. No production milestone
+checkbox is closed by this simulation, and no production service configuration
+or existing public Sites version was changed.

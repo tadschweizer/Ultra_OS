@@ -1,17 +1,19 @@
+import { useWorkspaceTransport } from '../lib/WorkspaceTransport';
 import { useEffect, useState } from 'react';
 import { notifyMessagesChanged } from '../lib/messageClient.js';
 
 export default function MessageNotificationSettings() {
+  const { request } = useWorkspaceTransport();
   const [preferences,setPreferences]=useState(null);const [available,setAvailable]=useState(false);
   const [busy,setBusy]=useState(false);const [message,setMessage]=useState('');
   async function load(){try{
-    const response=await fetch('/api/message-preferences',{signal:AbortSignal.timeout(10000)});
+    const response=await request('/api/message-preferences',{signal:AbortSignal.timeout(10000)});
     const data=await response.json();if(!response.ok)throw new Error();
     setPreferences(data.preferences);setAvailable(data.email_available);setMessage('');
   }catch{setMessage('Notification preferences could not be loaded.');}}
-  useEffect(()=>{load();},[]);
+  useEffect(()=>{load();},[request]);
   async function save(event){event.preventDefault();if(busy)return;setBusy(true);setMessage('');try{
-    const response=await fetch('/api/message-preferences',{method:'PUT',signal:AbortSignal.timeout(10000),headers:{'Content-Type':'application/json'},body:JSON.stringify(preferences)});
+    const response=await request('/api/message-preferences',{method:'PUT',signal:AbortSignal.timeout(10000),headers:{'Content-Type':'application/json'},body:JSON.stringify(preferences)});
     const data=await response.json();if(!response.ok)throw new Error(data.error || 'Preferences could not be saved.');
     setPreferences(data.preferences);setMessage('Notification preferences saved.');notifyMessagesChanged();
   }catch(error){setMessage(error.message);}finally{setBusy(false);}}

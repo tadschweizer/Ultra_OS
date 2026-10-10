@@ -1,3 +1,4 @@
+import { useWorkspaceTransport } from '../lib/WorkspaceTransport';
 import useMessageDraft from '../lib/useMessageDraft.js';
 import MessageNotificationSettings from '../components/MessageNotificationSettings.js';
 import { acknowledgeMessages, mergeMessages, notifyMessagesChanged } from '../lib/messageClient';
@@ -44,6 +45,7 @@ function conversationName(conversation, role) {
 }
 
 export default function MessagesPage() {
+  const { request } = useWorkspaceTransport();
   const router = useRouter();
   const [messages, setMessages] = useState([]);
   const [conversations, setConversations] = useState([]);
@@ -76,7 +78,7 @@ export default function MessagesPage() {
       const query = new URLSearchParams({ mode: requestedMode });
       if (targetAthleteId) query.set('athlete_id', targetAthleteId);
       if (older && nextCursor) query.set('before', nextCursor);
-      const r = await fetch(`/api/coach/messages?${query.toString()}`, { signal: controller.signal });
+      const r = await request(`/api/coach/messages?${query.toString()}`, { signal: controller.signal });
       const d = await r.json();
       if (version !== requestVersion.current) return;
       if (!r.ok) { if (r.status === 403 || r.status === 401) { setMessages([]); setConversations([]); } throw new Error('Failed to load messages'); }
@@ -96,7 +98,7 @@ export default function MessagesPage() {
         setAthleteId(firstAthleteId);
         await load(firstAthleteId, { keepSelection: true });
       } else if (nextConversations.length) {
-        const acknowledged = await acknowledgeMessages(d.messages || [], d.role, targetAthleteId || nextConversations[0].athlete_id);
+        const acknowledged = await acknowledgeMessages(d.messages || [], d.role, targetAthleteId || nextConversations[0].athlete_id, request);
         if (version === requestVersion.current) {
           if (!acknowledged) setError('Messages loaded, but read status could not be saved. We will retry.');
           else setConversations((items) => items.map((item) => item.athlete_id === (targetAthleteId || nextConversations[0].athlete_id) ? { ...item, unread_count: Math.max(0, item.unread_count - (d.messages || []).filter((m) => m.sender_role !== d.role && !m.read_at).length) } : item));
@@ -125,7 +127,7 @@ export default function MessagesPage() {
       load('');
     }
     return () => { requestVersion.current += 1; requestAbort.current?.abort(); };
-  }, [router.isReady, router.query.athlete_id, requestedMode]);
+  }, [router.isReady, router.query.athlete_id, requestedMode, request]);
 
   loadRef.current = load;
   useEffect(() => {
@@ -157,7 +159,7 @@ export default function MessagesPage() {
     setError('');
     try {
       const messageId = await draft.prepareSend();
-      const r = await fetch('/api/coach/messages', {
+      const r = await request('/api/coach/messages', {
         method: 'POST', signal: AbortSignal.timeout(15000),
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

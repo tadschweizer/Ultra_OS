@@ -1,5 +1,6 @@
+import { useWorkspaceTransport } from '../lib/WorkspaceTransport';
 import { useDialogFocus } from '../lib/useDialogFocus';
-import { calendarMutation } from '../lib/calendarMutation';
+import { calendarMutation as performCalendarMutation } from '../lib/calendarMutation';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import {
@@ -619,6 +620,7 @@ function fmtCommentTime(value) {
  * component serves both without knowing which it is looking at.
  */
 function CommentThread({ subject, role, onCountChange }) {
+  const { request } = useWorkspaceTransport();
   const [comments, setComments] = useState([]);
   const [body, setBody] = useState('');
   const [loading, setLoading] = useState(true);
@@ -632,7 +634,7 @@ function CommentThread({ subject, role, onCountChange }) {
     let active = true;
     setLoading(true);
     setError('');
-    fetch(`/api/workout-comments?${params}`)
+    request(`/api/workout-comments?${params}`)
       .then(async (r) => {
         const data = await r.json().catch(() => ({}));
         if (!r.ok) throw new Error(data.error || 'Could not load this discussion.');
@@ -649,7 +651,7 @@ function CommentThread({ subject, role, onCountChange }) {
         setLoading(false);
       });
     return () => { active = false; };
-  }, [params]);
+  }, [params, request]);
 
   // Keep the newest message in view as the thread grows past the scroll box.
   useEffect(() => {
@@ -662,7 +664,7 @@ function CommentThread({ subject, role, onCountChange }) {
     setSending(true);
     setError('');
     try {
-      const res = await fetch('/api/workout-comments', {
+      const res = await request('/api/workout-comments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...subject, body: trimmed }),
@@ -1059,6 +1061,7 @@ function StatTile({ label, value, tone = 'default' }) {
  * to carry the full stat set and its own conversation.
  */
 function ActivityDetail({ activity, role, distanceUnit = 'mi', onCountChange, onClose }) {
+  const dialogRef = useDialogFocus(onClose);
   const tempo = formatTempo(activity.sport, activity.distance_km, activity.duration_min, distanceUnit);
   const speedSport = isSpeedSport(activity.sport);
   const dateLabel = activity.activity_date
@@ -1455,8 +1458,10 @@ function ProgressMeter({ label, actual, planned, formatValue, unit = '' }) {
 }
 
 export default function TrainingCalendar({ athleteId = null, athleteName = '', role = 'athlete' }) {
+  const { request, today } = useWorkspaceTransport();
+  const calendarMutation = useCallback((url, options) => performCalendarMutation(url, { ...options, request }), [request]);
   const router = useRouter();
-  const anchorMonday = useMemo(() => mondayOf(new Date()), []);
+  const anchorMonday = useMemo(() => mondayOf(today || new Date()), [today]);
   const [pastWeeks, setPastWeeks] = useState(INITIAL_PAST_WEEKS);
   const [futureWeeks, setFutureWeeks] = useState(INITIAL_FUTURE_WEEKS);
   const [workouts, setWorkouts] = useState([]);
@@ -1489,16 +1494,16 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
 
   const rangeStart = toDateKey(addDays(anchorMonday, -pastWeeks * 7));
   const rangeEnd = toDateKey(addDays(anchorMonday, futureWeeks * 7 + 6));
-  const todayKey = toDateKey(new Date());
+  const todayKey = toDateKey(today || new Date());
   const athleteParam = athleteId ? `&athlete_id=${encodeURIComponent(athleteId)}` : '';
 
   const reload = useCallback(async () => {
     setError('');
     try {
       const [workoutsRes, notesRes, eventsRes] = await Promise.all([
-        fetch(`/api/planned-workouts?start=${rangeStart}&end=${rangeEnd}${athleteParam}`),
-        fetch(`/api/calendar-notes?start=${rangeStart}&end=${rangeEnd}${athleteParam}`),
-        role === 'athlete' ? fetch('/api/race-events') : Promise.resolve(null),
+        request(`/api/planned-workouts?start=${rangeStart}&end=${rangeEnd}${athleteParam}`),
+        request(`/api/calendar-notes?start=${rangeStart}&end=${rangeEnd}${athleteParam}`),
+        role === 'athlete' ? request('/api/race-events') : Promise.resolve(null),
       ]);
       if (!workoutsRes.ok) {
         const d = await workoutsRes.json().catch(() => ({}));
@@ -1526,7 +1531,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
       setLoadingEarlier(false);
       extendingRef.current = false;
     }
-  }, [rangeStart, rangeEnd, athleteParam, role]);
+  }, [rangeStart, rangeEnd, athleteParam, role, request]);
 
   useEffect(() => {
     reload();
@@ -1534,29 +1539,29 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
 
   useEffect(() => {
     if (role !== 'coach') return;
-    fetch('/api/workout-library')
+    request('/api/workout-library')
       .then((r) => (r.ok ? r.json() : { workouts: [] }))
       .then((d) => setLibrary(d.workouts || []))
       .catch(() => {});
-  }, [role]);
+  }, [role, request]);
 
   // Distance-unit preference — new workouts default to it (per-workout choice
   // still wins on edit).
   useEffect(() => {
-    fetch('/api/settings')
+    request('/api/settings')
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         const unit = d?.settings?.distance_unit;
         if (unit === 'mi' || unit === 'km') setDistanceUnitPref(unit);
       })
       .catch(() => {});
-  }, []);
+  }, [request]);
 
   useEffect(() => {
     if (router.isReady && router.query.log === '1' && role === 'athlete') {
-      setEditorInitial({ ...emptyForm, workout_date: toDateKey(new Date()), logCompletion: true });
+      setEditorInitial({ ...emptyForm, workout_date: toDateKey(today || new Date()), logCompletion: true });
     }
-  }, [router.isReady, router.query.log, role]);
+  }, [router.isReady, router.query.log, role, today]);
 
   // Deep link: /calendar?workout=<id> opens the workout detail once loaded.
   // Tracks the last id opened this way so navigating to a different workout
@@ -1649,7 +1654,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
     });
     if (result.ok) await reload();
     return result;
-  }, [athleteId, reload]);
+  }, [athleteId, reload, calendarMutation]);
 
   const updateWorkout = useCallback(async (id, updates) => {
     const result = await calendarMutation('/api/planned-workouts', { method: 'PATCH', body: { id, ...updates } });
@@ -1658,13 +1663,13 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
       result.workout = refreshed?.workouts?.find((w) => w.id === id) || result.workout;
     }
     return result;
-  }, [reload]);
+  }, [reload, calendarMutation]);
 
   const deleteWorkout = useCallback(async (id) => {
     const result = await calendarMutation(`/api/planned-workouts?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
     if (result.ok) { setDetailId(null); await reload(); }
     return result;
-  }, [reload]);
+  }, [reload, calendarMutation]);
 
   const pendingMutations = useRef(new Map());
   const mutateCalendar = useCallback(async (url, options, afterSave) => {
@@ -1678,7 +1683,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
       await reload();
       return true;
     } finally { pendingMutations.current.delete(key); }
-  }, [reload]);
+  }, [reload, calendarMutation]);
 
   const saveNote = useCallback((form) => mutateCalendar('/api/calendar-notes', {
     method: form.id ? 'PATCH' : 'POST', body: { ...form, athlete_id: athleteId || undefined },
@@ -2234,6 +2239,13 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
 
               {/* Mobile week summary */}
               <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl bg-white/60 px-3 py-1.5 text-[11px] text-ink/60 lg:hidden">
+                {role === 'coach' && week.summary.totalCount > 0 && (
+                  <button onClick={() => copyWeekForward(week.key)}
+                    title="Copy this week's workouts to next week"
+                    className="min-h-11 rounded-full border border-ink/10 px-3 py-2 font-semibold text-ink/70 hover:bg-ink/5">
+                    Copy week to next week
+                  </button>
+                )}
                 <span className="font-semibold text-ink/45">{week.days[0].date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} wk</span>
                 <span>
                   Planned {fmtDuration(week.summary.plannedDurationMin) || '0m'} · {kmToUnit(week.summary.plannedDistanceKm, distanceUnitPref) || 0} {distanceUnitPref} · TSS {Math.round(week.summary.plannedTss)}
@@ -2255,7 +2267,8 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
 }
 
 function LibraryCard({ item, onApply, onDelete }) {
-  const [date, setDate] = useState(toDateKey(new Date()));
+  const { today } = useWorkspaceTransport();
+  const [date, setDate] = useState(toDateKey(today || new Date()));
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState('');
   async function apply() {

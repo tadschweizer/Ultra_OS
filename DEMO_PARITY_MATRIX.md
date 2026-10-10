@@ -1,0 +1,29 @@
+# Threshold synthetic demo transfer matrix
+
+Authoritative source: online main `fa8ebe2b377784007b4a40b4e982f92a11224075`, freshly cloned and rechecked before publication. Previous demo: `origin/demo/coach-research`, published source `fe93e2015d3f255e8e401752b32aae7947238a01`, Sites version 2. Its 128 historical checks are not evidence for this revision. The previous implementation was inspected before coding: it omitted the structured editor, actual completion metrics, draft/read lifecycle and synthetic activity reconciliation, and misattributed athlete replies to the coach.
+
+This demo is a separate static build. It imports current application components, never the production AppShell, authentication, API handlers, admin seeder, Supabase or provider clients. A dependency-injected transport defaults to ordinary fetch in production; the demo supplies a closed browser-local adapter with no network fallback. Production middleware and guards are unchanged. See [DEMO_VERIFICATION.md](DEMO_VERIFICATION.md) for commands, evidence and outstanding independent QA.
+
+| Workflow / current source | Transfer | Status | Verification |
+| --- | --- | --- | --- |
+| Coach roster, triage / coach-command-center, coachTriageRules | Four varied running/trail athletes; selection, completion/check-in alerts, recent context | Supported with adapted shell/triage | Selection isolation and check-in alert updates exercised |
+| Daily/weekly planning / TrainingCalendar | Actual component, scrolling weeks, day menu, non-drag editing | Supported | Create/edit/reschedule/cancel at desktop, 390 and 320px |
+| Structured editor / TrainingCalendar | Actual steps/repeats/duration/distance/intensity/pace/HR/power/RPE targets; objective/instructions/IF/visibility | Supported | Saved repeat/HR fields retained; private draft hidden from athlete |
+| Workout library / TrainingCalendar | Actual save/library assignment UI, local templates | Supported | Save, assign, repeated-click protection; adapter deletion test |
+| Copy week / TrainingCalendar | Actual UI plus mobile access and single-workout duplicate | Supported with deliberate adapter differences | Date shift, full planning fields retained, actuals/comments cleared, repeat request idempotency |
+| Planned vs completed / TrainingCalendar, WeeklyReconciliation, workoutCompliance, activityFormat | Actual detail/log/skip/undo/correct/feedback/discussion; shared compliance and totals | Supported | Full coach -> athlete -> coach -> athlete loop; partial and missing actuals |
+| Imported activity correction / TrainingCalendar, workoutCompliance | Synthetic trail activity details and match/unlink/reject/auto | Partial | Match/unlink and detail/discussion tested; real imports excluded |
+| Messages / pages/messages, useMessageDraft, messageClient | Actual messaging UI, drafts, unread/read and retry behavior | Supported locally | Both authors, role/recipient drafts, version conflict, repeated send and failure retry |
+| Daily check-in / pages/check-in | Local form with sleep/energy/soreness/note flowing to triage | Partial | Actual page not shared; submit/reload/triage consistency exercised |
+| Athlete Today / TodayTraining | Adapted agenda with recent context and links into actual calendar | Partial | Updated plans visible after role switch/reload |
+| Navigation / siteNavigation, sidebar/mobile | Branded bounded navigation, role and athlete selection | Partial | Browser history, keyboard focus/Escape, viewport, cancel/reset |
+| Training-load/progress/explorer | Derived calendar totals and compliance only | Excluded beyond calendar | No separate static analytics claimed to be calculated training load or causal evidence |
+| Groups/protocols/interventions/races/documents/research/calculators/profile | Product breadth beyond this daily loop | Excluded | Disclosed in Demo boundaries; prior demo retained in Git history |
+| Invitations/signup/session/billing/deletion/provider sync/email/device delivery | Real auth retained in app; external actions unavailable | Excluded | No credentials, real-data/provider calls or misleading delivery; production guard regression passes |
+| Publication/independent QA | Dedicated branch/PR and immutable static preview | Independent QA pending | Self-verification does not establish independent acceptance; existing public Sites version remains unchanged |
+
+Deliberate contract differences: synthetic copy/duplicate/library save requests are idempotent even where the production copy-week endpoint can replay a copy; every planning field is retained. Fixture rollups use the shared compliance helpers with meaningful actual metrics rather than the older static demo summaries. The simulation uses a fixed date and bounded local data; it does not claim database, import or delivery parity.
+
+Visual thesis: retain Threshold's cream surfaces, amber actions, blue ink and readable planning workspace. The screens cover command center, selected athlete context, actual calendar/messages, check-in and honest boundaries. Production focus-managed dialogs remain interactive.
+
+The deterministic demo date is 2026-10-09; fixtures do not move with wall-clock time. Browser session storage persists reloads. Each tab has its own copy (a duplicated tab may initially inherit the opener's state, then diverges). This is explicitly a single-tab simulation, not a multi-user service or verified external delivery. Reset confirms before restoring the exact seed.
