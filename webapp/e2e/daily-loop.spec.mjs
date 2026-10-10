@@ -1,3 +1,4 @@
+import { openFirstMessageThread } from "./helpers/message-navigation.mjs";
 import { mockMessagingPersistence, clearMockDraft } from './helpers/message-drafts.mjs';
 import AxeBuilder from '@axe-core/playwright';
 import { test, expect } from '@playwright/test';
@@ -99,7 +100,7 @@ test('athlete can log an unplanned workout from the mobile entry point', async (
 });
 
 test('recipient drafts stay separate and failed retries reuse the same message identity', async ({ page }) => {
-  const state=await setup(page,{coach:true}); await page.goto('/messages');
+  const state=await setup(page,{coach:true}); await page.goto('/messages'); await openFirstMessageThread(page);
   await page.getByLabel('Your message').fill('First draft');
   await page.getByLabel('Selected athlete').selectOption(secondId);
   await expect(page.getByLabel('Your message')).toHaveValue('');
@@ -115,7 +116,7 @@ test('recipient drafts stay separate and failed retries reuse the same message i
 });
 
 test('incoming reply refreshes without reload and acknowledges only the displayed messages', async ({ page }) => {
-  const state=await setup(page,{coach:true}); await page.goto('/messages');
+  const state=await setup(page,{coach:true}); await page.goto('/messages'); await openFirstMessageThread(page);
   await expect(page.getByLabel('Selected athlete')).toHaveValue(athleteId);
   state.messages.push({id:messageId, athlete_id:athleteId, sender_role:'athlete',message_body:'Legs feel good today',created_at:new Date().toISOString()});
   await expect(page.getByText('Legs feel good today',{exact:true})).toBeVisible({timeout:6500});
@@ -136,7 +137,7 @@ test('older history remains visible after automatic refresh', async ({ page }) =
   const state=await setup(page,{coach:true});
   state.messages=[{id:messageId,athlete_id:athleteId,sender_role:'coach',message_body:'Recent reply',created_at:'2026-10-04T12:00:00Z'}];
   state.older=[{id:'older',athlete_id:athleteId,sender_role:'coach',message_body:'Older training discussion',created_at:'2026-09-01T12:00:00Z'}];
-  await page.goto('/messages');
+  await page.goto('/messages'); await openFirstMessageThread(page);
   await page.getByRole('button',{name:'Load older messages'}).click();
   await expect(page.getByText('Older training discussion',{exact:true})).toBeVisible();
   state.messages.push({id:'latest',athlete_id:athleteId,sender_role:'athlete',message_body:'New while reading history',created_at:'2026-10-04T13:00:00Z'});
@@ -238,7 +239,7 @@ test('coach can inspect a suggested match but athlete match controls stay absent
 
 test('triage template opens once and does not refill the composer after sending', async ({ page }) => {
   await setup(page, { coach: true });
-  await page.goto(`/messages?athlete_id=${athleteId}&template_key=general_checkin`);
+  await page.goto(`/messages?athlete_id=${athleteId}&template_key=general_checkin`); await openFirstMessageThread(page);
   await expect(page.getByLabel('Your message')).toHaveValue('How are you?');
   await page.getByRole('button', { name: 'Send', exact: true }).click();
   await expect(page.getByLabel('Your message')).toHaveValue('');

@@ -2,8 +2,8 @@
 
 Last updated: 2026-10-10<br>
 Status: PR #133 merged as `1d1e0b6` and is deployed READY on both public domains. Six targeted Supabase sources repair pilot prerequisites, workout decisions, messaging lifecycle, foreign-key indexes, stable conflict responses and legacy notification preferences. Both readiness checks and all eleven hosted Data API contracts pass. Actual signed QA passes drafts, two-way messages/notifications, exact unread counts, concurrent leases, group retries, workout corrections and relationship/session revocation. Final regression 432/432, focused release 22/22, integration 4/4, build and final-head CI pass. Real-mailbox, fresh-account, physical-phone and participant acceptance remain open.<br>
-Current milestone: M0 - make the closed coach pilot work end to end; synthetic demo independently accepted within the declared daily-coaching scope; untested limits remain open<br>
-Next item: Keep the accepted 54f2ab synthetic runtime/preview stable and PR #134 draft/unmerged. Retain the explicit physical-phone, measured-work/kJ and production-library not-run limits; any expanded demo scope needs its own acceptance evidence. UX-006 messaging revamp is queued in M7 with proposed sequencing after demo stabilization and before a polished coach presentation if the user chooses. Production queue remains P0-015 email provider/protected POST scheduler setup and consenting real-mailbox acceptance; verify fresh-account enrollment and the physical-phone M0 loop, then collect the prepared P0-018 measurements. The database/app technical release is complete; do not reapply its migrations or rebuild the merged drafts/unread implementation. Keep parent checkboxes open until their remaining acceptance criteria pass.
+Current milestone: M0 - make the closed coach pilot work end to end; accepted synthetic preview frozen; bounded production library PR #135 and independent UX-006 messaging slice implemented, awaiting independent review
+Next item: Independently review the library PR #135 and feature/messages-native-ui production messaging PR, with new-head CI. Coordinate library assignment validation/null/zero/private filtering with the parallel backend owner; the additive library migration must precede any authorized release. Keep PR #134 and the accepted 54f2ab preview frozen/unmerged. UX-006 remains open until independent and hardware acceptance; P0-015 real-mailbox/provider and M0 physical-phone/fresh-account/participant acceptance gates remain open. No production merge, deployment or migration is authorized.
 
 ## Purpose
 
@@ -755,7 +755,7 @@ M7 removes systemic inconsistency and validates the full product before public l
 - [ ] **UX-005 — Accessibility and input coverage**
   - Keyboard, screen reader, reduced motion, contrast, focus, touch target, and zoom checks.
 
-- [ ] **UX-006 - Messaging page revamp (queued)**
+- [ ] **UX-006 - Messaging page revamp (implemented; independent acceptance pending)**
   - User request, October 10, 2026: the message page should function and look kind of like the
     iPhone messaging app. Use a familiar conversation list and chat-thread layout, clear sender
     bubbles and unread state, and an easy mobile composer with retained coach-athlete context.
@@ -766,8 +766,8 @@ M7 removes systemic inconsistency and validates the full product before public l
     keyboard navigation, focus and conversation/back navigation; draft persistence through
     reload and recipient/role switching; unread/read and send/retry regressions pass without
     losing athlete context or implying unverified external delivery.
-  - Proposed sequencing: after current demo stabilization and before a polished coach
-    presentation if the user chooses. Queued only; no redesign implementation is started.
+  - Implemented on separate branch feature/messages-native-ui after demo stabilization; before a polished coach
+    presentation, require independent acceptance of the production UI. 432 regressions, final build, 48 desktop/mobile browser scenarios and 6 final navigation/SQL cases pass; see docs/production-messaging-evidence/README.md. Keep this item open for review/hardware acceptance.
 
 - [ ] **QA-001 — Full regression matrix**
   - Email/password, verification, reset, OAuth, invitations, roles, onboarding, calendar, plans,
@@ -991,3 +991,5 @@ October 10 user-requested roadmap addition: queued UX-006 under M7 - Interface c
 release hardening for an iPhone-style messaging page. Proposed after demo stabilization and
 before a polished coach presentation if the user chooses; P0-015 reliability acceptance remains
 distinct. Documentation-only queue entry on PR #134; no runtime edit, merge or redesign started.
+
+- 2026-10-10: UX-006 implementation on feature/messages-native-ui, separately based on PR #134 6f1d3f4: familiar list/thread/sender bubbles/bottom composer, visible-thread read gating, URL/back/draft isolation and late-send navigation guard; remove duplicate floating inbox on /messages. 432/432 regressions, final production build, 48/48 messaging + daily-loop browser scenarios, 6/6 final SQL/navigation cases, WCAG list/thread contrast and 320px layout pass. See docs/production-messaging-evidence/README.md. No message backend/schema/auth changes, real provider sends, production deploy/merge or frozen demo redeploy. Independent acceptance and physical hardware remain open.
