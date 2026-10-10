@@ -132,7 +132,7 @@ test("QA F5: matching changes attribution, retaining every weekly actual metric 
   assert.equal(rawSource.kilojoules, 410);
 });
 
-test("QA F1: library reuse retains private prescription; production payload stays within existing schema", async () => {
+test("QA F1: shared production library payload and demo reuse retain private prescription", async () => {
   const form = {
     title: "Private trail repeats",
     sport: "run",
@@ -159,7 +159,7 @@ test("QA F1: library reuse retains private prescription; production payload stay
       },
     ],
   };
-  const common = libraryWorkoutPayload(form);
+  const payload = libraryWorkoutPayload(form);
   for (const key of [
     "objective",
     "coach_instructions",
@@ -167,8 +167,7 @@ test("QA F1: library reuse retains private prescription; production payload stay
     "visibility",
     "target_metric",
   ])
-    assert.ok(!(key in common));
-  const payload = libraryWorkoutPayload(form, { preservePlanMetadata: true });
+    assert.ok(key in payload);
   const saved = storage(),
     s = new DemoStore(saved),
     coach = s.transport("coach", "demo-robin");
