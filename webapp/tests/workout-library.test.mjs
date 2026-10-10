@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import assert from 'node:assert/strict';
 import { normalizeLibraryPayload } from '../pages/api/workout-library.js';
 import { libraryWorkoutPayload } from '../lib/libraryWorkoutPayload.js';
+import { libraryEditPayload, libraryCanonicalDistance, libraryDisplayDistance } from '../lib/libraryEditPayload.js';
 import { libraryFixture, metadataMigration, createMigration, legacyId, foreignCoach } from './helpers/library-fixture.mjs';
 import { readLibraryCreate, prepareLibraryCreate, confirmLibraryCreate, libraryCreateStorageKey } from '../lib/libraryCreateOperation.js';
 import { owner, athlete, stranger, coach } from './helpers/message-lifecycle-fixture.mjs';
@@ -24,6 +25,21 @@ test('shared production payload preserves separate prescription fields, units, n
   const zero=libraryWorkoutPayload({...prescription,planned_if:0,planned_tss:0,planned_duration_min:'',planned_distance_km:null});
   assert.equal(zero.planned_if,0);assert.equal(zero.planned_tss,0);assert.equal(zero.planned_duration_min,null);assert.equal(zero.planned_distance_km,null);
 });
+test('template PATCH preserves omissions, nulls, zeroes, exact canonical distance and opaque steps',()=>{
+  const form={...prescription,id:randomUUID(),description:null,planned_if:0,planned_tss:0,tags:null,planned_distance:'6'};
+  assert.deepEqual(libraryEditPayload(form,new Set()),{id:form.id});
+  assert.deepEqual(libraryEditPayload(form,new Set(['title','coach_instructions'])),{id:form.id,name:form.title,coach_instructions:form.coach_instructions});
+  assert.deepEqual(libraryEditPayload({...form,planned_distance_unit:'km'},new Set(['planned_distance_unit'])),{id:form.id,planned_distance_unit:'km'});
+  const changed=libraryEditPayload({...form,planned_duration_min:'',planned_if:'0',planned_tss:'',objective:'',planned_distance:'6'},
+    new Set(['planned_duration_min','planned_if','planned_tss','objective','planned_distance','structure','tags']));
+  assert.equal(changed.planned_duration_min,null);assert.equal(changed.planned_if,0);assert.equal(changed.planned_tss,null);
+  assert.equal(changed.objective,null);assert.equal(changed.planned_distance_km,9.656064);assert.equal(changed.tags,null);
+  assert.deepEqual(changed.structure,prescription.structure);
+  assert.equal(libraryDisplayDistance(9.656064,'mi'),'6');assert.equal(libraryDisplayDistance(null,'mi'),'');
+  assert.equal(libraryCanonicalDistance(libraryDisplayDistance(9.656064,'km'),'km'),9.656064);
+  assert.equal(libraryCanonicalDistance('','km'),null);assert.equal(libraryCanonicalDistance('0','mi'),0);
+});
+
 test('validation rejects bad metadata and permits all real editor targets',()=>{
   for(const body of [null,[],{name:''},{name:123},{objective:123},{coach_instructions:'x'.repeat(10001)},
     {planned_if:-1},{planned_if:Infinity},{planned_if:NaN},{planned_if:'0.8'},{target_metric:null},{target_metric:'hr'},

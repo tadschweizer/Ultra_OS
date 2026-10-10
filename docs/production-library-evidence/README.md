@@ -42,3 +42,7 @@ Do not deploy this expanded library API before applying both additive library mi
 Independent review/acceptance of this new implementation remains open; the earlier synthetic-runtime QA does not accept this production slice.
 
 Cross-fixture retest: pilot-access + workout-library specs together, both projects, **14/14 pass** in 1.3m. Final full regression **438/438 pass**. CI/independent acceptance are evaluated against the correction commit, not 3959374.
+
+## Current O1 follow-up
+
+Independent combined QA found the saved template browser editor missing. See [O1 editor contract and verification](O1_EDITOR.md). PR #135 now edits existing template metadata through owner-scoped PATCH and the shared editor. Earlier pointer-port whole-editor hash is historical; the guarded create handler and durable create helper remain. Final combined edited-template assignment and independent/hardware acceptance remain open.

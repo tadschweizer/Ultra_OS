@@ -6,6 +6,7 @@ import {
   summarizeReconciliationWindow,
 } from "../webapp/lib/workoutCompliance.js";
 import { validateWorkoutFields, sameWorkoutRequest } from "../webapp/lib/workoutValidation.js";
+import { normalizeLibraryPayload } from "../webapp/lib/libraryValidation.js";
 const clone = (x) => structuredClone(x);
 const stamp = (s) =>
   new Date(Date.parse(TODAY + "T12:00:00Z") + s.revision * 1000).toISOString();
@@ -439,6 +440,18 @@ export class DemoStore {
         if (role !== "coach")
           return response({ error: "Coach library only." }, 403);
         if (method === "GET") return response({ workouts: next.library });
+        if (method === "PATCH") {
+          const existing = next.library.find((w) => w.id === body.id);
+          if (!existing) return response({ error: "Library workout not found." }, 404);
+          try {
+            // Same pure field validation as the signed API; all state remains
+            // synthetic and local to this browser store. Never replace IDs.
+            Object.assign(existing, normalizeLibraryPayload(body), { updated_at: now });
+            return save({ workout: existing });
+          } catch (error) {
+            return response({ error: error.message }, error.status || 400);
+          }
+        }
         if (method === "DELETE") {
           next.library = next.library.filter((w) => w.id !== q.get("id"));
           return save({ success: true });

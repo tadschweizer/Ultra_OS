@@ -1,5 +1,6 @@
 import { useWorkspaceTransport } from '../lib/WorkspaceTransport';
 import { libraryWorkoutPayload } from '../lib/libraryWorkoutPayload';
+import { libraryEditPayload, libraryCanonicalDistance, libraryDisplayDistance } from '../lib/libraryEditPayload';
 import useWorkoutLibrary from '../lib/useWorkoutLibrary';
 import useLibraryCreate from '../lib/useLibraryCreate';
 import { calendarSelectionUrl } from '../lib/calendarSelection';
@@ -214,14 +215,14 @@ function StepField({ label, children }) {
   );
 }
 
-function StepRow({ step, onChange, onRemove, distanceUnit = 'mi' }) {
+function StepRow({ step, onChange, onRemove, distanceUnit = 'mi', preserveTargetUnits = false, disabled = false }) {
   const targetType = step.target_type || 'open';
   const showTarget = targetType !== 'open';
-  const unitLabel = targetUnitLabel(targetType, distanceUnit);
+  const unitLabel = preserveTargetUnits ? step.target_units ?? targetUnitLabel(targetType, distanceUnit) : targetUnitLabel(targetType, distanceUnit);
   const [minPlaceholder, maxPlaceholder] = targetPlaceholders(targetType);
 
   return (
-    <div className="space-y-2 rounded-2xl border border-ink/10 bg-paper p-3">
+    <fieldset disabled={disabled} className="min-w-0 space-y-2 rounded-2xl border border-ink/10 bg-paper p-3">
       <div className="grid grid-cols-2 items-end gap-2 sm:grid-cols-[1fr_56px_72px_1fr_1fr_auto]">
         <StepField label="Step">
           <select
@@ -246,8 +247,8 @@ function StepRow({ step, onChange, onRemove, distanceUnit = 'mi' }) {
           <input
             type="number"
             min="0"
-            step="0.5"
-            value={step.duration_min}
+            step={preserveTargetUnits ? 'any' : '0.5'}
+            value={step.duration_min ?? ''}
             onChange={(e) => onChange({ ...step, duration_min: e.target.value === '' ? '' : Number(e.target.value) })}
             title="Minutes per repeat"
             placeholder="min"
@@ -286,14 +287,14 @@ function StepRow({ step, onChange, onRemove, distanceUnit = 'mi' }) {
         <div className="flex flex-wrap items-center gap-2 rounded-xl bg-white/60 px-2 py-1.5">
           <span className={stepLabelClass}>Target</span>
           <input
-            value={step.target_min || ''}
+            value={step.target_min ?? ''}
             onChange={(e) => onChange({ ...step, target_min: e.target.value })}
             placeholder={minPlaceholder}
             className="w-20 rounded-xl border border-ink/10 bg-white px-2 py-1.5 text-xs text-ink"
           />
           <span className="text-xs text-ink/40">–</span>
           <input
-            value={step.target_max || ''}
+            value={step.target_max ?? ''}
             onChange={(e) => onChange({ ...step, target_max: e.target.value })}
             placeholder={maxPlaceholder}
             className="w-20 rounded-xl border border-ink/10 bg-white px-2 py-1.5 text-xs text-ink"
@@ -309,25 +310,27 @@ function StepRow({ step, onChange, onRemove, distanceUnit = 'mi' }) {
         placeholder="Step notes (e.g. 4×8min @ threshold, 2min jog recovery)"
         className="w-full rounded-xl border border-ink/10 bg-white px-2 py-1.5 text-xs text-ink"
       />
-    </div>
+    </fieldset>
   );
 }
 
-function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose, defaultDistanceUnit = 'mi' }) {
+function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose, defaultDistanceUnit = 'mi', libraryEdit = false }) {
   const [form, setForm] = useState(() => {
     const base = { ...emptyForm, client_request_id: crypto.randomUUID(), ...initial };
     const unit = base.planned_distance_unit || defaultDistanceUnit || 'mi';
     return {
       ...base,
+      structure: Array.isArray(base.structure) ? base.structure : [],
       planned_distance_unit: unit,
       // Editable value shown in the athlete's preferred unit; the canonical
       // km value is recomputed from this on save.
-      planned_distance: kmToUnit(base.planned_distance_km, unit),
+      planned_distance: libraryEdit ? libraryDisplayDistance(base.planned_distance_km, unit) : kmToUnit(base.planned_distance_km, unit),
     };
   });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const savingRef = useRef(false);
+  const dirty = useRef(new Set());
   const dialogRef = useDialogFocus(onClose, saving);
 
   const distanceUnit = form.planned_distance_unit || 'mi';
@@ -338,22 +341,27 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
   );
 
   function setField(field, value) {
+    dirty.current.add(field);
     setForm((f) => ({ ...f, [field]: value }));
   }
 
   function changeDistanceUnit(nextUnit) {
+    dirty.current.add('planned_distance_unit');
     setForm((f) => {
-      const km = unitToKm(f.planned_distance, f.planned_distance_unit || 'mi');
+      const km = libraryEdit ? dirty.current.has('planned_distance') ? libraryCanonicalDistance(f.planned_distance,f.planned_distance_unit || 'mi') : initial.planned_distance_km
+        : unitToKm(f.planned_distance, f.planned_distance_unit || 'mi');
       return {
         ...f,
         planned_distance_unit: nextUnit,
-        planned_distance: kmToUnit(km, nextUnit),
+        planned_distance: libraryEdit ? libraryDisplayDistance(km,nextUnit) : kmToUnit(km, nextUnit),
       };
     });
   }
 
   function updateStep(index, step) {
-    setForm((f) => ({ ...f, structure: f.structure.map((s, i) => (i === index ? step : s)) }));
+    dirty.current.add('structure');
+    setForm((f) => ({ ...f, structure: f.structure.map((s, i) => (i === index ?
+      libraryEdit && s.target_type !== step.target_type ? {...step,target_units:targetUnitLabel(step.target_type || 'open',distanceUnit)} : step : s)) }));
   }
 
   async function handleSubmit(e) {
@@ -368,7 +376,7 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
       ...step,
       target_units: targetUnitLabel(step.target_type || 'open', distanceUnit),
     }));
-    const result = await onSave({
+    const result = await onSave(libraryEdit ? libraryEditPayload(form, dirty.current) : {
       ...form,
       structure,
       planned_duration_min: form.planned_duration_min === '' ? null : Number(form.planned_duration_min),
@@ -389,10 +397,10 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm" onClick={(e) => { if (!saving && e.target === e.currentTarget) onClose(); }}>
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Workout editor" className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[28px] border border-ink/10 bg-paper p-6">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={libraryEdit ? 'Library template editor' : 'Workout editor'} className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[28px] border border-ink/10 bg-paper p-6">
         <div className="flex items-center justify-between">
           <p className="text-sm uppercase tracking-[0.25em] text-accent">
-            {form.id ? 'Edit workout' : form.logCompletion ? 'Log workout' : 'Plan workout'}
+            {libraryEdit ? 'Edit library template' : form.id ? 'Edit workout' : form.logCompletion ? 'Log workout' : 'Plan workout'}
           </p>
           <button disabled={saving} onClick={onClose} className="rounded-full border border-ink/10 px-4 py-1.5 text-sm text-ink/70 hover:bg-ink/5">Close</button>
         </div>
@@ -415,14 +423,14 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
             >
               {WORKOUT_SPORTS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
             </select>
-            <input
+            {!libraryEdit && <input
               type="date"
               required
               disabled={!canEditPlan || saving}
               aria-label="Workout date" value={form.workout_date}
               onChange={(e) => setField('workout_date', e.target.value)}
               className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink disabled:opacity-60"
-            />
+            />}
           </div>
 
           <textarea
@@ -470,10 +478,10 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
             <input
               type="number"
               min="0"
-              step="0.01"
+              step={libraryEdit ? 'any' : '0.01'}
               disabled={!canEditPlan || saving}
               placeholder="Planned IF"
-              value={form.planned_if || ''}
+              value={form.planned_if ?? ''}
               onChange={(e) => setField('planned_if', e.target.value)}
               className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink disabled:opacity-60"
             />
@@ -495,7 +503,8 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
                 type="number"
                 min="0"
                 disabled={!canEditPlan || saving}
-                aria-label={form.logCompletion ? "Actual duration (min)" : "Planned duration (min)"} value={form.planned_duration_min}
+                aria-label={form.logCompletion ? "Actual duration (min)" : "Planned duration (min)"} value={form.planned_duration_min ?? ''}
+                step={libraryEdit ? 'any' : '1'}
                 placeholder={structureTotals.durationMin ? String(structureTotals.durationMin) : ''}
                 onChange={(e) => setField('planned_duration_min', e.target.value)}
                 className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink disabled:opacity-60"
@@ -518,7 +527,7 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
               <input
                 type="number"
                 min="0"
-                step="0.1"
+                step={libraryEdit ? 'any' : '0.1'}
                 disabled={!canEditPlan || saving}
                 aria-label={form.logCompletion ? "Actual distance" : "Planned distance"} value={form.planned_distance}
                 placeholder={structureTotals.distanceKm ? kmToUnit(structureTotals.distanceKm, distanceUnit) : ''}
@@ -527,10 +536,12 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-ink/55">Estimated TSS</label>
-              <div className="rounded-2xl border border-ink/10 bg-paper px-4 py-3 font-mono text-sm text-ink/70">
+              <label className="mb-1 block text-xs text-ink/55">{libraryEdit ? 'Planned TSS' : 'Estimated TSS'}</label>
+              {libraryEdit ? <input aria-label="Planned TSS" type="number" min="0" step="any" disabled={saving}
+                value={form.planned_tss ?? ''} onChange={e=>setField('planned_tss',e.target.value)}
+                className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink"/> : <div className="rounded-2xl border border-ink/10 bg-paper px-4 py-3 font-mono text-sm text-ink/70">
                 {tssEstimate ?? '—'}
-              </div>
+              </div>}
             </div>
           </div>
 
@@ -541,7 +552,8 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
               {canEditPlan && (
                 <button
                   type="button"
-                  onClick={() => setForm((f) => ({ ...f, structure: [...f.structure, { ...emptyStep }] }))}
+                  disabled={saving}
+                  onClick={() => { dirty.current.add('structure'); setForm((f) => ({ ...f, structure: [...f.structure, { ...emptyStep, target_units: '' }] })); }}
                   className="rounded-full border border-ink/10 px-3 py-1 text-xs font-semibold text-ink/70 hover:bg-ink/5"
                 >
                   + Add step
@@ -559,17 +571,23 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
                   key={i}
                   step={step}
                   distanceUnit={distanceUnit}
+                  preserveTargetUnits={libraryEdit}
+                  disabled={saving}
                   onChange={(next) => updateStep(i, next)}
-                  onRemove={() => setForm((f) => ({ ...f, structure: f.structure.filter((_, j) => j !== i) }))}
+                  onRemove={() => { dirty.current.add('structure'); setForm((f) => ({ ...f, structure: f.structure.filter((_, j) => j !== i) })); }}
                 />
               ))}
             </div>
           </div>
 
+          {libraryEdit && <><label className="block text-xs text-ink/55">Tags (one per line)<textarea aria-label="Template tags (one per line)" disabled={saving}
+            value={(form.tags || []).join('\n')} onChange={e=>setField('tags',e.target.value === '' ? null : e.target.value.split('\n'))}
+            className="mt-1 w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink"/></label>
+            <p className="text-xs text-ink/60">Updates this saved template. Workouts already assigned keep their prescription.</p></>}
           {form.logCompletion && <p className="text-sm text-ink/70">Logging a completed, unplanned workout. Duration and distance record what you actually did.</p>}
           <div className="flex flex-wrap items-center gap-3">
             <button type="submit" disabled={saving} className="rounded-full bg-panel px-5 py-2.5 text-sm font-semibold text-paper disabled:opacity-60">
-              {saving ? 'Saving…' : form.logCompletion ? 'Save completed workout' : 'Save workout'}
+              {saving ? 'Saving…' : libraryEdit ? 'Save template' : form.logCompletion ? 'Save completed workout' : 'Save workout'}
             </button>
             {onSaveToLibrary && canEditPlan && (
               <button
@@ -1448,6 +1466,8 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
   const [loadingEarlier, setLoadingEarlier] = useState(false);
   const [error, setError] = useState('');
   const [editorInitial, setEditorInitial] = useState(null);
+  const [libraryEditor, setLibraryEditor] = useState(null);
+  useEffect(()=>setLibraryEditor(null),[libraryOwnerId,request,role]);
   const [detailId, setDetailId] = useState(null);
   const [activityDetailId, setActivityDetailId] = useState(null);
   const [dayMenuKey, setDayMenuKey] = useState(null);
@@ -1649,6 +1669,16 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
   const saveToLibrary = useCallback((form) => libraryCreate.save(
     libraryWorkoutPayload(form, { preservePlanMetadata: preserveLibraryPlanMetadata })
   ), [libraryCreate.save, preserveLibraryPlanMetadata]);
+  const editLibrary = useCallback(async (body) => {
+    const result = await performCalendarMutation('/api/workout-library', {method:'PATCH',body,
+      request:(url,options)=>request(url,{...options,signal:AbortSignal.timeout(15000)})});
+    if (result.ok && result.workout?.id === body.id) {
+      setLibrary(previous=>previous.map(item=>item.id === body.id ? result.workout : item));
+      loadLibrary();
+      return result;
+    }
+    return {ok:false,error:result.error || 'Template update was not confirmed. Your changes are still here; retry.'};
+  },[request,setLibrary,loadLibrary]);
   const applyLibraryWorkout = useCallback((libraryWorkoutId, date) => mutateCalendar('/api/planned-workouts', {
     body: { athlete_id: athleteId || undefined, library_workout_id: libraryWorkoutId, workout_date: date },
   }), [athleteId, mutateCalendar]);
@@ -1769,6 +1799,8 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
           onClose={() => { setEditorInitial(null); if (router.query.log === '1') selectCalendarDetail(); }}
         />
       )}
+      {libraryEditor && <WorkoutEditor key={libraryEditor.id} initial={{...libraryEditor,title:libraryEditor.name}}
+        canEditPlan libraryEdit defaultDistanceUnit={distanceUnitPref} onSave={editLibrary} onClose={()=>setLibraryEditor(null)}/>}
       {detailActivity && (
         <ActivityDetail
           key={detailActivity.id}
@@ -1913,6 +1945,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
                 <LibraryCard
                   key={item.id}
                   item={item}
+                  onEdit={()=>setLibraryEditor(item)}
                   onApply={(date) => applyLibraryWorkout(item.id, date)}
                   onDelete={async () => {
                     return mutateCalendar(`/api/workout-library?id=${encodeURIComponent(item.id)}`, { method: 'DELETE' }, () => setLibrary((prev) => prev.filter((x) => x.id !== item.id)));
@@ -2237,7 +2270,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
   );
 }
 
-function LibraryCard({ item, onApply, onDelete }) {
+function LibraryCard({ item, onApply, onDelete, onEdit }) {
   const { today } = useWorkspaceTransport();
   const [date, setDate] = useState(toDateKey(today || new Date()));
   const [busy, setBusy] = useState(false);
@@ -2261,10 +2294,12 @@ function LibraryCard({ item, onApply, onDelete }) {
         {[
           fmtDuration(item.planned_duration_min),
           formatDistance(item.planned_distance_km, item.planned_distance_unit),
-          item.planned_tss ? `TSS ${Math.round(item.planned_tss)}` : null,
+          item.planned_tss != null ? `TSS ${Math.round(item.planned_tss)}` : null,
         ].filter(Boolean).join(' · ') || 'No targets'}
       </p>
       <div className="mt-2 flex gap-2">
+        <button disabled={busy} aria-label={`Edit ${item.name} in library`} onClick={onEdit}
+          className="min-h-11 rounded-lg border border-ink/15 px-2 text-xs font-semibold text-panel">Edit</button>
         <input aria-label="Add library workout on" disabled={busy} type="date" value={date} onChange={(e) => setDate(e.target.value)} className="flex-1 rounded-lg border border-ink/10 bg-white px-2 py-1 text-xs text-ink" />
         <button disabled={busy || !date} onClick={apply} className="rounded-lg bg-panel px-3 py-1 text-xs font-semibold text-paper">{busy ? 'Adding…' : 'Add'}</button>
       </div>

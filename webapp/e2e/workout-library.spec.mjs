@@ -17,6 +17,91 @@ async function signedLibraryRoutes(page,f,intercept=()=>null) {
   });
 }
 
+test('O1 saved templates have an in-place editor',async({page})=>{
+  const f=await libraryFixture();try{
+    await signedLibraryRoutes(page,f);await page.goto('/coach/training-calendar');
+    await page.getByRole('button',{name:'Library (1)',exact:true}).click();
+    await expect(page.getByRole('button',{name:'Edit Legacy easy run in library',exact:true})).toBeVisible();
+    await page.getByRole('button',{name:'Edit Legacy easy run in library',exact:true}).click();
+    const editor=page.getByRole('dialog',{name:'Library template editor'});
+    await expect(editor.getByText('No structured steps',{exact:false})).toBeVisible();
+    await editor.getByRole('button',{name:'Close',exact:true}).click();
+    expect((await f.pg.query('select structure from workout_library')).rows[0].structure).toEqual([]);
+  }finally{await f.close();}
+});
+
+test('O1 edits preserve exact fields, recover lost PATCH acknowledgement, cancel and survive reload',async({page},info)=>{
+  test.setTimeout(60000);const f=await libraryFixture();const writes=[];let lose=true;
+  const structure=[{type:'work',repeat:3,duration_min:5.25,intensity:'threshold',target_type:'heart_rate',target_min:150,target_max:160,target_units:'bpm',notes:'Relax',calibration:'preserve'},
+    {type:'recovery',repeat:3,duration_min:2,intensity:'easy',target_type:'pace',target_min:6,target_max:7,target_units:'min/km',notes:'Walk'}];
+  try{
+    if(info.project.name==='mobile-chromium')await page.setViewportSize({width:320,height:844});
+    const created=await f.invokeLibrary({method:'POST',body:{client_request_id:randomUUID(),name:'Stored hill template',sport:'run',description:null,
+      objective:null,coach_instructions:'Original',planned_duration_min:null,planned_distance_km:9.656064,planned_distance_unit:'mi',
+      planned_if:0,planned_tss:0,target_metric:'heart_rate',visibility:'coach_private',structure,tags:['trail','hill']}});
+    expect(created.code).toBe(200);const id=created.body.workout.id;
+    await signedLibraryRoutes(page,f,async(req,body)=>{
+      if(req.method()==='POST')throw new Error('Editing must never create another template');
+      if(req.method()!=='PATCH')return null;
+      writes.push(body);const result=await f.invokeLibrary({method:'PATCH',body});
+      if(lose&&result.code===200){lose=false;return {code:503,body:{error:'Update committed; acknowledgement lost. Retry.'}};}
+      return result;
+    });
+    const row=async()=> {
+      const r=(await f.pg.query('select * from workout_library where id=$1',[id])).rows[0];
+      for(const k of ['planned_duration_min','planned_distance_km','planned_tss','planned_if'])if(r[k]!=null)r[k]=Number(r[k]);
+      return r;
+    };
+    const open=async(name='Stored hill template')=>{await page.getByRole('button',{name:`Edit ${name} in library`,exact:true}).click();return page.getByRole('dialog',{name:'Library template editor'});};
+    await page.goto('/coach/training-calendar');await page.getByRole('button',{name:'Library (2)',exact:true}).click();
+    let editor=await open();await expect(editor.getByLabel('Workout date')).toHaveCount(0);
+    await expect(editor.getByRole('button',{name:'Save to library',exact:true})).toHaveCount(0);
+    await expect(editor.getByPlaceholder('Planned IF',{exact:true})).toHaveValue('0');
+    await expect(editor.getByLabel('Planned TSS',{exact:true})).toHaveValue('0');
+    await expect(editor.getByText('min/km',{exact:true})).toBeVisible();
+    await page.screenshot({path:`../output/library-o1-open-${info.project.name}.png`});
+    await editor.getByLabel('Workout title',{exact:true}).fill('Cancelled edit');await editor.getByRole('button',{name:'Close',exact:true}).click();
+    expect((await row()).name).toBe('Stored hill template');expect(writes).toHaveLength(0);
+    editor=await open();await editor.getByLabel('Workout title',{exact:true}).fill('Revised hill template');
+    await editor.getByPlaceholder('Coach instructions (separate from description)',{exact:true}).fill('Keep recoveries easy');
+    await editor.getByPlaceholder('Workout objective / purpose',{exact:true}).fill('Economy');
+    await editor.getByLabel('Primary target').selectOption('power');await editor.getByLabel('Workout visibility').selectOption('athlete_visible');
+    await editor.getByRole('button',{name:'Save template',exact:true}).click();
+    await expect(editor.getByText('Update committed; acknowledgement lost. Retry.',{exact:true})).toBeVisible();
+    await expect(editor.getByLabel('Workout title',{exact:true})).toHaveValue('Revised hill template');
+    await editor.getByRole('button',{name:'Save template',exact:true}).click();await expect(editor).not.toBeVisible();
+    expect(writes).toHaveLength(2);expect(writes[0]).toEqual(writes[1]);expect(writes[0].id).toBe(id);
+    expect(Object.keys(writes[0]).sort()).toEqual(['id','name','objective','coach_instructions','target_metric','visibility'].sort());
+    let saved=await row();expect(saved.description).toBe(null);expect(saved.planned_duration_min).toBe(null);
+    expect(saved.planned_distance_km).toBe(9.656064);expect(saved.planned_if).toBe(0);expect(saved.planned_tss).toBe(0);
+    expect(saved.structure).toEqual(structure);expect(saved.tags).toEqual(['trail','hill']);
+    await page.reload();await page.getByRole('button',{name:'Library (2)',exact:true}).click();editor=await open('Revised hill template');
+    await expect(editor.getByPlaceholder('Coach instructions (separate from description)',{exact:true})).toHaveValue('Keep recoveries easy');
+    await editor.getByLabel('Distance unit').selectOption('km');await editor.getByRole('button',{name:'Save template',exact:true}).click();await expect(editor).not.toBeVisible();
+    expect((await row()).planned_distance_km).toBe(9.656064);expect((await row()).planned_distance_unit).toBe('km');
+    editor=await open('Revised hill template');await editor.getByLabel('Planned duration (min)',{exact:true}).fill('0');
+    await editor.getByPlaceholder('Planned IF',{exact:true}).fill('');await editor.getByLabel('Planned TSS',{exact:true}).fill('');
+    await editor.getByLabel('Planned distance',{exact:true}).fill('0');await editor.getByLabel('Template tags (one per line)').fill('');
+    await editor.getByPlaceholder('Workout objective / purpose',{exact:true}).fill('');
+    await page.screenshot({path:`../output/library-o1-editor-${info.project.name}.png`,fullPage:true});
+    await editor.getByRole('button',{name:'Save template',exact:true}).dblclick();await expect(editor).not.toBeVisible();
+    saved=await row();expect(saved.planned_duration_min).toBe(0);expect(saved.planned_distance_km).toBe(0);
+    expect(saved.planned_if).toBe(null);expect(saved.planned_tss).toBe(null);expect(saved.objective).toBe(null);expect(saved.tags).toBe(null);
+    expect(saved.structure).toEqual(structure);expect((await f.pg.query('select count(*)::int n from workout_library')).rows[0].n).toBe(2);
+    editor=await open('Revised hill template');await editor.getByLabel('Workout title',{exact:true}).fill('x'.repeat(201));
+    await editor.getByRole('button',{name:'Save template',exact:true}).click();await expect(editor.getByText('Invalid name.',{exact:true})).toBeVisible();
+    expect((await row()).name).toBe('Revised hill template');
+    await editor.getByLabel('Workout title',{exact:true}).fill('Final trail template');await editor.getByLabel('Sport',{exact:true}).selectOption('hike');
+    await editor.getByPlaceholder('Coach instructions / session goal',{exact:true}).fill('Runnable climb');
+    await editor.getByLabel('Template tags (one per line)').fill('trail\nbase');
+    await editor.getByPlaceholder(/Step notes/).first().fill('Edited recovery advice');
+    await editor.getByRole('button',{name:'Save template',exact:true}).click();await expect(editor).not.toBeVisible();
+    saved=await row();expect(saved.sport).toBe('hike');expect(saved.description).toBe('Runnable climb');expect(saved.tags).toEqual(['trail','base']);
+    expect(saved.structure).toEqual([{...structure[0],notes:'Edited recovery advice'},structure[1]]);
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  }finally{await f.close();}
+});
+
 test('F6 library outages never assert empty data; retry recovers and refresh preserves known templates',async({page},info)=>{
   test.setTimeout(60000);const f=await libraryFixture();
   try {

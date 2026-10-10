@@ -76,6 +76,31 @@ const openWorkout = async (page, title) => {
   ).toBeVisible();
 };
 const dialog = (page) => page.getByRole("dialog", { name: "Workout details" });
+for (const width of [1440, 320]) test(`O1 local synthetic template edit, refresh and athlete assignment at ${width}px`,async({page})=>{
+  await page.setViewportSize({width,height:900});await navigate(page,'calendar');
+  await page.getByRole('button',{name:'Library (1)',exact:true}).click();
+  await page.getByRole('button',{name:'Edit Easy run + strides in library',exact:true}).click();
+  const editor=page.getByRole('dialog',{name:'Library template editor'});
+  await editor.getByLabel('Workout title',{exact:true}).fill('Edited synthetic trail');
+  await editor.getByPlaceholder('Coach instructions (separate from description)',{exact:true}).fill('Relax on the descents');
+  await editor.getByPlaceholder('Planned IF',{exact:true}).fill('0');await editor.getByLabel('Planned TSS',{exact:true}).fill('0');
+  await editor.getByRole('button',{name:'Save template',exact:true}).click();await expect(editor).not.toBeVisible();
+  let s=await state(page);expect(s.library).toHaveLength(1);expect(s.library[0].id).toBe('lib-easy');
+  expect(s.library[0].planned_if).toBe(0);expect(s.library[0].planned_tss).toBe(0);expect(s.library[0].planned_distance_km).toBe(6);
+  await page.reload();await page.getByRole('button',{name:'Library (1)',exact:true}).click();
+  await page.getByRole('button',{name:'Edit Edited synthetic trail in library',exact:true}).click();
+  await expect(editor.getByPlaceholder('Coach instructions (separate from description)',{exact:true})).toHaveValue('Relax on the descents');
+  await editor.getByRole('button',{name:'Close',exact:true}).click();
+  const card=page.locator('div.rounded-2xl').filter({has:page.getByRole('button',{name:'Delete Edited synthetic trail from library',exact:true})}).last();
+  await card.getByLabel('Add library workout on').fill('2026-10-11');await card.getByRole('button',{name:'Add',exact:true}).click();
+  await expect(card.getByText('Added to calendar.',{exact:true})).toBeVisible();
+  s=await state(page);const assigned=s.workouts.find(w=>w.title==='Edited synthetic trail');
+  expect(assigned.coach_instructions).toBe('Relax on the descents');expect(assigned.planned_if).toBe(0);expect(assigned.planned_tss).toBe(0);
+  await navigate(page,'overview','athlete');await openWorkout(page,'Edited synthetic trail');
+  await expect(dialog(page)).toContainText('Relax on the descents');
+  await page.screenshot({path:`../output/library-o1-synthetic-athlete-${width}.png`});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
 for (const width of [1440, 390, 320])
   test(`QA F4/F5: selection refresh and linked elevation retention at ${width}px`, async ({
     page,
