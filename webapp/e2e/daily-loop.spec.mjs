@@ -15,7 +15,10 @@ async function setup(page, { coach = false } = {}) {
     const persistence = mockMessagingPersistence(request,state,coach?'coach':'athlete');
     if(persistence){await route.fulfill({status:persistence.status,contentType:'application/json',body:JSON.stringify(persistence.body)});return;}
     let status = 200; let data = { notes: [], events: [], comments: [], settings: {}, workouts: [], messages: [], conversations: [] };
-    if (url.pathname === '/api/me') data = { athlete: { id: athleteId, name: 'QA athlete', onboarding_complete: true, subscription_tier: coach ? 'coach_pro' : 'free', primary_role: coach ? 'coach' : 'athlete' }, account: { primary_role: coach ? 'coach' : 'athlete', capabilities: { athlete: true, coach }, coach_access:{eligible:coach} } };
+    if (url.pathname === '/api/me') {
+      state.meRequests=(state.meRequests || 0)+1;
+      data = { athlete: { id: athleteId, name: 'QA athlete', onboarding_complete: true, subscription_tier: coach ? 'coach_pro' : 'free', primary_role: coach ? 'coach' : 'athlete' }, account: { primary_role: coach ? 'coach' : 'athlete', capabilities: { athlete: true, coach }, coach_access:{eligible:coach} },...(state.loadMetrics?{load_metrics:state.loadMetrics}:{}) };
+    }
     if (url.pathname === '/api/coach/relationships') data = {relationships:[{athlete_id:athleteId,status:'active',athlete:{name:'First athlete'}}]};
     if (url.pathname === '/api/planned-workouts') {
       if (request.method() === 'GET') {
@@ -36,6 +39,7 @@ async function setup(page, { coach = false } = {}) {
             } else Object.assign(workout,{status:'planned',activity_match_mode:body.match_action==='auto'?'auto':'manual',completed_activity_id:null,completed_duration_min:null,completed_distance_km:null});
           } else Object.assign(workout,body);
           workout.updated_at=new Date().toISOString(); data={workout};
+          if(state.completionLoad)state.loadMetrics=state.completionLoad;
           if(state.loseNextResponse) {state.loseNextResponse=false;await route.abort('failed');return;}
         }
         else { const workout = { ...body, id: 'new-workout' }; state.workouts.push(workout); data = { workout }; }
@@ -245,4 +249,57 @@ test('triage template opens once and does not refill the composer after sending'
   await page.evaluate(() => window.dispatchEvent(new Event('focus')));
   await expect(page.getByText('How are you?', { exact: true })).toBeVisible();
   await expect(page.getByLabel('Your message')).toHaveValue('');
+});
+
+test('reviewed native callback refreshes shared athlete load after accepted completion',async({page},info)=>{
+  const state=await setup(page);state.loadMetrics={chronic:0,acute:0,form:0};state.completionLoad={chronic:125,acute:135,form:-10};
+  if(info.project.name==='mobile-chromium')await page.setViewportSize({width:320,height:900});
+  await page.goto('/calendar?workout=workout-1');const details=page.getByRole('dialog',{name:'Workout details'});
+  await details.getByLabel('Actual duration in minutes').fill('25');
+  const before=state.meRequests;await details.getByRole('button',{name:'Mark completed',exact:true}).click();
+  await expect.poll(()=>state.meRequests).toBeGreaterThan(before);
+  await expect(page.getByText('Fitness (CTL)',{exact:true}).locator('..')).toContainText('125');
+  expect(await page.evaluate(()=>JSON.parse(sessionStorage.getItem('threshold.me.v1')).load_metrics.chronic)).toBe(125);
+  await page.screenshot({path:`../output/review-transfer-native-load-${info.project.name}.png`});
+});
+
+// Frontend protocol fixture; actual atomic copy/private/load handlers remain
+// in PR136 and were independently accepted in b10c309. No real API/provider.
+test('reviewed copy retry survives reload, releases confirmed key before GET failure and isolates actors',async({page},info)=>{
+  test.setTimeout(60000);if(info.project.name==='mobile-chromium')await page.setViewportSize({width:320,height:900});
+  const day=new Date().toISOString().slice(0,10),requests=[],receipts=new Map(),external=[];
+  let actor=messageId,lost=true,failRefresh=false;
+  const source={id:'copy-source',title:'Scoped trail session',workout_date:day,sport:'run',status:'planned',planned_duration_min:40,structure:[]};
+  page.on('request',r=>{if(!['127.0.0.1','localhost'].includes(new URL(r.url()).hostname))external.push(r.url());});
+  await page.route('**/api/**',async route=>{
+    const req=route.request(),u=new URL(req.url());let result={notes:[],events:[],workouts:[],comments:[],settings:{},notifications:[],unreadCount:0};
+    if(u.pathname==='/api/me')result={athlete:{id:actor,name:'Isolated coach',onboarding_complete:true,primary_role:'coach',subscription_tier:'coach_pro'},account:{primary_role:'coach',capabilities:{athlete:true,coach:true},coach_access:{eligible:true},coach_profile:{id:'isolated-profile'}}};
+    if(u.pathname==='/api/coach/relationships')result={relationships:[{athlete_id:athleteId,status:'active',athlete:{name:'Isolated trail runner'}}]};
+    if(u.pathname==='/api/planned-workouts'){
+      if(req.method()==='GET'){
+        if(failRefresh){failRefresh=false;return route.fulfill({status:503,json:{error:'Isolated GET failure after confirmed copy'}});}
+        result={workouts:[source],activities:[],match_activities:[]};
+      }else{
+        const body=req.postDataJSON();requests.push({actor,...body});
+        const key=actor+':'+body.client_request_id;const replayed=receipts.has(key);
+        receipts.set(key,body);result={workouts:[{...source,id:'isolated-copy-'+receipts.size,workout_date:body.to_week_start}],replayed};
+        if(lost){lost=false;return route.abort('failed');}
+      }
+    }
+    await route.fulfill({status:200,json:result});
+  });
+  const copies=page.getByRole('button',{name:'Copy week to next week',exact:true});
+  await page.goto(`/coach/training-calendar?athlete=${athleteId}`);await copies.first().click();
+  await expect(page.getByText(/Connection lost/)).toBeVisible();const first=requests[0].client_request_id;
+  await page.reload();await expect(copies.first()).toBeVisible();failRefresh=true;await copies.first().click();
+  await expect(page.getByText('Isolated GET failure after confirmed copy',{exact:true})).toBeVisible();
+  expect(requests[1].client_request_id).toBe(first);expect(receipts.size).toBe(1);
+  await page.reload();await copies.first().click();await expect.poll(()=>requests.length).toBe(3);
+  expect(requests[2].client_request_id).not.toBe(first);expect(receipts.size).toBe(2);
+  // An uncertain operation for actor A must not become actor B's retry key.
+  lost=true;await copies.first().click();await expect(page.getByText(/Connection lost/)).toBeVisible();const uncertain=requests[3].client_request_id;
+  actor=secondId;await page.evaluate(id=>sessionStorage.setItem('threshold.me.v1',JSON.stringify({athlete:{id,onboarding_complete:true,primary_role:'coach',subscription_tier:'coach_pro'},account:{primary_role:'coach',capabilities:{athlete:true,coach:true},coach_access:{eligible:true}}})),actor);
+  await page.reload();await copies.first().click();await expect.poll(()=>requests.length).toBe(5);
+  expect(requests[4].client_request_id).not.toBe(uncertain);expect(requests[4].actor).toBe(secondId);expect(external).toEqual([]);
+  await page.screenshot({path:`../output/review-transfer-native-copy-${info.project.name}.png`});
 });
