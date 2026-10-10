@@ -1,0 +1,20 @@
+
+> threshold@0.1.0 test:integrations
+> node --test tests/integration-availability.test.mjs
+
+(node:29080) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-4/release-pr135/webapp/lib/integrationAvailability.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-4\release-pr135\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö Strava requires both credentials and a callback location; secrets are not in the result (1.2776ms)
+Γ£ö public integration status is read only and never cached (0.2652ms)
+Γ£ö unfinished wearable logins never redirect authenticated users to provider OAuth (1.2874ms)
+Γ£ö unconfigured callbacks give an actionable error without configuration names (0.3639ms)
+Γä╣ tests 4
+Γä╣ suites 0
+Γä╣ pass 4
+Γä╣ fail 0
+Γä╣ cancelled 0
+Γä╣ skipped 0
+Γä╣ todo 0
+Γä╣ duration_ms 231.7347

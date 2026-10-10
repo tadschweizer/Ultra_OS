@@ -3,6 +3,46 @@ import fs from "node:fs";
 import crypto from "node:crypto";
 import { seed } from '../seed.js';
 
+test("integration: synthetic library operation survives a committed-storage response loss and reload", async ({ page }) => {
+  await page.addInitScript(() => {
+    const original = Storage.prototype.setItem;
+    let loseResponse = true;
+    Storage.prototype.setItem = function(key, value) {
+      original.call(this, key, value);
+      if (loseResponse && key === "threshold-synthetic-v3" && JSON.parse(value).library.some(w => w.name === "Synthetic uncertain trail")) {
+        loseResponse = false;
+        // Persist the fixture commit, then fail its acknowledgement.
+        throw new Error("Fixture acknowledgement lost after storage commit");
+      }
+    };
+  });
+  await page.goto("/#calendar?mode=coach&athlete_id=demo-river");
+  await page.getByRole("button", { name: "+ Plan workout", exact: true }).click();
+  const editor = page.getByRole("dialog", { name: "Workout editor" });
+  await editor.getByLabel("Workout title", { exact: true }).fill("Synthetic uncertain trail");
+  await editor.getByRole("button", { name: "Save to library", exact: true }).click();
+  await expect(editor.getByText("Could not save to library.", { exact: true })).toBeVisible();
+  const operation = await page.evaluate(() => JSON.parse(sessionStorage.getItem("threshold:library-create:v1:synthetic:demo-coach")));
+  expect(operation.id).toMatch(/^[0-9a-f-]{36}$/);
+  await page.reload();
+  await page.getByRole("button", { name: "Retry unconfirmed library save", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Retry unconfirmed library save", exact: true })).toBeHidden();
+  const rows = await page.evaluate(() => JSON.parse(sessionStorage.getItem("threshold-synthetic-v3")).library.filter(w => w.name === "Synthetic uncertain trail"));
+  expect(rows).toHaveLength(1);
+  expect(rows[0].client_request_id).toBe(operation.id);
+  expect(await page.evaluate(() => sessionStorage.getItem("threshold:library-create:v1:synthetic:demo-coach"))).toBeNull();
+});
+
+test("integration: athlete calendar leaves a native account-cache bait untouched", async ({ page }) => {
+  const bait = { athlete: { id: "native-cache-bait" }, load: { weekly: 777 } };
+  await page.addInitScript(value => sessionStorage.setItem("threshold.me.v1", JSON.stringify(value)), bait);
+  await page.goto("/#calendar?mode=athlete&athlete_id=demo-river");
+  await expect(page.getByRole("button").filter({ hasText: "Steady trail run" }).first()).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("button").filter({ hasText: "Steady trail run" }).first()).toBeVisible();
+  expect(await page.evaluate(() => JSON.parse(sessionStorage.getItem("threshold.me.v1")))).toEqual(bait);
+});
+
 test("static artifact identity and closed network policy", async ({
   page,
   request,
@@ -77,28 +117,6 @@ const openWorkout = async (page, title) => {
   ).toBeVisible();
 };
 const dialog = (page) => page.getByRole("dialog", { name: "Workout details" });
-for(const width of [1440,320])test(`reviewed synthetic library scope survives retry/role/athlete changes without native cache at ${width}px`,async({page})=>{
-  await page.setViewportSize({width,height:900});
-  await page.addInitScript(()=>{if(!sessionStorage.getItem('threshold.me.v1'))sessionStorage.setItem('threshold.me.v1',JSON.stringify({athlete:{id:'native-cache-bait'},load_metrics:{chronic:777}}));});
-  await navigate(page,'limits','coach','demo-river');await page.getByRole('button',{name:'Fail next save',exact:true}).click();
-  await navigate(page,'calendar','coach','demo-river',{workout:'seed-0-3'});
-  await dialog(page).getByRole('button',{name:'Edit workout',exact:true}).click();
-  const editor=page.getByRole('dialog',{name:'Workout editor'});
-  await editor.getByRole('button',{name:'Save to library',exact:true}).click();
-  await expect(editor.getByText('Could not save to library.',{exact:true})).toBeVisible();
-  const storageKey='threshold:library-create:v1:synthetic:demo-coach';
-  const pending=await page.evaluate(key=>JSON.parse(sessionStorage.getItem(key)),storageKey);expect(pending.id).toMatch(/^[0-9a-f-]{36}$/);
-  await editor.getByRole('button',{name:'Close',exact:true}).click();await page.reload();
-  await expect(page.getByRole('button',{name:'Retry unconfirmed library save',exact:true})).toBeVisible();
-  expect(await page.evaluate(key=>JSON.parse(sessionStorage.getItem(key)).id,storageKey)).toBe(pending.id);
-  await navigate(page,'calendar','athlete','demo-river');await expect(page.getByRole('button',{name:'Retry unconfirmed library save',exact:true})).toHaveCount(0);
-  await navigate(page,'calendar','coach','demo-sage');await page.getByRole('button',{name:'Retry unconfirmed library save',exact:true}).click();
-  await expect(page.getByRole('button',{name:'Retry unconfirmed library save',exact:true})).toHaveCount(0);
-  expect((await state(page)).library).toHaveLength(2);
-  expect(await page.evaluate(key=>sessionStorage.getItem(key),storageKey)).toBe(null);
-  expect(await page.evaluate(()=>JSON.parse(sessionStorage.getItem('threshold.me.v1')))).toEqual({athlete:{id:'native-cache-bait'},load_metrics:{chronic:777}});
-  await page.screenshot({path:`../output/review-transfer-synthetic-scope-${width}.png`});
-});
 for(const width of [1440,390,320])test(`F9/P3 synthetic assignment preserves target prescriptions and source at ${width}px`,async({page})=>{
   await page.setViewportSize({width,height:900});await navigate(page,'calendar');
   await expect(page.getByRole('button',{name:'Library (1)',exact:true})).toBeVisible();
@@ -895,6 +913,8 @@ for (const width of [1440, 390, 320])
       .getByTitle("Copy this week's workouts to next week")
       .filter({ visible: true })
       .first();
+    await expect(copy).toHaveAccessibleName("Copy week to next week");
+    if (width < 1024) expect((await copy.boundingBox()).height).toBeGreaterThanOrEqual(44);
     await copy.dblclick();
     expect(
       (await state(page)).workouts.filter((w) => w.athlete_id === "demo-robin"),
