@@ -487,16 +487,17 @@ return async function handler(req, res) {
         return;
       }
       if (updates.structure !== undefined) {
-        // Recompute totals from the new structure unless explicitly provided.
+        // Derive omitted totals; explicit null/zero retain the caller's intent.
         const recomputed = fillPlannedTotals({
           structure: updates.structure,
-          planned_duration_min: updates.planned_duration_min ?? null,
-          planned_distance_km: updates.planned_distance_km ?? null,
-          planned_tss: updates.planned_tss ?? null,
+          planned_duration_min: updates.planned_duration_min,
+          planned_distance_km: updates.planned_distance_km,
+          planned_tss: updates.planned_tss,
         });
-        updates.planned_duration_min = recomputed.planned_duration_min;
-        updates.planned_distance_km = recomputed.planned_distance_km;
-        updates.planned_tss = recomputed.planned_tss;
+        // A replacement structure lacking a dimension clears stale totals.
+        updates.planned_duration_min = recomputed.planned_duration_min ?? null;
+        updates.planned_distance_km = recomputed.planned_distance_km ?? null;
+        updates.planned_tss = recomputed.planned_tss ?? null;
       }
       const validationError = validateWorkoutFields(updates);
       if (validationError) return res.status(400).json({ error: validationError });

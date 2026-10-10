@@ -93,7 +93,10 @@ Desktop and mobile coach controls use the same contract.
 with an active relationship can read; athlete and another linked coach cannot.
 Publication remains an explicit coach visibility update. Range and outside-range
 linked plans are filtered before compliance/comment counts/linked-ID construction.
-The same boundary protects comments, export, edits/deletion and coach detail.
+The same boundary protects comments, workout export, personal account archives,
+edits/deletion and coach detail. Personal archives add the visibility predicate
+before each SQL pagination request; active assigning-coach workout exports remain
+authorized and the personal archive never broadens to coached athletes' records.
 The restrictive RLS policy grants no new access. The second prepared migration,
 `20261010030100_private_workout_inbox.sql`, filters subjects before inbox aggregation
 and pagination, including unread counts. Export uses the existing revocation-aware
@@ -117,6 +120,62 @@ distance and unit, and reference. Validated overrides preserve null/zero. Nullab
 text has a10,000-character limit; enums reject explicit null; planned_if is finite
 nonnegative or null. Explicit null totals stay unknown; only omitted POST totals
 may derive. PATCH omission retains stored fields.
+
+For planned-workout PATCH specifically, supplying a replacement `structure`
+recomputes omitted totals from that new structure. Explicit null/zero totals
+remain unchanged as provided; PATCH without structure retains omitted totals.
+Dimensions absent from a replacement structure become unknown instead of
+retaining stale totals.
+
+### Review follow-up: structure-only PATCH regression
+
+Independent review of PR136 head `0a25f1eeb821d09786f3508ec71e4a1c1c4f6d52`
+identified a mismatch introduced by explicit-null preservation. The real signed
+handler reproduced it: PATCH `{id, structure:[{type:'work',repeat:2,duration_min:20,
+distance_km:3,intensity:'z2'}]}` returned HTTP200 with all three planned totals
+null, instead of duration40/distance6/TSS33. See
+`verification/patch-structure-before.txt`: the desired assertion fails before
+the fix on that exact app source.
+
+The PATCH caller now passes omitted values as undefined into the derivation
+helper, preserving explicit null and zero. After derivation it writes unknown
+dimensions as null, preventing stale totals when a replacement structure lacks
+duration/distance. A ninth real-handler/SQL test covers structure-only PATCH,
+explicit null, explicit zero, mixed omission/null/zero, unrelated title-only
+PATCH, omitted metadata/actuals/units, duration-only structure and empty structure.
+All nine acceptance groups pass after the correction; full regression is441.
+The new pre-fix/after/full/build evidence accompanies the original logs.
+
+### Review follow-up: personal archive and linked activity window
+
+Two more source findings were reproduced with signed real handlers and synthetic
+SQL before fixing their unchanged paths from reviewed head `0a25f1e`:
+
+- `/api/account-export` returned HTTP200 and included private title “Trail climbs”,
+  objective “Efficient uphill movement” and instructions “Keep descents easy;
+  use poles on steep climbs”. `collectAccountExport` now adds athlete-visible
+  filtering before every SQL page. The signed archive test checks one-row pages,
+  all later visible rows, private-field absence, session revocation, unchanged
+  coach-private workout export and unchanged personal-archive ownership.
+- `/api/me` with an August30 plan linked to an August28 import (41 vs43 days
+  before the October10 fixture run) reported source `manual_completions`, count1,
+  chronic0.6 and `has_data:true`. It had not loaded the activity outside its query
+  window and substituted the plan date. Missing confirmed links are now resolved
+  independently of that window in athlete-scoped batches of100. Rollups use the
+  activity date, exclude out-of-window links and report unavailable links/dates
+  explicitly. Legacy non-UUID/provider IDs stay unresolved rather than causing
+  SQL casts or inventing manual provenance. Lookup failure gives503. Tests cover
+  window start/day before, missing date/record, foreign-owner links, legacy IDs,
+  true manual completion and duplicate imported/matched sessions counted once.
+
+`verification/privacy-boundary-before.txt` captures both failed pre-fix assertions
+and exact synthetic outputs. Read-only reviewed Git blobs: accountExport
+`3a8adef99b55f9203d20b46dc6f4437c911f0672`, loadRollups
+`e30f47b37d913cce1f1123b43cb51dc177deaa9c`, me
+`ad819018b7589a0774ab9f76ad91112ac1c71b7e`. These follow-ups add two groups:
+latest acceptance is11 groups and full regression443, superseding the interim441.
+The same PR carries all three confirmed review repairs; no additional migration
+or production action is needed for these application changes.
 
 The additive library migration remains owned by
 [PR135](https://github.com/tadschweizer/Ultra_OS/pull/135),
@@ -144,13 +203,13 @@ npm run build
 Baseline:8/8 assertions establish defects;38/38 existing focused tests pass.
 `docs/calendar-gap-evidence/baseline/reproduce.ps1` archives exact main into a
 fresh temporary directory and uses a network-denying loader. New acceptance:
-8 groups PASS, included in full regression. **440/440 regression PASS**, zero
+11 groups PASS, included in full regression. **443/443 regression PASS**, zero
 skipped. **30/30 desktop/mobile Chromium PASS**: six new real-handler/local-SQL
 scenarios and24 existing daily-loop scenarios. No external requests/page errors
 in the six new scenarios. **Next build PASS; git diff --check PASS.** No standalone
 lint/typecheck scripts exist; none is claimed.
 
-The repository CI now includes these eight SQL/API acceptance groups and the
+The repository CI now includes these eleven SQL/API acceptance groups and the
 dedicated six-scenario browser run. Local results above do not imply GitHub CI
 has completed; check the current PR head before considering release.
 

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { collectAccountExport } from '../lib/accountExport.js';
 import { calendarFixture,copyBody,athlete,owner,coach,plan,library,activity,request,stranger,otherCoach,migration } from './helpers/calendar-gap-fixture.mjs';
 import { buildLoadMetrics,buildLoadStatus } from '../lib/loadRollups.js';
 import { computeActivityTrimp } from '../lib/trainingLoad.js';
@@ -135,6 +136,98 @@ test('direct private create and library assignment preserve metadata; absent lib
     assert.equal((await f.invoke('calendar',{actor:owner,method:'POST',body:{athlete_id:athlete,workout_date:'2026-10-08',library_workout_id:library}})).code,503);
     await f.pg.exec('reset role;drop function copy_planned_workout_week(uuid,uuid,uuid,date,date);set role service_role;');
     assert.equal((await f.invoke('calendar',{actor:owner,method:'POST',body:copyBody})).code,503);
+  }finally{await f.close();}
+});
+
+test('planned structure PATCH distinguishes omitted totals, explicit null, zero and unchanged omitted fields',async()=>{
+  const f=await calendarFixture();try{
+    const structure=[{type:'work',repeat:2,duration_min:20,distance_km:3,intensity:'z2'}];
+    const patch=body=>f.invoke('calendar',{actor:owner,method:'PATCH',body:{id:plan,...body}});
+    const initial=(await f.invoke('calendar',{actor:owner,query:{athlete_id:athlete,start:'2026-10-05',end:'2026-10-05'}})).body.workouts[0];
+    const derived=await patch({structure});assert.equal(derived.code,200,JSON.stringify(derived.body));
+    const totals=w=>[w.planned_duration_min,w.planned_distance_km,w.planned_tss];
+    assert.deepEqual(totals(derived.body.workout),[40,6,33],'structure-only PATCH derives rather than clears totals');
+    for(const field of ['objective','coach_instructions','target_metric','planned_if','visibility','planned_distance_unit','completed_duration_min','completed_distance_km','athlete_rpe','coach_feedback']) {
+      assert.deepEqual(derived.body.workout[field],initial[field],field);
+    }
+    const unchanged=await patch({title:'Rename only'});assert.equal(unchanged.code,200);
+    assert.deepEqual(totals(unchanged.body.workout),[40,6,33],'no structure or totals in PATCH retains totals');
+    assert.deepEqual(unchanged.body.workout.structure,structure);
+    const nulls=await patch({structure,planned_duration_min:null,planned_distance_km:null,planned_tss:null});
+    assert.equal(nulls.code,200);assert.deepEqual(totals(nulls.body.workout),[null,null,null],'explicit null remains unknown');
+    assert.deepEqual(totals((await patch({title:'Keep unknown totals'})).body.workout),[null,null,null]);
+    const zeros=await patch({structure,planned_duration_min:0,planned_distance_km:0,planned_tss:0});
+    assert.equal(zeros.code,200);assert.deepEqual(totals(zeros.body.workout),[0,0,0],'explicit zero is not derived');
+    assert.deepEqual(totals((await patch({title:'Keep zero totals'})).body.workout),[0,0,0]);
+    const mixed=await patch({structure,planned_duration_min:null,planned_distance_km:0});
+    assert.equal(mixed.code,200);assert.deepEqual(totals(mixed.body.workout),[null,0,33],'only omitted total is derived');
+    const durationOnly=await patch({structure:[{type:'work',duration_min:40,intensity:'z2'}]});
+    assert.deepEqual(totals(durationOnly.body.workout),[40,null,33],'new structure without distance cannot retain stale distance');
+    const empty=await patch({structure:[]});assert.deepEqual(totals(empty.body.workout),[null,null,null]);
+  }finally{await f.close();}
+});
+
+test('signed personal archive excludes private drafts before pagination without changing authorized coach exports',async()=>{
+  const f=await calendarFixture();try{
+    const publicIds=['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'];
+    for(const [i,id]of publicIds.entries())assert.equal((await f.invoke('calendar',{method:'POST',body:{client_request_id:id,title:`Visible run ${i}`,workout_date:'2026-10-10'}})).code,200);
+    const archive=await f.invoke('archive',{method:'POST',body:{athlete_id:owner}});
+    assert.equal(archive.code,200,JSON.stringify(archive.body));
+    if(process.env.CALENDAR_GAP_REPRO_TRACE)console.log(JSON.stringify({case:'archive-private',http:archive.code,private_workouts:archive.body.sections.planned_workouts.filter(w=>w.visibility==='coach_private').map(({id,title,objective,coach_instructions,visibility})=>({id,title,objective,coach_instructions,visibility}))}));
+    assert.deepEqual(archive.body.sections.planned_workouts.map(w=>w.id).sort(),publicIds,'signed archive excludes private prescription fields');
+    assert.equal(JSON.stringify(archive.body).includes('Keep descents easy; use poles'),false);
+    const pages=await collectAccountExport(f.admin,{id:athlete},{pageSize:1});
+    assert.deepEqual(pages.sections.planned_workouts.map(w=>w.id).sort(),publicIds);
+    const queries=f.admin.calls.filter(c=>c.table==='planned_workouts'&&c.offset!==undefined);
+    assert.ok(queries.length>=3);assert.ok(queries.every(c=>c.values.includes('athlete_visible')),'visibility filter is part of every SQL page');
+    assert.equal((await f.invoke('export',{actor:owner,query:{id:plan}})).code,200,'active assigning coach can still export private workout');
+    const coachArchive=await f.invoke('archive',{actor:owner,method:'POST',body:{athlete_id:athlete}});
+    assert.equal(coachArchive.code,200);assert.deepEqual(coachArchive.body.sections.planned_workouts,[],'personal archive does not broaden to coached athletes');
+    await f.pg.exec(`update athletes set session_version=2 where id='${athlete}';`);
+    assert.equal((await f.invoke('archive',{method:'POST'})).code,401);
+  }finally{await f.close();}
+});
+
+test('load linked records resolve dates independently of the window; missing links stay unknown, manual and matches count once',async(t)=>{
+  const f=await calendarFixture();try{
+    const day=ago=>new Date(Date.now()-ago*86400000).toISOString().slice(0,10);
+    const windowStart=day(41),outside=day(43),today=day(0);
+    await f.pg.query('update planned_workouts set visibility=$1,workout_date=$2,completed_activity_id=$3,completed_duration_min=$4',[ 'athlete_visible',windowStart,activity,60]);
+    await f.pg.query('insert into strava_activities(id,athlete_id,strava_activity_id,start_date,local_date,moving_time,average_heartrate) values($1,$2,$3,$4,$5,$6,$7)',[activity,athlete,'boundary-fixture',`${outside}T09:00:00Z`,outside,3600,140]);
+    const excluded=await f.invoke('me');assert.equal(excluded.code,200);
+    if(process.env.CALENDAR_GAP_REPRO_TRACE)console.log(JSON.stringify({case:'load-window-link',plan_date:windowStart,activity_date:outside,http:excluded.code,load:{acute:excluded.body.load_metrics.acute,chronic:excluded.body.load_metrics.chronic,has_data:excluded.body.load_metrics.has_data,provenance:excluded.body.load_metrics.provenance}}));
+    assert.equal(excluded.body.load_metrics.has_data,false,'out-of-window activity cannot reappear as manual load on plan date');
+    assert.equal(excluded.body.load_metrics.provenance.linked_outside_window_count,1);
+    await f.pg.query('update strava_activities set start_date=$1,local_date=$2',[`${windowStart}T00:00:00Z`,windowStart]);
+    const boundary=await f.invoke('me');assert.equal(boundary.body.load_metrics.provenance.synced_count,1);assert.equal(boundary.body.load_metrics.provenance.manual_count,0);
+    assert.equal(boundary.body.load_metrics.provenance.matched_plan_count,1,'window-start match counted once');
+    assert.ok(boundary.body.load_metrics.sparkline[0].load>0);
+    await f.pg.query('update strava_activities set start_date=$1,local_date=$2',[`${day(42)}T00:00:00Z`,day(42)]);
+    assert.equal((await f.invoke('me')).body.load_metrics.has_data,false,'day before window excluded');
+    await f.pg.query('delete from strava_activities where id=$1',[activity]);
+    // The schema intentionally retains recorded actuals after provider deletion.
+    await f.pg.query('update planned_workouts set completed_activity_id=$1',[randomUUID()]);
+    const missing=await f.invoke('me');assert.equal(missing.body.load_metrics.has_data,false);
+    assert.equal(missing.body.load_metrics.provenance.unresolved_link_count,1);assert.match(missing.body.load_metrics.explainability,/unavailable imports or activity dates excluded/);
+    await f.pg.query('insert into strava_activities(id,athlete_id,strava_activity_id,start_date,local_date,moving_time) values($1,$2,$3,$4,$5,$6)',[activity,stranger,'foreign-import',`${today}T00:00:00Z`,today,3600]);
+    await f.pg.query('update planned_workouts set completed_activity_id=$1',[activity]);
+    const foreign=await f.invoke('me');assert.equal(foreign.body.load_metrics.has_data,false);assert.equal(foreign.body.load_metrics.provenance.unresolved_link_count,1,'linked lookup remains athlete-scoped');
+    await f.pg.query('update planned_workouts set completed_activity_id=$1',['legacy-provider-id']);
+    const legacy=await f.invoke('me');assert.equal(legacy.code,200);assert.equal(legacy.body.load_metrics.provenance.unresolved_link_count,1,'legacy non-UUID link stays unresolved without SQL cast failure');
+    await f.pg.query('update planned_workouts set completed_activity_id=null,workout_date=$1',[today]);
+    const manual=await f.invoke('me');assert.equal(manual.body.load_metrics.provenance.manual_count,1);assert.equal(manual.body.load_metrics.provenance.synced_count,0);
+    const domain=buildLoadMetrics({now:new Date(`${today}T12:00:00Z`),workouts:[{id:plan,status:'completed',workout_date:today,completed_activity_id:activity,completed_duration_min:60}]});
+    assert.equal(domain.has_data,false);assert.equal(domain.provenance.unresolved_link_count,1,'domain never invents manual provenance for unresolved imported link');
+    const missingDate=buildLoadMetrics({now:new Date(`${today}T12:00:00Z`),activities:[{id:activity,moving_time:3600}],workouts:[{id:plan,status:'completed',workout_date:today,completed_activity_id:activity,completed_duration_min:60}]});
+    assert.equal(missingDate.has_data,false);assert.equal(missingDate.provenance.unresolved_link_count,1);
+    const imported={id:activity,local_date:today,moving_time:3600,average_heartrate:140};
+    const deduped=buildLoadMetrics({now:new Date(`${today}T12:00:00Z`),activities:[imported,imported],workouts:[{id:plan,status:'completed',workout_date:windowStart,completed_activity_id:activity,completed_duration_min:60}]});
+    assert.equal(deduped.provenance.synced_count,1);assert.equal(deduped.provenance.manual_count,0);
+    assert.equal(deduped.provenance.matched_plan_count,1);assert.equal(deduped.provenance.duplicate_activity_count,1);
+    await f.pg.query('update planned_workouts set completed_activity_id=$1',[activity]);
+    const from=f.admin.from;
+    t.mock.method(f.admin,'from',table=>{const query=from(table);if(table==='strava_activities')query.in=()=>{query.then=resolve=>resolve({error:{code:'08006'}});return query;};return query;});
+    assert.equal((await f.invoke('me')).code,503,'linked lookup failure is not empty training history');
   }finally{await f.close();}
 });
 

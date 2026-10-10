@@ -6,6 +6,7 @@ import { createMeHandler } from '../../pages/api/me.js';
 import { createWorkoutCommentsHandler } from '../../pages/api/workout-comments.js';
 import { createWorkoutExportHandler } from '../../pages/api/workout-export.js';
 import { createCoachAthleteDetailHandler } from '../../pages/api/coach/athlete-detail.js';
+import { createAccountExportHandler } from '../../pages/api/account-export.js';
 import { signAthleteSession } from '../../lib/auth/sessionCookies.js';
 import { resolveEffectiveAthleteId } from '../../lib/auth/requireAthlete.js';
 
@@ -26,7 +27,7 @@ export function sqlClient(pg) {
     try{return {data:(await pg.query(`select public.${name}(${Object.keys(args).map((k,i)=>`${k} => $${i+1}`).join(',')}) as data`,Object.values(args))).rows[0].data};}
     catch(error){return {error};}
   },from(table){
-    assert.match(table,/^[a-z_]+$/);let fields='*',patch,insert,single=false,limit,count=false,head=false,deleting=false;
+    assert.match(table,/^[a-z_]+$/);let fields='*',patch,insert,single=false,limit,offset,count=false,head=false,deleting=false;
     const filters=[],values=[],orders=[];
     const add=(k,op,v)=>{assert.match(k,/^[a-z_]+$/);values.push(v);filters.push(`${k} ${op} $${values.length}`);};
     const q={select(v='*',options={}){fields=v;count=options.count==='exact';head=options.head===true;return q;},
@@ -36,16 +37,17 @@ export function sqlClient(pg) {
       match(v){for(const [k,value]of Object.entries(v))add(k,'=',value);return q;},
       in(k,v){values.push(v);filters.push(`${k}::text=any($${values.length}::text[])`);return q;},
       order(k,{ascending=true}={}){orders.push(`${k} ${ascending?'asc':'desc'}`);return q;},limit(n){limit=n;return q;},
+      range(start,end){offset=start;limit=end-start+1;return q;},
       update(v){patch=v;return q;},insert(v){insert=v;return q;},delete(){deleting=true;return q;},
       single(){single=true;return q;},maybeSingle(){single=true;return q;},
       async then(resolve){try{
-        calls.push({table,operation:insert?'insert':patch?'update':deleting?'delete':'select'});
+        calls.push({table,operation:insert?'insert':patch?'update':deleting?'delete':'select',filters:[...filters],values:[...values],limit,offset});
         const where=filters.length?` where ${filters.join(' and ')}`:'';let sql;
         if(insert){assert.equal(Array.isArray(insert),false);const keys=Object.keys(insert);values.push(...Object.values(insert));
           sql=`insert into ${table}(${keys.join(',')}) values(${keys.map((_,i)=>`$${i+1}`).join(',')}) returning ${fields}`;}
         else if(patch){const sets=Object.entries(patch).map(([k,v])=>{values.push(v);return `${k}=$${values.length}`;});sql=`update ${table} set ${sets.join(',')}${where} returning ${fields}`;}
         else if(deleting)sql=`delete from ${table}${where} returning ${fields}`;
-        else sql=`select ${fields} from ${table}${where}${orders.length?' order by '+orders.join(','):''}${limit?' limit '+limit:''}`;
+        else sql=`select ${fields} from ${table}${where}${orders.length?' order by '+orders.join(','):''}${limit?' limit '+limit:''}${offset?' offset '+offset:''}`;
         const rows=JSON.parse(JSON.stringify((await pg.query(sql,values)).rows));
         for(const row of rows)for(const key of ['workout_date','date','local_date'])if(row[key])row[key]=row[key].slice(0,10);
         // PostgREST emits numeric SQL columns as JSON numbers. PGlite's direct
@@ -112,9 +114,9 @@ export async function calendarFixture({ applyFix=true, libraryMetadata=true }={}
   const resolveAthlete=async req=>(await resolveEffectiveAthleteId(req,admin)).athleteId;
   const fetchActivities=async(_admin,id,start,end)=>({activities:JSON.parse(JSON.stringify((await pg.query('select * from strava_activities where athlete_id=$1 and start_date >= $2 and start_date <= $3',[id,start,`${end}T23:59:59Z`])).rows)),stravaConnected:false});
   const handlers={calendar:createPlannedWorkoutsHandler({getAdmin:()=>admin,resolveAthlete,fetchActivities}),me:createMeHandler({getAdmin:()=>admin}),detail:createCoachAthleteDetailHandler({getAdmin:()=>admin}),
-    comments:createWorkoutCommentsHandler({getAdmin:()=>admin,resolveAthlete}),export:createWorkoutExportHandler({getAdmin:()=>admin,resolveAthlete})};
+    comments:createWorkoutCommentsHandler({getAdmin:()=>admin,resolveAthlete}),export:createWorkoutExportHandler({getAdmin:()=>admin,resolveAthlete}),archive:createAccountExportHandler({getClient:()=>admin})};
   async function invoke(name='calendar',{actor=athlete,method='GET',query={},body={},version=1}={}){
-    const req={method,query,body,headers:{cookie:actor?`athlete_id=${signAthleteSession(actor,version)}`:''}};
+    const req={method,query,body,headers:{origin:'http://localhost:3000','content-type':'application/json',cookie:actor?`athlete_id=${signAthleteSession(actor,version)}`:''}};
     const res={code:200,headers:{},setHeader(k,v){this.headers[k]=v;},status(n){this.code=n;return this;},json(b){this.body=b;return this;},send(b){this.body=b;return this;}};
     await handlers[name](req,res);return res;
   }

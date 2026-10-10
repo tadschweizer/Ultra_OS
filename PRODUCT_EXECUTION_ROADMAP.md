@@ -812,7 +812,7 @@ load labelled as synced activity, and omitted manual-completion load. Original
 runtime evidence is preserved. The authorized focused fix uses atomic copy retry
 records, full prescription mapping, private-subject boundaries across calendar,
 comments/export/inbox, and explicit actual-training provenance/unknown states.
-Local acceptance passes: 440/440 full regression and 30/30 desktop/mobile browser
+Local acceptance passes: 443/443 full regression and 30/30 desktop/mobile browser
 checks, plus production build. See `CALENDAR_GAP_FIX_VERIFICATION.md` for exact
 source, commands, results and rollout/rollback gates. The library mapper is tested
 against PR135's published contract checkpoint; that PR's pending library API/UI
@@ -823,6 +823,22 @@ contains implementation `d300153aff08142425fb8ed1ed4e2dbdb8e812bf` and evidence;
 it targets main directly and remains unmerged. PR135's library migration remains
 a coordinated release dependency. Hosted concurrency/schema/participant checks
 and final-head CI are separate release gates.
+
+Independent review then reproduced a PR136 structure-only PATCH regression at
+`0a25f1e`: omitted totals had been converted to explicit null before derivation.
+The follow-up correction preserves omitted/null/zero distinctions and clears
+unavailable dimensions from replacement structures. The ninth signed-handler/SQL
+group verifies structure-only PATCH, explicit null/zero and untouched omissions;
+the updated evidence is retained with the same PR. No production rollout occurred.
+
+Two further isolated reproductions confirmed private-draft leakage in personal
+account archives and phantom in-window load from out-of-window confirmed imports.
+The archive filters before pagination; load resolves athlete-owned links
+independently of its rolling query and excludes unresolved/out-of-window links
+with explicit provenance. Signed archive/date-boundary/ownership/revocation/manual
+and deduplication regressions bring acceptance to11 groups/full regression443.
+The original and new failed-before/passed-after outputs are retained in the
+verification report. These remain draft PR136 changes, without production rollout.
 
 October 9 technical readiness preparation (PR #133): traced live group description/membership gaps in addition to the message/document and workout/lifecycle gaps. Prepared exact prerequisite repair and a read-only before/after preflight; combined all three release sources in isolated SQL, with grant/RLS/index/function failure checks. Added schema-aware readiness, document session/relationship revocation and retry-safe group membership plus a GET-only zero-row Data API verifier. Node 22 regression 431/431; integrations 4/4; build; critical desktop/mobile browser 129 passed / 3 existing skips. Measurement CSV/script prepared; CI required enforcement remains unreadable/unverified. No production migration, app release, provider activation or participant observation.
 

@@ -108,9 +108,24 @@ return async function handler(req, res) {
   ]);
   if (manualLoadRes.error || activityLoadRes.error) return res.status(503).json({ error: 'Training load is unavailable. Please refresh to try again.' });
 
+  // Resolve confirmed links independently of the rolling import query. A plan
+  // inside the window can reference training on another day outside it.
+  const loadActivities = [...(activityLoadRes.data || [])];
+  const loadedIds = new Set(loadActivities.map(activity => String(activity.id)));
+  const missingLinkIds = [...new Set((manualLoadRes.data || []).map(workout => workout.completed_activity_id)
+    .filter(id => typeof id === 'string' && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(id) && !loadedIds.has(id)))];
+  // Legacy non-UUID/provider identifiers remain unresolved rather than causing
+  // a UUID query error or being relabelled as a manual session.
+  for (let offset = 0; offset < missingLinkIds.length; offset += 100) {
+    const linked = await admin.from('strava_activities').select('*')
+      .eq('athlete_id', athleteId).in('id', missingLinkIds.slice(offset, offset + 100));
+    if (linked.error) return res.status(503).json({ error: 'Training load is unavailable. Please refresh to try again.' });
+    loadActivities.push(...(linked.data || []));
+  }
+
   const loadMetrics = buildLoadMetrics({
     workouts: manualLoadRes.data || [],
-    activities: activityLoadRes.data || [],
+    activities: loadActivities,
     lookbackDays: 42,
   });
   const loadStatus = buildLoadStatus(loadMetrics);

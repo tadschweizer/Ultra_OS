@@ -20,7 +20,7 @@ function rollup({ activities = [], workouts = [], lookbackDays = 42, now = new D
   }));
   const points = new Map(daily.map(point => [point.key, point]));
   const coverage = { synced_count: 0, manual_count: 0, matched_plan_count: 0, duplicate_activity_count: 0,
-    missing_duration_count: 0, estimated_intensity_count: 0, window_days: days };
+    missing_duration_count: 0, estimated_intensity_count: 0, unresolved_link_count: 0, linked_outside_window_count: 0, window_days: days };
   const seen = new Set(), contributed = new Set(), activityDates = new Map();
   function add(day, item, kind) {
     if (!points.has(day)) return false;
@@ -49,6 +49,10 @@ function rollup({ activities = [], workouts = [], lookbackDays = 42, now = new D
     if (item.id && seenWorkouts.has(item.id)) continue;
     if (item.id) seenWorkouts.add(item.id);
     const linked = item.completed_activity_id == null ? null : String(item.completed_activity_id);
+    // A confirmed import has its own training date. Missing/out-of-window
+    // imports must never reappear as manual load on the plan's scheduled day.
+    if (linked && !activityDates.get(linked)) { coverage.unresolved_link_count++; continue; }
+    if (linked && !points.has(activityDates.get(linked))) { coverage.linked_outside_window_count++; continue; }
     if (linked && contributed.has(linked)) { coverage.matched_plan_count++; continue; }
     const day = (linked && activityDates.get(linked)) || dateKey(item.workout_date);
     const minutes = positiveNumber(item.completed_duration_min);
@@ -74,16 +78,18 @@ export function buildLoadMetrics(payload = {}) {
     : sourceLabel;
   const missing = provenance.missing_duration_count ? ` ${provenance.missing_duration_count} session(s) without actual duration excluded.` : '';
   const estimates = provenance.estimated_intensity_count ? ` Default intensity assumed for ${provenance.estimated_intensity_count} session(s) without HR/RPE.` : '';
+  const unresolved = provenance.unresolved_link_count ? ` ${provenance.unresolved_link_count} session(s) linked to unavailable imports or activity dates excluded.` : '';
+  const outside = provenance.linked_outside_window_count ? ` ${provenance.linked_outside_window_count} linked session(s) outside this ${provenance.window_days}-day window excluded.` : '';
   return {
     acute: hasData ? Number(acute.toFixed(1)) : null,
     chronic: hasData ? Number(chronic.toFixed(1)) : null,
     form: hasData ? Number((chronic - acute).toFixed(1)) : null,
-    has_data: hasData, coverage: !hasData ? 'none' : provenance.missing_duration_count ? 'partial' : 'recorded', provenance,
+    has_data: hasData, coverage: !hasData ? 'none' : (provenance.missing_duration_count || provenance.unresolved_link_count) ? 'partial' : 'recorded', provenance,
     source_label: sourceLabel,
     sparkline: daily.map((point, i) => ({ date: point.key, load: hasData ? Number(point.load.toFixed(1)) : null,
       missing_duration_count: point.missing_duration_count,
       acute: hasData ? Number(acuteSeries[i].toFixed(1)) : null, chronic: hasData ? Number(chronicSeries[i].toFixed(1)) : null })),
-    explainability: explanation + missing + estimates,
+    explainability: explanation + missing + estimates + unresolved + outside,
   };
 }
 
