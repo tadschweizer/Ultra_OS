@@ -818,8 +818,11 @@ source, commands, results and rollout/rollback gates. The library mapper is test
 against PR135's published contract checkpoint; that PR's pending library API/UI
 is not claimed complete. No production data, providers, secrets, production
 migration application, merge or deployment occurred. Keep all parent acceptance
-checkboxes open. Final commit/PR identity is recorded in the separate review
-artifact when published.
+checkboxes open. [Draft PR136](https://github.com/tadschweizer/Ultra_OS/pull/136)
+contains implementation `d300153aff08142425fb8ed1ed4e2dbdb8e812bf` and evidence;
+it targets main directly and remains unmerged. PR135's library migration remains
+a coordinated release dependency. Hosted concurrency/schema/participant checks
+and final-head CI are separate release gates.
 
 October 9 technical readiness preparation (PR #133): traced live group description/membership gaps in addition to the message/document and workout/lifecycle gaps. Prepared exact prerequisite repair and a read-only before/after preflight; combined all three release sources in isolated SQL, with grant/RLS/index/function failure checks. Added schema-aware readiness, document session/relationship revocation and retry-safe group membership plus a GET-only zero-row Data API verifier. Node 22 regression 431/431; integrations 4/4; build; critical desktop/mobile browser 129 passed / 3 existing skips. Measurement CSV/script prepared; CI required enforcement remains unreadable/unverified. No production migration, app release, provider activation or participant observation.
 

@@ -4,6 +4,12 @@ Both candidate gaps were **reproduced** on fresh online main
 `fa8ebe2b377784007b4a40b4e982f92a11224075`. The subsequently authorized focused
 fix passes local acceptance. Main and hosted services remain unchanged.
 
+Review artifact: [draft PR136](https://github.com/tadschweizer/Ultra_OS/pull/136),
+branch `fix/private-drafts-copy-load`, based directly on main. Implementation
+commit: `d300153aff08142425fb8ed1ed4e2dbdb8e812bf`; evidence transcript cleanup:
+`0eafca1e64496abb94da9f5aa7ce72fcf55283cb`. Committed text transcripts have trailing
+whitespace removed; original workspace transcripts remain preserved separately.
+
 The original [report](docs/calendar-gap-evidence/baseline/GAP_REPORT.md),
 [results](docs/calendar-gap-evidence/baseline/results.json),
 [manifest](docs/calendar-gap-evidence/baseline/manifest.json), source excerpts and
@@ -142,6 +148,10 @@ skipped. **30/30 desktop/mobile Chromium PASS**: six new real-handler/local-SQL
 scenarios and24 existing daily-loop scenarios. No external requests/page errors
 in the six new scenarios. **Next build PASS; git diff --check PASS.** No standalone
 lint/typecheck scripts exist; none is claimed.
+
+The repository CI now includes these eight SQL/API acceptance groups and the
+dedicated six-scenario browser run. Local results above do not imply GitHub CI
+has completed; check the current PR head before considering release.
 
 The browser wrapper disables only Playwright's optional TS ESM transformer for
 this native-JavaScript suite because it stalls on Node24 Windows. Config starts
