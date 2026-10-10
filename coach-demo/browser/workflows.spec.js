@@ -1,6 +1,47 @@
 import { test, expect } from "@playwright/test";
 import fs from "node:fs";
 import crypto from "node:crypto";
+import { seed } from '../seed.js';
+
+test("integration: synthetic library operation survives a committed-storage response loss and reload", async ({ page }) => {
+  await page.addInitScript(() => {
+    const original = Storage.prototype.setItem;
+    let loseResponse = true;
+    Storage.prototype.setItem = function(key, value) {
+      original.call(this, key, value);
+      if (loseResponse && key === "threshold-synthetic-v3" && JSON.parse(value).library.some(w => w.name === "Synthetic uncertain trail")) {
+        loseResponse = false;
+        // Persist the fixture commit, then fail its acknowledgement.
+        throw new Error("Fixture acknowledgement lost after storage commit");
+      }
+    };
+  });
+  await page.goto("/#calendar?mode=coach&athlete_id=demo-river");
+  await page.getByRole("button", { name: "+ Plan workout", exact: true }).click();
+  const editor = page.getByRole("dialog", { name: "Workout editor" });
+  await editor.getByLabel("Workout title", { exact: true }).fill("Synthetic uncertain trail");
+  await editor.getByRole("button", { name: "Save to library", exact: true }).click();
+  await expect(editor.getByText("Could not save to library.", { exact: true })).toBeVisible();
+  const operation = await page.evaluate(() => JSON.parse(sessionStorage.getItem("threshold:library-create:v1:synthetic:demo-coach")));
+  expect(operation.id).toMatch(/^[0-9a-f-]{36}$/);
+  await page.reload();
+  await page.getByRole("button", { name: "Retry unconfirmed library save", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Retry unconfirmed library save", exact: true })).toBeHidden();
+  const rows = await page.evaluate(() => JSON.parse(sessionStorage.getItem("threshold-synthetic-v3")).library.filter(w => w.name === "Synthetic uncertain trail"));
+  expect(rows).toHaveLength(1);
+  expect(rows[0].client_request_id).toBe(operation.id);
+  expect(await page.evaluate(() => sessionStorage.getItem("threshold:library-create:v1:synthetic:demo-coach"))).toBeNull();
+});
+
+test("integration: athlete calendar leaves a native account-cache bait untouched", async ({ page }) => {
+  const bait = { athlete: { id: "native-cache-bait" }, load: { weekly: 777 } };
+  await page.addInitScript(value => sessionStorage.setItem("threshold.me.v1", JSON.stringify(value)), bait);
+  await page.goto("/#calendar?mode=athlete&athlete_id=demo-river");
+  await expect(page.getByRole("button").filter({ hasText: "Steady trail run" }).first()).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("button").filter({ hasText: "Steady trail run" }).first()).toBeVisible();
+  expect(await page.evaluate(() => JSON.parse(sessionStorage.getItem("threshold.me.v1")))).toEqual(bait);
+});
 
 test("static artifact identity and closed network policy", async ({
   page,
@@ -76,6 +117,75 @@ const openWorkout = async (page, title) => {
   ).toBeVisible();
 };
 const dialog = (page) => page.getByRole("dialog", { name: "Workout details" });
+for(const width of [1440,390,320])test(`F9/P3 synthetic assignment preserves target prescriptions and source at ${width}px`,async({page})=>{
+  await page.setViewportSize({width,height:900});await navigate(page,'calendar');
+  await expect(page.getByRole('button',{name:'Library (1)',exact:true})).toBeVisible();
+  const targets=[{type:'cooldown',repeat:1,duration_min:5.25,intensity:'easy',target_type:'pace',target_min:6.2,target_max:7.4,target_units:'min/km',notes:'Stored pace',extra:'keep'},
+    {type:'work',repeat:1,duration_min:3,intensity:'easy',target_type:'pace',target_min:10,target_max:null,target_units:'min/mi'},
+    ...[['heart_rate','bpm',150,160],['power','W',0,250],['rpe','RPE',3,5],['zone','zone',2,3]].map(([target_type,target_units,target_min,target_max])=>({type:'work',repeat:1,duration_min:1,intensity:'easy',target_type,target_units,target_min,target_max}))];
+  await page.evaluate(({key,targets,s})=>{Object.assign(s.library[0],{structure:targets,planned_distance_unit:'mi'});sessionStorage.setItem(key,JSON.stringify(s));},{key:KEY,targets,s:seed()});
+  await page.reload();await page.getByRole('button',{name:'Library (1)',exact:true}).click();
+  const card=page.locator('div.rounded-2xl').filter({has:page.getByRole('button',{name:'Delete Easy run + strides from library',exact:true})}).last();
+  await card.getByLabel('Add library workout on').fill('2026-10-10');await card.getByRole('button',{name:'Add',exact:true}).click();
+  await expect(card.getByText('Added to calendar.',{exact:true})).toBeVisible();
+  let assigned=(await state(page)).workouts.find(w=>w.title==='Easy run + strides');
+  expect(assigned.library_workout_id).toBe('lib-easy');expect(assigned.structure).toEqual(targets);
+  await navigate(page,'calendar','coach','demo-robin',{workout:assigned.id});
+  await dialog(page).getByRole('button',{name:'Edit workout',exact:true}).click();
+  const editor=page.getByRole('dialog',{name:'Workout editor'});
+  await editor.getByLabel('Planned duration (min)',{exact:true}).fill('25');await editor.getByLabel('Workout date',{exact:true}).fill('2026-10-11');
+  await editor.getByPlaceholder('Coach instructions (separate from description)',{exact:true}).fill('Only instructions changed');
+  await editor.getByRole('button',{name:'Save workout',exact:true}).click();await expect(editor).not.toBeVisible();
+  assigned=(await state(page)).workouts.find(w=>w.id===assigned.id);expect(assigned.structure).toEqual(targets);expect(assigned.library_workout_id).toBe('lib-easy');
+  await navigate(page,'calendar','athlete','demo-robin',{workout:assigned.id});await page.reload();
+  await expect(dialog(page)).toContainText('min/km');await expect(dialog(page)).toContainText('min/mi');
+  await expect(dialog(page)).toContainText(/power 0.250 W/);
+  await page.screenshot({path:`../output/library-f9-synthetic-athlete-${width}.png`,fullPage:true});
+  await navigate(page,'calendar','coach','demo-robin',{workout:assigned.id});await dialog(page).getByRole('button',{name:'Edit workout',exact:true}).click();
+  await editor.getByLabel('Distance unit',{exact:true}).selectOption('km');
+  await editor.getByRole('button',{name:'Save to library',exact:true}).click();await expect(editor.getByText('Saved to library.',{exact:true})).toBeVisible();
+  expect((await state(page)).library.find(w=>w.id!=='lib-easy').structure).toEqual(targets);
+  await editor.getByLabel('Pace target unit',{exact:true}).first().selectOption('min/mi');
+  await editor.getByRole('button',{name:'Save workout',exact:true}).click();await expect(editor).not.toBeVisible();
+  assigned=(await state(page)).workouts.find(w=>w.id===assigned.id);expect(assigned.structure[0]).toEqual({...targets[0],target_min:6.2*1.609344,target_max:7.4*1.609344,target_units:'min/mi'});
+  expect(assigned.structure.slice(1)).toEqual(targets.slice(1));
+  await navigate(page,'calendar','athlete','demo-robin',{workout:assigned.id});await page.reload();
+  await expect(dialog(page)).toContainText('min/mi');expect((await state(page)).workouts.find(w=>w.id===assigned.id).library_workout_id).toBe('lib-easy');
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
+for (const width of [1440, 320]) test(`O1 local synthetic template edit, refresh and athlete assignment at ${width}px`,async({page})=>{
+  await page.setViewportSize({width,height:900});await navigate(page,'calendar');
+  await page.getByRole('button',{name:'Library (1)',exact:true}).click();
+  await page.getByRole('button',{name:'Edit Easy run + strides in library',exact:true}).click();
+  const editor=page.getByRole('dialog',{name:'Library template editor'});
+  await editor.getByLabel('Workout title',{exact:true}).fill('Edited synthetic trail');
+  await editor.getByPlaceholder('Coach instructions (separate from description)',{exact:true}).fill('Relax on the descents');
+  await editor.getByPlaceholder('Planned IF',{exact:true}).fill('0');await editor.getByLabel('Planned TSS',{exact:true}).fill('0');
+  await editor.getByRole('button',{name:'Save template',exact:true}).click();await expect(editor).not.toBeVisible();
+  let s=await state(page);expect(s.library).toHaveLength(1);expect(s.library[0].id).toBe('lib-easy');
+  expect(s.library[0].planned_if).toBe(0);expect(s.library[0].planned_tss).toBe(0);expect(s.library[0].planned_distance_km).toBe(6);
+  await page.reload();await page.getByRole('button',{name:'Library (1)',exact:true}).click();
+  await page.getByRole('button',{name:'Edit Edited synthetic trail in library',exact:true}).click();
+  await expect(editor.getByPlaceholder('Coach instructions (separate from description)',{exact:true})).toHaveValue('Relax on the descents');
+  await editor.getByRole('button',{name:'Close',exact:true}).click();
+  const card=page.locator('div.rounded-2xl').filter({has:page.getByRole('button',{name:'Delete Edited synthetic trail from library',exact:true})}).last();
+  await card.getByLabel('Add library workout on').fill('2026-10-11');await card.getByRole('button',{name:'Add',exact:true}).click();
+  await expect(card.getByText('Added to calendar.',{exact:true})).toBeVisible();
+  s=await state(page);const assigned=s.workouts.find(w=>w.title==='Edited synthetic trail');
+  expect(assigned.coach_instructions).toBe('Relax on the descents');expect(assigned.planned_if).toBe(0);expect(assigned.planned_tss).toBe(0);
+  await page.getByRole('button',{name:'Edit Edited synthetic trail in library',exact:true}).click();
+  await editor.getByLabel('Planned TSS',{exact:true}).fill('');await editor.getByRole('button',{name:'Save template',exact:true}).click();
+  await expect(editor).not.toBeVisible();await card.getByLabel('Add library workout on').fill('2026-10-12');
+  await card.getByRole('button',{name:'Add',exact:true}).click();
+  await expect.poll(async()=> (await state(page)).workouts.filter(w=>w.title==='Edited synthetic trail').length).toBe(2);
+  expect((await state(page)).workouts.find(w=>w.title==='Edited synthetic trail'&&w.workout_date==='2026-10-12').planned_tss).toBe(null);
+  // Use the first assignment to prove later template edits do not alter it.
+  expect((await state(page)).workouts.find(w=>w.id===assigned.id).planned_tss).toBe(0);
+  await navigate(page,'overview','athlete');await openWorkout(page,'Edited synthetic trail');
+  await expect(dialog(page)).toContainText('Relax on the descents');
+  await page.screenshot({path:`../output/library-o1-synthetic-athlete-${width}.png`});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
 for (const width of [1440, 390, 320])
   test(`QA F4/F5: selection refresh and linked elevation retention at ${width}px`, async ({
     page,
@@ -803,6 +913,8 @@ for (const width of [1440, 390, 320])
       .getByTitle("Copy this week's workouts to next week")
       .filter({ visible: true })
       .first();
+    await expect(copy).toHaveAccessibleName("Copy week to next week");
+    if (width < 1024) expect((await copy.boundingBox()).height).toBeGreaterThanOrEqual(44);
     await copy.dblclick();
     expect(
       (await state(page)).workouts.filter((w) => w.athlete_id === "demo-robin"),

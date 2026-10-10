@@ -1,0 +1,172 @@
+[WebServer] (node:24336) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] [@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated and will be removed in a future version. Use webpack.treeshake.removeDebugLogging instead.
+
+Running 8 tests using 1 worker
+
+(node:30268) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-4/release-pr137-review/webapp/pages/api/coach/messages.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-4\release-pr137-review\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:11968) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:11968) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-4/release-pr137-review/webapp/pages/api/coach/messages.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-4\release-pr137-review\webapp\package.json.
+  x  1 [desktop-chromium] ΓÇ║ e2e\message-review-faults.spec.mjs:20:3 ΓÇ║ review: initial inbox failure retry recovers desktop selection and keeps mobile list unread (5.9s)
+(node:24648) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:24648) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-4/release-pr137-review/webapp/pages/api/coach/messages.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-4\release-pr137-review\webapp\package.json.
+  x  2 [desktop-chromium] ΓÇ║ e2e\message-review-faults.spec.mjs:20:3 ΓÇ║ review: initial inbox failure focus recovers desktop selection and keeps mobile list unread (5.2s)
+(node:21844) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:21844) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-4/release-pr137-review/webapp/pages/api/coach/messages.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-4\release-pr137-review\webapp\package.json.
+  x  3 [desktop-chromium] ΓÇ║ e2e\message-review-faults.spec.mjs:53:3 ΓÇ║ review: network read acknowledgement failure preserves fresh inbox and retries read status (5.0s)
+(node:1344) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1344) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-4/release-pr137-review/webapp/pages/api/coach/messages.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-4\release-pr137-review\webapp\package.json.
+  ok 4 [desktop-chromium] ΓÇ║ e2e\message-review-faults.spec.mjs:53:3 ΓÇ║ review: 503 read acknowledgement failure preserves fresh inbox and retries read status (3.2s)
+(node:9404) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:9404) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-4/release-pr137-review/webapp/pages/api/coach/messages.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-4\release-pr137-review\webapp\package.json.
+  ok 5 [mobile-chromium] ΓÇ║ e2e\message-review-faults.spec.mjs:20:3 ΓÇ║ review: initial inbox failure retry recovers desktop selection and keeps mobile list unread (3.4s)
+  ok 6 [mobile-chromium] ΓÇ║ e2e\message-review-faults.spec.mjs:20:3 ΓÇ║ review: initial inbox failure focus recovers desktop selection and keeps mobile list unread (2.9s)
+  x  7 [mobile-chromium] ΓÇ║ e2e\message-review-faults.spec.mjs:53:3 ΓÇ║ review: network read acknowledgement failure preserves fresh inbox and retries read status (4.7s)
+(node:9416) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:9416) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-4/release-pr137-review/webapp/pages/api/coach/messages.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-4\release-pr137-review\webapp\package.json.
+  ok 8 [mobile-chromium] ΓÇ║ e2e\message-review-faults.spec.mjs:53:3 ΓÇ║ review: 503 read acknowledgement failure preserves fresh inbox and retries read status (3.3s)
+
+
+  1) [desktop-chromium] ΓÇ║ e2e\message-review-faults.spec.mjs:20:3 ΓÇ║ review: initial inbox failure retry recovers desktop selection and keeps mobile list unread 
+
+    Error: [31mTimed out 2000ms waiting for [39m[2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m()[22m
+
+    Locator: getByLabel('Conversation history').getByText('History recovered after inbox outage', { exact: true })
+    Expected: visible
+    Received: <element(s) not found>
+    Call log:
+    [2m  - expect.toBeVisible with timeout 2000ms[22m
+    [2m  - waiting for getByLabel('Conversation history').getByText('History recovered after inbox outage', { exact: true })[22m
+
+
+      40 |       await expect(page.getByText('Draft saved', { exact: true })).toBeVisible();
+      41 |       await snapshot(page, `initial-${recovery}`);
+    > 42 |       await expect(page.getByLabel('Conversation history').getByText('History recovered after inbox outage', { exact: true })).toBeVisible({ timeout: 2000 });
+         |                                                                                                                                ^
+      43 |       await expect(page.getByRole('link', { name: 'View training calendar' })).toHaveAttribute('href', `/coach/training-calendar?athlete=${athlete}`);
+      44 |       await expect(page.getByRole('button', { name: 'Send', exact: true })).toBeEnabled();
+      45 |       await page.getByRole('button', { name: 'Send', exact: true }).click();
+        at C:\Users\BAS\Documents\Codex\2026-10-09\task-4\release-pr137-review\webapp\e2e\message-review-faults.spec.mjs:42:128
+
+    attachment #3: trace (application/zip) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    ..\output\review137\baseline\message-review-faults-revi-eb792-nd-keeps-mobile-list-unread-desktop-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace ..\output\review137\baseline\message-review-faults-revi-eb792-nd-keeps-mobile-list-unread-desktop-chromium\trace.zip
+
+    ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+
+  2) [desktop-chromium] ΓÇ║ e2e\message-review-faults.spec.mjs:20:3 ΓÇ║ review: initial inbox failure focus recovers desktop selection and keeps mobile list unread 
+
+    Error: [31mTimed out 2000ms waiting for [39m[2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m()[22m
+
+    Locator: getByLabel('Conversation history').getByText('History recovered after inbox outage', { exact: true })
+    Expected: visible
+    Received: <element(s) not found>
+    Call log:
+    [2m  - expect.toBeVisible with timeout 2000ms[22m
+    [2m  - waiting for getByLabel('Conversation history').getByText('History recovered after inbox outage', { exact: true })[22m
+
+
+      40 |       await expect(page.getByText('Draft saved', { exact: true })).toBeVisible();
+      41 |       await snapshot(page, `initial-${recovery}`);
+    > 42 |       await expect(page.getByLabel('Conversation history').getByText('History recovered after inbox outage', { exact: true })).toBeVisible({ timeout: 2000 });
+         |                                                                                                                                ^
+      43 |       await expect(page.getByRole('link', { name: 'View training calendar' })).toHaveAttribute('href', `/coach/training-calendar?athlete=${athlete}`);
+      44 |       await expect(page.getByRole('button', { name: 'Send', exact: true })).toBeEnabled();
+      45 |       await page.getByRole('button', { name: 'Send', exact: true }).click();
+        at C:\Users\BAS\Documents\Codex\2026-10-09\task-4\release-pr137-review\webapp\e2e\message-review-faults.spec.mjs:42:128
+
+    attachment #3: trace (application/zip) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    ..\output\review137\baseline\message-review-faults-revi-67156-nd-keeps-mobile-list-unread-desktop-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace ..\output\review137\baseline\message-review-faults-revi-67156-nd-keeps-mobile-list-unread-desktop-chromium\trace.zip
+
+    ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+
+  3) [desktop-chromium] ΓÇ║ e2e\message-review-faults.spec.mjs:53:3 ΓÇ║ review: network read acknowledgement failure preserves fresh inbox and retries read status 
+
+    Error: [31mTimed out 2000ms waiting for [39m[2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m()[22m
+
+    Locator: getByRole('alert').filter({ hasText: 'Messages loaded, but read status could not be saved. We will retry.' }).filter({ visible: true })
+    Expected: visible
+    Received: <element(s) not found>
+    Call log:
+    [2m  - expect.toBeVisible with timeout 2000ms[22m
+    [2m  - waiting for getByRole('alert').filter({ hasText: 'Messages loaded, but read status could not be saved. We will retry.' }).filter({ visible: true })[22m
+
+
+      70 |       await expect(page.getByText('Draft saved', { exact: true })).toBeVisible();
+      71 |       await snapshot(page, `read-${failure}`, { rejected });
+    > 72 |       await expect(page.getByRole('alert').filter({ hasText: 'Messages loaded, but read status could not be saved. We will retry.' }).filter({ visible: true })).toBeVisible({ timeout: 2000 });
+         |                                                                                                                                                                  ^
+      73 |       await expect(page.getByText('Showing the last loaded conversations.', { exact: true })).toHaveCount(0);
+      74 |       await expect(page.getByRole('alert').filter({ hasText: 'Unable to load messages' })).toHaveCount(0);
+      75 |       expect((await f.pg.query('select count(*)::int n from coach_messages where read_at is null')).rows[0].n).toBe(1);
+        at C:\Users\BAS\Documents\Codex\2026-10-09\task-4\release-pr137-review\webapp\e2e\message-review-faults.spec.mjs:72:162
+
+    attachment #3: trace (application/zip) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    ..\output\review137\baseline\message-review-faults-revi-74611-box-and-retries-read-status-desktop-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace ..\output\review137\baseline\message-review-faults-revi-74611-box-and-retries-read-status-desktop-chromium\trace.zip
+
+    ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+
+  4) [mobile-chromium] ΓÇ║ e2e\message-review-faults.spec.mjs:53:3 ΓÇ║ review: network read acknowledgement failure preserves fresh inbox and retries read status 
+
+    Error: [31mTimed out 2000ms waiting for [39m[2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m()[22m
+
+    Locator: getByRole('alert').filter({ hasText: 'Messages loaded, but read status could not be saved. We will retry.' }).filter({ visible: true })
+    Expected: visible
+    Received: <element(s) not found>
+    Call log:
+    [2m  - expect.toBeVisible with timeout 2000ms[22m
+    [2m  - waiting for getByRole('alert').filter({ hasText: 'Messages loaded, but read status could not be saved. We will retry.' }).filter({ visible: true })[22m
+
+
+      70 |       await expect(page.getByText('Draft saved', { exact: true })).toBeVisible();
+      71 |       await snapshot(page, `read-${failure}`, { rejected });
+    > 72 |       await expect(page.getByRole('alert').filter({ hasText: 'Messages loaded, but read status could not be saved. We will retry.' }).filter({ visible: true })).toBeVisible({ timeout: 2000 });
+         |                                                                                                                                                                  ^
+      73 |       await expect(page.getByText('Showing the last loaded conversations.', { exact: true })).toHaveCount(0);
+      74 |       await expect(page.getByRole('alert').filter({ hasText: 'Unable to load messages' })).toHaveCount(0);
+      75 |       expect((await f.pg.query('select count(*)::int n from coach_messages where read_at is null')).rows[0].n).toBe(1);
+        at C:\Users\BAS\Documents\Codex\2026-10-09\task-4\release-pr137-review\webapp\e2e\message-review-faults.spec.mjs:72:162
+
+    attachment #3: trace (application/zip) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    ..\output\review137\baseline\message-review-faults-revi-74611-box-and-retries-read-status-mobile-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace ..\output\review137\baseline\message-review-faults-revi-74611-box-and-retries-read-status-mobile-chromium\trace.zip
+
+    ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+
+  4 failed
+    [desktop-chromium] ΓÇ║ e2e\message-review-faults.spec.mjs:20:3 ΓÇ║ review: initial inbox failure retry recovers desktop selection and keeps mobile list unread 
+    [desktop-chromium] ΓÇ║ e2e\message-review-faults.spec.mjs:20:3 ΓÇ║ review: initial inbox failure focus recovers desktop selection and keeps mobile list unread 
+    [desktop-chromium] ΓÇ║ e2e\message-review-faults.spec.mjs:53:3 ΓÇ║ review: network read acknowledgement failure preserves fresh inbox and retries read status 
+    [mobile-chromium] ΓÇ║ e2e\message-review-faults.spec.mjs:53:3 ΓÇ║ review: network read acknowledgement failure preserves fresh inbox and retries read status 
+  4 passed (40.7s)

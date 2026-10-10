@@ -1,9 +1,14 @@
 import { useWorkspaceTransport } from '../lib/WorkspaceTransport';
 import { libraryWorkoutPayload } from '../lib/libraryWorkoutPayload';
+import { libraryEditPayload, libraryCanonicalDistance, libraryDisplayDistance } from '../lib/libraryEditPayload';
+import { targetUnitLabel, initializeTargetUnits, convertPaceTarget } from '../lib/workoutTargetUnits';
+import useWorkoutLibrary from '../lib/useWorkoutLibrary';
+import useLibraryCreate from '../lib/useLibraryCreate';
 import { calendarSelectionUrl } from '../lib/calendarSelection';
 import { summarizeCalendarWeek } from '../lib/calendarSummary';
 import { useDialogFocus } from '../lib/useDialogFocus';
 import { calendarMutation as performCalendarMutation } from '../lib/calendarMutation';
+import { createCopyWeekRequests } from '../lib/copyWeekRequest';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import {
@@ -174,19 +179,6 @@ const TARGET_TYPES = [
   { id: 'rpe', label: 'RPE' },
 ];
 
-// The unit shown beside the target inputs. Pace tracks the athlete's distance
-// unit (min/mi vs min/km); everything else is fixed.
-function targetUnitLabel(targetType, distanceUnit = 'mi') {
-  switch (targetType) {
-    case 'pace': return distanceUnit === 'km' ? 'min/km' : 'min/mi';
-    case 'heart_rate': return 'bpm';
-    case 'power': return 'W';
-    case 'zone': return 'zone';
-    case 'rpe': return 'RPE';
-    default: return '';
-  }
-}
-
 function targetPlaceholders(targetType) {
   switch (targetType) {
     case 'pace': return ['6:24', '7:15'];
@@ -212,14 +204,14 @@ function StepField({ label, children }) {
   );
 }
 
-function StepRow({ step, onChange, onRemove, distanceUnit = 'mi' }) {
+function StepRow({ step, onChange, onRemove, onConvertPace, disabled = false }) {
   const targetType = step.target_type || 'open';
   const showTarget = targetType !== 'open';
-  const unitLabel = targetUnitLabel(targetType, distanceUnit);
+  const unitLabel = step.target_units;
   const [minPlaceholder, maxPlaceholder] = targetPlaceholders(targetType);
 
   return (
-    <div className="space-y-2 rounded-2xl border border-ink/10 bg-paper p-3">
+    <fieldset disabled={disabled} className="min-w-0 space-y-2 rounded-2xl border border-ink/10 bg-paper p-3">
       <div className="grid grid-cols-2 items-end gap-2 sm:grid-cols-[1fr_56px_72px_1fr_1fr_auto]">
         <StepField label="Step">
           <select
@@ -244,8 +236,8 @@ function StepRow({ step, onChange, onRemove, distanceUnit = 'mi' }) {
           <input
             type="number"
             min="0"
-            step="0.5"
-            value={step.duration_min}
+            step="any"
+            value={step.duration_min ?? ''}
             onChange={(e) => onChange({ ...step, duration_min: e.target.value === '' ? '' : Number(e.target.value) })}
             title="Minutes per repeat"
             placeholder="min"
@@ -284,19 +276,27 @@ function StepRow({ step, onChange, onRemove, distanceUnit = 'mi' }) {
         <div className="flex flex-wrap items-center gap-2 rounded-xl bg-white/60 px-2 py-1.5">
           <span className={stepLabelClass}>Target</span>
           <input
-            value={step.target_min || ''}
+            aria-label="Target minimum"
+            value={step.target_min ?? ''}
             onChange={(e) => onChange({ ...step, target_min: e.target.value })}
             placeholder={minPlaceholder}
             className="w-20 rounded-xl border border-ink/10 bg-white px-2 py-1.5 text-xs text-ink"
           />
           <span className="text-xs text-ink/40">–</span>
           <input
-            value={step.target_max || ''}
+            aria-label="Target maximum"
+            value={step.target_max ?? ''}
             onChange={(e) => onChange({ ...step, target_max: e.target.value })}
             placeholder={maxPlaceholder}
             className="w-20 rounded-xl border border-ink/10 bg-white px-2 py-1.5 text-xs text-ink"
           />
           {unitLabel && <span className="text-xs font-medium text-ink/55">{unitLabel}</span>}
+          {targetType === 'pace' && ['min/km','min/mi'].includes(unitLabel) && <label className="text-xs text-ink/55">
+            Convert pace <select aria-label="Pace target unit" value={unitLabel} onChange={e=>onConvertPace(e.target.value)}
+              className="rounded-lg border border-ink/10 bg-white px-1.5 py-1">
+              <option value="min/km">per km</option><option value="min/mi">per mile</option>
+            </select>
+          </label>}
           <span className="text-[10px] text-ink/40">Leave max blank for a single target.</span>
         </div>
       )}
@@ -307,25 +307,27 @@ function StepRow({ step, onChange, onRemove, distanceUnit = 'mi' }) {
         placeholder="Step notes (e.g. 4×8min @ threshold, 2min jog recovery)"
         className="w-full rounded-xl border border-ink/10 bg-white px-2 py-1.5 text-xs text-ink"
       />
-    </div>
+    </fieldset>
   );
 }
 
-function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose, defaultDistanceUnit = 'mi' }) {
+function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose, defaultDistanceUnit = 'mi', libraryEdit = false }) {
   const [form, setForm] = useState(() => {
     const base = { ...emptyForm, client_request_id: crypto.randomUUID(), ...initial };
     const unit = base.planned_distance_unit || defaultDistanceUnit || 'mi';
     return {
       ...base,
+      structure: initializeTargetUnits(Array.isArray(base.structure) ? base.structure : [], unit),
       planned_distance_unit: unit,
       // Editable value shown in the athlete's preferred unit; the canonical
       // km value is recomputed from this on save.
-      planned_distance: kmToUnit(base.planned_distance_km, unit),
+      planned_distance: libraryEdit ? libraryDisplayDistance(base.planned_distance_km, unit) : kmToUnit(base.planned_distance_km, unit),
     };
   });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const savingRef = useRef(false);
+  const dirty = useRef(new Set());
   const dialogRef = useDialogFocus(onClose, saving);
 
   const distanceUnit = form.planned_distance_unit || 'mi';
@@ -336,22 +338,32 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
   );
 
   function setField(field, value) {
+    dirty.current.add(field);
     setForm((f) => ({ ...f, [field]: value }));
   }
 
   function changeDistanceUnit(nextUnit) {
+    dirty.current.add('planned_distance_unit');
     setForm((f) => {
-      const km = unitToKm(f.planned_distance, f.planned_distance_unit || 'mi');
+      const km = libraryEdit ? dirty.current.has('planned_distance') ? libraryCanonicalDistance(f.planned_distance,f.planned_distance_unit || 'mi') : initial.planned_distance_km
+        : unitToKm(f.planned_distance, f.planned_distance_unit || 'mi');
       return {
         ...f,
         planned_distance_unit: nextUnit,
-        planned_distance: kmToUnit(km, nextUnit),
+        planned_distance: libraryEdit ? libraryDisplayDistance(km,nextUnit) : kmToUnit(km, nextUnit),
       };
     });
   }
 
   function updateStep(index, step) {
-    setForm((f) => ({ ...f, structure: f.structure.map((s, i) => (i === index ? step : s)) }));
+    dirty.current.add('structure');
+    setForm((f) => ({ ...f, structure: f.structure.map((s, i) => (i === index ?
+      s.target_type !== step.target_type ? {...step,target_units:targetUnitLabel(step.target_type || 'open',distanceUnit)} : step : s)) }));
+  }
+
+  function changePaceUnit(index, unit) {
+    try { updateStep(index, convertPaceTarget(form.structure[index], unit)); setMessage(''); }
+    catch (error) { setMessage(error.message); }
   }
 
   async function handleSubmit(e) {
@@ -360,13 +372,9 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
     savingRef.current = true;
     setSaving(true);
     setMessage('');
-    // Stamp each step's target units so the read-only detail view renders the
-    // right suffix (min/mi, bpm, W, …) without recomputing.
-    const structure = (form.structure || []).map((step) => ({
-      ...step,
-      target_units: targetUnitLabel(step.target_type || 'open', distanceUnit),
-    }));
-    const result = await onSave({
+    // Preserve the prescription unless a target edit explicitly changed it.
+    const structure = form.structure;
+    const result = await onSave(libraryEdit ? libraryEditPayload(form, dirty.current) : {
       ...form,
       structure,
       planned_duration_min: form.planned_duration_min === '' ? null : Number(form.planned_duration_min),
@@ -387,10 +395,10 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm" onClick={(e) => { if (!saving && e.target === e.currentTarget) onClose(); }}>
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Workout editor" className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[28px] border border-ink/10 bg-paper p-6">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={libraryEdit ? 'Library template editor' : 'Workout editor'} className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[28px] border border-ink/10 bg-paper p-6">
         <div className="flex items-center justify-between">
           <p className="text-sm uppercase tracking-[0.25em] text-accent">
-            {form.id ? 'Edit workout' : form.logCompletion ? 'Log workout' : 'Plan workout'}
+            {libraryEdit ? 'Edit library template' : form.id ? 'Edit workout' : form.logCompletion ? 'Log workout' : 'Plan workout'}
           </p>
           <button disabled={saving} onClick={onClose} className="rounded-full border border-ink/10 px-4 py-1.5 text-sm text-ink/70 hover:bg-ink/5">Close</button>
         </div>
@@ -413,14 +421,14 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
             >
               {WORKOUT_SPORTS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
             </select>
-            <input
+            {!libraryEdit && <input
               type="date"
               required
               disabled={!canEditPlan || saving}
               aria-label="Workout date" value={form.workout_date}
               onChange={(e) => setField('workout_date', e.target.value)}
               className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink disabled:opacity-60"
-            />
+            />}
           </div>
 
           <textarea
@@ -468,10 +476,10 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
             <input
               type="number"
               min="0"
-              step="0.01"
+              step={libraryEdit ? 'any' : '0.01'}
               disabled={!canEditPlan || saving}
               placeholder="Planned IF"
-              value={form.planned_if || ''}
+              value={form.planned_if ?? ''}
               onChange={(e) => setField('planned_if', e.target.value)}
               className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink disabled:opacity-60"
             />
@@ -493,7 +501,8 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
                 type="number"
                 min="0"
                 disabled={!canEditPlan || saving}
-                aria-label={form.logCompletion ? "Actual duration (min)" : "Planned duration (min)"} value={form.planned_duration_min}
+                aria-label={form.logCompletion ? "Actual duration (min)" : "Planned duration (min)"} value={form.planned_duration_min ?? ''}
+                step={libraryEdit ? 'any' : '1'}
                 placeholder={structureTotals.durationMin ? String(structureTotals.durationMin) : ''}
                 onChange={(e) => setField('planned_duration_min', e.target.value)}
                 className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink disabled:opacity-60"
@@ -516,7 +525,7 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
               <input
                 type="number"
                 min="0"
-                step="0.1"
+                step="any"
                 disabled={!canEditPlan || saving}
                 aria-label={form.logCompletion ? "Actual distance" : "Planned distance"} value={form.planned_distance}
                 placeholder={structureTotals.distanceKm ? kmToUnit(structureTotals.distanceKm, distanceUnit) : ''}
@@ -525,10 +534,12 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-ink/55">Estimated TSS</label>
-              <div className="rounded-2xl border border-ink/10 bg-paper px-4 py-3 font-mono text-sm text-ink/70">
+              <label className="mb-1 block text-xs text-ink/55">{libraryEdit ? 'Planned TSS' : 'Estimated TSS'}</label>
+              {libraryEdit ? <input aria-label="Planned TSS" type="number" min="0" step="any" disabled={saving}
+                value={form.planned_tss ?? ''} onChange={e=>setField('planned_tss',e.target.value)}
+                className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink"/> : <div className="rounded-2xl border border-ink/10 bg-paper px-4 py-3 font-mono text-sm text-ink/70">
                 {tssEstimate ?? '—'}
-              </div>
+              </div>}
             </div>
           </div>
 
@@ -539,7 +550,8 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
               {canEditPlan && (
                 <button
                   type="button"
-                  onClick={() => setForm((f) => ({ ...f, structure: [...f.structure, { ...emptyStep }] }))}
+                  disabled={saving}
+                  onClick={() => { dirty.current.add('structure'); setForm((f) => ({ ...f, structure: [...f.structure, { ...emptyStep, target_units: '' }] })); }}
                   className="rounded-full border border-ink/10 px-3 py-1 text-xs font-semibold text-ink/70 hover:bg-ink/5"
                 >
                   + Add step
@@ -556,33 +568,40 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
                 <StepRow
                   key={i}
                   step={step}
-                  distanceUnit={distanceUnit}
+                  onConvertPace={(unit) => changePaceUnit(i, unit)}
+                  disabled={saving}
                   onChange={(next) => updateStep(i, next)}
-                  onRemove={() => setForm((f) => ({ ...f, structure: f.structure.filter((_, j) => j !== i) }))}
+                  onRemove={() => { dirty.current.add('structure'); setForm((f) => ({ ...f, structure: f.structure.filter((_, j) => j !== i) })); }}
                 />
               ))}
             </div>
           </div>
 
+          {libraryEdit && <><label className="block text-xs text-ink/55">Tags (one per line)<textarea aria-label="Template tags (one per line)" disabled={saving}
+            value={(form.tags || []).join('\n')} onChange={e=>setField('tags',e.target.value === '' ? null : e.target.value.split('\n'))}
+            className="mt-1 w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink"/></label>
+            <p className="text-xs text-ink/60">Updates this saved template. Workouts already assigned keep their prescription.</p></>}
           {form.logCompletion && <p className="text-sm text-ink/70">Logging a completed, unplanned workout. Duration and distance record what you actually did.</p>}
           <div className="flex flex-wrap items-center gap-3">
             <button type="submit" disabled={saving} className="rounded-full bg-panel px-5 py-2.5 text-sm font-semibold text-paper disabled:opacity-60">
-              {saving ? 'Saving…' : form.logCompletion ? 'Save completed workout' : 'Save workout'}
+              {saving ? 'Saving…' : libraryEdit ? 'Save template' : form.logCompletion ? 'Save completed workout' : 'Save workout'}
             </button>
             {onSaveToLibrary && canEditPlan && (
               <button
                 type="button"
                 disabled={saving}
-                onClick={async () => {
+                onClick={async (event) => {
+                  // A fast acknowledgement can finish before the second click
+                  // in a double-click. It is still one pointer action; later
+                  // deliberate clicks and keyboard activation may create anew.
+                  if (event.detail > 1) return;
                   if (savingRef.current) return;
                   savingRef.current = true;
                   setSaving(true);
+                  setMessage('');
                   const ok = await onSaveToLibrary({
                     ...form,
-                    structure: (form.structure || []).map((step) => ({
-                      ...step,
-                      target_units: targetUnitLabel(step.target_type || 'open', distanceUnit),
-                    })),
+                    structure: form.structure,
                     planned_tss: tssEstimate,
                     planned_distance_km: unitToKm(form.planned_distance, distanceUnit),
                     planned_distance_unit: distanceUnit,
@@ -857,7 +876,7 @@ function WorkoutDetail({ workout, matchActivities = [], role, onUpdate, onEdit, 
                     {step.duration_min ? `${step.duration_min}min` : ''}
                     {step.distance_km ? ` ${step.distance_km}km` : ''}
                     {' '}@ {INTENSITY_ZONES.find((z) => z.id === step.intensity)?.label || step.intensity}
-                    {step.target_type && step.target_type !== 'open' ? ` · ${step.target_type}${step.target_min ? ` ${step.target_min}` : ''}${step.target_max ? `–${step.target_max}` : ''}${step.target_units ? ` ${step.target_units}` : ''}` : ''}
+                    {step.target_type && step.target_type !== 'open' ? ` · ${step.target_type}${step.target_min != null && step.target_min !== '' ? ` ${step.target_min}` : ''}${step.target_max != null && step.target_max !== '' ? `–${step.target_max}` : ''}${step.target_units ? ` ${step.target_units}` : ''}` : ''}
                   </span>
                   {step.notes && <span className="text-ink/50">— {step.notes}</span>}
                 </div>
@@ -1417,8 +1436,8 @@ function ProgressMeter({ label, actual, planned, formatValue, unit = '' }) {
   );
 }
 
-export default function TrainingCalendar({ athleteId = null, athleteName = '', role = 'athlete' }) {
-  const { request, today, preserveLibraryPlanMetadata } = useWorkspaceTransport();
+export default function TrainingCalendar({ athleteId = null, athleteName = '', role = 'athlete', libraryOwnerId = null }) {
+  const { request, today, preserveLibraryPlanMetadata, refreshAccount, getAccountScope } = useWorkspaceTransport();
   const calendarMutation = useCallback((url, options) => performCalendarMutation(url, { ...options, request }), [request]);
   const router = useRouter();
   const anchorMonday = useMemo(() => mondayOf(today || new Date()), [today]);
@@ -1431,12 +1450,18 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
   // Assume connected until the server says otherwise so the notice never flashes.
   const [stravaConnected, setStravaConnected] = useState(true);
   const [matchActivities, setMatchActivities] = useState([]);
-  const [library, setLibrary] = useState([]);
+  const {library,setLibrary,loaded:libraryLoaded,loading:libraryLoading,error:libraryError,reload:loadLibrary}=useWorkoutLibrary({request,enabled:role==='coach'});
+  const libraryConfirmed=useCallback((workout)=>{
+    setLibrary(previous=>[workout,...previous.filter(item=>item.id!==workout.id)]);loadLibrary();
+  },[setLibrary,loadLibrary]);
+  const libraryCreate=useLibraryCreate({coachId:libraryOwnerId,request,onConfirmed:libraryConfirmed});
   const [distanceUnitPref, setDistanceUnitPref] = useState('mi');
   const [loading, setLoading] = useState(true);
   const [loadingEarlier, setLoadingEarlier] = useState(false);
   const [error, setError] = useState('');
   const [editorInitial, setEditorInitial] = useState(null);
+  const [libraryEditor, setLibraryEditor] = useState(null);
+  useEffect(()=>setLibraryEditor(null),[libraryOwnerId,request,role]);
   const [detailId, setDetailId] = useState(null);
   const [activityDetailId, setActivityDetailId] = useState(null);
   const [dayMenuKey, setDayMenuKey] = useState(null);
@@ -1490,6 +1515,9 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
         const eventsData = await eventsRes.json();
         setEvents(eventsData.events || []);
       }
+      // Refresh shared load headers after actuals change; a failed refresh does
+      // not retry an already-committed calendar mutation.
+      if (role === 'athlete') void refreshAccount?.();
       return workoutsData;
     } catch {
       setError('Could not load the training calendar.');
@@ -1498,19 +1526,11 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
       setLoadingEarlier(false);
       extendingRef.current = false;
     }
-  }, [rangeStart, rangeEnd, athleteParam, role, request]);
+  }, [rangeStart, rangeEnd, athleteParam, role, request, refreshAccount]);
 
   useEffect(() => {
     reload();
   }, [reload]);
-
-  useEffect(() => {
-    if (role !== 'coach') return;
-    request('/api/workout-library')
-      .then((r) => (r.ok ? r.json() : { workouts: [] }))
-      .then((d) => setLibrary(d.workouts || []))
-      .catch(() => {});
-  }, [role, request]);
 
   // Distance-unit preference — new workouts default to it (per-workout choice
   // still wins on edit).
@@ -1643,16 +1663,36 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
   const deleteNote = useCallback((id) => mutateCalendar(`/api/calendar-notes?id=${encodeURIComponent(id)}`,
     { method: 'DELETE' }, () => setNoteEditor(null)), [mutateCalendar]);
   const saveEvent = useCallback((body) => mutateCalendar('/api/race-events', { body }), [mutateCalendar]);
-  const saveToLibrary = useCallback((form) => mutateCalendar('/api/workout-library', {
-    body: libraryWorkoutPayload(form, { preservePlanMetadata: preserveLibraryPlanMetadata }),
-  }, (result) => setLibrary((previous) => [result.workout, ...previous.filter((item) => item.id !== result.workout.id)])), [mutateCalendar, preserveLibraryPlanMetadata]);
+  const saveToLibrary = useCallback((form) => libraryCreate.save(
+    libraryWorkoutPayload(form, { preservePlanMetadata: preserveLibraryPlanMetadata })
+  ), [libraryCreate.save, preserveLibraryPlanMetadata]);
+  const editLibrary = useCallback(async (body) => {
+    const result = await performCalendarMutation('/api/workout-library', {method:'PATCH',body,
+      request:(url,options)=>request(url,{...options,signal:AbortSignal.timeout(15000)})});
+    if (result.ok && result.workout?.id === body.id) {
+      setLibrary(previous=>previous.map(item=>item.id === body.id ? result.workout : item));
+      loadLibrary();
+      return result;
+    }
+    return {ok:false,error:result.error || 'Template update was not confirmed. Your changes are still here; retry.'};
+  },[request,setLibrary,loadLibrary]);
   const applyLibraryWorkout = useCallback((libraryWorkoutId, date) => mutateCalendar('/api/planned-workouts', {
     body: { athlete_id: athleteId || undefined, library_workout_id: libraryWorkoutId, workout_date: date },
   }), [athleteId, mutateCalendar]);
-  const copyWeekForward = useCallback((fromWeekStartKey) => mutateCalendar('/api/planned-workouts', {
-    body: { action: 'copy_week', athlete_id: athleteId || undefined, from_week_start: fromWeekStartKey,
-      to_week_start: toDateKey(addDays(new Date(`${fromWeekStartKey}T00:00:00`), 7)) },
-  }), [athleteId, mutateCalendar]);
+  const copyRequests = useRef(null);
+  const copyWeekForward = useCallback((fromWeekStartKey) => {
+    const scope = getAccountScope?.() || 'isolated-workspace';
+    if (!copyRequests.current || copyRequests.current.scope !== scope) {
+      let storage;
+      try { storage = typeof window === 'undefined' ? undefined : window.sessionStorage; } catch {}
+      copyRequests.current = { scope, ...createCopyWeekRequests({ scope, storage }) };
+    }
+    const body = copyRequests.current.begin({ action: 'copy_week', athlete_id: athleteId || undefined,
+      from_week_start: fromWeekStartKey, to_week_start: toDateKey(addDays(new Date(`${fromWeekStartKey}T00:00:00`), 7)) });
+    return mutateCalendar('/api/planned-workouts', { body }, (result) => {
+      if (Array.isArray(result.workouts)) copyRequests.current.complete(body);
+    });
+  }, [athleteId, mutateCalendar, getAccountScope]);
 
   // ── Derived rows ───────────────────────────────────────────────────────────
 
@@ -1766,6 +1806,8 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
           onClose={() => { setEditorInitial(null); if (router.query.log === '1') selectCalendarDetail(); }}
         />
       )}
+      {libraryEditor && <WorkoutEditor key={libraryEditor.id} initial={{...libraryEditor,title:libraryEditor.name}}
+        canEditPlan libraryEdit defaultDistanceUnit={distanceUnitPref} onSave={editLibrary} onClose={()=>setLibraryEditor(null)}/>}
       {detailActivity && (
         <ActivityDetail
           key={detailActivity.id}
@@ -1864,7 +1906,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
         <div className="flex items-center gap-2">
           {role === 'coach' && (
             <button onClick={() => setLibraryOpen((v) => !v)} className={`rounded-full px-4 py-2 text-sm font-semibold ${libraryOpen ? 'bg-panel text-paper' : 'border border-ink/10 text-ink/70 hover:bg-ink/5'}`}>
-              Library ({library.length})
+              Library ({libraryLoaded ? library.length : libraryError ? 'unavailable' : 'loading'})
             </button>
           )}
           <button
@@ -1877,6 +1919,12 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
       </div>
 
       {error && <p role="alert" className="mt-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>}
+      {role==='coach'&&(libraryCreate.pending||libraryCreate.error)&&(
+        <div className="mt-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-ink">
+          <p role={libraryCreate.error?'alert':'status'}>{libraryCreate.error||'A library save is unconfirmed. Retry it safely before creating another template.'}</p>
+          {libraryCreate.pending&&<button disabled={libraryCreate.saving} onClick={libraryCreate.retry} className="mt-2 min-h-11 rounded-full border border-ink/20 px-4 py-2 font-semibold disabled:opacity-60">{libraryCreate.saving?'Confirming library save...':'Retry unconfirmed library save'}</button>}
+        </div>
+      )}
 
       {/* Without an import source, an empty calendar means "nothing synced",
           not "didn't train" — say so, so the coach doesn't read it as a bug. */}
@@ -1891,7 +1939,12 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
       {role === 'coach' && libraryOpen && (
         <div className="mt-4 rounded-[24px] border border-ink/10 bg-white p-4">
           <p className="text-xs uppercase tracking-[0.25em] text-accent">Workout library</p>
-          {!library.length ? (
+          {libraryError&&<div role="alert" className="mt-3 text-sm text-ink">
+            <p>{libraryError}</p>
+            {!!library.length&&<p>{libraryLoaded?'Showing the last loaded templates.':'Showing known templates; the total could not be verified.'}</p>}
+          </div>}
+          <button disabled={libraryLoading} onClick={loadLibrary} className="mt-3 min-h-11 rounded-full border border-ink/20 px-4 py-2 text-sm font-semibold text-ink disabled:opacity-60">{libraryLoading?'Loading library...':libraryError?'Retry library load':'Refresh library'}</button>
+          {libraryLoaded&&!libraryError&&!library.length ? (
             <p className="mt-3 text-sm text-ink/55">No saved workouts yet. Open a workout and use “Save to library”.</p>
           ) : (
             <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -1899,6 +1952,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
                 <LibraryCard
                   key={item.id}
                   item={item}
+                  onEdit={()=>setLibraryEditor(item)}
                   onApply={(date) => applyLibraryWorkout(item.id, date)}
                   onDelete={async () => {
                     return mutateCalendar(`/api/workout-library?id=${encodeURIComponent(item.id)}`, { method: 'DELETE' }, () => setLibrary((prev) => prev.filter((x) => x.id !== item.id)));
@@ -2184,6 +2238,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
                       onClick={() => copyWeekForward(week.key)}
                       className="mt-2 rounded-full border border-ink/10 px-2 py-1 text-[10px] font-semibold text-ink/60 hover:bg-ink/5"
                       title="Copy this week's workouts to next week"
+                      aria-label="Copy week to next week"
                     >
                       Copy → next wk
                     </button>
@@ -2194,7 +2249,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
               {/* Mobile week summary */}
               <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl bg-white/60 px-3 py-1.5 text-[11px] text-ink/60 lg:hidden">
                 {role === 'coach' && week.summary.totalCount > 0 && (
-                  <button onClick={() => copyWeekForward(week.key)}
+                  <button onClick={() => copyWeekForward(week.key)} aria-label="Copy week to next week"
                     title="Copy this week's workouts to next week"
                     className="min-h-11 rounded-full border border-ink/10 px-3 py-2 font-semibold text-ink/70 hover:bg-ink/5">
                     Copy week to next week
@@ -2223,7 +2278,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
   );
 }
 
-function LibraryCard({ item, onApply, onDelete }) {
+function LibraryCard({ item, onApply, onDelete, onEdit }) {
   const { today } = useWorkspaceTransport();
   const [date, setDate] = useState(toDateKey(today || new Date()));
   const [busy, setBusy] = useState(false);
@@ -2247,10 +2302,12 @@ function LibraryCard({ item, onApply, onDelete }) {
         {[
           fmtDuration(item.planned_duration_min),
           formatDistance(item.planned_distance_km, item.planned_distance_unit),
-          item.planned_tss ? `TSS ${Math.round(item.planned_tss)}` : null,
+          item.planned_tss != null ? `TSS ${Math.round(item.planned_tss)}` : null,
         ].filter(Boolean).join(' · ') || 'No targets'}
       </p>
       <div className="mt-2 flex gap-2">
+        <button disabled={busy} aria-label={`Edit ${item.name} in library`} onClick={onEdit}
+          className="min-h-11 rounded-lg border border-ink/15 px-2 text-xs font-semibold text-panel">Edit</button>
         <input aria-label="Add library workout on" disabled={busy} type="date" value={date} onChange={(e) => setDate(e.target.value)} className="flex-1 rounded-lg border border-ink/10 bg-white px-2 py-1 text-xs text-ink" />
         <button disabled={busy || !date} onClick={apply} className="rounded-lg bg-panel px-3 py-1 text-xs font-semibold text-paper">{busy ? 'Adding…' : 'Add'}</button>
       </div>

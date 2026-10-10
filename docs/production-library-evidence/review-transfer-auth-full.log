@@ -1,0 +1,636 @@
+
+> threshold@0.1.0 test:auth:full
+> node --test tests/auth-smoke.test.mjs tests/auth-regression.test.mjs tests/auth-oauth-regression.test.mjs tests/auth-password-reset.test.mjs tests/role-access.test.mjs tests/research-admin.test.mjs tests/pilot-entitlements.test.mjs tests/billing-plans.test.mjs tests/billing-flow.test.mjs tests/coach-group-membership.test.mjs tests/coach-invitation-api.test.mjs tests/coach-invitation-migration.test.mjs tests/protocol-lifecycle.test.mjs tests/delete-account.test.mjs tests/workout-compliance.test.mjs tests/training-calculations.test.mjs tests/training-insights.test.mjs tests/coach-import-health.test.mjs tests/stream-analysis.test.mjs tests/admin-demo.test.mjs tests/activity-sync.test.mjs tests/strava-lifecycle.test.mjs tests/workout-comments.test.mjs tests/readiness.test.mjs tests/billing-webhook.test.mjs tests/billing-webhook-sql.test.mjs tests/account-data.test.mjs tests/staging-safety.test.mjs tests/subscription-tiers.test.mjs tests/volume-trends.test.mjs tests/daily-loop.test.mjs tests/workout-match.test.mjs tests/message-lifecycle.test.mjs tests/ai-deferral.test.mjs tests/pilot-release.test.mjs tests/pilot-release-api.test.mjs tests/workout-library.test.mjs tests/workspace-transport-integration.test.mjs
+
+(node:31652) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/accountExport.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[delete-account] Stripe cleanup failed: { code: undefined }
+[delete-account] Failed clearing invites.created_by: { code: undefined }
+[delete-account] Auth user deletion failed: { code: undefined }
+[delete-account] Failed clearing invites.created_by: { code: '42501' }
+Γ£ö archive redacts nested credentials while preserving training values and notes (1.8007ms)
+Γ£ö archive paginates every personal table, scopes to signed owner and handles settings primary key (2.5273ms)
+Γ£ö missing optional feature tables are named in the archive; other database failures stop download (0.6366ms)
+Γ£ö export rejects cross origin before client access and expired sessions before record reads (0.9973ms)
+Γ£ö deletion verifies current session revocation before any provider or data mutation (1.0401ms)
+Γ£ö deletion rejects cross origin before any provider or data mutation (0.3423ms)
+Γ£ö failed billing cleanup blocks data deletion, preserves account and sanitizes errors (0.6331ms)
+Γ£ö successful deletion stops billing before any training mutation and clears session (0.9253ms)
+Γ£ö database deletion failure is sanitized and does not claim success (0.6383ms)
+Γ£ö external sign-in cleanup failure is explicit after data removal (0.9548ms)
+Γ£ö deletion tolerates PostgREST missing optional tables/columns but not permission failures (1.9989ms)
+(node:27632) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/activitySync.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö an evening session is stored on the athlete local day, not the UTC day (2.5305ms)
+Γ£ö local day falls back to the UTC offset when Strava omits the local start (0.4103ms)
+Γ£ö local day is null when the activity carries no usable timestamp (0.2921ms)
+Γ£ö the upsert key is the athlete plus the provider id as text (0.3086ms)
+Γ£ö week-rail fields survive the mapping (0.2679ms)
+Γ£ö missing numeric fields become null rather than NaN (0.2539ms)
+Γ£ö load scoring rates a hard session above easy volume of the same length (0.1568ms)
+Γ£ö a zero-duration activity scores no load instead of dividing by zero (0.1212ms)
+Γ£ö an activity without heart rate still scores on duration (0.1372ms)
+Γ£ö compliance keys an activity on its local day, not the UTC day (1.6402ms)
+Γ£ö an unplanned evening activity matches a plan on the day it was actually run (0.5395ms)
+(node:1856) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/adminDemo.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö isKnownTier accepts only real tiers (0.961ms)
+Γ£ö canOverrideTier blocks accounts owned by an active Stripe subscription (0.2329ms)
+Γ£ö set-tier rejects non-POST before touching the database (0.3566ms)
+Γ£ö demo passwords clear the signup minimum and never repeat (0.5749ms)
+Γ£ö demo seed: race sits in the future and everything points at it (2.1422ms)
+Γ£ö demo seed: interventions cover ~5 weeks of history with valid rows (0.7706ms)
+Γ£ö demo seed: calendar has completed history and a planned future block (0.5243ms)
+Γ£ö partitionDemoRows keeps demo accounts out of health stats (0.8257ms)
+Γ£ö demo account emails are reserved-TLD addresses (0.2258ms)
+(node:11548) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/pages/api/exa/race-search.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö deferred routes reject every signed caller before provider or generation work, despite client and environment overrides (6.8488ms)
+Γ£ö deferred routes retain authentication and method boundaries (0.6393ms)
+Γ£ö direct provider and draft entry points fail closed for future jobs without network traffic or speculative summaries (1.3535ms)
+(node:32596) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/auth/oauth.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö extracts access token from hash callback (0.9483ms)
+Γ£ö does not parse hash token when code flow is present (0.2093ms)
+Γ£ö returns null when neither STRAVA_REDIRECT_URI nor NEXT_PUBLIC_SITE_URL is set (0.2156ms)
+Γ£ö builds strava callback from NEXT_PUBLIC_SITE_URL when STRAVA_REDIRECT_URI is unset (1.1787ms)
+(node:17880) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/auth/contracts.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö password policy rejects the passwords that get guessed first (1.3853ms)
+Γ£ö a password cannot contain the email it protects (0.2217ms)
+Γ£ö a long passphrase passes (0.1244ms)
+Γ£ö strength score rises with length and variety (0.3886ms)
+Γ£ö next= only accepts same-site paths (0.3067ms)
+Γ£ö next= refuses to send anyone off-site (0.1771ms)
+Γ£ö next= cannot bounce back into the auth screens (0.145ms)
+Γ£ö post-auth destinations preserve public checkout but reject coach checkout (1.2217ms)
+Γ£ö onboarding keeps safe checkout intent through ordinary and Strava auth (0.396ms)
+Γ£ö every rate-limited action has both an identifier and an IP budget (0.2827ms)
+Γ£ö identifiers are bucketed case-insensitively (0.1341ms)
+Γ£ö client IP prefers the proxy headers in order (0.1764ms)
+Γ£ö coach codes are cryptographically random and unambiguous (183.3614ms)
+Γ£ö coach code falls back to a usable prefix for odd display names (0.4121ms)
+(node:27508) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/auth/contracts.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö athlete id validation only allows UUID (7.2323ms)
+Γ£ö set/clear cookie and parse athlete id (1.8684ms)
+Γ£ö session cookie signature is enforced (0.5791ms)
+Γ£ö session tokens expire server-side (0.3026ms)
+Γ£ö session version is carried so revocation can be detected (0.3942ms)
+Γ£ö an active session slides forward but a fresh one is left alone (0.259ms)
+Γ£ö role guards protect coach/admin routes (0.314ms)
+Γ£ö non-post auth requests are rejected (0.1729ms)
+Γ£ö logout clears cookie and returns ok (0.949ms)
+Γ£ö admin impersonation resolves the target id on GET only (3.0301ms)
+Γ£ö a session whose version no longer matches the athlete row is rejected (0.6437ms)
+Γ£ö resolveEffectiveAthleteId fails closed when the athlete row cannot be read (0.3219ms)
+Γ£ö a forged (unsigned) view_as cookie is treated as self (0.2976ms)
+Γ£ö a validly signed view_as cookie is ignored for non-admins (demoted admin) (0.2557ms)
+Γ£ö view_as values expire after their signed window (0.3293ms)
+Γ£ö tampering with the view_as payload invalidates it (0.1586ms)
+Γ£ö no API route reads the athlete_id cookie without signature verification (19.2007ms)
+Γ£ö no API route uses the anon Supabase client (19.3092ms)
+Γ£ö coach tables are never queried with the public anon key (11.1216ms)
+(node:13644) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/pages/api/set-invite-cookie.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö athlete login contract rejects non-POST requests with actionable message (0.9582ms)
+Γ£ö coach role detection continues to work for coach login gating (0.3368ms)
+Γ£ö protected routes include critical post-login destinations (0.1474ms)
+Γ£ö invite acceptance entrypoint fails fast for malformed requests (0.2402ms)
+Γ£ö strava login redirect uses callback URI and fails with clear error when not configured (0.3199ms)
+Γ£ö strava redirect uri uses NEXT_PUBLIC_SITE_URL when STRAVA_REDIRECT_URI is unset (0.3289ms)
+(node:33408) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/billingFlow.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[billing/checkout] failed: { type: 'Error', code: undefined }
+[billing/sync] failed: { type: undefined, code: undefined }
+[billing/preview] failed: { type: 'Error', code: undefined }
+[billing/preview] failed: { type: 'Error', code: undefined }
+[billing/preview] failed: { type: 'Error', code: undefined }
+[billing/checkout] failed: { type: undefined, code: undefined }
+[billing/preview] failed: { type: 'Error', code: undefined }
+[billing/preview] failed: { type: 'Error', code: undefined }
+Γ£ö legacy checkout GET is a read-only redirect with no auth, Stripe, or database calls (2.5731ms)
+Γ£ö server portal configuration applies to management and reviewed plan changes; request cannot override it (1.8453ms)
+Γ£ö checkout: rejects cross origin before billing access (0.2307ms)
+Γ£ö checkout: rejects missing origin before billing access (0.1309ms)
+Γ£ö checkout: rejects null origin before billing access (0.1773ms)
+Γ£ö checkout: rejects cross-site fetch before billing access (0.1704ms)
+Γ£ö checkout: rejects form post before billing access (0.1983ms)
+Γ£ö checkout: unsupported method rejected before Stripe access (0.1809ms)
+Γ£ö checkout: unauthenticated request rejected (0.2208ms)
+Γ£ö portal: rejects cross origin before billing access (0.2185ms)
+Γ£ö portal: rejects missing origin before billing access (0.1025ms)
+Γ£ö portal: rejects null origin before billing access (0.1015ms)
+Γ£ö portal: rejects cross-site fetch before billing access (0.0757ms)
+Γ£ö portal: rejects form post before billing access (0.0803ms)
+Γ£ö portal: unsupported method rejected before Stripe access (0.0519ms)
+Γ£ö portal: unauthenticated request rejected (0.0672ms)
+Γ£ö coach plan remains unavailable before authentication and Stripe calls (0.221ms)
+Γ£ö Core to Pro upgrade requires hosted confirmation without changing the saved tier (0.447ms)
+Γ£ö Pro to Core downgrade requires hosted confirmation without changing the saved tier (0.4407ms)
+Γ£ö preview shows server price and never creates sessions or writes entitlement (0.3779ms)
+Γ£ö upgrade opens explicit hosted confirmation; no subscription mutation or tier write (0.4187ms)
+Γ£ö downgrade opens explicit hosted confirmation; no subscription mutation or tier write (0.3957ms)
+Γ£ö repeat submission of one review reuses the Stripe idempotency key and parameters (0.9036ms)
+Γ£ö same plan opens management without a plan-change flow (0.3319ms)
+Γ£ö tampered review cannot start billing (0.3417ms)
+Γ£ö expired review cannot start billing (0.2737ms)
+Γ£ö other account review cannot start billing (0.252ms)
+Γ£ö price changed review cannot start billing (0.2588ms)
+Γ£ö subscription changed review cannot start billing (0.189ms)
+Γ£ö failed provider call is sanitized and cannot grant paid access (0.6572ms)
+Γ£ö unfinished checkout is reused rather than creating another (0.3929ms)
+Γ£ö customer is persisted before a new checkout and no customer is discovered by email (0.4521ms)
+Γ£ö portal refuses missing linked customer instead of searching by email (6.8001ms)
+Γ£ö sync cannot restore a logged-out session from pending cookies (0.8041ms)
+Γ£ö sync rejects missing owner checkout before entitlement writes (0.3542ms)
+Γ£ö sync rejects other owner checkout before entitlement writes (2.8922ms)
+Γ£ö sync rejects incomplete checkout before entitlement writes (0.2302ms)
+Γ£ö sync rejects unpaid checkout before entitlement writes (0.0871ms)
+Γ£ö sync rejects wrong customer checkout before entitlement writes (0.0966ms)
+Γ£ö sync rejects wrong subscription owner checkout before entitlement writes (0.2002ms)
+Γ£ö sync writes verified current price, preserving past_due grace; stale metadata cannot select tier (1.5806ms)
+Γ£ö sync database failure is retryable and sanitized (0.6824ms)
+Γ£ö unknown current price cannot gain access from arbitrary metadata (0.1789ms)
+Γ£ö sync: cross origin rejected before any billing access (0.1351ms)
+Γ£ö sync: missing origin rejected before any billing access (0.0603ms)
+Γ£ö sync: form content rejected before any billing access (0.2717ms)
+Γ£ö incomplete subscription cannot accidentally start a second subscription (0.7187ms)
+Γ£ö unpaid subscription cannot accidentally start a second subscription (0.3138ms)
+Γ£ö paused subscription cannot accidentally start a second subscription (0.3637ms)
+Γ£ö pending checkout for another plan cannot start a duplicate (0.7631ms)
+Γ£ö separate concurrent reviews in one window share the new-checkout key (0.7499ms)
+Γ£ö failed customer persistence stops checkout (0.6995ms)
+Γ£ö multi-item or multi-quantity subscriptions fail closed (0.7933ms)
+Γ£ö return URLs use configured origin and ignore attacker-controlled forwarded hosts (0.5191ms)
+(node:13396) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/billingPlans.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö Stripe price ids are trimmed before checkout and tier lookup (1.9145ms)
+Γ£ö public signup resumes only current athlete checkout plans (0.2826ms)
+Γ£ö legacy subscriptions resolve to their successor tiers (0.4402ms)
+Γ£ö new plan prices resolve to their tiers (0.3117ms)
+(node:18748) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/pages/api/billing/webhook.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö real PostgreSQL: durable duplicate receipt, exclusive customer lease, atomic entitlement write (3451.0229ms)
+Γ£ö real PostgreSQL: foreign-owner finish rolls back receipt and entitlement, then can retry (2497.5155ms)
+Γ£ö real PostgreSQL: expired worker cannot overwrite a reclaimed lease (2470.8904ms)
+Γ£ö real PostgreSQL: release after processing failure allows immediate retry (2555.2296ms)
+Γ£ö real PostgreSQL: missing/unknown tier cannot erase entitlement or acknowledge a receipt (3314.1781ms)
+Γ£ö real PostgreSQL: anon/authenticated cannot execute billing RPCs or read receipts; service role can (3062.3773ms)
+Γ£ö real PostgreSQL: migration rerun preserves processed receipts and security (2990.0509ms)
+Γ£ö signed webhook integrates with real PostgreSQL receipts, current-state updates and lease retry (2768.7997ms)
+(node:26824) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/pages/api/billing/webhook.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[billing/webhook] processing failed: { code: undefined, type: 'Error' }
+[billing/webhook] processing failed: { code: 'db_failure', type: undefined }
+Γ£ö signed older cancellation reconciles CURRENT subscription instead of downgrading from event snapshot (10.1052ms)
+Γ£ö signed duplicate event is durable and does not reread provider or rewrite entitlement (2.8636ms)
+Γ£ö invalid signature denied before any provider or database work (1.28ms)
+Γ£ö customer lease contention is retryable (3.0349ms)
+[billing/webhook] processing failed: { code: undefined, type: 'Error' }
+Γ£ö provider failure returns 503, leaves receipt pending, and retry succeeds (2.1354ms)
+Γ£ö database failure returns 503, leaves receipt pending, and retry succeeds (1.8974ms)
+Γ£ö unsettled checkout completion does not grant access; later async success settles it (5.3458ms)
+Γ£ö asynchronous failed payment reconciles an incomplete subscription without granting paid access (1.3963ms)
+Γ£ö invoice.payment_failed reconciles status and preserves established past_due grace (1.3698ms)
+Γ£ö invoice.paid reconciles status and preserves established past_due grace (1.0546ms)
+Γ£ö foreign subscription owner fails closed and remains retryable (1.0473ms)
+Γ£ö unrelated signed event acknowledged without subscription reconciliation (1.1004ms)
+(node:17900) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/coach/groupMembership.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö group membership transition adds without duplication (1.3938ms)
+Γ£ö group membership transition removes target group and keeps others (0.215ms)
+Γ£ö membership transition handles empty and missing inputs safely (0.1314ms)
+Γ£ö group member counts are computed consistently for dashboard and groups page (1.3829ms)
+(node:22368) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/importHealth.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö classifyImportJob buckets each known status (7.6072ms)
+Γ£ö classifyImportJob normalizes case and routes unknown statuses to unknown (0.1945ms)
+Γ£ö latestJobPerAthlete picks the newest job per athlete (0.205ms)
+Γ£ö latestJobPerAthlete handles empty and malformed input (0.605ms)
+Γ£ö a newer successful job supersedes an old failure (0.221ms)
+Γ£ö summarizeImportHealth counts every bucket including not-started athletes (0.5356ms)
+Γ£ö summarizeImportHealth with empty roster returns all zeros (0.2891ms)
+Γ£ö buildAthleteImportHealth exposes error message only for failed jobs (0.2963ms)
+Γ£ö buildAthleteImportHealth carries the followup timestamp (0.1543ms)
+Γ£ö canSendFollowup allows only completed jobs with unmapped items and no prior followup (0.3052ms)
+Γ£ö canSendFollowup rejects each ineligible case with a reason (0.3951ms)
+(node:26660) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/pages/api/coach/accept-invitation.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[coach invitation] email was not delivered {
+  invitationId: 'coach_invitations-1',
+  deliveryStatus: 'failed',
+  failureCategory: 'provider_rejected'
+}
+[coach invitation] email was not delivered {
+  invitationId: 'coach_invitations-1',
+  deliveryStatus: 'skipped',
+  failureCategory: 'not_configured'
+}
+Γ£ö canonical invitation return paths survive auth without opening an external redirect (1.1551ms)
+Γ£ö coach invitation API previews invalid, expired, used, and already-accepted states (1.2364ms)
+Γ£ö accepting an invitation activates the coach roster, athlete coach list, and invitation (2.3936ms)
+Γ£ö invitation acceptance rejects the wrong signed-in account without creating a relationship (0.3547ms)
+Γ£ö coach invitation email contains coach identity, purpose, expiry, and canonical URL (35.0715ms)
+Γ£ö missing email configuration is distinguishable from a delivered invitation (0.4686ms)
+Γ£ö provider rejection returns only a safe delivery failure category (0.7897ms)
+Γ£ö successful invitation delivery is persisted and survives a GET refresh (1.2097ms)
+Γ£ö provider failure is persisted, survives refresh, and stays separate from revocation (1.043ms)
+Γ£ö unconfigured email delivery is persisted as skipped and survives a GET refresh (0.6546ms)
+Γ£ö Command Center keeps an explicit one-click copy fallback and honest delivery copy (1.0107ms)
+Γ£ö coach invitation delivery migration keeps lifecycle and delivery state separate (1.8537ms)
+(node:2492) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/workoutValidation.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö completion accepts partial actuals and rejects invalid scores, negative values and impossible dates (1.9746ms)
+Γ£ö later imports cannot fill unknown manual actuals or consume an explicitly linked activity twice (0.7651ms)
+Γ£ö calendar failures resolve with actionable errors and success preserves the returned record (23.5586ms)
+Γ£ö message cursor rejects filter injection and supports timestamp ties (0.5781ms)
+Γ£ö message retries return the original only for the same conversation, role and body (0.5847ms)
+Γ£ö message pages are bounded, ordered chronologically and carry a stable next cursor (0.4244ms)
+Γ£ö history refresh retains older messages and deduplicates new replies (23.4333ms)
+(node:10944) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/pages/api/delete-account.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö rejects non-DELETE methods (1.0914ms)
+Γ£ö rejects unauthenticated requests (0.3334ms)
+Γ£ö rejects a forged unsigned athlete_id cookie (0.2423ms)
+Γ£ö rejects wrong confirmation text before touching the database (0.6745ms)
+Γ£ö orphan deletion list covers the non-cascading tables (0.2997ms)
+(node:30608) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/pages/api/coach/messages.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö signed API persists message + notification atomically, retries once, and rejects changed replay or revoked relationship (3481.9016ms)
+Γ£ö outbox failure rolls back the entire send and preserves its saved draft for retry (2946.8567ms)
+Γ£ö drafts survive new signed requests, fence stale tabs, replay a lost save, and clear only the successfully sent draft (2752.2874ms)
+Γ£ö drafts, preferences and messages reject unauthenticated, revoked sessions, cross origin and foreign athlete before a write (2859.927ms)
+Γ£ö SQL summary counts unread beyond 1000 direct messages and 120 comments while bounding previews and excluding revoked athletes (3143.6814ms)
+Γ£ö preferences are owned and durable; badge opt-out preserves unread counts and email starts disabled (3193.6408ms)
+Γ£ö queue claims one lease, fences stale workers, retries outage, and suppresses read, disabled or revoked notifications (2994.7063ms)
+Γ£ö worker authenticates before database access and provider acceptance is saved without returning recipient details (2711.0719ms)
+[email] Resend rejected the send: 408 New message in Threshold
+[email] Resend rejected the send: 409 New message in Threshold
+[email] Resend rejected the send: 429 New message in Threshold
+[email] Resend rejected the send: 503 New message in Threshold
+[email] Resend rejected the send: 422 New message in Threshold
+[email] Resend rejected the send: 403 New message in Threshold
+Γ£ö new tables and actor-parameter functions are service-role-only; account deletion cascades private drafts and delivery records (2204.2887ms)
+Γ£ö notification sender uses a stable provider idempotency key and generic private-content-free email (29.7282ms)
+Γ£ö provider throttling, concurrent retries and outages remain retryable; invalid requests fail permanently (5.205ms)
+Γ£ö queue bounds uncertain provider retries and suppresses unverified recipients and expired jobs (1800.2898ms)
+(node:29472) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/pilotEntitlements.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö entitlement matrix: free athlete (1.8799ms)
+Γ£ö entitlement matrix: pilot linked (0.8189ms)
+Γ£ö entitlement matrix: paid coach linked (1.1671ms)
+Γ£ö entitlement matrix: pending (0.2132ms)
+Γ£ö entitlement matrix: paused (0.1872ms)
+Γ£ö entitlement matrix: removed (0.1958ms)
+Γ£ö entitlement matrix: expired status (0.1549ms)
+Γ£ö entitlement matrix: free coach linked (0.298ms)
+Γ£ö entitlement matrix: independently paid (0.1452ms)
+Γ£ö entitlement matrix: research linked (0.2595ms)
+Γ£ö revoked, future and expired pilot grants fail; relationship removal and expiry fail (2.6582ms)
+Γ£ö Stripe-owned canceled coach and athlete lose paid entitlement; grace status remains (0.3555ms)
+Γ£ö each entitlement lookup failure is explicit; independent paid access needs no coach lookup (0.7919ms)
+Γ£ö seven consecutive controlled dates save through real handler; revocation restores cap and preserves history (5.1476ms)
+Γ£ö free athlete can submit three, fourth blocked; pilot claims cannot unlock other interventions (1.4964ms)
+Γ£ö check-in rate limit and dependency failure apply to paid athletes without writes (0.5913ms)
+Γ£ö entitlement errors stop check-in writes and forged/revoked sessions are rejected (0.5564ms)
+Γ£ö role and profile alone cannot activate pilot, paid, or administrator access (0.8416ms)
+Γ£ö pilot administration GET: non-admin null cannot read or provision grants (0.2783ms)
+Γ£ö pilot administration GET: non-admin 11111111-1111-4111-8111-111111111111 cannot read or provision grants (0.3346ms)
+Γ£ö pilot administration GET: non-admin 22222222-2222-4222-8222-222222222222 cannot read or provision grants (0.1744ms)
+Γ£ö pilot administration POST: non-admin null cannot read or provision grants (0.0954ms)
+Γ£ö pilot administration POST: non-admin 11111111-1111-4111-8111-111111111111 cannot read or provision grants (0.1781ms)
+Γ£ö pilot administration POST: non-admin 22222222-2222-4222-8222-222222222222 cannot read or provision grants (0.1762ms)
+Γ£ö administrator grant, repeat, read, revoke, repeat revoke and renew keep one record and preserve role/billing (1.2647ms)
+Γ£ö pilot provisioning rejects cross-origin, invalid expiry, wrong method and revoked administrator session (0.5517ms)
+Γ£ö pilot coach cannot use research administration GET (0.3855ms)
+Γ£ö pilot coach cannot use research administration POST (0.1475ms)
+Γ£ö pilot coach cannot use research administration PUT (0.1181ms)
+Γ£ö pilot coach cannot use research administration DELETE (0.1191ms)
+Γ£ö release verifier uses only authenticated GET and zero-row table probes (56.1289ms)
+Γ£ö missing RPC, unavailable Data API and unexpected rows fail closed without provider details (3.8868ms)
+Γ£ö invalid configuration does not touch the network (1.0239ms)
+(node:30548) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/pages/api/coach/messages.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö hosted version conflicts use PT409 without the transient serialization retry code (4295.672ms)
+Γ£ö exact prerequisite, workout and messaging migrations work together with native private grants (2942.9437ms)
+Γ£ö schema readiness detects lost functions, client grants, RLS and unique match index (2735.814ms)
+Γ£ö repair collision stops instead of rewriting existing message or document history (3646.541ms)
+Γ£ö operator preflight executes read-only after release and reports schema ready (3346.506ms)
+Γ£ö shared documents persist through coach/athlete handlers and revoke access with relationship/session (3372.4239ms)
+Γ£ö document dependency failures return retryable safe errors (3.2075ms)
+Γ£ö group membership persists, retries without duplicates, and rejects foreign or revoked athletes (2915.6551ms)
+(node:25516) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/coachProtocols.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö validateProtocolWindow enforces valid date ranges (1.6355ms)
+Γ£ö hasDateWindowOverlap detects assignment conflicts (0.2024ms)
+Γ£ö isActiveProtocolStatus only flags active lifecycle states (0.1443ms)
+Γ£ö structured race loads without querying undocumented legacy athlete columns (0.9899ms)
+Γ£ö absent legacy race columns allow an empty summary; legacy records remain supported (0.6744ms)
+Γ£ö legacy race permission failures are not misreported as missing columns (0.3929ms)
+(node:34136) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/pages/api/ready.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö liveness stays independent of dependencies (2.0767ms)
+Γ£ö ready: healthy database returns 200 with no alert (1.1046ms)
+Γ£ö reachable database with missing release schema returns 503 without leaking metadata (1.4326ms)
+Γ£ö HEAD performs the same dependency readiness checks (0.6196ms)
+Γ£ö not ready: database error returns 503, alerts, and leaks no provider detail (0.4546ms)
+Γ£ö not ready: thrown client error is contained (0.477ms)
+Γ£ö not ready: missing configuration is reported as unconfigured (0.3561ms)
+Γ£ö not ready: a hung database is cut off at the time bound (61.5114ms)
+Γ£ö non-GET methods are rejected without touching dependencies (3.1641ms)
+Γ£ö runCheck reports latency (0.2995ms)
+Γ£ö default client requires the service-role key, so misconfiguration is not reported as an outage (0.4575ms)
+(node:8240) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/pages/api/research-library/admin.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö GET: anonymous denied before any privileged research access (2.3847ms)
+Γ£ö GET: athlete denied before any privileged research access (1.5622ms)
+Γ£ö GET: coach denied before any privileged research access (0.4043ms)
+Γ£ö GET: canonical administrator preserves legitimate operation (0.6185ms)
+Γ£ö GET: administrator lookup failure denies research access (0.4452ms)
+Γ£ö POST: anonymous denied before any privileged research access (0.1609ms)
+Γ£ö POST: athlete denied before any privileged research access (0.3306ms)
+Γ£ö POST: coach denied before any privileged research access (0.2266ms)
+Γ£ö POST: canonical administrator preserves legitimate operation (1.6032ms)
+Γ£ö POST: administrator lookup failure denies research access (0.4182ms)
+Γ£ö PUT: anonymous denied before any privileged research access (0.1788ms)
+Γ£ö PUT: athlete denied before any privileged research access (0.2179ms)
+Γ£ö PUT: coach denied before any privileged research access (0.2064ms)
+Γ£ö PUT: canonical administrator preserves legitimate operation (0.2866ms)
+Γ£ö PUT: administrator lookup failure denies research access (0.2467ms)
+Γ£ö DELETE: anonymous denied before any privileged research access (0.1395ms)
+Γ£ö DELETE: athlete denied before any privileged research access (0.1678ms)
+Γ£ö DELETE: coach denied before any privileged research access (0.142ms)
+Γ£ö DELETE: canonical administrator preserves legitimate operation (0.1759ms)
+Γ£ö DELETE: administrator lookup failure denies research access (0.1227ms)
+(node:12412) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/auth/roleGuards.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö primary experience, coach capability, paid entitlement, and admin authorization stay separate (3.9618ms)
+Γ£ö coach profile creation and interaction mode stay server-authorized (0.3892ms)
+Γ£ö server coach guards deny athletes and enforce the active athlete relationship (4.0581ms)
+Γ£ö documented signup roles map only to athlete or coach primary experience (0.8156ms)
+Γ£ö coach invitations deterministically force athlete signup intent (8.5982ms)
+Γ£ö role intent endpoint rejects forged values and stores only validated httpOnly intent (0.9529ms)
+Γ£ö email, Google, Strava, verification, and callback paths carry server role intent (6.1853ms)
+Γ£ö role migration is idempotent, conservative, and leaves admin/subscription fields alone (22.5894ms)
+Γ£ö coach APIs cannot implicitly create coach profiles (30.9561ms)
+Γ£ö coach-capable athlete mode can explicitly enter coaching message flows (0.8192ms)
+Γ£ö protected coach handlers use the canonical access helper (1.4841ms)
+Γ£ö athlete data coach actions require an active relationship (0.6394ms)
+Γ£ö /api/me returns persisted role and server-derived capabilities (0.2546ms)
+Γ£ö desktop and mobile navigation are role-aware without hiding athlete training from coaches (0.4296ms)
+(node:22736) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/stagingSafety.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö demo writes require explicit opt-in even on localhost (0.9987ms)
+Γ£ö production and preview pointing at the real database cannot seed (0.3008ms)
+Γ£ö remote staging must match an explicitly isolated project reference exactly (0.2557ms)
+Γ£ö POST: seed guard denies before any service-role access (0.5782ms)
+Γ£ö DELETE: seed guard denies before any service-role access (0.2021ms)
+(node:28508) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/strava.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö SQL import is exclusive, idempotent and atomically stamps successful history (4174.2354ms)
+Γ£ö SQL foreign-owner batch rolls back activity writes and successful stamps (2827.5225ms)
+Γ£ö SQL deletion event removes comments and fences a running import from recreating private/deleted data (2845.6789ms)
+Γ£ö SQL disconnect removes provider credentials and history, and stale imports cannot reappear (4203.6572ms)
+Γ£ö SQL failure cooldown retains the last successful timestamp and blocks repeated provider requests (3836.1246ms)
+Γ£ö all lifecycle RPCs deny anonymous and authenticated roles; service role can claim (3953.4171ms)
+Γ£ö pagination fetches complete batches and rejects a full final page instead of claiming complete history (4.2987ms)
+Γ£ö public sync failures never reveal raw provider messages, tokens or legacy stored errors (0.6877ms)
+Γ£ö manual sync and disconnect reject cross-origin and anonymous access before provider calls (3.1233ms)
+Γ£ö disconnect protects Strava-only sign-in; failed provider revocation reports separate local cleanup (5.5937ms)
+Γ£ö revoked Threshold session cannot disconnect or import (6.626ms)
+Γ£ö webhook validates both path secret and subscription; challenge does not touch database (5.8118ms)
+Γ£ö returning Strava OAuth preserves paid tier, saved name and primary role (4.2372ms)
+Γ£ö callback requires granted activity scope and rejects revoked Threshold sessions (2.0687ms)
+Γ£ö callback requires explicit disconnect before linking a different Strava identity (0.8448ms)
+Γ£ö refresh worker is inert without a configured secret and denies callers before database access (0.4989ms)
+Γ£ö production and external hosts cannot receive credentials through the local provider fixture override (0.3801ms)
+Γ£ö webhook queue refreshes older activities, deduplicates events and preserves unprocessed edits (2593.9379ms)
+(node:26520) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/streamAnalysis.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö constant pace and HR: drift Γëê 0 and decoupling Γëê 0 (12.7348ms)
+Γ£ö constant pace with HR ramping 140ΓåÆ155 shows positive drift and decoupling (7.4007ms)
+Γ£ö interval-shaped pace is rejected by the steadiness gate (1.9117ms)
+Γ£ö a 20-minute activity is too short to score (0.6364ms)
+Γ£ö gaps and missing HR samples never produce NaN (3.0962ms)
+Γ£ö non-run sports and missing streams return null, not a crash (0.7811ms)
+Γ£ö Z2 comparison appears only when settings provide a ceiling (5.73ms)
+Γ£ö negative drift (downhill back half) is preserved, not clamped (2.3757ms)
+Γ£ö resamplePoints drops stopped samples and computes fallback velocity (0.6784ms)
+Γ£ö computeDecoupling and computeHrDrift return invalid on tiny inputs (0.2383ms)
+(node:27320) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/subscriptionTiers.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö legacy tiers map forward to at least what the subscriber paid for (1.0756ms)
+Γ£ö each tier strictly includes the tier below it (0.2796ms)
+Γ£ö free gets trackers only; core adds trends; pro adds advanced analytics (0.8119ms)
+Γ£ö coach essentials hides advanced metrics; coach pro includes them (0.1888ms)
+Γ£ö AI features are announced but granted to no tier (0.2037ms)
+Γ£ö paid-coach link grants Core; pilot grant adds coach tools only (0.2759ms)
+Γ£ö check-in caps: free capped, paid uncapped, lapsed paid capped when entitlement says so (0.1876ms)
+Γ£ö entitlement lookup: paid coach link grants Core, pilot link does not (2.6805ms)
+Γ£ö both coach tiers count as paid coach capability (0.3796ms)
+(node:31928) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/activityInsights.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö easy run with HR but no configured zones is NOT classified as intervals (3.2744ms)
+Γ£ö run titled with interval language classifies as Intervals (0.6594ms)
+Γ£ö interval keyword does not fire on substrings (1.1219ms)
+Γ£ö high HR counts as intervals only when zone 4 is configured (0.5029ms)
+Γ£ö zones derived from max/resting HR classify threshold runs (0.2761ms)
+Γ£ö long runs are still detected by distance (0.2567ms)
+Γ£ö TRIMP scales with intensity and duration (0.4692ms)
+Γ£ö perceived exertion separates intensity when HR is missing (0.282ms)
+Γ£ö EWMA converges toward a constant load and weights recency (0.4195ms)
+Γ£ö a +35% week over a flat 4-week baseline is a high-severity spike (1.4145ms)
+Γ£ö a +5% week produces no spike (0.378ms)
+Γ£ö fewer than 3 non-zero baseline weeks yields no spike (0.3347ms)
+Γ£ö recovery interventions in the spike week are counted and named (1.3416ms)
+Γ£ö near-zero baseline (returning from a break) suppresses the card (0.334ms)
+Γ£ö a partial current week already over threshold flags as this week (0.2792ms)
+Γ£ö activities without moving_time do not poison the weekly sums (0.3689ms)
+Γ£ö getLoadMetrics reports negative form during a load spike (1.2164ms)
+(node:9992) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/trainingInsights.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö below threshold: 3 check-ins yields no correlations and needsMore of 1 (2.3889ms)
+Γ£ö positive correlation: sauna days score ~3 points higher on legs (1.0553ms)
+Γ£ö delta below MIN_DELTA (0.4) produces no card (0.5603ms)
+Γ£ö group-size gate: each side needs MIN_GROUP_SIZE of 3 (0.4602ms)
+Γ£ö 48-hour window: 3 days before does not tag; exactly 2 days (48h) is inclusive (0.6452ms)
+Γ£ö 48h window is timezone/DST stable (US DST end falls inside the window) (0.4053ms)
+Γ£ö zero and missing scores are excluded before the second count gate (0.2939ms)
+Γ£ö confidence tiers: 6/6 high, 4/4 moderate, 3/3 low (6.8154ms)
+Γ£ö sort order: positive cards first, then by |delta| descending (4.1545ms)
+Γ£ö malformed input never throws and is sensibly excluded (1.4145ms)
+Γ£ö time series sorts ascending by date and respects limit (34.7295ms)
+Γ£ö time series turns zero/missing scores into null (0.1619ms)
+Γ£ö summary returns null for no check-ins (0.2773ms)
+Γ£ö summary averages round to one decimal (0.3856ms)
+Γ£ö summary computes 7-day vs prior-7-day legs trend (0.2203ms)
+(node:28636) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/volumeTrends.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö weeks start on Monday (0.9454ms)
+Γ£ö buildVolumeTrend returns contiguous weeks including empty ones (40.1026ms)
+Γ£ö activities outside the window and invalid dates are ignored (1.3828ms)
+Γ£ö compareVolumeBlocks excludes the in-progress week and needs four prior weeks (6.1287ms)
+Γ£ö activities bucket by recorded local day, not the UTC instant (1.4672ms)
+(node:740) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/workoutComments.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö a workout thread is keyed on workout_id (1.5287ms)
+Γ£ö an activity thread is keyed on activity_id (0.2084ms)
+Γ£ö planned_workout_id is accepted as an alias for workout_id (0.1268ms)
+Γ£ö naming both subjects is rejected rather than silently picking one (0.2312ms)
+Γ£ö naming no subject is rejected (0.1331ms)
+Γ£ö a blank or non-string id counts as absent (0.1154ms)
+Γ£ö surrounding whitespace is trimmed off an id (0.1184ms)
+Γ£ö a comment body is trimmed (0.1877ms)
+Γ£ö a whitespace-only comment is rejected (0.1389ms)
+Γ£ö a comment at the length limit is accepted and one past it is not (0.1894ms)
+Γ£ö a comment is attributed to the athlete who wrote it (43.2761ms)
+Γ£ö a coach comment is attributed to the account that wrote it (0.1748ms)
+Γ£ö a coach comment written before authorship was recorded falls back to the profile name (0.1074ms)
+Γ£ö an unresolvable author still renders as its role (0.0856ms)
+Γ£ö attaching names leaves the original comments untouched (0.0734ms)
+Γ£ö collectIds returns each id once and drops nulls (0.7618ms)
+Γ£ö a comment reports the subject it actually hangs off (0.2041ms)
+Γ£ö comments on the same workout become one thread (0.23ms)
+Γ£ö comments on the same activity become one thread keyed on the activity (0.095ms)
+Γ£ö distinct subjects stay distinct threads across both kinds (0.2056ms)
+Γ£ö a comment with no subject is dropped (0.1186ms)
+Γ£ö grouping nothing yields no threads (0.0837ms)
+Γ£ö grouping preserves the order comments arrive in (0.1232ms)
+Γ£ö pace matches a hand-computed value for a known run (0.1696ms)
+Γ£ö pace is reported per kilometre when the athlete prefers km (0.0756ms)
+Γ£ö a pace rounding up to a full minute carries into the minute (0.1097ms)
+Γ£ö speed is reported in mph or km/h (0.1538ms)
+Γ£ö rides read as speed and runs read as pace (0.1162ms)
+Γ£ö sport matching for speed is case-insensitive and tolerates a missing sport (0.0656ms)
+Γ£ö pace and speed are null when distance or time is missing or zero (0.1108ms)
+Γ£ö pace and speed are null for non-numeric input (0.0829ms)
+(node:28436) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/workoutCompliance.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö summarizeStructure honors repeats and sums duration/distance (1.14ms)
+Γ£ö estimateTss scores interval work above easy volume (0.3752ms)
+Γ£ö compliancePct compares duration first, then distance (0.1746ms)
+Γ£ö complianceStatus follows the green/yellow/red bands (1.3751ms)
+Γ£ö matchActivitiesToWorkouts pairs same-day activities by closest duration (0.5223ms)
+Γ£ö matchActivitiesToWorkouts fulfills a plan a day off only within tolerance (0.2318ms)
+Γ£ö matchActivitiesToWorkouts will not fulfill a run plan with a ride (0.1244ms)
+Γ£ö decorateWorkoutsWithCompliance exposes the day a matched workout happened (0.3753ms)
+Γ£ö decorateWorkoutsWithCompliance marks matched plans as completed with a pct (0.2258ms)
+Γ£ö summarizeWeek rolls up planned vs completed totals (0.3157ms)
+Γ£ö reconciliation window: empty inputs produce an empty summary (0.9188ms)
+Γ£ö reconciliation window: matches, misses, upcoming, and unplanned (12.3434ms)
+Γ£ö reconciliation window: persisted completed_activity_id is not double-counted as unplanned (0.3234ms)
+Γ£ö reconciliation window: evening local-time activity stays on its calendar day (0.2408ms)
+(node:9636) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/pages/api/workout-library.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö shared production payload preserves separate prescription fields, units, null and zero (1.5391ms)
+Γ£ö template PATCH preserves omissions, nulls, zeroes, exact canonical distance and opaque steps (1.1945ms)
+Γ£ö validation rejects bad metadata and permits all real editor targets (1.6316ms)
+Γ£ö exact additive migration preserves legacy rows, RLS and constraints, and can run twice (4706.8504ms)
+Γ£ö real signed endpoint saves/reloads/patches metadata, filters ownership and denies unauthorized writes (2545.9199ms)
+[workout-library] failed: column "objective" does not exist
+Γ£ö unavailable metadata schema returns truthful service failure without leaking database internals (2987.8008ms)
+Γ£ö signed library fixture uses the active isolated deployment origin regardless of other fixture import order (3372.4536ms)
+Γ£ö F7 signed create retries replay one durable coach-scoped receipt and reject changed intent (3746.085ms)
+[workout-library] failed: column "objective" of relation "workout_library" does not exist
+Γ£ö create receipt migration is repeatable, service-only, atomic on failure and safe for overlapping retries (3201.479ms)
+Γ£ö unconfirmed browser operations survive reload, reject changed intent and stay scoped to a coach (1.6189ms)
+Γ£ö F9 pace conversion preserves independent units and values until explicitly requested (2.0545ms)
+(node:8104) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/workoutCompliance.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö saved rejection survives new imports; confirmed links preserve manual actuals and local dates (2.5897ms)
+Γ£ö signed handler + PostgreSQL: confirm, replay, replace, unlink, rejection and restore persist (5055.4ms)
+Γ£ö signed handler + PostgreSQL: ownership, session revocation, stale edits and raw link bypass fail closed (2915.0479ms)
+Γ£ö PostgreSQL: duplicate link is refused, manual corrections release it, and old suggestions cannot overwrite them (3339.0178ms)
+[workout-match] save failed: 42883
+Γ£ö calendar GET reserves confirmed activities from plans outside the range and loads out-of-range links (3023.2267ms)
+Γ£ö missing persistence and malformed decisions preserve a safe retry error (2.0471ms)
+Γ£ö PostgreSQL: deleting the provider activity retains confirmed actuals and permits an explicit unlink (2913.5674ms)
+Γ£ö PostgreSQL: legacy duplicate links stop the migration without rewriting training history (2971.371ms)
+Γ£ö calendar link lookup is batched and retains confirmed sessions beyond one batch (2372.0962ms)
+Γ£ö calendar reports disconnected imports while retaining stored activities and match candidates (2069.4705ms)
+(node:31884) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/WorkspaceTransport.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö default calendar transport refreshes the shared account cache and scopes to its actual actor (6.6862ms)
+Γ£ö copy key survives uncertain response/refresh; successful write releases it before failed refresh; next copy distinct (0.8267ms)
+Γ£ö injected synthetic calendar transport never refreshes or reads the native account cache (0.9008ms)
+Γä╣ tests 446
+Γä╣ suites 0
+Γä╣ pass 446
+Γä╣ fail 0
+Γä╣ cancelled 0
+Γä╣ skipped 0
+Γä╣ todo 0
+Γä╣ duration_ms 29219.3497

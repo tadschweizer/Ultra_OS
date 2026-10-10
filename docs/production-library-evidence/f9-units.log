@@ -1,0 +1,47 @@
+(node:4700) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/workoutCompliance.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö O1 synthetic template PATCH shares validation, persists, isolates stores and assigns edited metadata (9.4704ms)
+Γ£ö QA F4: selecting/closing details replaces stale deep links while retaining participant context (0.8821ms)
+Γ£ö QA F5: matching changes attribution, retaining every weekly actual metric once through reload/unlink (3.336ms)
+Γ£ö QA F1: shared production library payload and demo reuse retain private prescription (1.1176ms)
+Γ£ö QA F2: missing/partial actuals never substitute planned TSS; recorded and linked loads count once (1.1588ms)
+Γ£ö QA F3: consumed failure emits a state change without saving; reset disarms pending failure (1.1409ms)
+Γ£ö deterministic fixtures and refresh persistence; sessions are independent (0.9202ms)
+Γ£ö full plan ΓåÆ athlete partial completion ΓåÆ coach feedback and adjustment ΓåÆ athlete update (1.2618ms)
+Γ£ö role restrictions, private draft filtering and cross-athlete denial (0.7822ms)
+Γ£ö create retry key prevents duplicates, validation retains state (1.4794ms)
+Γ£ö duplicates and copy-week retain all plan fields and clear completion/discussion (1.1797ms)
+Γ£ö skip and undo preserve unknown actuals and do not derive completion from plan (0.6922ms)
+Γ£ö activity linking cannot double count and unlink retains the activity (10.8337ms)
+Γ£ö stale workout write conflicts instead of replacing latest change (0.453ms)
+Γ£ö role-correct direct messages, exact acknowledgements and retry idempotency (0.859ms)
+Γ£ö drafts are isolated per role/recipient, durable and version checked (0.8208ms)
+Γ£ö failure simulation and storage errors cannot claim saved success (0.6837ms)
+Γ£ö check-in updates all fields; corrupt storage warns; unsupported provider endpoints fail closed (0.541ms)
+(node:1684) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/pages/api/workout-library.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö shared production payload preserves separate prescription fields, units, null and zero (1.0988ms)
+Γ£ö template PATCH preserves omissions, nulls, zeroes, exact canonical distance and opaque steps (0.8177ms)
+Γ£ö validation rejects bad metadata and permits all real editor targets (1.1345ms)
+Γ£ö exact additive migration preserves legacy rows, RLS and constraints, and can run twice (1674.4003ms)
+Γ£ö real signed endpoint saves/reloads/patches metadata, filters ownership and denies unauthorized writes (1287.1605ms)
+[workout-library] failed: column "objective" does not exist
+Γ£ö unavailable metadata schema returns truthful service failure without leaking database internals (1347.8483ms)
+Γ£ö signed library fixture uses the active isolated deployment origin regardless of other fixture import order (1590.1773ms)
+Γ£ö F7 signed create retries replay one durable coach-scoped receipt and reject changed intent (1762.9246ms)
+[workout-library] failed: column "objective" of relation "workout_library" does not exist
+Γ£ö create receipt migration is repeatable, service-only, atomic on failure and safe for overlapping retries (1308.5578ms)
+Γ£ö unconfirmed browser operations survive reload, reject changed intent and stay scoped to a coach (1.4885ms)
+Γ£ö F9 pace conversion preserves independent units and values until explicitly requested (1.743ms)
+Γä╣ tests 29
+Γä╣ suites 0
+Γä╣ pass 29
+Γä╣ fail 0
+Γä╣ cancelled 0
+Γä╣ skipped 0
+Γä╣ todo 0
+Γä╣ duration_ms 9180.5198

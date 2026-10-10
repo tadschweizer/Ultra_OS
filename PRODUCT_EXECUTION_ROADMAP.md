@@ -2,8 +2,8 @@
 
 Last updated: 2026-10-10<br>
 Status: PR #133 merged as `1d1e0b6` and is deployed READY on both public domains. Six targeted Supabase sources repair pilot prerequisites, workout decisions, messaging lifecycle, foreign-key indexes, stable conflict responses and legacy notification preferences. Both readiness checks and all eleven hosted Data API contracts pass. Actual signed QA passes drafts, two-way messages/notifications, exact unread counts, concurrent leases, group retries, workout corrections and relationship/session revocation. Final regression 432/432, focused release 22/22, integration 4/4, build and final-head CI pass. Real-mailbox, fresh-account, physical-phone and participant acceptance remain open.<br>
-Current milestone: M0 - closed coach pilot; PR #137 repairs independent F8 inbox outage/empty-state confusion; PR #135 template editing is coordinated separately; final combined acceptance remains open
-Next item: Hand off the F8 repair delta in PR #137 for unpublished integration and independent retest with O1 in PR #135. Verify exact-head CI. Keep accepted 54f2ab preview frozen; no merge, remote migration or manual deployment. UX-006, physical-phone, fresh-account, provider/mailbox and participant acceptance remain open.
+Current milestone: M0 - make the closed coach pilot work end to end; PR134 and PR137 merged; PR135 messaging recovery independently cleared, mobile calendar load strip corrected locally; release gates remain open<br>
+Next item: Publish the authorized narrow calendar wrapping correction within PR135, retain the full library/transport/calendar/messaging test-script union, and require fresh exact-head CI plus independent 320px acceptance. Local production build and eight layout/calendar browser tests pass after reproducing clipping at 17ad6db; see docs/production-library-evidence/calendar-320/REPORT.md. PR136's eb96e70 CI passed. Hold both main merges until the four missing production schema operations receive separate approval. PR137 is deployed READY as 5554087. Do not reapply prior pilot-release migrations. Continue P0-015 provider/scheduler and consenting mailbox acceptance, fresh-account enrollment, physical-phone checks and P0-018 measurements after release preparation; keep their parent checkboxes open.
 
 ## Purpose
 
@@ -818,6 +818,42 @@ accounts are unavailable; the previous INACTIVE observation below is historical.
 
 ## Progress log
 
+### October 10 - isolated calendar/private-draft/load verification and focused fix
+
+Fresh main `fa8ebe2b377784007b4a40b4e982f92a11224075` reproduced duplicate week
+copies, five lost prescription fields, athlete-visible private drafts, recovery
+load labelled as synced activity, and omitted manual-completion load. Original
+runtime evidence is preserved. The authorized focused fix uses atomic copy retry
+records, full prescription mapping, private-subject boundaries across calendar,
+comments/export/inbox, and explicit actual-training provenance/unknown states.
+Local acceptance passes: 443/443 full regression and 30/30 desktop/mobile browser
+checks, plus production build. See `CALENDAR_GAP_FIX_VERIFICATION.md` for exact
+source, commands, results and rollout/rollback gates. The library mapper is tested
+against PR135's published contract checkpoint; that PR's pending library API/UI
+is not claimed complete. No production data, providers, secrets, production
+migration application, merge or production deployment occurred. Keep all parent acceptance
+checkboxes open. [Draft PR136](https://github.com/tadschweizer/Ultra_OS/pull/136)
+contains implementation `d300153aff08142425fb8ed1ed4e2dbdb8e812bf` and evidence;
+it targets main directly and remains unmerged. PR135's library migration remains
+a coordinated release dependency. Hosted concurrency/schema/participant checks
+and final-head CI are separate release gates.
+
+Independent review then reproduced a PR136 structure-only PATCH regression at
+`0a25f1e`: omitted totals had been converted to explicit null before derivation.
+The follow-up correction preserves omitted/null/zero distinctions and clears
+unavailable dimensions from replacement structures. The ninth signed-handler/SQL
+group verifies structure-only PATCH, explicit null/zero and untouched omissions;
+the updated evidence is retained with the same PR. No production rollout occurred.
+
+Two further isolated reproductions confirmed private-draft leakage in personal
+account archives and phantom in-window load from out-of-window confirmed imports.
+The archive filters before pagination; load resolves athlete-owned links
+independently of its rolling query and excludes unresolved/out-of-window links
+with explicit provenance. Signed archive/date-boundary/ownership/revocation/manual
+and deduplication regressions bring acceptance to11 groups/full regression443.
+The original and new failed-before/passed-after outputs are retained in the
+verification report. These remain draft PR136 changes, without production rollout.
+
 October 9 technical readiness preparation (PR #133): traced live group description/membership gaps in addition to the message/document and workout/lifecycle gaps. Prepared exact prerequisite repair and a read-only before/after preflight; combined all three release sources in isolated SQL, with grant/RLS/index/function failure checks. Added schema-aware readiness, document session/relationship revocation and retry-safe group membership plus a GET-only zero-row Data API verifier. Node 22 regression 431/431; integrations 4/4; build; critical desktop/mobile browser 129 passed / 3 existing skips. Measurement CSV/script prepared; CI required enforcement remains unreadable/unverified. No production migration, app release, provider activation or participant observation.
 
 October 9 P0 deliverables audit: verified merged PRs #130/#131/#132, fetched main `1830b14`, matching READY production and read-only Supabase schema/grants. Merged PR #131 supersedes the unmerged feature/p0-messaging-delivery implementation and its different migration. Added a complete P0-001–018 / P0-013A–D closure matrix and ordered next queue: release prerequisites, P0-018 measurement/required-CI preparation, controlled phone/two-account acceptance, then elapsed pilot observation. Billing/Strava migration repair is confirmed; workout/message/document schema gaps remain. No parent checkbox advanced, application suite rerun or production write.
@@ -995,3 +1031,5 @@ distinct. Documentation-only queue entry on PR #134; no runtime edit, merge or r
 - 2026-10-10: UX-006 implementation on feature/messages-native-ui, separately based on PR #134 6f1d3f4: familiar list/thread/sender bubbles/bottom composer, visible-thread read gating, URL/back/draft isolation and late-send navigation guard; remove duplicate floating inbox on /messages. 432/432 regressions, final production build, 48/48 messaging + daily-loop browser scenarios, 6/6 final SQL/navigation cases, WCAG list/thread contrast and 320px layout pass. See docs/production-messaging-evidence/README.md. No message backend/schema/auth changes, real provider sends, production deploy/merge or frozen demo redeploy. Independent acceptance and physical hardware remain open.
 
 - 2026-10-10: Independent d13ec51 combined QA reproduced F8: signed inbox GET outage falsely asserted empty. PR #137 now tracks verified reads separately, shows unknown availability and truthful last-loaded conversations, retries and clears role/account or unauthorized caches. Actual SQL-outage browser regression reproduced before repair; workspace 8/8 and final F8 2/2 pass, production/auth 432/432 and final production build pass. See docs/production-messaging-evidence/F8_REPAIR.md. Final combined independent/hardware acceptance remains open; no API/schema/auth/provider, frozen preview, merge or deployment change.
+
+- 2026-10-10: PR #135 narrow athlete calendar wrapping correction committed as 1b1e32e. Reproduced 320px clipping on 17ad6db (348px empty actuals / 362px recorded actuals) and long-label overflow at 390px. Three CSS class changes preserve every value/label; all nine layout combinations fit after correction. Local production build and eight browser tests pass, including six existing calendar copy/privacy/load cases. Regression appended to critical suite. See docs/production-library-evidence/calendar-320/REPORT.md. Fresh published-head CI and independent new-head QA remain gates; production schema approval and main merges remain on hold.

@@ -1,0 +1,88 @@
+[WebServer] (node:22452) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:28556) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] [@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated and will be removed in a future version. Use webpack.treeshake.removeDebugLogging instead.
+[WebServer] [@sentry/nextjs] It appears you've configured a `sentry.server.config.js` file. Please ensure to put this file's content into the `register()` function of a Next.js instrumentation file instead. To ensure correct functionality of the SDK, `Sentry.init` must be called inside of an instrumentation file. Learn more about setting up an instrumentation file in Next.js: https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation. You can safely delete the `sentry.server.config.js` file afterward.
+[WebServer] [@sentry/nextjs] Could not find a Next.js instrumentation file. This indicates an incomplete configuration of the Sentry SDK. An instrumentation file is required for the Sentry SDK to be initialized on the server: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#create-initialization-config-files (you can suppress this warning by setting SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING=1 as environment variable)
+[WebServer] [@sentry/nextjs] It appears you've configured a `sentry.edge.config.js` file. Please ensure to put this file's content into the `register()` function of a Next.js instrumentation file instead. To ensure correct functionality of the SDK, `Sentry.init` must be called inside of an instrumentation file. Learn more about setting up an instrumentation file in Next.js: https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation. You can safely delete the `sentry.edge.config.js` file afterward.
+[WebServer] [@sentry/nextjs] DEPRECATION WARNING: It is recommended renaming your `sentry.client.config.js` file, or moving its content to `instrumentation-client.ts`. When using Turbopack `sentry.client.config.js` will no longer work. Read more about the `instrumentation-client.ts` file: https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation-client
+[WebServer] ΓÜá The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+(node:10392) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/auth/sessionCookies.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:7176) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:7176) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:7176) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/auth/sessionCookies.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+  x  1 [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:119:1 ΓÇ║ real calendar editor saves a full prescription through the signed library API and SQL, reloads and deletes (5.2s)
+(node:28888) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:28888) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:28888) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/auth/sessionCookies.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+  x  2 [mobile-chromium] ΓÇ║ e2e\workout-library.spec.mjs:119:1 ΓÇ║ real calendar editor saves a full prescription through the signed library API and SQL, reloads and deletes (4.6s)
+
+
+  1) [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:119:1 ΓÇ║ real calendar editor saves a full prescription through the signed library API and SQL, reloads and deletes
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoHaveLength[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected length: [32m1[39m
+    Received length: [31m2[39m
+    Received array:  [31m[{"client_request_id": "8d579bf7-05d0-4e70-9c49-314f12428a44", "coach_instructions": "Walk recoveries; keep form relaxed", "description": "Runnable uphill repeats", "name": "Trail economy prescription", "objective": "Steady climbing economy", "planned_distance_km": 9.66, "planned_distance_unit": "mi", "planned_duration_min": 58, "planned_if": 0.82, "planned_tss": 47, "sport": "run", "structure": [], "target_metric": "heart_rate", "visibility": "coach_private"}, {"client_request_id": "d27afb46-598c-46d7-af14-8d795ee66a86", "coach_instructions": "Walk recoveries; keep form relaxed", "description": "Runnable uphill repeats", "name": "Trail economy prescription", "objective": "Steady climbing economy", "planned_distance_km": 9.66, "planned_distance_unit": "mi", "planned_duration_min": 58, "planned_if": 0.82, "planned_tss": 47, "sport": "run", "structure": [], "target_metric": "heart_rate", "visibility": "coach_private"}][39m
+
+      149 |     await expect(editor.getByText('Saved to library.',{exact:true})).toBeVisible();
+      150 |     // Existing calendar editor stores canonical km rounded to two decimals.
+    > 151 |     expect(writes).toHaveLength(1);expect(writes[0].planned_distance_km).toBe(9.66);
+          |                    ^
+      152 |     expect(writes[0].objective).toBe('Steady climbing economy');expect(writes[0].coach_instructions).toBe('Walk recoveries; keep form relaxed');
+      153 |     expect(writes[0].planned_if).toBe(0.82);expect(writes[0].target_metric).toBe('heart_rate');expect(writes[0].visibility).toBe('coach_private');
+      154 |     await editor.getByRole('button',{name:'Close',exact:true}).click();await page.reload();
+        at C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\e2e\workout-library.spec.mjs:151:20
+
+    attachment #2: trace (application/zip) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    test-results\workout-library-real-calen-c869b-and-SQL-reloads-and-deletes-desktop-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\workout-library-real-calen-c869b-and-SQL-reloads-and-deletes-desktop-chromium\trace.zip
+
+    ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+
+  2) [mobile-chromium] ΓÇ║ e2e\workout-library.spec.mjs:119:1 ΓÇ║ real calendar editor saves a full prescription through the signed library API and SQL, reloads and deletes
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoHaveLength[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected length: [32m1[39m
+    Received length: [31m2[39m
+    Received array:  [31m[{"client_request_id": "df1c6e80-3fa0-40db-b37f-2d1e9e9d2131", "coach_instructions": "Walk recoveries; keep form relaxed", "description": "Runnable uphill repeats", "name": "Trail economy prescription", "objective": "Steady climbing economy", "planned_distance_km": 9.66, "planned_distance_unit": "mi", "planned_duration_min": 58, "planned_if": 0.82, "planned_tss": 47, "sport": "run", "structure": [], "target_metric": "heart_rate", "visibility": "coach_private"}, {"client_request_id": "fb412274-10ef-45ae-9554-0542782302ef", "coach_instructions": "Walk recoveries; keep form relaxed", "description": "Runnable uphill repeats", "name": "Trail economy prescription", "objective": "Steady climbing economy", "planned_distance_km": 9.66, "planned_distance_unit": "mi", "planned_duration_min": 58, "planned_if": 0.82, "planned_tss": 47, "sport": "run", "structure": [], "target_metric": "heart_rate", "visibility": "coach_private"}][39m
+
+      149 |     await expect(editor.getByText('Saved to library.',{exact:true})).toBeVisible();
+      150 |     // Existing calendar editor stores canonical km rounded to two decimals.
+    > 151 |     expect(writes).toHaveLength(1);expect(writes[0].planned_distance_km).toBe(9.66);
+          |                    ^
+      152 |     expect(writes[0].objective).toBe('Steady climbing economy');expect(writes[0].coach_instructions).toBe('Walk recoveries; keep form relaxed');
+      153 |     expect(writes[0].planned_if).toBe(0.82);expect(writes[0].target_metric).toBe('heart_rate');expect(writes[0].visibility).toBe('coach_private');
+      154 |     await editor.getByRole('button',{name:'Close',exact:true}).click();await page.reload();
+        at C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\e2e\workout-library.spec.mjs:151:20
+
+    attachment #2: trace (application/zip) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    test-results\workout-library-real-calen-c869b-and-SQL-reloads-and-deletes-mobile-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\workout-library-real-calen-c869b-and-SQL-reloads-and-deletes-mobile-chromium\trace.zip
+
+    ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+
+  2 failed
+    [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:119:1 ΓÇ║ real calendar editor saves a full prescription through the signed library API and SQL, reloads and deletes
+    [mobile-chromium] ΓÇ║ e2e\workout-library.spec.mjs:119:1 ΓÇ║ real calendar editor saves a full prescription through the signed library API and SQL, reloads and deletes

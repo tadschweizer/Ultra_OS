@@ -131,6 +131,7 @@ function App() {
       request: store.transport(route.role, route.id),
       today: demoToday,
       preserveLibraryPlanMetadata: true,
+      getAccountScope: () => route.role === "coach" ? "synthetic:demo-coach" : `synthetic:${route.id}`,
     }),
     [route.role, route.id],
   );
@@ -468,6 +469,7 @@ function App() {
                       athleteId={route.id}
                       athleteName={a.name}
                       role={route.role}
+                      libraryOwnerId={route.role === "coach" ? "synthetic:demo-coach" : null}
                     />
                   </main>
                 )}

@@ -1,0 +1,44 @@
+[WebServer] (node:22088) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:31404) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 26 tests using 1 worker
+
+(node:30688) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:30688) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  1 browser\workflows.spec.js:5:1 ΓÇ║ static artifact identity and closed network policy (476ms)
+  ok  2 browser\workflows.spec.js:64:39 ΓÇ║ F9/P3 synthetic assignment preserves target prescriptions and source at 1440px (3.5s)
+  ok  3 browser\workflows.spec.js:64:39 ΓÇ║ F9/P3 synthetic assignment preserves target prescriptions and source at 390px (4.1s)
+  ok  4 browser\workflows.spec.js:64:39 ΓÇ║ F9/P3 synthetic assignment preserves target prescriptions and source at 320px (3.5s)
+  ok  5 browser\workflows.spec.js:223:34 ΓÇ║ O1 local synthetic template edit, refresh and athlete assignment at 1440px (2.9s)
+  ok  6 browser\workflows.spec.js:223:34 ΓÇ║ O1 local synthetic template edit, refresh and athlete assignment at 320px (3.2s)
+  ok  7 browser\workflows.spec.js:329:39 ΓÇ║ QA F4/F5: selection refresh and linked elevation retention at 1440px (3.9s)
+  ok  8 browser\workflows.spec.js:329:39 ΓÇ║ QA F4/F5: selection refresh and linked elevation retention at 390px (3.7s)
+  ok  9 browser\workflows.spec.js:329:39 ΓÇ║ QA F4/F5: selection refresh and linked elevation retention at 320px (3.7s)
+  ok 10 browser\workflows.spec.js:434:39 ΓÇ║ QA F1/F2: visible library prescription and unknown actual load at 1440px (4.5s)
+  ok 11 browser\workflows.spec.js:434:39 ΓÇ║ QA F1/F2: visible library prescription and unknown actual load at 390px (5.4s)
+  ok 12 browser\workflows.spec.js:434:39 ΓÇ║ QA F1/F2: visible library prescription and unknown actual load at 320px (4.6s)
+  ok 13 browser\workflows.spec.js:606:3 ΓÇ║ 1440px ΓÇ║ full coach / athlete loop, actuals, feedback, adjusted plan, message and reply (4.0s)
+  ok 14 browser\workflows.spec.js:792:3 ΓÇ║ 1440px ΓÇ║ draft persistence, role and recipient isolation, failed save retry, reset cancel/confirm (2.3s)
+  ok 15 browser\workflows.spec.js:869:3 ΓÇ║ 1440px ΓÇ║ check-in propagation, empty and missing states, mobile navigation and browser history (1.1s)
+  ok 16 browser\workflows.spec.js:606:3 ΓÇ║ 390px ΓÇ║ full coach / athlete loop, actuals, feedback, adjusted plan, message and reply (4.7s)
+  ok 17 browser\workflows.spec.js:792:3 ΓÇ║ 390px ΓÇ║ draft persistence, role and recipient isolation, failed save retry, reset cancel/confirm (2.5s)
+  ok 18 browser\workflows.spec.js:869:3 ΓÇ║ 390px ΓÇ║ check-in propagation, empty and missing states, mobile navigation and browser history (1.2s)
+  ok 19 browser\workflows.spec.js:606:3 ΓÇ║ 320px ΓÇ║ full coach / athlete loop, actuals, feedback, adjusted plan, message and reply (3.9s)
+  ok 20 browser\workflows.spec.js:792:3 ΓÇ║ 320px ΓÇ║ draft persistence, role and recipient isolation, failed save retry, reset cancel/confirm (2.3s)
+  ok 21 browser\workflows.spec.js:869:3 ΓÇ║ 320px ΓÇ║ check-in propagation, empty and missing states, mobile navigation and browser history (1.1s)
+  ok 22 browser\workflows.spec.js:917:39 ΓÇ║ library, reschedule, private draft, copy/duplicate and keyboard at 1440px (3.7s)
+  ok 23 browser\workflows.spec.js:917:39 ΓÇ║ library, reschedule, private draft, copy/duplicate and keyboard at 390px (4.4s)
+  ok 24 browser\workflows.spec.js:917:39 ΓÇ║ library, reschedule, private draft, copy/duplicate and keyboard at 320px (3.8s)
+  ok 25 browser\workflows.spec.js:1100:1 ΓÇ║ session thread identities, activity detail and matching correction, no double count (1.9s)
+  ok 26 browser\workflows.spec.js:1157:1 ΓÇ║ completion correction, skip/undo, cancel, missing actuals and independent browser sessions (2.0s)
+
+  26 passed (1.4m)
+
+To open last HTML report run:
+[36m[39m
+[36m  npx playwright show-report[39m
+[36m[39m
