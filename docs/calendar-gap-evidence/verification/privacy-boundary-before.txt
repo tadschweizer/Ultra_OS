@@ -1,0 +1,57 @@
+(node:6860) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-4/source/webapp/lib/accountExport.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-4\source\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"case":"archive-private","http":200,"private_workouts":[{"id":"44444444-4444-4444-8444-444444444444","title":"Trail climbs","objective":"Efficient uphill movement","coach_instructions":"Keep descents easy; use poles on steep climbs","visibility":"coach_private"}]}
+Γ£û signed personal archive excludes private drafts before pagination without changing authorized coach exports (1557.8726ms)
+{"case":"load-window-link","plan_date":"2026-08-30","activity_date":"2026-08-28","http":200,"load":{"acute":0,"chronic":0.6,"has_data":true,"provenance":{"source":"manual_completions","synced_count":0,"manual_count":1,"matched_plan_count":0,"duplicate_activity_count":0,"missing_duration_count":0,"estimated_intensity_count":0,"window_days":42}}}
+Γ£û load linked records resolve dates independently of the window; missing links stay unknown, manual and matches count once (1147.4237ms)
+Γä╣ tests 2
+Γä╣ suites 0
+Γä╣ pass 0
+Γä╣ fail 2
+Γä╣ cancelled 0
+Γä╣ skipped 0
+Γä╣ todo 0
+Γä╣ duration_ms 3129.6525
+
+Γ£û failing tests:
+
+test at tests\calendar-gap-acceptance.test.mjs:170:1
+Γ£û signed personal archive excludes private drafts before pagination without changing authorized coach exports (1557.8726ms)
+  AssertionError [ERR_ASSERTION]: signed archive excludes private prescription fields
+  + actual - expected
+
+    [
+  +   '44444444-4444-4444-8444-444444444444',
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+    ]
+
+      at TestContext.<anonymous> (file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-4/source/webapp/tests/calendar-gap-acceptance.test.mjs:177:12)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [ '44444444-4444-4444-8444-444444444444', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' ],
+    expected: [ 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests\calendar-gap-acceptance.test.mjs:191:1
+Γ£û load linked records resolve dates independently of the window; missing links stay unknown, manual and matches count once (1147.4237ms)
+  AssertionError [ERR_ASSERTION]: out-of-window activity cannot reappear as manual load on plan date
+
+  true !== false
+
+      at TestContext.<anonymous> (file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-4/source/webapp/tests/calendar-gap-acceptance.test.mjs:199:12)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

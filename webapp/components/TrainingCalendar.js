@@ -3,6 +3,7 @@ import { libraryWorkoutPayload } from '../lib/libraryWorkoutPayload';
 import { calendarSelectionUrl } from '../lib/calendarSelection';
 import { summarizeCalendarWeek } from '../lib/calendarSummary';
 import { useDialogFocus } from '../lib/useDialogFocus';
+import { createCopyWeekRequests } from '../lib/copyWeekRequest';
 import { calendarMutation as performCalendarMutation } from '../lib/calendarMutation';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
@@ -1418,7 +1419,7 @@ function ProgressMeter({ label, actual, planned, formatValue, unit = '' }) {
 }
 
 export default function TrainingCalendar({ athleteId = null, athleteName = '', role = 'athlete' }) {
-  const { request, today, preserveLibraryPlanMetadata } = useWorkspaceTransport();
+  const { request, today, preserveLibraryPlanMetadata, refreshAccount, getAccountScope } = useWorkspaceTransport();
   const calendarMutation = useCallback((url, options) => performCalendarMutation(url, { ...options, request }), [request]);
   const router = useRouter();
   const anchorMonday = useMemo(() => mondayOf(today || new Date()), [today]);
@@ -1490,6 +1491,9 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
         const eventsData = await eventsRes.json();
         setEvents(eventsData.events || []);
       }
+      // Refresh shared load headers after actuals change; a failed refresh does
+      // not retry an already-committed calendar mutation.
+      if (role === 'athlete') void refreshAccount?.();
       return workoutsData;
     } catch {
       setError('Could not load the training calendar.');
@@ -1498,7 +1502,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
       setLoadingEarlier(false);
       extendingRef.current = false;
     }
-  }, [rangeStart, rangeEnd, athleteParam, role, request]);
+  }, [rangeStart, rangeEnd, athleteParam, role, request, refreshAccount]);
 
   useEffect(() => {
     reload();
@@ -1649,10 +1653,20 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
   const applyLibraryWorkout = useCallback((libraryWorkoutId, date) => mutateCalendar('/api/planned-workouts', {
     body: { athlete_id: athleteId || undefined, library_workout_id: libraryWorkoutId, workout_date: date },
   }), [athleteId, mutateCalendar]);
-  const copyWeekForward = useCallback((fromWeekStartKey) => mutateCalendar('/api/planned-workouts', {
-    body: { action: 'copy_week', athlete_id: athleteId || undefined, from_week_start: fromWeekStartKey,
-      to_week_start: toDateKey(addDays(new Date(`${fromWeekStartKey}T00:00:00`), 7)) },
-  }), [athleteId, mutateCalendar]);
+  const copyRequests = useRef(null);
+  const copyWeekForward = useCallback((fromWeekStartKey) => {
+    const scope = getAccountScope?.() || 'isolated-workspace';
+    if (!copyRequests.current || copyRequests.current.scope !== scope) {
+      let storage;
+      try { storage = typeof window === 'undefined' ? undefined : window.sessionStorage; } catch {}
+      copyRequests.current = { scope, ...createCopyWeekRequests({ scope, storage }) };
+    }
+    const body = copyRequests.current.begin({ action: 'copy_week', athlete_id: athleteId || undefined,
+      from_week_start: fromWeekStartKey, to_week_start: toDateKey(addDays(new Date(`${fromWeekStartKey}T00:00:00`), 7)) });
+    return mutateCalendar('/api/planned-workouts', { body }, (result) => {
+      if (Array.isArray(result.workouts)) copyRequests.current.complete(body);
+    });
+  }, [athleteId, mutateCalendar, getAccountScope]);
 
   // ── Derived rows ───────────────────────────────────────────────────────────
 
@@ -2184,6 +2198,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
                       onClick={() => copyWeekForward(week.key)}
                       className="mt-2 rounded-full border border-ink/10 px-2 py-1 text-[10px] font-semibold text-ink/60 hover:bg-ink/5"
                       title="Copy this week's workouts to next week"
+                      aria-label="Copy week to next week"
                     >
                       Copy → next wk
                     </button>
@@ -2194,7 +2209,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
               {/* Mobile week summary */}
               <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl bg-white/60 px-3 py-1.5 text-[11px] text-ink/60 lg:hidden">
                 {role === 'coach' && week.summary.totalCount > 0 && (
-                  <button onClick={() => copyWeekForward(week.key)}
+                  <button onClick={() => copyWeekForward(week.key)} aria-label="Copy week to next week"
                     title="Copy this week's workouts to next week"
                     className="min-h-11 rounded-full border border-ink/10 px-3 py-2 font-semibold text-ink/70 hover:bg-ink/5">
                     Copy week to next week

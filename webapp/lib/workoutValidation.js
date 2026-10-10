@@ -24,6 +24,14 @@ export function validateWorkoutFields(body) {
   if ('title' in body && (typeof body.title !== 'string' || !body.title.trim() || body.title.length > 200)) {
     return 'Enter a workout title of 1–200 characters.';
   }
+  for (const field of ['objective', 'coach_instructions']) {
+    if (body[field] != null && (typeof body[field] !== 'string' || body[field].length > 10000)) {
+      return 'Workout objectives and instructions must be text of at most 10,000 characters.';
+    }
+  }
+  if ('target_metric' in body && !['duration', 'distance', 'tss', 'pace', 'heart_rate', 'power', 'rpe'].includes(body.target_metric)) {
+    return 'Choose a valid workout target metric.';
+  }
   for (const field of ['planned_duration_min', 'planned_distance_km', 'planned_tss', 'planned_if', 'completed_duration_min', 'completed_distance_km']) {
     if (body[field] != null && (typeof body[field] !== 'number' || !Number.isFinite(body[field]) || body[field] < 0)) {
       return 'Duration, distance and training targets must be non-negative numbers.';
@@ -33,5 +41,6 @@ export function validateWorkoutFields(body) {
     return 'Choose an RPE from 1 to 10.';
   }
   if ('status' in body && !['planned', 'completed', 'skipped'].includes(body.status)) return 'Choose a valid completion status.';
+  if ('visibility' in body && !['athlete_visible', 'coach_private'].includes(body.visibility)) return 'Choose a valid workout visibility.';
   return null;
 }

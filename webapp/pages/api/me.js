@@ -1,7 +1,7 @@
-import { getSupabaseAdminClient } from '../../lib/authServer';
-import { canLogCheckIn, buildUsageSnapshot, getFeatureList, getIncludedAthletes, getSubscriptionTierLabel, normalizeSubscriptionTier } from '../../lib/subscriptionTiers';
-import { isFastCheckIn } from '../../lib/checkIn';
-import { buildLoadMetrics, buildLoadStatus } from '../../lib/loadRollups';
+import { getSupabaseAdminClient } from '../../lib/authServer.js';
+import { canLogCheckIn, buildUsageSnapshot, getFeatureList, getIncludedAthletes, getSubscriptionTierLabel, normalizeSubscriptionTier } from '../../lib/subscriptionTiers.js';
+import { isFastCheckIn } from '../../lib/checkIn.js';
+import { buildLoadMetrics, buildLoadStatus } from '../../lib/loadRollups.js';
 import { clearAthleteCookie, renewAthleteCookieIfStale } from '../../lib/auth/sessionCookies.js';
 import { resolveEffectiveAthleteId } from '../../lib/auth/requireAthlete.js';
 import { isValidAthleteId } from '../../lib/auth/contracts.js';
@@ -13,8 +13,9 @@ import { loadCheckInEntitlement, loadCoachEntitlement } from '../../lib/pilotEnt
  * Admin impersonation: reports the TARGET athlete's profile with an
  * `impersonating` block so the client can show the read-only banner.
  */
-export default async function handler(req, res) {
-  const admin = getSupabaseAdminClient();
+export function createMeHandler({ getAdmin = getSupabaseAdminClient } = {}) {
+return async function handler(req, res) {
+  const admin = getAdmin();
   const { athleteId, isImpersonating, session } = await resolveEffectiveAthleteId(req, admin);
 
   if (!athleteId) {
@@ -91,22 +92,40 @@ export default async function handler(req, res) {
   if (lastCheckInError) console.error(lastCheckInError);
   const lastCheckIn = (recentCheckIns || []).find(isFastCheckIn) || null;
 
-  const [interventionLoadRes, activityLoadRes] = await Promise.all([
+  const [manualLoadRes, activityLoadRes] = await Promise.all([
     admin
-      .from('interventions')
-      .select('date, inserted_at, dose_duration, subjective_feel')
+      .from('planned_workouts')
+      .select('id, workout_date, status, visibility, completed_activity_id, completed_duration_min, athlete_rpe')
       .eq('athlete_id', athleteId)
-      .gte('inserted_at', new Date(Date.now() - 42 * 86400000).toISOString()),
+      .eq('status', 'completed')
+      .eq('visibility', 'athlete_visible')
+      .gte('workout_date', new Date(Date.now() - 41 * 86400000).toISOString().slice(0, 10)),
     admin
       .from('strava_activities')
       .select('*')
       .eq('athlete_id', athleteId)
       .gte('start_date', new Date(Date.now() - 42 * 86400000).toISOString()),
   ]);
+  if (manualLoadRes.error || activityLoadRes.error) return res.status(503).json({ error: 'Training load is unavailable. Please refresh to try again.' });
+
+  // Resolve confirmed links independently of the rolling import query. A plan
+  // inside the window can reference training on another day outside it.
+  const loadActivities = [...(activityLoadRes.data || [])];
+  const loadedIds = new Set(loadActivities.map(activity => String(activity.id)));
+  const missingLinkIds = [...new Set((manualLoadRes.data || []).map(workout => workout.completed_activity_id)
+    .filter(id => typeof id === 'string' && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(id) && !loadedIds.has(id)))];
+  // Legacy non-UUID/provider identifiers remain unresolved rather than causing
+  // a UUID query error or being relabelled as a manual session.
+  for (let offset = 0; offset < missingLinkIds.length; offset += 100) {
+    const linked = await admin.from('strava_activities').select('*')
+      .eq('athlete_id', athleteId).in('id', missingLinkIds.slice(offset, offset + 100));
+    if (linked.error) return res.status(503).json({ error: 'Training load is unavailable. Please refresh to try again.' });
+    loadActivities.push(...(linked.data || []));
+  }
 
   const loadMetrics = buildLoadMetrics({
-    interventions: interventionLoadRes.data || [],
-    activities: activityLoadRes.data || [],
+    workouts: manualLoadRes.data || [],
+    activities: loadActivities,
     lookbackDays: 42,
   });
   const loadStatus = buildLoadStatus(loadMetrics);
@@ -170,3 +189,5 @@ export default async function handler(req, res) {
     }),
   });
 }
+}
+export default createMeHandler();
