@@ -24,7 +24,9 @@ export async function libraryFixture() {
   await f.pg.exec(metadataMigration);
   await f.pg.exec(`grant select,insert,update,delete on workout_library to service_role; set role service_role;`);
   const handler = createWorkoutLibraryHandler({getClient:()=>f.admin});
-  const invoke = async ({actor=owner,version=1,method='GET',body={},query={},origin='https://threshold.example',contentType='application/json'}={}) => {
+  // Other browser fixtures configure their own local deployment origin. Use
+  // the active test origin rather than relying on module-import ordering.
+  const invoke = async ({actor=owner,version=1,method='GET',body={},query={},origin=process.env.NEXT_PUBLIC_SITE_URL || 'https://threshold.example',contentType='application/json'}={}) => {
     const res=response();
     await handler({method,body,query,headers:{origin,'content-type':contentType,cookie:actor?`athlete_id=${signAthleteSession(actor,version)}`:''}},res);
     return res;

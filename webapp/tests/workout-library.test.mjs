@@ -82,3 +82,10 @@ test('unavailable metadata schema returns truthful service failure without leaki
     const result=await f.invokeLibrary();assert.equal(result.code,503);assert.match(result.body.error,/not confirmed/);assert.doesNotMatch(result.body.error,/column|SQL/);
   }finally{await f.close();}
 });
+test('signed library fixture uses the active isolated deployment origin regardless of other fixture import order',async()=>{
+  const previous=process.env.NEXT_PUBLIC_SITE_URL;process.env.NEXT_PUBLIC_SITE_URL='http://127.0.0.1:3000';
+  const f=await libraryFixture();try{
+    assert.equal((await f.invokeLibrary({method:'POST',body:{name:'Correct test origin'}})).code,200);
+    assert.equal((await f.invokeLibrary({method:'POST',origin:'https://other.example',body:{name:'Wrong origin'}})).code,403);
+  }finally{process.env.NEXT_PUBLIC_SITE_URL=previous;await f.close();}
+});
