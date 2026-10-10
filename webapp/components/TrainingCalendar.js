@@ -1,7 +1,10 @@
+import { useWorkspaceTransport } from '../lib/WorkspaceTransport';
+import { libraryWorkoutPayload } from '../lib/libraryWorkoutPayload';
+import { calendarSelectionUrl } from '../lib/calendarSelection';
+import { summarizeCalendarWeek } from '../lib/calendarSummary';
 import { useDialogFocus } from '../lib/useDialogFocus';
-import { calendarMutation } from '../lib/calendarMutation';
 import { createCopyWeekRequests } from '../lib/copyWeekRequest';
-import { getCachedMe, fetchMe } from '../lib/meClient';
+import { calendarMutation as performCalendarMutation } from '../lib/calendarMutation';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import {
@@ -10,7 +13,6 @@ import {
   WORKOUT_SPORTS,
   estimateTss,
   summarizeStructure,
-  summarizeWeek,
   toDateKey,
 } from '../lib/workoutCompliance';
 import { formatTempo, isSpeedSport } from '../lib/activityFormat';
@@ -578,6 +580,11 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
                   setSaving(true);
                   const ok = await onSaveToLibrary({
                     ...form,
+                    structure: (form.structure || []).map((step) => ({
+                      ...step,
+                      target_units: targetUnitLabel(step.target_type || 'open', distanceUnit),
+                    })),
+                    planned_tss: tssEstimate,
                     planned_distance_km: unitToKm(form.planned_distance, distanceUnit),
                     planned_distance_unit: distanceUnit,
                   });
@@ -621,6 +628,7 @@ function fmtCommentTime(value) {
  * component serves both without knowing which it is looking at.
  */
 function CommentThread({ subject, role, onCountChange }) {
+  const { request } = useWorkspaceTransport();
   const [comments, setComments] = useState([]);
   const [body, setBody] = useState('');
   const [loading, setLoading] = useState(true);
@@ -634,7 +642,7 @@ function CommentThread({ subject, role, onCountChange }) {
     let active = true;
     setLoading(true);
     setError('');
-    fetch(`/api/workout-comments?${params}`)
+    request(`/api/workout-comments?${params}`)
       .then(async (r) => {
         const data = await r.json().catch(() => ({}));
         if (!r.ok) throw new Error(data.error || 'Could not load this discussion.');
@@ -651,7 +659,7 @@ function CommentThread({ subject, role, onCountChange }) {
         setLoading(false);
       });
     return () => { active = false; };
-  }, [params]);
+  }, [params, request]);
 
   // Keep the newest message in view as the thread grows past the scroll box.
   useEffect(() => {
@@ -664,7 +672,7 @@ function CommentThread({ subject, role, onCountChange }) {
     setSending(true);
     setError('');
     try {
-      const res = await fetch('/api/workout-comments', {
+      const res = await request('/api/workout-comments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...subject, body: trimmed }),
@@ -1061,6 +1069,7 @@ function StatTile({ label, value, tone = 'default' }) {
  * to carry the full stat set and its own conversation.
  */
 function ActivityDetail({ activity, role, distanceUnit = 'mi', onCountChange, onClose }) {
+  const dialogRef = useDialogFocus(onClose);
   const tempo = formatTempo(activity.sport, activity.distance_km, activity.duration_min, distanceUnit);
   const speedSport = isSpeedSport(activity.sport);
   const dateLabel = activity.activity_date
@@ -1382,53 +1391,6 @@ function formatCalendarRange(startKey, endKey) {
   return `${startLabel} – ${endLabel}`;
 }
 
-function sumBy(items, pick) {
-  return items.reduce((total, item) => total + (Number(pick(item)) || 0), 0);
-}
-
-/**
- * Weekly rollup covering both halves of the week: what was planned, and what
- * actually happened. Actuals combine completed plans with imported activities
- * that never had a plan, so a week of unplanned training still totals up.
- */
-function summarizeCalendarWeek(days) {
-  const workouts = days.flatMap((day) => day.workouts);
-  const planned = summarizeWeek(workouts);
-  const imported = days.flatMap((day) => day.activities);
-  const completedWorkouts = workouts.filter((w) => w.status === 'completed');
-
-  const actualDurationMin = planned.completedDurationMin + sumBy(imported, (a) => a.duration_min);
-  const actualDistanceKm = planned.completedDistanceKm + sumBy(imported, (a) => a.distance_km);
-  const actualTss = sumBy(completedWorkouts, (w) => w.completed_tss ?? w.planned_tss)
-    + sumBy(imported, (a) => a.tss);
-
-  // Per-sport actuals drive the breakdown rows in the week rail.
-  const bySport = new Map();
-  const addSport = (sport, durationMin, distanceKm) => {
-    const key = sport || 'other';
-    const current = bySport.get(key) || { sport: key, durationMin: 0, distanceKm: 0, count: 0 };
-    current.durationMin += Number(durationMin) || 0;
-    current.distanceKm += Number(distanceKm) || 0;
-    current.count += 1;
-    bySport.set(key, current);
-  };
-  completedWorkouts.forEach((w) => addSport(w.sport, w.completed_duration_min, w.completed_distance_km));
-  imported.forEach((a) => addSport(a.sport, a.duration_min, a.distance_km));
-
-  return {
-    ...planned,
-    completedSessionCount: planned.completedCount + imported.length,
-    importedActivityCount: imported.length,
-    actualDurationMin,
-    actualDistanceKm,
-    actualTss,
-    elevationGainM: sumBy(imported, (a) => a.elevation_gain_m),
-    kilojoules: sumBy(imported, (a) => a.kilojoules),
-    sports: [...bySport.values()].sort((a, b) => b.durationMin - a.durationMin),
-    hasActuals: planned.completedCount + imported.length > 0,
-  };
-}
-
 /** Planned-vs-actual progress bar used in the week rail. */
 function ProgressMeter({ label, actual, planned, formatValue, unit = '' }) {
   const hasPlan = Number(planned) > 0;
@@ -1457,8 +1419,10 @@ function ProgressMeter({ label, actual, planned, formatValue, unit = '' }) {
 }
 
 export default function TrainingCalendar({ athleteId = null, athleteName = '', role = 'athlete' }) {
+  const { request, today, preserveLibraryPlanMetadata, refreshAccount, getAccountScope } = useWorkspaceTransport();
+  const calendarMutation = useCallback((url, options) => performCalendarMutation(url, { ...options, request }), [request]);
   const router = useRouter();
-  const anchorMonday = useMemo(() => mondayOf(new Date()), []);
+  const anchorMonday = useMemo(() => mondayOf(today || new Date()), [today]);
   const [pastWeeks, setPastWeeks] = useState(INITIAL_PAST_WEEKS);
   const [futureWeeks, setFutureWeeks] = useState(INITIAL_FUTURE_WEEKS);
   const [workouts, setWorkouts] = useState([]);
@@ -1486,21 +1450,28 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
   const didInitialScroll = useRef(false);
   const prependHeightRef = useRef(null);
   const extendingRef = useRef(false);
-  const lastOpenedFromQuery = useRef(null);
-  const lastOpenedActivityFromQuery = useRef(null);
+
+  const selectCalendarDetail = useCallback((selection = {}) => {
+    setDetailId(selection.workout ?? null);
+    setActivityDetailId(selection.activity ?? null);
+    const url = calendarSelectionUrl(router.pathname, router.query, selection);
+    Promise.resolve(router.replace(url, undefined, { shallow: true, scroll: false })).catch((navigationError) => {
+      if (!navigationError.cancelled) setError('Could not update calendar navigation. Please try again.');
+    });
+  }, [router]);
 
   const rangeStart = toDateKey(addDays(anchorMonday, -pastWeeks * 7));
   const rangeEnd = toDateKey(addDays(anchorMonday, futureWeeks * 7 + 6));
-  const todayKey = toDateKey(new Date());
+  const todayKey = toDateKey(today || new Date());
   const athleteParam = athleteId ? `&athlete_id=${encodeURIComponent(athleteId)}` : '';
 
   const reload = useCallback(async () => {
     setError('');
     try {
       const [workoutsRes, notesRes, eventsRes] = await Promise.all([
-        fetch(`/api/planned-workouts?start=${rangeStart}&end=${rangeEnd}${athleteParam}`),
-        fetch(`/api/calendar-notes?start=${rangeStart}&end=${rangeEnd}${athleteParam}`),
-        role === 'athlete' ? fetch('/api/race-events') : Promise.resolve(null),
+        request(`/api/planned-workouts?start=${rangeStart}&end=${rangeEnd}${athleteParam}`),
+        request(`/api/calendar-notes?start=${rangeStart}&end=${rangeEnd}${athleteParam}`),
+        role === 'athlete' ? request('/api/race-events') : Promise.resolve(null),
       ]);
       if (!workoutsRes.ok) {
         const d = await workoutsRes.json().catch(() => ({}));
@@ -1522,7 +1493,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
       }
       // Refresh shared load headers after actuals change; a failed refresh does
       // not retry an already-committed calendar mutation.
-      if (role === 'athlete') void fetchMe({ force: true });
+      if (role === 'athlete') void refreshAccount?.();
       return workoutsData;
     } catch {
       setError('Could not load the training calendar.');
@@ -1531,7 +1502,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
       setLoadingEarlier(false);
       extendingRef.current = false;
     }
-  }, [rangeStart, rangeEnd, athleteParam, role]);
+  }, [rangeStart, rangeEnd, athleteParam, role, request, refreshAccount]);
 
   useEffect(() => {
     reload();
@@ -1539,54 +1510,39 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
 
   useEffect(() => {
     if (role !== 'coach') return;
-    fetch('/api/workout-library')
+    request('/api/workout-library')
       .then((r) => (r.ok ? r.json() : { workouts: [] }))
       .then((d) => setLibrary(d.workouts || []))
       .catch(() => {});
-  }, [role]);
+  }, [role, request]);
 
   // Distance-unit preference — new workouts default to it (per-workout choice
   // still wins on edit).
   useEffect(() => {
-    fetch('/api/settings')
+    request('/api/settings')
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         const unit = d?.settings?.distance_unit;
         if (unit === 'mi' || unit === 'km') setDistanceUnitPref(unit);
       })
       .catch(() => {});
-  }, []);
+  }, [request]);
 
   useEffect(() => {
     if (router.isReady && router.query.log === '1' && role === 'athlete') {
-      setEditorInitial({ ...emptyForm, workout_date: toDateKey(new Date()), logCompletion: true });
+      setEditorInitial({ ...emptyForm, workout_date: toDateKey(today || new Date()), logCompletion: true });
     }
-  }, [router.isReady, router.query.log, role]);
+  }, [router.isReady, router.query.log, role, today]);
 
-  // Deep link: /calendar?workout=<id> opens the workout detail once loaded.
-  // Tracks the last id opened this way so navigating to a different workout
-  // on the already-mounted calendar re-opens the panel, while closing the
-  // panel doesn't immediately re-trigger for the same id.
+  // URL and modal selection stay consistent for deep links, direct clicks,
+  // close/cancel and refresh. Load first; never restore a stale prior selection.
   useEffect(() => {
     if (!router.isReady) return;
-    const target = typeof router.query.workout === 'string' ? router.query.workout : '';
-    if (target && target !== lastOpenedFromQuery.current && workouts.some((w) => w.id === target)) {
-      lastOpenedFromQuery.current = target;
-      setDetailId(target);
-    }
-  }, [router.isReady, router.query.workout, workouts]);
-
-  // Deep link: /calendar?activity=<id> does the same for an imported session,
-  // which is how a message-center thread on a completed activity lands on the
-  // day it belongs to. Only fires once the range holding it has loaded.
-  useEffect(() => {
-    if (!router.isReady) return;
-    const target = typeof router.query.activity === 'string' ? router.query.activity : '';
-    if (target && target !== lastOpenedActivityFromQuery.current && activities.some((a) => String(a.id) === target)) {
-      lastOpenedActivityFromQuery.current = target;
-      setActivityDetailId(activities.find((a) => String(a.id) === target).id);
-    }
-  }, [router.isReady, router.query.activity, activities]);
+    const workoutId = typeof router.query.workout === 'string' ? router.query.workout : '';
+    const activityId = typeof router.query.activity === 'string' ? router.query.activity : '';
+    setDetailId(workoutId && workouts.some((workout) => workout.id === workoutId) ? workoutId : null);
+    setActivityDetailId(!workoutId && activityId ? activities.find((activity) => String(activity.id) === activityId)?.id ?? null : null);
+  }, [router.isReady, router.query.workout, router.query.activity, workouts, activities]);
 
   // Initial position: scroll the container so this week sits at the top.
   useLayoutEffect(() => {
@@ -1654,7 +1610,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
     });
     if (result.ok) await reload();
     return result;
-  }, [athleteId, reload]);
+  }, [athleteId, reload, calendarMutation]);
 
   const updateWorkout = useCallback(async (id, updates) => {
     const result = await calendarMutation('/api/planned-workouts', { method: 'PATCH', body: { id, ...updates } });
@@ -1663,13 +1619,13 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
       result.workout = refreshed?.workouts?.find((w) => w.id === id) || result.workout;
     }
     return result;
-  }, [reload]);
+  }, [reload, calendarMutation]);
 
   const deleteWorkout = useCallback(async (id) => {
     const result = await calendarMutation(`/api/planned-workouts?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
-    if (result.ok) { setDetailId(null); await reload(); }
+    if (result.ok) { selectCalendarDetail(); await reload(); }
     return result;
-  }, [reload]);
+  }, [reload, calendarMutation, selectCalendarDetail]);
 
   const pendingMutations = useRef(new Map());
   const mutateCalendar = useCallback(async (url, options, afterSave) => {
@@ -1683,7 +1639,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
       await reload();
       return true;
     } finally { pendingMutations.current.delete(key); }
-  }, [reload]);
+  }, [reload, calendarMutation]);
 
   const saveNote = useCallback((form) => mutateCalendar('/api/calendar-notes', {
     method: form.id ? 'PATCH' : 'POST', body: { ...form, athlete_id: athleteId || undefined },
@@ -1692,29 +1648,25 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
     { method: 'DELETE' }, () => setNoteEditor(null)), [mutateCalendar]);
   const saveEvent = useCallback((body) => mutateCalendar('/api/race-events', { body }), [mutateCalendar]);
   const saveToLibrary = useCallback((form) => mutateCalendar('/api/workout-library', {
-    body: { name: form.title, sport: form.sport, description: form.description, structure: form.structure,
-      planned_duration_min: form.planned_duration_min === '' ? null : Number(form.planned_duration_min),
-      planned_distance_km: form.planned_distance_km === '' ? null : form.planned_distance_km,
-      planned_distance_unit: form.planned_distance_unit || 'mi' },
-  }, (result) => setLibrary((previous) => [result.workout, ...previous])), [mutateCalendar]);
+    body: libraryWorkoutPayload(form, { preservePlanMetadata: preserveLibraryPlanMetadata }),
+  }, (result) => setLibrary((previous) => [result.workout, ...previous.filter((item) => item.id !== result.workout.id)])), [mutateCalendar, preserveLibraryPlanMetadata]);
   const applyLibraryWorkout = useCallback((libraryWorkoutId, date) => mutateCalendar('/api/planned-workouts', {
     body: { athlete_id: athleteId || undefined, library_workout_id: libraryWorkoutId, workout_date: date },
   }), [athleteId, mutateCalendar]);
   const copyRequests = useRef(null);
   const copyWeekForward = useCallback((fromWeekStartKey) => {
-    if (!copyRequests.current) {
+    const scope = getAccountScope?.() || 'isolated-workspace';
+    if (!copyRequests.current || copyRequests.current.scope !== scope) {
       let storage;
       try { storage = typeof window === 'undefined' ? undefined : window.sessionStorage; } catch {}
-      copyRequests.current = createCopyWeekRequests({
-        scope: getCachedMe()?.athlete?.id || 'current-session', storage,
-      });
+      copyRequests.current = { scope, ...createCopyWeekRequests({ scope, storage }) };
     }
     const body = copyRequests.current.begin({ action: 'copy_week', athlete_id: athleteId || undefined,
       from_week_start: fromWeekStartKey, to_week_start: toDateKey(addDays(new Date(`${fromWeekStartKey}T00:00:00`), 7)) });
     return mutateCalendar('/api/planned-workouts', { body }, (result) => {
       if (Array.isArray(result.workouts)) copyRequests.current.complete(body);
     });
-  }, [athleteId, mutateCalendar]);
+  }, [athleteId, mutateCalendar, getAccountScope]);
 
   // ── Derived rows ───────────────────────────────────────────────────────────
 
@@ -1825,26 +1777,28 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
           defaultDistanceUnit={distanceUnitPref}
           onSave={saveWorkout}
           onSaveToLibrary={role === 'coach' ? saveToLibrary : null}
-          onClose={() => setEditorInitial(null)}
+          onClose={() => { setEditorInitial(null); if (router.query.log === '1') selectCalendarDetail(); }}
         />
       )}
       {detailActivity && (
         <ActivityDetail
+          key={detailActivity.id}
           activity={detailActivity}
           role={role}
           distanceUnit={distanceUnitPref}
           onCountChange={(count) => setActivityCommentCount(detailActivity.id, count)}
-          onClose={() => setActivityDetailId(null)}
+          onClose={() => selectCalendarDetail()}
         />
       )}
       {detailWorkout && (
         <WorkoutDetail
+          key={detailWorkout.id}
           workout={detailWorkout}
           matchActivities={matchActivities}
           role={role}
           onUpdate={updateWorkout}
           onEdit={(w) => {
-            setDetailId(null);
+            selectCalendarDetail();
             setEditorInitial({
               id: w.id,
               title: w.title,
@@ -1863,7 +1817,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
             });
           }}
           onDelete={deleteWorkout}
-          onClose={() => setDetailId(null)}
+          onClose={() => selectCalendarDetail()}
         />
       )}
       {dayMenuDate && (
@@ -2066,7 +2020,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
                         {day.workouts.map((w) => (
                           <button
                             key={w.id}
-                            onClick={(e) => { e.stopPropagation(); setDetailId(w.id); }}
+                            onClick={(e) => { e.stopPropagation(); selectCalendarDetail({ workout: w.id }); }}
                             className={`block w-full min-w-0 rounded-xl border px-1.5 py-1.5 text-left transition hover:border-ink/30 sm:px-2 ${
                               w.status === 'completed'
                                 ? 'border-emerald-200 bg-emerald-50/75'
@@ -2127,7 +2081,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
                         {day.activities.map((activity) => (
                           <button
                             key={`activity-${activity.id}`}
-                            onClick={(e) => { e.stopPropagation(); setActivityDetailId(activity.id); }}
+                            onClick={(e) => { e.stopPropagation(); selectCalendarDetail({ activity: activity.id }); }}
                             title="Imported activity with no planned workout — open for stats and comments"
                             className="block w-full min-w-0 rounded-xl border border-sky-200 bg-sky-50/70 px-1.5 py-1.5 text-left transition hover:border-sky-400 sm:px-2"
                           >
@@ -2204,6 +2158,9 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
                       planned={week.summary.plannedTss}
                       formatValue={(v) => Math.round(v)}
                     />
+                    {week.summary.missingActualTssCount > 0 && (
+                      <p className="text-[10px] text-ink/60">Actual TSS unknown for {week.summary.missingActualTssCount} completed session{week.summary.missingActualTssCount === 1 ? '' : 's'}; total includes recorded TSS only.</p>
+                    )}
 
                     {(week.summary.elevationGainM > 0 || week.summary.kilojoules > 0) && (
                       <div className="flex flex-wrap gap-x-2 gap-y-0.5 border-t border-ink/8 pt-1.5 text-[10px] text-ink/55">
@@ -2253,6 +2210,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
               <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl bg-white/60 px-3 py-1.5 text-[11px] text-ink/60 lg:hidden">
                 {role === 'coach' && week.summary.totalCount > 0 && (
                   <button onClick={() => copyWeekForward(week.key)} aria-label="Copy week to next week"
+                    title="Copy this week's workouts to next week"
                     className="min-h-11 rounded-full border border-ink/10 px-3 py-2 font-semibold text-ink/70 hover:bg-ink/5">
                     Copy week to next week
                   </button>
@@ -2268,6 +2226,9 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
                   </span>
                 )}
                 <span>{week.summary.completedSessionCount} completed{week.summary.importedActivityCount ? ` · ${week.summary.importedActivityCount} imported` : ''}</span>
+                {week.summary.missingActualTssCount > 0 && (
+                  <span>Actual TSS unknown for {week.summary.missingActualTssCount} completed session{week.summary.missingActualTssCount === 1 ? '' : 's'}; total includes recorded TSS only.</span>
+                )}
               </div>
             </div>
           ))}
@@ -2278,7 +2239,8 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
 }
 
 function LibraryCard({ item, onApply, onDelete }) {
-  const [date, setDate] = useState(toDateKey(new Date()));
+  const { today } = useWorkspaceTransport();
+  const [date, setDate] = useState(toDateKey(today || new Date()));
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState('');
   async function apply() {

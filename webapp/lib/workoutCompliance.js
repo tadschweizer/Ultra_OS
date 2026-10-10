@@ -341,6 +341,23 @@ export function summarizeReconciliationWindow(workouts = [], activities = [], { 
   };
 }
 
+// Planned load is never evidence of actual load, including partial/blank logs.
+// Track missing measurements explicitly rather than converting them to zero.
+export function summarizeActualTss(completedWorkouts = [], importedActivities = []) {
+  const values = [
+    ...completedWorkouts.map((workout) => workout.completed_tss ?? workout.linked_activity?.tss ?? workout.matched_activity?.tss),
+    ...importedActivities.map((activity) => activity.tss),
+  ];
+  return values.reduce((summary, value) => {
+    if (value == null || value === '' || !Number.isFinite(Number(value)) || Number(value) < 0) {
+      summary.missingCount++;
+    } else {
+      summary.tss += Number(value);
+    }
+    return summary;
+  }, { tss: 0, missingCount: 0 });
+}
+
 /** Weekly rollup of planned vs completed totals for a list of workouts. */
 export function summarizeWeek(workouts = []) {
   const summary = {

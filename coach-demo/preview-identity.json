@@ -1,0 +1,170 @@
+{
+  "sourceRepository": "https://github.com/tadschweizer/Ultra_OS",
+  "sourceBase": "fa8ebe2b377784007b4a40b4e982f92a11224075",
+  "runtimeSourceCommit": "54f2ab181848baf022c2fc59ce0c5c492f00da1d",
+  "branch": "demo/synthetic-transfer",
+  "pullRequest": "https://github.com/tadschweizer/Ultra_OS/pull/134",
+  "deploymentId": "dpl_EtjWEJQQ4gY6xA7UW7aFvf8SeB2B",
+  "immutableUrl": "https://ultra-os-tb77-fbct852gc-tadschweizers-projects.vercel.app",
+  "projectId": "prj_wMIqPdQTPQVXfYsmh1eNVPBA4taC",
+  "teamId": "team_DWc6DlROyO9iNYjQzYyyhxNn",
+  "readyState": "READY",
+  "selfVerificationRecordedAt": "2026-10-10T01:45:09.409Z",
+  "localBuildArchive": {
+    "file": "output/threshold-demo-54f2ab1.zip",
+    "sha256": "b94e7609ebc84a25e1e44648e3a4fe8b33b7835326a4c7eb1d0ebc75be4e2f2e",
+    "contents": "dist directory and unwrapped header configuration; archive in task workspace output; deployment wrapper reproduced by script"
+  },
+  "target": null,
+  "aliases": [],
+  "artifactType": "static-files-only",
+  "deploymentWrapper": {
+    "rootPrefix": "webapp/",
+    "perDeploymentBuilds": [
+      {
+        "src": "**",
+        "use": "@vercel/static"
+      }
+    ],
+    "reproduce": "DEMO_VERCEL_ROOT=webapp node scripts/preview-files.mjs",
+    "productionSettingsChanged": false
+  },
+  "assets": [
+    {
+      "file": "favicon.svg",
+      "bytes": 182,
+      "sha256": "fb03e23aee5c008f20ba4a3fc5a10092be5dbb9a7f85e8e397f9560c97315bf8"
+    },
+    {
+      "file": "index.html",
+      "bytes": 763,
+      "sha256": "0c15249c47c10ea7c8ed7e5d5189758a7e348de99837c8ea3620690107c3ac52"
+    },
+    {
+      "file": "assets/index-BixaqdIL.css",
+      "bytes": 28859,
+      "sha256": "2c3679c0f147d82e28eed0386cbb8f746e669a2b827a4ed7240b3aef6714e3dd"
+    },
+    {
+      "file": "assets/index-BQKfX-nn.js",
+      "bytes": 277141,
+      "sha256": "f16b6b4af513cfe9c6350a04383aafd3fb14714127f6856ccd287a6f5a6824d1"
+    }
+  ],
+  "selfVerification": {
+    "adapter": {
+      "pass": 17,
+      "fail": 0
+    },
+    "browserLocal": {
+      "pass": 21,
+      "fail": 0,
+      "runnerDuration": "1.0m"
+    },
+    "browserHosted": {
+      "pass": 21,
+      "fail": 0,
+      "runnerDuration": "1.2m"
+    },
+    "productionAuthRegression": {
+      "pass": 432,
+      "fail": 0
+    },
+    "productionBuild": "passed",
+    "staticBuild": "passed",
+    "viewportWidths": [
+      1440,
+      390,
+      320
+    ],
+    "demoPageApiOrExternalRequests": 0,
+    "hostedProtectedApiProbeStatus": 404,
+    "hostedAssetsMatchLocalSha256": true,
+    "hostedConnectSrc": "none"
+  },
+  "independentQa": "limited-PASS-agreed-synthetic-daily-coaching-scope; F1-F5-cleared-in-tested-paths; not-full-app-parity",
+  "qaRepairScope": [
+    "F1-library-metadata-and-private-visibility",
+    "F2-unknown-actual-load",
+    "F3-consumed-failure-notice",
+    "F4-selection-refresh-and-dialog-input-identity",
+    "F5-linked-recorded-elevation-and-work"
+  ],
+  "libraryFullMetadataPersistence": "demo-adapter-only; production API/database schema unchanged",
+  "supersededRejectedRuntime": {
+    "runtimeSourceCommit": "edccc86a83b2c2e21cbad13f78ca0f3330ec3e5e",
+    "deploymentId": "dpl_jvfAeqF1FmmJZSat33oHCCcLV889",
+    "immutableUrl": "https://ultra-os-tb77-r0amr2xjc-tadschweizers-projects.vercel.app",
+    "identitySnapshot": "evidence/preview-edccc86.json",
+    "independentQa": "rejected-F1-F2-F3"
+  },
+  "physicalPhone": "not verified",
+  "existingSitesVersionChanged": false,
+  "supersededFailedDeployment": "dpl_G2wpVQ52wdCJ6pBDXNCGjE4Nryfy",
+  "supersededRetestedRuntime": {
+    "runtimeSourceCommit": "683a5ebf42a6e86e56b62544f7b79d303a71aeda",
+    "deploymentId": "dpl_HGAsRETr6kkg1doGUmdrwqyAZMt4",
+    "immutableUrl": "https://ultra-os-tb77-9vifc1i44-tadschweizers-projects.vercel.app",
+    "identitySnapshot": "evidence/preview-683a5eb.json",
+    "independentQa": "F1-F2-F3-cleared; overall-held-F4-F5"
+  },
+  "supersededIntermediatePreview": {
+    "runtimeSourceCommit": "20113c37ab0b8863742e73794f51050a8dcc9635",
+    "deploymentId": "dpl_5mkNKdDmixtQwXzerJCjgRgRqHGs",
+    "immutableUrl": "https://ultra-os-tb77-fio2eebgm-tadschweizers-projects.vercel.app",
+    "independentQa": "not-submitted; superseded-before-handoff-by-dialog-input-identity-regression"
+  },
+  "independentAcceptance": {
+    "outcome": "limited PASS",
+    "scope": "agreed synthetic daily-coaching demo",
+    "testedRuntimeSourceCommit": "54f2ab181848baf022c2fc59ce0c5c492f00da1d",
+    "testedManifestEvidenceHead": "cb3136fd2d0d252526bfb1316e695373ebaf864e",
+    "testWindowUtc": {
+      "start": "2026-10-10T01:47:49Z",
+      "end": "2026-10-10T01:53:51Z"
+    },
+    "report": "../docs/demo-evidence/independent-54f2ab/QA_FINAL_RETEST.md",
+    "reportSha256": "882174f70496aa99785c7c109150120510f33af43c1eb81aa6e6fde5f97a0c20",
+    "archive": "../docs/demo-evidence/independent-54f2ab/threshold-final-retest-54f2ab.zip",
+    "archiveSha256": "b13707f02659fe9c08325045eba5197b596fff0c046028d49e913e0b2c6155cb",
+    "servedIdentityEvidence": "independently fetched all four files; byte lengths and SHA-256 match cb3136fd manifest; HTTP does not directly prove Git/deployment ID",
+    "observations": {
+      "F4F5ViewportWidths": [
+        1440,
+        390,
+        320
+      ],
+      "F1F2F3": "PASS smoke in tested paths",
+      "coreCoachAthleteLoop": "PASS",
+      "apiOrExternalRequestsObserved": 0,
+      "javascriptPageErrorsObserved": 0,
+      "protectedShapedGetProbes": {
+        "count": 5,
+        "status": 404,
+        "exhaustiveAuthAudit": false
+      }
+    },
+    "notRun": [
+      "measured mechanical work/kJ retention",
+      "physical phone/Safari/Firefox",
+      "production library persistence/production regression suite",
+      "all target types/automatic-match approval/adversarial duplicate races",
+      "calendar/message/copy mutation failure branches/log-form cancellation/local export"
+    ],
+    "implementerCountsRerunByIndependentQa": false,
+    "runtimeCi": {
+      "headSha": "54f2ab181848baf022c2fc59ce0c5c492f00da1d",
+      "runId": "38014218602",
+      "conclusion": "success"
+    },
+    "priorEvidenceHeadCi": {
+      "headSha": "cb3136fd2d0d252526bfb1316e695373ebaf864e",
+      "runId": "38014420545",
+      "conclusion": "success"
+    },
+    "documentedAtUtc": "2026-10-10T02:00:12.877Z",
+    "runtimeChangedForDocumentation": false,
+    "manualRedeploymentForDocumentation": false,
+    "mergeAuthorized": false
+  }
+}

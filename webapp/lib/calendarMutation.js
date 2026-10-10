@@ -1,8 +1,8 @@
 // Every calendar caller receives a result, including transport and invalid-body
 // failures. A successful write and a failed refresh are separate outcomes.
-export async function calendarMutation(url, { method = 'POST', body } = {}) {
+export async function calendarMutation(url, { method = 'POST', body, request = fetch } = {}) {
   try {
-    const response = await fetch(url, {
+    const response = await request(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),

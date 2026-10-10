@@ -2,8 +2,8 @@
 
 Last updated: 2026-10-10<br>
 Status: PR #133 merged as `1d1e0b6` and is deployed READY on both public domains. Six targeted Supabase sources repair pilot prerequisites, workout decisions, messaging lifecycle, foreign-key indexes, stable conflict responses and legacy notification preferences. Both readiness checks and all eleven hosted Data API contracts pass. Actual signed QA passes drafts, two-way messages/notifications, exact unread counts, concurrent leases, group retries, workout corrections and relationship/session revocation. Final regression 432/432, focused release 22/22, integration 4/4, build and final-head CI pass. Real-mailbox, fresh-account, physical-phone and participant acceptance remain open.<br>
-Current milestone: M0 - make the closed coach pilot work end to end; focused calendar/private-draft/load fixes are prepared for review, with hosted acceptance pending<br>
-Next item: Review the isolated calendar/private-draft/load fix and coordinate its library-schema dependency with PR135; staging and rollout require separate authorization. Continue P0-015 email provider/protected POST scheduler setup and consenting real-mailbox acceptance; verify fresh-account enrollment and the physical-phone M0 loop, then collect the prepared P0-018 measurements. Do not reapply the prior pilot-release migrations. Keep parent checkboxes open until their remaining acceptance criteria pass.
+Current milestone: M0 - make the closed coach pilot work end to end; PR134 merged and deployed; production library, calendar/privacy/load and messaging release preparation continues<br>
+Next item: Finish the user's authorized PR135-137 release. Read-only production catalog inspection confirms four new migration prerequisites are missing; hold PR135/136 main merges until the exact production schema operations receive separate approval. Validate PR137 against current main and its existing messaging schema, resolve PR136 conflicts using the independently accepted transport/copy behavior, and record checks and deployment outcomes. Do not reapply prior pilot-release migrations. Continue P0-015 provider/scheduler and consenting mailbox acceptance, fresh-account enrollment, physical-phone checks and P0-018 measurements after release preparation; keep their parent checkboxes open.
 
 ## Purpose
 
@@ -755,6 +755,20 @@ M7 removes systemic inconsistency and validates the full product before public l
 - [ ] **UX-005 — Accessibility and input coverage**
   - Keyboard, screen reader, reduced motion, contrast, focus, touch target, and zoom checks.
 
+- [ ] **UX-006 - Messaging page revamp (queued)**
+  - User request, October 10, 2026: the message page should function and look kind of like the
+    iPhone messaging app. Use a familiar conversation list and chat-thread layout, clear sender
+    bubbles and unread state, and an easy mobile composer with retained coach-athlete context.
+  - Preserve current persistent drafts, failed-send input, retries, delivery/read behavior and
+    exact unread counts. This UX work is separate from P0-015 messaging reliability and its
+    remaining provider, real-mailbox and physical-phone acceptance gates.
+  - Acceptance: responsive phone and desktop conversation/thread/composer layouts;
+    keyboard navigation, focus and conversation/back navigation; draft persistence through
+    reload and recipient/role switching; unread/read and send/retry regressions pass without
+    losing athlete context or implying unverified external delivery.
+  - Proposed sequencing: after current demo stabilization and before a polished coach
+    presentation if the user chooses. Queued only; no redesign implementation is started.
+
 - [ ] **QA-001 — Full regression matrix**
   - Email/password, verification, reset, OAuth, invitations, roles, onboarding, calendar, plans,
     structured workouts, integrations, analytics, billing, portal, cancellation, and deletion.
@@ -944,3 +958,72 @@ changes were restored. No email was sent, and email preference availability rema
 Final regression 432/432 and focused release 22/22 pass. No P0 parent is closed by
 these checks alone: actual phone, enrollment, provider/mailbox and elapsed-day participant
 gates remain. No paid staging or repository protection configuration was changed.
+
+### Authorized synthetic demo - October 10
+
+Built on verified online main fa8ebe2b377784007b4a40b4e982f92a11224075 in an
+isolated checkout, after inspecting the earlier demo branch. Shared real calendar,
+structured editor, completion/reconciliation and messages/draft views use a closed
+synthetic transport; production authentication and API handlers remain unchanged.
+Adapter 12/12, browser 15/15 (desktop, 390 and 320px) and production regression
+432/432 pass; production and static builds pass. The dedicated branch is
+demo/synthetic-transfer. See DEMO_PARITY_MATRIX.md and DEMO_VERIFICATION.md;
+publication identity will be in coach-demo/preview-identity.json. Independent
+parent QA and physical-phone acceptance remain open. No production milestone
+checkbox is closed by this simulation, and no production service configuration
+or existing public Sites version was changed.
+
+Draft PR #134: https://github.com/tadschweizer/Ultra_OS/pull/134. Runtime commit
+edccc86a83b2c2e21cbad13f78ca0f3330ec3e5e is served by READY static preview
+https://ultra-os-tb77-r0amr2xjc-tadschweizers-projects.vercel.app,
+deployment dpl_jvfAeqF1FmmJZSat33oHCCcLV889. All 15 hosted browser tests pass;
+asset SHA-256 identity, CSP and absent protected API routes are verified.
+Exact identity, test output and screenshots accompany this branch. Independent
+QA is pending; this entry is a review handoff, not an acceptance declaration.
+
+### Independent synthetic demo repairs - October 10
+
+Independent hosted QA rejected edccc86 on F1 library metadata/private-visibility
+loss, F2 planned TSS substituted for unknown actual load, and F3 consumed failure
+banner persistence. DEMO_QA_FIXES.md records each cause, bounded repair and
+regression. Full demo adapter 15/15, local browser 18/18 (including all three
+widths), production auth regression 432/432, and both builds pass. Corrected
+immutable publication and independent exact-build retest follow on PR #134.
+The production library schema and API are unchanged; full prescription metadata
+is a deliberately local demo capability. No acceptance checkbox is closed.
+
+Corrected runtime 683a5ebf42a6e86e56b62544f7b79d303a71aeda is READY at
+https://ultra-os-tb77-9vifc1i44-tadschweizers-projects.vercel.app,
+deployment dpl_HGAsRETr6kkg1doGUmdrwqyAZMt4. Full hosted suite passes 18/18,
+including F1/F2/F3; exact asset hashes, closed CSP, absent API routes and no
+page API/external requests are verified. Prior rejected preview/evidence remain
+available. Current preview identity and fresh screenshots/output accompany the
+branch. Independent exact-build retest remains open; no merge or live-domain
+promotion is authorized.
+
+### Second independent synthetic demo repair - October 10
+
+Independent 683a5eb retest clears F1/F2/F3 but holds acceptance on pre-existing
+F4 stale calendar selection on refresh and F5 lost matched recorded elevation.
+The shared calendar now replaces/clears selection query state; a pure week
+summary retains linked/matched elevation/work once, preserving existing actual
+duration/distance/TSS attribution. Raw/normalized activity shapes are covered.
+Final adapter/helper 17/17, full local browser 21/21, F4/F5 browser subset 3/3,
+production auth regression 432/432 and both builds pass. New pinned static
+publication and independent F4/F5 retest follow on the same draft PR #134.
+Prior previews/evidence remain; no API/auth/schema or production settings change.
+
+Final F4 dialog identity check also verifies unsaved actual inputs reset on both same-calendar deep-link switches. Full local browser 21/21 and final Next/static builds pass; the dedicated branch receives a new immutable static preview and hosted full-suite run before independent handoff.
+
+Final handoff source `54f2ab181848baf022c2fc59ce0c5c492f00da1d`, draft PR #134, READY static deployment `dpl_EtjWEJQQ4gY6xA7UW7aFvf8SeB2B` at https://ultra-os-tb77-fbct852gc-tadschweizers-projects.vercel.app. Hosted full suite 21/21; browser assets match local SHA-256, API paths return 404 and page API/provider requests are zero. Identity/screenshots/raw outputs updated. Independent exact-build acceptance and physical-phone verification remain open; keep this preview stable for retest.
+
+### Independent scoped demo acceptance — October 10
+
+Exact-build independent QA on 54f2ab records limited PASS for the agreed synthetic daily-coaching scope, test window 2026-10-10 01:47:49–01:53:51 UTC. F4/F5 pass at desktop/390/320, F1–F3 smoke and the core coach/athlete loop pass; served asset hashes match cb3136fd and no API/external requests or JavaScript errors were observed. The unmodified report and original ZIP (SHA-256 B13707F02659FE9C08325045EBA5197B596FFF0C046028D49E913E0B2C6155CB) are committed under docs/demo-evidence/independent-54f2ab.
+
+Physical-phone/Safari/Firefox, measured mechanical-work/kJ, production library persistence/production regression and the other report-listed branches were NOT RUN in this independent retest. The narrower production library schema remains unchanged. All prior failed outcomes/dates remain preserved; no full-app parity or physical-phone claim. Runtime CI 38014218602 and existing evidence-head CI 38014420545 verified successful before this docs-only update. No runtime edits, manual redeployment, merge or live-domain promotion; PR #134 remains draft. No production acceptance checkbox is closed.
+
+October 10 user-requested roadmap addition: queued UX-006 under M7 - Interface convergence and
+release hardening for an iPhone-style messaging page. Proposed after demo stabilization and
+before a polished coach presentation if the user chooses; P0-015 reliability acceptance remains
+distinct. Documentation-only queue entry on PR #134; no runtime edit, merge or redesign started.
