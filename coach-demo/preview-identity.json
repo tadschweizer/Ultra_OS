@@ -1,50 +1,95 @@
 {
   "sourceRepository": "https://github.com/tadschweizer/Ultra_OS",
   "sourceBase": "fa8ebe2b377784007b4a40b4e982f92a11224075",
-  "runtimeSourceCommit": "683a5ebf42a6e86e56b62544f7b79d303a71aeda",
+  "runtimeSourceCommit": "54f2ab181848baf022c2fc59ce0c5c492f00da1d",
   "branch": "demo/synthetic-transfer",
   "pullRequest": "https://github.com/tadschweizer/Ultra_OS/pull/134",
-  "deploymentId": "dpl_HGAsRETr6kkg1doGUmdrwqyAZMt4",
-  "immutableUrl": "https://ultra-os-tb77-9vifc1i44-tadschweizers-projects.vercel.app",
+  "deploymentId": "dpl_EtjWEJQQ4gY6xA7UW7aFvf8SeB2B",
+  "immutableUrl": "https://ultra-os-tb77-fbct852gc-tadschweizers-projects.vercel.app",
   "projectId": "prj_wMIqPdQTPQVXfYsmh1eNVPBA4taC",
   "teamId": "team_DWc6DlROyO9iNYjQzYyyhxNn",
   "readyState": "READY",
-  "selfVerificationRecordedAt": "2026-10-10T01:00:12Z",
+  "selfVerificationRecordedAt": "2026-10-10T01:45:09.409Z",
   "localBuildArchive": {
-    "file": "output/threshold-demo-683a5eb.zip",
-    "sha256": "bb98e27e442c109cba7be1e828ad5a5c0e89845cf646b03770e14426f0438325",
-    "contents": "dist directory and unwrapped header configuration; deployment wrapper reproduced by script"
+    "file": "output/threshold-demo-54f2ab1.zip",
+    "sha256": "b94e7609ebc84a25e1e44648e3a4fe8b33b7835326a4c7eb1d0ebc75be4e2f2e",
+    "contents": "dist directory and unwrapped header configuration; archive in task workspace output; deployment wrapper reproduced by script"
   },
   "target": null,
   "aliases": [],
   "artifactType": "static-files-only",
   "deploymentWrapper": {
     "rootPrefix": "webapp/",
-    "perDeploymentBuilds": [{"src": "**", "use": "@vercel/static"}],
+    "perDeploymentBuilds": [
+      {
+        "src": "**",
+        "use": "@vercel/static"
+      }
+    ],
     "reproduce": "DEMO_VERCEL_ROOT=webapp node scripts/preview-files.mjs",
     "productionSettingsChanged": false
   },
   "assets": [
-    {"file": "assets/index-BixaqdIL.css", "bytes": 28859, "sha256": "2c3679c0f147d82e28eed0386cbb8f746e669a2b827a4ed7240b3aef6714e3dd"},
-    {"file": "assets/index-D9-oo-hE.js", "bytes": 276182, "sha256": "622fd5048884ee00c9be73aaca757d0dad932dabd790a728d26d82188190a359"},
-    {"file": "favicon.svg", "bytes": 182, "sha256": "fb03e23aee5c008f20ba4a3fc5a10092be5dbb9a7f85e8e397f9560c97315bf8"},
-    {"file": "index.html", "bytes": 763, "sha256": "32d376943d0d463d0e09045e24ac16105e93a8119dd97be9fc0c890568cb3a79"}
+    {
+      "file": "favicon.svg",
+      "bytes": 182,
+      "sha256": "fb03e23aee5c008f20ba4a3fc5a10092be5dbb9a7f85e8e397f9560c97315bf8"
+    },
+    {
+      "file": "index.html",
+      "bytes": 763,
+      "sha256": "0c15249c47c10ea7c8ed7e5d5189758a7e348de99837c8ea3620690107c3ac52"
+    },
+    {
+      "file": "assets/index-BixaqdIL.css",
+      "bytes": 28859,
+      "sha256": "2c3679c0f147d82e28eed0386cbb8f746e669a2b827a4ed7240b3aef6714e3dd"
+    },
+    {
+      "file": "assets/index-BQKfX-nn.js",
+      "bytes": 277141,
+      "sha256": "f16b6b4af513cfe9c6350a04383aafd3fb14714127f6856ccd287a6f5a6824d1"
+    }
   ],
   "selfVerification": {
-    "adapter": {"pass":15,"fail":0},
-    "browserLocal": {"pass":18,"fail":0,"seconds":49.7},
-    "browserHosted": {"pass":18,"fail":0,"seconds":52.6},
-    "productionAuthRegression": {"pass":432,"fail":0},
+    "adapter": {
+      "pass": 17,
+      "fail": 0
+    },
+    "browserLocal": {
+      "pass": 21,
+      "fail": 0,
+      "runnerDuration": "1.0m"
+    },
+    "browserHosted": {
+      "pass": 21,
+      "fail": 0,
+      "runnerDuration": "1.2m"
+    },
+    "productionAuthRegression": {
+      "pass": 432,
+      "fail": 0
+    },
     "productionBuild": "passed",
     "staticBuild": "passed",
-    "viewportWidths": [1440,390,320],
+    "viewportWidths": [
+      1440,
+      390,
+      320
+    ],
     "demoPageApiOrExternalRequests": 0,
     "hostedProtectedApiProbeStatus": 404,
     "hostedAssetsMatchLocalSha256": true,
     "hostedConnectSrc": "none"
   },
-  "independentQa": "corrected-runtime-retest-pending",
-  "qaRepairScope": ["F1-library-metadata-and-private-visibility", "F2-unknown-actual-load", "F3-consumed-failure-notice"],
+  "independentQa": "F1-F2-F3-cleared-on-683a5eb; current-exact-build-F4-F5-and-full-regression-retest-pending",
+  "qaRepairScope": [
+    "F1-library-metadata-and-private-visibility",
+    "F2-unknown-actual-load",
+    "F3-consumed-failure-notice",
+    "F4-selection-refresh-and-dialog-input-identity",
+    "F5-linked-recorded-elevation-and-work"
+  ],
   "libraryFullMetadataPersistence": "demo-adapter-only; production API/database schema unchanged",
   "supersededRejectedRuntime": {
     "runtimeSourceCommit": "edccc86a83b2c2e21cbad13f78ca0f3330ec3e5e",
@@ -55,5 +100,18 @@
   },
   "physicalPhone": "not verified",
   "existingSitesVersionChanged": false,
-  "supersededFailedDeployment": "dpl_G2wpVQ52wdCJ6pBDXNCGjE4Nryfy"
+  "supersededFailedDeployment": "dpl_G2wpVQ52wdCJ6pBDXNCGjE4Nryfy",
+  "supersededRetestedRuntime": {
+    "runtimeSourceCommit": "683a5ebf42a6e86e56b62544f7b79d303a71aeda",
+    "deploymentId": "dpl_HGAsRETr6kkg1doGUmdrwqyAZMt4",
+    "immutableUrl": "https://ultra-os-tb77-9vifc1i44-tadschweizers-projects.vercel.app",
+    "identitySnapshot": "evidence/preview-683a5eb.json",
+    "independentQa": "F1-F2-F3-cleared; overall-held-F4-F5"
+  },
+  "supersededIntermediatePreview": {
+    "runtimeSourceCommit": "20113c37ab0b8863742e73794f51050a8dcc9635",
+    "deploymentId": "dpl_5mkNKdDmixtQwXzerJCjgRgRqHGs",
+    "immutableUrl": "https://ultra-os-tb77-fio2eebgm-tadschweizers-projects.vercel.app",
+    "independentQa": "not-submitted; superseded-before-handoff-by-dialog-input-identity-regression"
+  }
 }

@@ -964,3 +964,5 @@ publication and independent F4/F5 retest follow on the same draft PR #134.
 Prior previews/evidence remain; no API/auth/schema or production settings change.
 
 Final F4 dialog identity check also verifies unsaved actual inputs reset on both same-calendar deep-link switches. Full local browser 21/21 and final Next/static builds pass; the dedicated branch receives a new immutable static preview and hosted full-suite run before independent handoff.
+
+Final handoff source `54f2ab181848baf022c2fc59ce0c5c492f00da1d`, draft PR #134, READY static deployment `dpl_EtjWEJQQ4gY6xA7UW7aFvf8SeB2B` at https://ultra-os-tb77-fbct852gc-tadschweizers-projects.vercel.app. Hosted full suite 21/21; browser assets match local SHA-256, API paths return 404 and page API/provider requests are zero. Identity/screenshots/raw outputs updated. Independent exact-build acceptance and physical-phone verification remain open; keep this preview stable for retest.
