@@ -1,0 +1,44 @@
+[WebServer] (node:25108) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:17872) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] [@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated and will be removed in a future version. Use webpack.treeshake.removeDebugLogging instead.
+[WebServer] [@sentry/nextjs] It appears you've configured a `sentry.server.config.js` file. Please ensure to put this file's content into the `register()` function of a Next.js instrumentation file instead. To ensure correct functionality of the SDK, `Sentry.init` must be called inside of an instrumentation file. Learn more about setting up an instrumentation file in Next.js: https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation. You can safely delete the `sentry.server.config.js` file afterward.
+[WebServer] [@sentry/nextjs] Could not find a Next.js instrumentation file. This indicates an incomplete configuration of the Sentry SDK. An instrumentation file is required for the Sentry SDK to be initialized on the server: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#create-initialization-config-files (you can suppress this warning by setting SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING=1 as environment variable)
+[WebServer] [@sentry/nextjs] It appears you've configured a `sentry.edge.config.js` file. Please ensure to put this file's content into the `register()` function of a Next.js instrumentation file instead. To ensure correct functionality of the SDK, `Sentry.init` must be called inside of an instrumentation file. Learn more about setting up an instrumentation file in Next.js: https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation. You can safely delete the `sentry.edge.config.js` file afterward.
+[WebServer] [@sentry/nextjs] DEPRECATION WARNING: It is recommended renaming your `sentry.client.config.js` file, or moving its content to `instrumentation-client.ts`. When using Turbopack `sentry.client.config.js` will no longer work. Read more about the `instrumentation-client.ts` file: https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation-client
+[WebServer] ΓÜá The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+[WebServer] Browserslist: browsers data (caniuse-lite) is 7 months old. Please run:
+[WebServer]   npx update-browserslist-db@latest
+[WebServer]   Why you should do it regularly: https://github.com/browserslist/update-db#readme
+(node:27528) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/messaging-integration/webapp/pages/api/coach/messages.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\messaging-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 8 tests using 1 worker
+
+(node:33160) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:33160) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:33160) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/messaging-integration/webapp/pages/api/coach/messages.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\messaging-integration\webapp\package.json.
+  ok 1 [desktop-chromium] ΓÇ║ e2e\message-workspace.spec.mjs:7:1 ΓÇ║ F8 inbox outage is unavailable, preserves known conversations, and retry verifies empty versus existing (9.9s)
+  ok 2 [desktop-chromium] ΓÇ║ e2e\message-workspace.spec.mjs:37:1 ΓÇ║ visible thread alone is read; recipient drafts survive list, switching, browser Back and refresh (6.1s)
+  ok 3 [desktop-chromium] ΓÇ║ e2e\message-workspace.spec.mjs:88:1 ΓÇ║ keyboard send keeps newline and focus, bubbles follow the viewer, context and 320px layout remain usable (2.4s)
+  ok 4 [desktop-chromium] ΓÇ║ e2e\message-workspace.spec.mjs:109:1 ΓÇ║ browser Back during a pending send cannot replace the new thread or clear another recipient draft (3.3s)
+(node:2128) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2128) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2128) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/messaging-integration/webapp/pages/api/coach/messages.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\messaging-integration\webapp\package.json.
+  ok 5 [mobile-chromium] ΓÇ║ e2e\message-workspace.spec.mjs:7:1 ΓÇ║ F8 inbox outage is unavailable, preserves known conversations, and retry verifies empty versus existing (7.6s)
+  ok 6 [mobile-chromium] ΓÇ║ e2e\message-workspace.spec.mjs:37:1 ΓÇ║ visible thread alone is read; recipient drafts survive list, switching, browser Back and refresh (10.2s)
+  ok 7 [mobile-chromium] ΓÇ║ e2e\message-workspace.spec.mjs:88:1 ΓÇ║ keyboard send keeps newline and focus, bubbles follow the viewer, context and 320px layout remain usable (2.4s)
+  ok 8 [mobile-chromium] ΓÇ║ e2e\message-workspace.spec.mjs:109:1 ΓÇ║ browser Back during a pending send cannot replace the new thread or clear another recipient draft (3.2s)
+
+  8 passed (56.3s)

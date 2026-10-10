@@ -22,7 +22,7 @@ export default function AppShell({ children }) {
         </div>
         {children}
       </div>
-      <MessageCenter />
+      {router.pathname !== '/messages' && <MessageCenter />}
       <MobileBottomNav />
     </>
   );
