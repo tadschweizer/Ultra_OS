@@ -39,7 +39,7 @@ export default function MessageWorkspace({role,conversations,messages,athleteId,
             {selectedConversation&&<a href={role==='coach'?`/coach/training-calendar?athlete=${encodeURIComponent(athleteId)}`:'/calendar'} className="border-b border-ink/10 bg-paper/60 px-4 py-2 text-xs font-semibold text-panel hover:underline">View training calendar →</a>}
             <div ref={historyRef} tabIndex={0} aria-label="Conversation history" className="h-[42dvh] min-h-[180px] overflow-y-auto overscroll-contain px-4 py-4 md:h-[430px]">
               {loading&&<p role="status" className="text-sm text-ink/60">Loading messages.</p>}
-              {error&&<div className="mb-4"><p role="alert" className="text-sm text-red-700">{error}</p>{error.startsWith('Unable to load')&&<button onClick={()=>load(athleteId,{keepSelection:true})} className="mt-2 text-sm font-semibold text-panel">Retry loading</button>}</div>}
+              {error&&<div className="mb-4"><p role="alert" className="text-sm text-red-700">{error}</p>{error.startsWith('Unable to load')&&<button onClick={()=>load(athleteId,{keepSelection:Boolean(athleteId)})} className="mt-2 text-sm font-semibold text-panel">Retry loading</button>}</div>}
               {!loading&&inboxLoaded&&!loadError&&!messages.length&&<p className="py-8 text-center text-sm text-ink/60">{selectedConversation?'No messages yet. Start the loop with a check-in.':'Choose someone to start a conversation.'}</p>}
               {nextCursor&&<div className="mb-4 text-center"><button disabled={loadingOlder} onClick={loadOlder} className="min-h-11 rounded-full border border-ink/20 px-4 text-xs">{loadingOlder?'Loading.':'Load older messages'}</button></div>}
               <ol className="space-y-4">
