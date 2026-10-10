@@ -116,6 +116,13 @@ function App() {
           Object.fromEntries(u.searchParams),
         );
       },
+      replace: (url) => {
+        const u = new URL(url, "https://demo.invalid");
+        const view = u.pathname.includes("calendar") ? "calendar" : u.pathname.includes("messages") ? "messages" : "overview";
+        history.replaceState(history.state, "", `#${view}?${u.searchParams}`);
+        setRoute(readRoute());
+        return Promise.resolve(true);
+      },
     }),
     [route],
   );

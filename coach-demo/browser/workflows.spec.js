@@ -77,6 +77,94 @@ const openWorkout = async (page, title) => {
 };
 const dialog = (page) => page.getByRole("dialog", { name: "Workout details" });
 for (const width of [1440, 390, 320])
+  test(`QA F4/F5: selection refresh and linked elevation retention at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await navigate(page, "overview", "athlete", "demo-river");
+    await page
+      .getByRole("button")
+      .filter({ hasText: "Steady trail run" })
+      .first()
+      .click();
+    await expect(
+      dialog(page).getByText("Steady trail run", { exact: true }),
+    ).toBeVisible();
+    expect(page.url()).toContain("workout=seed-0-3");
+    await page.getByRole("button", { name: "Close", exact: true }).click();
+    await expect(dialog(page)).toBeHidden();
+    expect(page.url()).not.toContain("workout=");
+    await openWorkout(page, "Recovery run");
+    expect(page.url()).toContain("workout=seed-0-2");
+    await page.reload();
+    await expect(
+      dialog(page).getByText("Recovery run", { exact: true }),
+    ).toBeVisible();
+    expect(page.url()).toContain("workout=seed-0-2");
+    await page.screenshot({ path: `test-results/qa-selection-${width}.png` });
+    await page.keyboard.press("Escape");
+    await expect(dialog(page)).toBeHidden();
+    expect(page.url()).not.toContain("workout=");
+    await page.reload();
+    await expect(dialog(page)).toBeHidden();
+    await openWorkout(page, "Ridge exploration");
+    expect(page.url()).toContain("activity=demo-activity");
+    expect(page.url()).not.toContain("workout=");
+    await page.reload();
+    await expect(
+      dialog(page).getByText("Ridge exploration", { exact: true }),
+    ).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(dialog(page)).toBeHidden();
+    expect(page.url()).not.toContain("activity=");
+    const week = page.locator('[data-week-key="2026-10-05"]');
+    const recordedSummary = () =>
+      width < 1024
+        ? week.getByText(/Actual .*TSS 58.*620 m/)
+        : week.getByText("620 m", { exact: true }).filter({ visible: true });
+    await expect(recordedSummary()).toBeVisible();
+    await openWorkout(page, "Steady trail run");
+    await page
+      .getByLabel("Choose an imported activity")
+      .selectOption("demo-activity");
+    await page
+      .getByRole("button", { name: "Confirm activity match", exact: true })
+      .click();
+    await expect(
+      dialog(page).getByText("Confirmed imported activity."),
+    ).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(recordedSummary()).toBeVisible();
+    if (width < 1024)
+      await expect(
+        week.getByText(/Actual 2h\s*28m.*21.5 km.*TSS 58.*620 m/),
+      ).toBeVisible();
+    await page.reload();
+    await expect(recordedSummary()).toBeVisible();
+    await week.scrollIntoViewIfNeeded();
+    await page.screenshot({
+      path: `test-results/qa-matched-elevation-${width}.png`,
+    });
+    await openWorkout(page, "Steady trail run");
+    await page
+      .getByRole("button", { name: "Unlink activity", exact: true })
+      .click();
+    await page.keyboard.press("Escape");
+    await expect(recordedSummary()).toBeVisible();
+    if (width < 1024)
+      await expect(
+        week.getByText(/Actual 2h\s*28m.*21.5 km.*TSS 58.*620 m/),
+      ).toBeVisible();
+    await navigate(page, "calendar", "athlete", "demo-river", { log: "1" });
+    await expect(
+      page.getByRole("dialog", { name: "Workout editor" }),
+    ).toBeVisible();
+    await page.keyboard.press("Escape");
+    expect(page.url()).not.toContain("log=");
+    await page.reload();
+    await expect(page.getByRole("dialog")).toBeHidden();
+  });
+for (const width of [1440, 390, 320])
   test(`QA F1/F2: visible library prescription and unknown actual load at ${width}px`, async ({
     page,
   }) => {

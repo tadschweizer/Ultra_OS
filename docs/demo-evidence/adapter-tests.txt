@@ -2,30 +2,32 @@
 > threshold-synthetic-demo@3.0.0 test
 > node --test tests/*.test.mjs
 
-(node:21372) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/source/webapp/lib/workoutCompliance.js is not specified and it doesn't parse as CommonJS.
+(node:13076) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/source/webapp/lib/workoutCompliance.js is not specified and it doesn't parse as CommonJS.
 Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
 To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\source\webapp\package.json.
 (Use `node --trace-warnings ...` to show where the warning was created)
-Γ£ö QA F1: library reuse retains private prescription; production payload stays within existing schema (7.4177ms)
-Γ£ö QA F2: missing/partial actuals never substitute planned TSS; recorded and linked loads count once (1.2531ms)
-Γ£ö QA F3: consumed failure emits a state change without saving; reset disarms pending failure (0.7679ms)
-Γ£ö deterministic fixtures and refresh persistence; sessions are independent (0.9245ms)
-Γ£ö full plan ΓåÆ athlete partial completion ΓåÆ coach feedback and adjustment ΓåÆ athlete update (1.3035ms)
-Γ£ö role restrictions, private draft filtering and cross-athlete denial (0.9368ms)
-Γ£ö create retry key prevents duplicates, validation retains state (1.637ms)
-Γ£ö duplicates and copy-week retain all plan fields and clear completion/discussion (1.2109ms)
-Γ£ö skip and undo preserve unknown actuals and do not derive completion from plan (1.1836ms)
-Γ£ö activity linking cannot double count and unlink retains the activity (10.9465ms)
-Γ£ö stale workout write conflicts instead of replacing latest change (0.5321ms)
-Γ£ö role-correct direct messages, exact acknowledgements and retry idempotency (0.7974ms)
-Γ£ö drafts are isolated per role/recipient, durable and version checked (0.7916ms)
-Γ£ö failure simulation and storage errors cannot claim saved success (0.7109ms)
-Γ£ö check-in updates all fields; corrupt storage warns; unsupported provider endpoints fail closed (0.5392ms)
-Γä╣ tests 15
+Γ£ö QA F4: selecting/closing details replaces stale deep links while retaining participant context (2.2669ms)
+Γ£ö QA F5: matching changes attribution, retaining every weekly actual metric once through reload/unlink (5.6796ms)
+Γ£ö QA F1: library reuse retains private prescription; production payload stays within existing schema (2.8791ms)
+Γ£ö QA F2: missing/partial actuals never substitute planned TSS; recorded and linked loads count once (0.9292ms)
+Γ£ö QA F3: consumed failure emits a state change without saving; reset disarms pending failure (0.7235ms)
+Γ£ö deterministic fixtures and refresh persistence; sessions are independent (0.9405ms)
+Γ£ö full plan ΓåÆ athlete partial completion ΓåÆ coach feedback and adjustment ΓåÆ athlete update (1.3273ms)
+Γ£ö role restrictions, private draft filtering and cross-athlete denial (0.7655ms)
+Γ£ö create retry key prevents duplicates, validation retains state (1.8854ms)
+Γ£ö duplicates and copy-week retain all plan fields and clear completion/discussion (1.2488ms)
+Γ£ö skip and undo preserve unknown actuals and do not derive completion from plan (0.5694ms)
+Γ£ö activity linking cannot double count and unlink retains the activity (10.9228ms)
+Γ£ö stale workout write conflicts instead of replacing latest change (0.4371ms)
+Γ£ö role-correct direct messages, exact acknowledgements and retry idempotency (0.7958ms)
+Γ£ö drafts are isolated per role/recipient, durable and version checked (0.8083ms)
+Γ£ö failure simulation and storage errors cannot claim saved success (0.7209ms)
+Γ£ö check-in updates all fields; corrupt storage warns; unsupported provider endpoints fail closed (0.5292ms)
+Γä╣ tests 17
 Γä╣ suites 0
-Γä╣ pass 15
+Γä╣ pass 17
 Γä╣ fail 0
 Γä╣ cancelled 0
 Γä╣ skipped 0
 Γä╣ todo 0
-Γä╣ duration_ms 110.8632
+Γä╣ duration_ms 115.0123

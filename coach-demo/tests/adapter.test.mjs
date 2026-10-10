@@ -4,6 +4,8 @@ import { DemoStore } from "../adapter.js";
 import { seed, KEY } from "../seed.js";
 import { libraryWorkoutPayload } from "../../webapp/lib/libraryWorkoutPayload.js";
 import { summarizeActualTss } from "../../webapp/lib/workoutCompliance.js";
+import { calendarSelectionUrl } from "../../webapp/lib/calendarSelection.js";
+import { summarizeCalendarWeek } from "../../webapp/lib/calendarSummary.js";
 const call = async (request, url, method = "GET", body) => {
   const r = await request(url, {
     method,
@@ -18,6 +20,117 @@ const storage = () => {
     setItem: (k, v) => values.set(k, v),
   };
 };
+
+test("QA F4: selecting/closing details replaces stale deep links while retaining participant context", () => {
+  const query = {
+    mode: "athlete",
+    athlete_id: "demo-river",
+    workout: "seed-0-3",
+    activity: "old-activity",
+    log: "1",
+    filters: ["run", "trail"],
+  };
+  const selected = new URL(
+    calendarSelectionUrl("/calendar", query, { workout: "seed-0-2" }),
+    "https://demo.invalid",
+  );
+  assert.equal(selected.searchParams.get("workout"), "seed-0-2");
+  assert.equal(selected.searchParams.get("mode"), "athlete");
+  assert.equal(selected.searchParams.get("athlete_id"), "demo-river");
+  assert.deepEqual(selected.searchParams.getAll("filters"), ["run", "trail"]);
+  assert.ok(
+    !selected.searchParams.has("activity") && !selected.searchParams.has("log"),
+  );
+  const closed = new URL(
+    calendarSelectionUrl("/calendar", query),
+    "https://demo.invalid",
+  );
+  assert.ok(
+    !closed.searchParams.has("workout") &&
+      !closed.searchParams.has("activity") &&
+      !closed.searchParams.has("log"),
+  );
+  const activity = new URL(
+    calendarSelectionUrl("/calendar", query, { activity: 123 }),
+    "https://demo.invalid",
+  );
+  assert.equal(activity.searchParams.get("activity"), "123");
+  assert.ok(!activity.searchParams.has("workout"));
+});
+
+test("QA F5: matching changes attribution, retaining every weekly actual metric once through reload/unlink", async () => {
+  const saved = storage(),
+    s = new DemoStore(saved),
+    a = s.transport("athlete", "demo-river");
+  s.state.activities[0].kilojoules = 410;
+  const summary = async (request) => {
+    const result = await call(
+      request,
+      "/api/planned-workouts?start=2026-10-05&end=2026-10-11",
+    );
+    return summarizeCalendarWeek([
+      { workouts: result.workouts, activities: result.activities },
+    ]);
+  };
+  const metricKeys = [
+    "actualDurationMin",
+    "actualDistanceKm",
+    "actualTss",
+    "elevationGainM",
+    "kilojoules",
+  ];
+  const metrics = (week) =>
+    Object.fromEntries(metricKeys.map((key) => [key, week[key]]));
+  const before = metrics(await summary(a));
+  assert.equal(before.elevationGainM, 620);
+  assert.equal(before.kilojoules, 410);
+  assert.equal(before.actualTss, 58);
+  await call(a, "/api/planned-workouts", "PATCH", {
+    id: "seed-0-3",
+    match_action: "confirm",
+    activity_id: "demo-activity",
+  });
+  assert.deepEqual(metrics(await summary(a)), before);
+  const reloaded = new DemoStore(saved);
+  assert.deepEqual(
+    metrics(await summary(reloaded.transport("athlete", "demo-river"))),
+    before,
+  );
+  await call(a, "/api/planned-workouts", "PATCH", {
+    id: "seed-0-3",
+    match_action: "reject",
+  });
+  assert.deepEqual(metrics(await summary(a)), before);
+  const activity = s.state.activities[0];
+  const deduplicated = summarizeCalendarWeek([
+    {
+      workouts: [
+        { status: "completed", linked_activity: activity },
+        { status: "completed", matched_activity: { ...activity } },
+      ],
+      activities: [],
+    },
+  ]);
+  assert.equal(deduplicated.elevationGainM, 620);
+  assert.equal(deduplicated.kilojoules, 410);
+  const rawSource = summarizeCalendarWeek([
+    {
+      workouts: [
+        {
+          status: "completed",
+          linked_activity: {
+            id: 123,
+            total_elevation_gain: 620,
+            kilojoules: 410,
+          },
+        },
+      ],
+      activities: [],
+    },
+  ]);
+  assert.equal(rawSource.elevationGainM, 620);
+  assert.equal(rawSource.kilojoules, 410);
+});
 
 test("QA F1: library reuse retains private prescription; production payload stays within existing schema", async () => {
   const form = {

@@ -2,8 +2,8 @@
 
 Last updated: 2026-10-10<br>
 Status: PR #133 merged as `1d1e0b6` and is deployed READY on both public domains. Six targeted Supabase sources repair pilot prerequisites, workout decisions, messaging lifecycle, foreign-key indexes, stable conflict responses and legacy notification preferences. Both readiness checks and all eleven hosted Data API contracts pass. Actual signed QA passes drafts, two-way messages/notifications, exact unread counts, concurrent leases, group retries, workout corrections and relationship/session revocation. Final regression 432/432, focused release 22/22, integration 4/4, build and final-head CI pass. Real-mailbox, fresh-account, physical-phone and participant acceptance remain open.<br>
-Current milestone: M0 - make the closed coach pilot work end to end; corrected synthetic demo awaiting independent exact-build retest<br>
-Next item: Independently retest the corrected isolated synthetic demo, including F1/F2/F3 in DEMO_QA_FIXES.md, using DEMO_VERIFICATION.md and DEMO_PARITY_MATRIX.md. Production queue remains P0-015 email provider/protected POST scheduler setup and consenting real-mailbox acceptance; verify fresh-account enrollment and the physical-phone M0 loop, then collect the prepared P0-018 measurements. The database/app technical release is complete; do not reapply its migrations or rebuild the merged drafts/unread implementation. Keep parent checkboxes open until their remaining acceptance criteria pass.
+Current milestone: M0 - make the closed coach pilot work end to end; synthetic demo F4/F5 repairs awaiting independent exact-build retest<br>
+Next item: Independently retest the corrected isolated synthetic demo for F4/F5 while retaining accepted F1/F2/F3 behavior, using DEMO_QA_FIXES.md, DEMO_VERIFICATION.md and DEMO_PARITY_MATRIX.md. Production queue remains P0-015 email provider/protected POST scheduler setup and consenting real-mailbox acceptance; verify fresh-account enrollment and the physical-phone M0 loop, then collect the prepared P0-018 measurements. The database/app technical release is complete; do not reapply its migrations or rebuild the merged drafts/unread implementation. Keep parent checkboxes open until their remaining acceptance criteria pass.
 
 ## Purpose
 
@@ -950,3 +950,15 @@ page API/external requests are verified. Prior rejected preview/evidence remain
 available. Current preview identity and fresh screenshots/output accompany the
 branch. Independent exact-build retest remains open; no merge or live-domain
 promotion is authorized.
+
+### Second independent synthetic demo repair - October 10
+
+Independent 683a5eb retest clears F1/F2/F3 but holds acceptance on pre-existing
+F4 stale calendar selection on refresh and F5 lost matched recorded elevation.
+The shared calendar now replaces/clears selection query state; a pure week
+summary retains linked/matched elevation/work once, preserving existing actual
+duration/distance/TSS attribution. Raw/normalized activity shapes are covered.
+Final adapter/helper 17/17, full local browser 21/21, F4/F5 browser subset 3/3,
+production auth regression 432/432 and both builds pass. New pinned static
+publication and independent F4/F5 retest follow on the same draft PR #134.
+Prior previews/evidence remain; no API/auth/schema or production settings change.

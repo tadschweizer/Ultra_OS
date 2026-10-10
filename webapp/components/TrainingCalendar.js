@@ -1,5 +1,7 @@
 import { useWorkspaceTransport } from '../lib/WorkspaceTransport';
 import { libraryWorkoutPayload } from '../lib/libraryWorkoutPayload';
+import { calendarSelectionUrl } from '../lib/calendarSelection';
+import { summarizeCalendarWeek } from '../lib/calendarSummary';
 import { useDialogFocus } from '../lib/useDialogFocus';
 import { calendarMutation as performCalendarMutation } from '../lib/calendarMutation';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -10,8 +12,6 @@ import {
   WORKOUT_SPORTS,
   estimateTss,
   summarizeStructure,
-  summarizeWeek,
-  summarizeActualTss,
   toDateKey,
 } from '../lib/workoutCompliance';
 import { formatTempo, isSpeedSport } from '../lib/activityFormat';
@@ -1390,53 +1390,6 @@ function formatCalendarRange(startKey, endKey) {
   return `${startLabel} – ${endLabel}`;
 }
 
-function sumBy(items, pick) {
-  return items.reduce((total, item) => total + (Number(pick(item)) || 0), 0);
-}
-
-/**
- * Weekly rollup covering both halves of the week: what was planned, and what
- * actually happened. Actuals combine completed plans with imported activities
- * that never had a plan, so a week of unplanned training still totals up.
- */
-function summarizeCalendarWeek(days) {
-  const workouts = days.flatMap((day) => day.workouts);
-  const planned = summarizeWeek(workouts);
-  const imported = days.flatMap((day) => day.activities);
-  const completedWorkouts = workouts.filter((w) => w.status === 'completed');
-
-  const actualDurationMin = planned.completedDurationMin + sumBy(imported, (a) => a.duration_min);
-  const actualDistanceKm = planned.completedDistanceKm + sumBy(imported, (a) => a.distance_km);
-  const actualLoad = summarizeActualTss(completedWorkouts, imported);
-
-  // Per-sport actuals drive the breakdown rows in the week rail.
-  const bySport = new Map();
-  const addSport = (sport, durationMin, distanceKm) => {
-    const key = sport || 'other';
-    const current = bySport.get(key) || { sport: key, durationMin: 0, distanceKm: 0, count: 0 };
-    current.durationMin += Number(durationMin) || 0;
-    current.distanceKm += Number(distanceKm) || 0;
-    current.count += 1;
-    bySport.set(key, current);
-  };
-  completedWorkouts.forEach((w) => addSport(w.sport, w.completed_duration_min, w.completed_distance_km));
-  imported.forEach((a) => addSport(a.sport, a.duration_min, a.distance_km));
-
-  return {
-    ...planned,
-    completedSessionCount: planned.completedCount + imported.length,
-    importedActivityCount: imported.length,
-    actualDurationMin,
-    actualDistanceKm,
-    actualTss: actualLoad.tss,
-    missingActualTssCount: actualLoad.missingCount,
-    elevationGainM: sumBy(imported, (a) => a.elevation_gain_m),
-    kilojoules: sumBy(imported, (a) => a.kilojoules),
-    sports: [...bySport.values()].sort((a, b) => b.durationMin - a.durationMin),
-    hasActuals: planned.completedCount + imported.length > 0,
-  };
-}
-
 /** Planned-vs-actual progress bar used in the week rail. */
 function ProgressMeter({ label, actual, planned, formatValue, unit = '' }) {
   const hasPlan = Number(planned) > 0;
@@ -1496,8 +1449,15 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
   const didInitialScroll = useRef(false);
   const prependHeightRef = useRef(null);
   const extendingRef = useRef(false);
-  const lastOpenedFromQuery = useRef(null);
-  const lastOpenedActivityFromQuery = useRef(null);
+
+  const selectCalendarDetail = useCallback((selection = {}) => {
+    setDetailId(selection.workout ?? null);
+    setActivityDetailId(selection.activity ?? null);
+    const url = calendarSelectionUrl(router.pathname, router.query, selection);
+    Promise.resolve(router.replace(url, undefined, { shallow: true, scroll: false })).catch((navigationError) => {
+      if (!navigationError.cancelled) setError('Could not update calendar navigation. Please try again.');
+    });
+  }, [router]);
 
   const rangeStart = toDateKey(addDays(anchorMonday, -pastWeeks * 7));
   const rangeEnd = toDateKey(addDays(anchorMonday, futureWeeks * 7 + 6));
@@ -1570,30 +1530,15 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
     }
   }, [router.isReady, router.query.log, role, today]);
 
-  // Deep link: /calendar?workout=<id> opens the workout detail once loaded.
-  // Tracks the last id opened this way so navigating to a different workout
-  // on the already-mounted calendar re-opens the panel, while closing the
-  // panel doesn't immediately re-trigger for the same id.
+  // URL and modal selection stay consistent for deep links, direct clicks,
+  // close/cancel and refresh. Load first; never restore a stale prior selection.
   useEffect(() => {
     if (!router.isReady) return;
-    const target = typeof router.query.workout === 'string' ? router.query.workout : '';
-    if (target && target !== lastOpenedFromQuery.current && workouts.some((w) => w.id === target)) {
-      lastOpenedFromQuery.current = target;
-      setDetailId(target);
-    }
-  }, [router.isReady, router.query.workout, workouts]);
-
-  // Deep link: /calendar?activity=<id> does the same for an imported session,
-  // which is how a message-center thread on a completed activity lands on the
-  // day it belongs to. Only fires once the range holding it has loaded.
-  useEffect(() => {
-    if (!router.isReady) return;
-    const target = typeof router.query.activity === 'string' ? router.query.activity : '';
-    if (target && target !== lastOpenedActivityFromQuery.current && activities.some((a) => String(a.id) === target)) {
-      lastOpenedActivityFromQuery.current = target;
-      setActivityDetailId(activities.find((a) => String(a.id) === target).id);
-    }
-  }, [router.isReady, router.query.activity, activities]);
+    const workoutId = typeof router.query.workout === 'string' ? router.query.workout : '';
+    const activityId = typeof router.query.activity === 'string' ? router.query.activity : '';
+    setDetailId(workoutId && workouts.some((workout) => workout.id === workoutId) ? workoutId : null);
+    setActivityDetailId(!workoutId && activityId ? activities.find((activity) => String(activity.id) === activityId)?.id ?? null : null);
+  }, [router.isReady, router.query.workout, router.query.activity, workouts, activities]);
 
   // Initial position: scroll the container so this week sits at the top.
   useLayoutEffect(() => {
@@ -1674,9 +1619,9 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
 
   const deleteWorkout = useCallback(async (id) => {
     const result = await calendarMutation(`/api/planned-workouts?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
-    if (result.ok) { setDetailId(null); await reload(); }
+    if (result.ok) { selectCalendarDetail(); await reload(); }
     return result;
-  }, [reload, calendarMutation]);
+  }, [reload, calendarMutation, selectCalendarDetail]);
 
   const pendingMutations = useRef(new Map());
   const mutateCalendar = useCallback(async (url, options, afterSave) => {
@@ -1818,7 +1763,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
           defaultDistanceUnit={distanceUnitPref}
           onSave={saveWorkout}
           onSaveToLibrary={role === 'coach' ? saveToLibrary : null}
-          onClose={() => setEditorInitial(null)}
+          onClose={() => { setEditorInitial(null); if (router.query.log === '1') selectCalendarDetail(); }}
         />
       )}
       {detailActivity && (
@@ -1827,7 +1772,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
           role={role}
           distanceUnit={distanceUnitPref}
           onCountChange={(count) => setActivityCommentCount(detailActivity.id, count)}
-          onClose={() => setActivityDetailId(null)}
+          onClose={() => selectCalendarDetail()}
         />
       )}
       {detailWorkout && (
@@ -1837,7 +1782,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
           role={role}
           onUpdate={updateWorkout}
           onEdit={(w) => {
-            setDetailId(null);
+            selectCalendarDetail();
             setEditorInitial({
               id: w.id,
               title: w.title,
@@ -1856,7 +1801,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
             });
           }}
           onDelete={deleteWorkout}
-          onClose={() => setDetailId(null)}
+          onClose={() => selectCalendarDetail()}
         />
       )}
       {dayMenuDate && (
@@ -2059,7 +2004,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
                         {day.workouts.map((w) => (
                           <button
                             key={w.id}
-                            onClick={(e) => { e.stopPropagation(); setDetailId(w.id); }}
+                            onClick={(e) => { e.stopPropagation(); selectCalendarDetail({ workout: w.id }); }}
                             className={`block w-full min-w-0 rounded-xl border px-1.5 py-1.5 text-left transition hover:border-ink/30 sm:px-2 ${
                               w.status === 'completed'
                                 ? 'border-emerald-200 bg-emerald-50/75'
@@ -2120,7 +2065,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
                         {day.activities.map((activity) => (
                           <button
                             key={`activity-${activity.id}`}
-                            onClick={(e) => { e.stopPropagation(); setActivityDetailId(activity.id); }}
+                            onClick={(e) => { e.stopPropagation(); selectCalendarDetail({ activity: activity.id }); }}
                             title="Imported activity with no planned workout — open for stats and comments"
                             className="block w-full min-w-0 rounded-xl border border-sky-200 bg-sky-50/70 px-1.5 py-1.5 text-left transition hover:border-sky-400 sm:px-2"
                           >
