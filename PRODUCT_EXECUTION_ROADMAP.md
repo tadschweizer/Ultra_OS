@@ -817,7 +817,7 @@ checks, plus production build. See `CALENDAR_GAP_FIX_VERIFICATION.md` for exact
 source, commands, results and rollout/rollback gates. The library mapper is tested
 against PR135's published contract checkpoint; that PR's pending library API/UI
 is not claimed complete. No production data, providers, secrets, production
-migration application, merge or deployment occurred. Keep all parent acceptance
+migration application, merge or production deployment occurred. Keep all parent acceptance
 checkboxes open. [Draft PR136](https://github.com/tadschweizer/Ultra_OS/pull/136)
 contains implementation `d300153aff08142425fb8ed1ed4e2dbdb8e812bf` and evidence;
 it targets main directly and remains unmerged. PR135's library migration remains

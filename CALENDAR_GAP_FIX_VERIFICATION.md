@@ -41,7 +41,8 @@ requests into those handlers; unrelated APIs return empty synthetic fixtures.
 Browser tests abort external requests and assert none occurred. Build values point
 to localhost with synthetic keys. No secrets, production databases, participant
 accounts, real providers, email or billing were used. Prepared SQL ran only in
-synthetic PGlite. No merge, deployment or production migration occurred.
+synthetic PGlite. No merge or production rollout was performed. Repository
+automation may build PR previews after a branch push.
 
 ## Expected and observed
 
