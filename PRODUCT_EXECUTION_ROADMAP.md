@@ -3,7 +3,7 @@
 Last updated: 2026-10-10<br>
 Status: PR #133 merged as `1d1e0b6` and is deployed READY on both public domains. Six targeted Supabase sources repair pilot prerequisites, workout decisions, messaging lifecycle, foreign-key indexes, stable conflict responses and legacy notification preferences. Both readiness checks and all eleven hosted Data API contracts pass. Actual signed QA passes drafts, two-way messages/notifications, exact unread counts, concurrent leases, group retries, workout corrections and relationship/session revocation. Final regression 432/432, focused release 22/22, integration 4/4, build and final-head CI pass. Real-mailbox, fresh-account, physical-phone and participant acceptance remain open.<br>
 Current milestone: M0 - make the closed coach pilot work end to end; synthetic demo independently accepted within the declared daily-coaching scope; untested limits remain open<br>
-Next item: Keep the accepted 54f2ab synthetic runtime/preview stable and PR #134 draft/unmerged. Retain the explicit physical-phone, measured-work/kJ and production-library not-run limits; any expanded demo scope needs its own acceptance evidence. Production queue remains P0-015 email provider/protected POST scheduler setup and consenting real-mailbox acceptance; verify fresh-account enrollment and the physical-phone M0 loop, then collect the prepared P0-018 measurements. The database/app technical release is complete; do not reapply its migrations or rebuild the merged drafts/unread implementation. Keep parent checkboxes open until their remaining acceptance criteria pass.
+Next item: Keep the accepted 54f2ab synthetic runtime/preview stable and PR #134 draft/unmerged. Retain the explicit physical-phone, measured-work/kJ and production-library not-run limits; any expanded demo scope needs its own acceptance evidence. UX-006 messaging revamp is queued in M7 with proposed sequencing after demo stabilization and before a polished coach presentation if the user chooses. Production queue remains P0-015 email provider/protected POST scheduler setup and consenting real-mailbox acceptance; verify fresh-account enrollment and the physical-phone M0 loop, then collect the prepared P0-018 measurements. The database/app technical release is complete; do not reapply its migrations or rebuild the merged drafts/unread implementation. Keep parent checkboxes open until their remaining acceptance criteria pass.
 
 ## Purpose
 
@@ -755,6 +755,20 @@ M7 removes systemic inconsistency and validates the full product before public l
 - [ ] **UX-005 — Accessibility and input coverage**
   - Keyboard, screen reader, reduced motion, contrast, focus, touch target, and zoom checks.
 
+- [ ] **UX-006 - Messaging page revamp (queued)**
+  - User request, October 10, 2026: the message page should function and look kind of like the
+    iPhone messaging app. Use a familiar conversation list and chat-thread layout, clear sender
+    bubbles and unread state, and an easy mobile composer with retained coach-athlete context.
+  - Preserve current persistent drafts, failed-send input, retries, delivery/read behavior and
+    exact unread counts. This UX work is separate from P0-015 messaging reliability and its
+    remaining provider, real-mailbox and physical-phone acceptance gates.
+  - Acceptance: responsive phone and desktop conversation/thread/composer layouts;
+    keyboard navigation, focus and conversation/back navigation; draft persistence through
+    reload and recipient/role switching; unread/read and send/retry regressions pass without
+    losing athlete context or implying unverified external delivery.
+  - Proposed sequencing: after current demo stabilization and before a polished coach
+    presentation if the user chooses. Queued only; no redesign implementation is started.
+
 - [ ] **QA-001 — Full regression matrix**
   - Email/password, verification, reset, OAuth, invitations, roles, onboarding, calendar, plans,
     structured workouts, integrations, analytics, billing, portal, cancellation, and deletion.
@@ -972,3 +986,8 @@ Final handoff source `54f2ab181848baf022c2fc59ce0c5c492f00da1d`, draft PR #134, 
 Exact-build independent QA on 54f2ab records limited PASS for the agreed synthetic daily-coaching scope, test window 2026-10-10 01:47:49–01:53:51 UTC. F4/F5 pass at desktop/390/320, F1–F3 smoke and the core coach/athlete loop pass; served asset hashes match cb3136fd and no API/external requests or JavaScript errors were observed. The unmodified report and original ZIP (SHA-256 B13707F02659FE9C08325045EBA5197B596FFF0C046028D49E913E0B2C6155CB) are committed under docs/demo-evidence/independent-54f2ab.
 
 Physical-phone/Safari/Firefox, measured mechanical-work/kJ, production library persistence/production regression and the other report-listed branches were NOT RUN in this independent retest. The narrower production library schema remains unchanged. All prior failed outcomes/dates remain preserved; no full-app parity or physical-phone claim. Runtime CI 38014218602 and existing evidence-head CI 38014420545 verified successful before this docs-only update. No runtime edits, manual redeployment, merge or live-domain promotion; PR #134 remains draft. No production acceptance checkbox is closed.
+
+October 10 user-requested roadmap addition: queued UX-006 under M7 - Interface convergence and
+release hardening for an iPhone-style messaging page. Proposed after demo stabilization and
+before a polished coach presentation if the user chooses; P0-015 reliability acceptance remains
+distinct. Documentation-only queue entry on PR #134; no runtime edit, merge or redesign started.
