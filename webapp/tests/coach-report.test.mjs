@@ -1,12 +1,73 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { coachReportFixture } from './helpers/coach-report-fixture.mjs';
-import { usableReadinessScore, reportWindow } from '../lib/coachReport.js';
+import { usableReadinessScore, reportWindow, reconciliationWindow, reconciliationFetchStart } from '../lib/coachReport.js';
+import { summarizeReconciliationWindow } from '../lib/workoutCompliance.js';
 
 test('score inputs retain real zero and reject missing, blank, boolean, nonfinite and out-of-range values', () => {
   for (const value of [null, undefined, '', '  ', false, true, NaN, Infinity, -1, 101, 'not entered', {}, []]) assert.equal(usableReadinessScore(value), null);
   for (const value of [0, '0', 77, '77', 100]) assert.equal(usableReadinessScore(value), Number(value));
   assert.deepEqual(reportWindow(new Date('2026-10-11T00:01:00Z')), { start:'2026-09-14', end:'2026-10-11', days:28, timeZone:'UTC', sampleLimit:8 });
+});
+
+test('local reconciliation bounds survive UTC midnight, extreme offsets and daylight-saving transitions',()=>{
+  const originalZone=process.env.TZ;
+  try {
+    for (const [zone, instant, start, end] of [
+      ['America/Denver','2026-10-11T01:00:00Z','2026-09-13','2026-10-10'],
+      ['America/Los_Angeles','2026-10-11T01:00:00Z','2026-09-13','2026-10-10'],
+      ['UTC','2026-10-11T01:00:00Z','2026-09-14','2026-10-11'],
+      ['Pacific/Kiritimati','2026-10-11T01:00:00Z','2026-09-14','2026-10-11'],
+      ['Pacific/Kiritimati','2026-10-11T23:00:00Z','2026-09-15','2026-10-12'],
+      ['Etc/GMT+12','2026-10-11T01:00:00Z','2026-09-13','2026-10-10'],
+      ['America/Denver','2026-11-02T06:30:00Z','2026-10-05','2026-11-01'],
+    ]) {
+      process.env.TZ=zone;
+      const now=new Date(instant), window=reconciliationWindow(now);
+      assert.deepEqual([window.start,window.end,window.days],[start,end,28],zone);
+      assert.equal((Date.parse(`${end}T00:00:00Z`)-Date.parse(`${start}T00:00:00Z`))/86400000,27);
+      assert.ok(reconciliationFetchStart(reportWindow(now))<=start,zone);
+    }
+  } finally { if(originalZone===undefined)delete process.env.TZ;else process.env.TZ=originalZone; }
+});
+
+test('real signed report preserves oldest local plans and activities while UTC readiness samples remain bounded',async()=>{
+  const f=await coachReportFixture();const originalZone=process.env.TZ;
+  try {
+    for(const c of [
+      {zone:'America/Denver',instant:'2026-10-11T01:00:00Z',day:'2026-09-13',activity:'2026-09-13T18:00:00Z'},
+      {zone:'America/Denver',instant:'2026-10-11T01:00:00Z',day:'2026-09-13',activity:'2026-09-12T10:30:00Z'}, // athlete in UTC+14
+      {zone:'America/Los_Angeles',instant:'2026-10-11T01:00:00Z',day:'2026-09-13',activity:'2026-09-14T02:00:00Z'},
+      {zone:'UTC',instant:'2026-10-11T01:00:00Z',day:'2026-09-14',activity:'2026-09-14T12:00:00Z'},
+      {zone:'Pacific/Kiritimati',instant:'2026-10-11T01:00:00Z',day:'2026-09-14',activity:'2026-09-13T10:30:00Z'},
+      {zone:'Pacific/Kiritimati',instant:'2026-10-11T23:00:00Z',day:'2026-09-15',activity:'2026-09-14T10:30:00Z'},
+    ]) {
+      process.env.TZ=c.zone;
+      await f.pg.exec('delete from planned_workouts; delete from strava_activities;');
+      await f.pg.query(`insert into planned_workouts(id,athlete_id,coach_id,title,sport,workout_date,planned_duration_min,status,visibility)
+        values('dddddddd-dddd-4ddd-8ddd-dddddddddddd',$1,$2,'Oldest local trail run','run',$3,60,'planned','athlete_visible')`,[f.athlete,f.coach,c.day]);
+      await f.pg.query(`insert into strava_activities(athlete_id,strava_activity_id,start_date,local_date,sport_type,moving_time)
+        values($1,'boundary-run',$2,$3,'Run',3600)`,[f.athlete,c.activity,c.day]);
+      const r=await f.atReportTime(c.instant,()=>f.report());assert.equal(r.code,200,c.zone);
+      const planWindow=reconciliationWindow(new Date(c.instant));
+      const summary=summarizeReconciliationWindow(r.body.plannedWorkouts,r.body.reconciliationActivities,{...planWindow,today:new Date(c.instant)});
+      assert.equal(summary.plannedCount,1,c.zone);assert.equal(summary.completedCount,1,c.zone);
+      assert.equal(summary.avgCompliancePct,100,c.zone);assert.equal(summary.unplannedActivities.length,0,c.zone);
+      assert.equal(summary.workouts[0].matched_activity.local_date,c.day,c.zone);
+      const nextDay=new Date(Date.parse(`${planWindow.end}T00:00:00Z`)+86400000).toISOString().slice(0,10);
+      const priorDay=new Date(Date.parse(`${planWindow.start}T00:00:00Z`)-86400000).toISOString().slice(0,10);
+      const withPadding=summarizeReconciliationWindow(
+        [...r.body.plannedWorkouts,{id:'old',workout_date:priorDay,status:'completed'},{id:'future',workout_date:nextDay,status:'planned'}],
+        [...r.body.reconciliationActivities,{id:'old-activity',local_date:priorDay},{id:'future-activity',local_date:nextDay}],
+        {...planWindow,today:new Date(c.instant)});
+      assert.equal(withPadding.plannedCount,1);assert.equal(withPadding.completedCount,1);assert.equal(withPadding.unplannedActivities.length,0);
+      const utcWindow=reportWindow(new Date(c.instant));
+      assert.deepEqual(r.body.raceReadiness.window,utcWindow);
+      const inReadiness=c.activity>=`${utcWindow.start}T00:00:00Z`;
+      assert.equal(r.body.activities.length,inReadiness?1:0,c.zone);
+      assert.deepEqual(f.queryErrors,[]);
+    }
+  }finally{if(originalZone===undefined)delete process.env.TZ;else process.env.TZ=originalZone;await f.close();}
 });
 
 test('F1: unrelated logs never become per-assignment compliance; counts have explicit sample provenance', async () => {

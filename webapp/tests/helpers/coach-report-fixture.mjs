@@ -50,7 +50,19 @@ export async function coachReportFixture() {
     await f.handlers[name](req,res);
     return res;
   }
+  // Bound the real handler's report clock without changing production time or
+  // adding a public clock override. Calls in these isolated tests are serial.
+  async function atReportTime(instant, invoke) {
+    const RealDate = globalThis.Date;
+    const time = RealDate.parse(instant);
+    if (!Number.isFinite(time)) throw new Error('Invalid fixture report time');
+    globalThis.Date = class extends RealDate {
+      constructor(...args) { super(...(args.length ? args : [time])); }
+      static now() { return time; }
+    };
+    try { return await invoke(); } finally { globalThis.Date = RealDate; }
+  }
   return { ...f, athlete, owner, coach, heat, nutrition, queryErrors, seedProtocols,
-    invokeWithCookie,
+    invokeWithCookie, atReportTime,
     report: () => f.invoke('detail', { actor: owner, query: { athlete_id: athlete } }) };
 }

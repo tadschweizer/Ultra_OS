@@ -1,5 +1,5 @@
 import { getSupabaseAdminClient } from '../../../lib/authServer.js';
-import { buildCoachReport, reportWindow } from '../../../lib/coachReport.js';
+import { buildCoachReport, reportWindow, reconciliationFetchStart } from '../../../lib/coachReport.js';
 import { buildAthleteImportHealth } from '../../../lib/importHealth.js';
 import { filterReadableWorkouts } from '../../../lib/workoutVisibility.js';
 import {
@@ -30,7 +30,7 @@ return async function handler(req, res) {
   if (!relationship) return;
 
   const window = reportWindow();
-  const reconciliationStart = window.start;
+  const reconciliationStart = reconciliationFetchStart(window);
   const startTime = `${window.start}T00:00:00Z`;
   const endTime = `${window.end}T23:59:59.999999Z`;
   try {
@@ -45,7 +45,7 @@ return async function handler(req, res) {
     supabase.from('interventions').select('date, inserted_at, intervention_type, protocol_payload').eq('athlete_id', athleteId).eq('intervention_type', 'Workout Check-in').gte('date', window.start).lte('date', window.end).order('date', { ascending: false }).order('inserted_at', { ascending: false }).limit(30),
     supabase.from('coach_notes').select('*').eq('coach_id', coachProfile.id).eq('athlete_id', athleteId).order('created_at', { ascending: false }).limit(10),
     supabase.from('planned_workouts').select('*').eq('athlete_id', athleteId).gte('workout_date', reconciliationStart).order('workout_date', { ascending: true }),
-    supabase.from('strava_activities').select('*').eq('athlete_id', athleteId).gte('start_date', reconciliationStart).order('start_date', { ascending: true }),
+    supabase.from('strava_activities').select('*').eq('athlete_id', athleteId).gte('start_date', `${reconciliationStart}T00:00:00Z`).order('start_date', { ascending: true }),
     supabase.from('trainingpeaks_import_jobs').select('id, status, transferred_count, needs_manual_mapping_count, error_message, created_at, updated_at, followup_sent_at').eq('athlete_id', athleteId).order('created_at', { ascending: false }).limit(5),
   ]);
 

@@ -1,10 +1,29 @@
 import { checkInReadinessScore } from './checkIn.js';
 import { countAssignmentCompletions } from './coachProtocols.js';
+import { toDateKey } from './workoutCompliance.js';
 
 export function reportWindow(now = new Date()) {
   const end = now.toISOString().slice(0, 10);
   const start = new Date(Date.parse(`${end}T00:00:00Z`) - 27 * 86400000).toISOString().slice(0, 10);
   return { start, end, days: 28, timeZone: 'UTC', sampleLimit: 8 };
+}
+
+// Reconciliation keeps the calendar's existing local-day matching, separately
+// from readiness's UTC timestamp samples. Subtract calendar days, not elapsed
+// hours, so the bounds also remain stable across daylight-saving transitions.
+export function reconciliationWindow(now = new Date()) {
+  const end = toDateKey(now);
+  const start = new Date(Date.parse(`${end}T00:00:00Z`) - 27 * 86400000).toISOString().slice(0, 10);
+  return { start, end, days: 28, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone };
+}
+
+// A UTC date can be one day ahead of the coach's local date; an athlete's
+// stored local day can start on the preceding UTC day (e.g. UTC+14), even when
+// the coach is west of UTC. Fetch two extra UTC days for reconciliation only.
+// The client applies the explicit local
+// bounds; readiness samples retain their existing UTC window and limits.
+export function reconciliationFetchStart(window) {
+  return new Date(Date.parse(`${window.start}T00:00:00Z`) - 2 * 86400000).toISOString().slice(0, 10);
 }
 
 export function usableReadinessScore(value) {

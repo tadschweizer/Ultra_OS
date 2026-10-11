@@ -4,7 +4,8 @@ import NavMenu from '../../../components/NavMenu';
 import { ImportStatusPill } from '../../../components/ImportHealthCard';
 import { IMPORT_STATUSES, classifyImportJob } from '../../../lib/importHealth';
 import { ReconciliationSummary } from '../../../components/WeeklyReconciliation';
-import { summarizeReconciliationWindow, toDateKey } from '../../../lib/workoutCompliance';
+import { summarizeReconciliationWindow } from '../../../lib/workoutCompliance';
+import { reconciliationWindow } from '../../../lib/coachReport';
 import { appMenuLinks } from '../../../lib/siteNavigation';
 
 const statusTone = {
@@ -56,10 +57,11 @@ export default function CoachAthleteDetail() {
 
   const readiness = data.raceReadiness || {};
   const today = new Date();
+  const planWindow = reconciliationWindow(today);
   const planReconciliation = summarizeReconciliationWindow(
     data.plannedWorkouts || [],
     data.reconciliationActivities || [],
-    { start: toDateKey(new Date(today.getTime() - 27 * 86400000)), end: toDateKey(today), today }
+    { ...planWindow, today }
   );
 
   return (
@@ -120,6 +122,7 @@ export default function CoachAthleteDetail() {
         </section>
 
         <section className="mt-6">
+          <p className="mb-2 text-xs text-ink/65">Plan window: {planWindow.start} to {planWindow.end} ({planWindow.timeZone}, 28 local calendar days). Activities retain their recorded local dates.</p>
           <ReconciliationSummary summary={planReconciliation} title="Plan compliance — last 28 days" />
         </section>
 
