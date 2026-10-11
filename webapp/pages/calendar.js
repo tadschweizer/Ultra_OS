@@ -55,6 +55,7 @@ export default function CalendarPage() {
             </div>
           )}
         </section>
+        {loadMetrics?.explainability && <p className="mt-2 text-xs text-ink/60">{loadMetrics.explainability}</p>}
 
         {/* The calendar is the single source of truth for this week's sessions —
             no duplicate list above it. */}

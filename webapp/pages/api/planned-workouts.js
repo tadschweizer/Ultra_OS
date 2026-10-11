@@ -1,6 +1,7 @@
 import { validateWorkoutFields, validWorkoutRequestId, sameWorkoutRequest } from '../../lib/workoutValidation.js';
 import { decideWorkoutMatch } from '../../lib/workoutMatch.js';
 import { getSupabaseAdminClient } from '../../lib/authServer.js';
+import { canReadWorkout, filterReadableWorkouts } from '../../lib/workoutVisibility.js';
 
 import {
   decorateWorkoutsWithCompliance,
@@ -78,14 +79,14 @@ function fillPlannedTotals(payload) {
   const structure = Array.isArray(payload.structure) ? payload.structure : [];
   if (structure.length) {
     const totals = summarizeStructure(structure);
-    if (payload.planned_duration_min == null && totals.durationMin > 0) {
+    if (payload.planned_duration_min === undefined && totals.durationMin > 0) {
       payload.planned_duration_min = totals.durationMin;
     }
-    if (payload.planned_distance_km == null && totals.distanceKm > 0) {
+    if (payload.planned_distance_km === undefined && totals.distanceKm > 0) {
       payload.planned_distance_km = totals.distanceKm;
     }
   }
-  if (payload.planned_tss == null) {
+  if (payload.planned_tss === undefined) {
     payload.planned_tss = estimateTss(structure, payload.planned_duration_min);
   }
   return payload;
@@ -208,12 +209,14 @@ return async function handler(req, res) {
         ? req.query.athlete_id
         : sessionAthleteId;
 
+      let readerCoach = null;
       if (targetAthleteId !== sessionAthleteId) {
         const profile = await getCoachProfileFor(admin, sessionAthleteId, targetAthleteId);
         if (!profile) {
           res.status(403).json({ error: 'No active coaching relationship with this athlete.' });
           return;
         }
+        readerCoach = profile;
       }
 
       const today = new Date();
@@ -251,7 +254,8 @@ return async function handler(req, res) {
       const rangeIds = new Set((rangeWorkouts || []).map((w) => w.id));
       const outsidePlans = await fetchInBatches(admin, 'planned_workouts', WORKOUT_COLUMNS,
         targetAthleteId, 'id', links.filter((w) => !rangeIds.has(w.id)).map((w) => w.id));
-      const workouts = [...(rangeWorkouts || []), ...outsidePlans];
+      const workouts = filterReadableWorkouts([...(rangeWorkouts || []), ...outsidePlans],
+        { athleteId: sessionAthleteId, coachId: readerCoach?.id });
       const missing = workouts.map((w) => w.completed_activity_id)
         .filter((id) => validWorkoutRequestId(id) && !activities.some((a) => String(a.id) === id));
       let linkedActivities = [];
@@ -311,61 +315,26 @@ return async function handler(req, res) {
 
       // ── Copy a whole week of planning forward ────────────────────────────
       if (body.action === 'copy_week') {
-        if (!body.from_week_start || !body.to_week_start) {
-          res.status(400).json({ error: 'from_week_start and to_week_start are required.' });
-          return;
+        if (!validWorkoutRequestId(body.client_request_id)) return res.status(400).json({ error: 'Reload the calendar before copying this week.' });
+        for (const date of [body.from_week_start, body.to_week_start]) {
+          if (!date || validateWorkoutFields({ workout_date: date })) return res.status(400).json({ error: 'Choose valid source and destination weeks.' });
         }
-        const fromStart = new Date(`${body.from_week_start}T00:00:00Z`);
-        const fromEnd = new Date(fromStart.getTime() + 6 * 86400000);
-        const offsetDays = Math.round(
-          (new Date(`${body.to_week_start}T00:00:00Z`) - fromStart) / 86400000
-        );
-
-        const { data: sourceWorkouts, error: sourceError } = await admin
-          .from('planned_workouts')
-          .select(WORKOUT_COLUMNS)
-          .eq('athlete_id', targetAthleteId)
-          .gte('workout_date', toDateKey(fromStart))
-          .lte('workout_date', toDateKey(fromEnd));
-        if (sourceError) {
-          res.status(500).json({ error: sourceError.message });
-          return;
-        }
-        if (!sourceWorkouts?.length) {
-          res.status(400).json({ error: 'No workouts found in the source week.' });
-          return;
-        }
-
-        const clones = sourceWorkouts.map((w) => {
-          const date = new Date(`${w.workout_date}T00:00:00Z`);
-          date.setUTCDate(date.getUTCDate() + offsetDays);
-          return {
-            athlete_id: targetAthleteId,
-            coach_id: coachProfile ? coachProfile.id : null,
-            workout_date: toDateKey(date),
-            sport: w.sport,
-            title: w.title,
-            description: w.description,
-            structure: w.structure,
-            planned_duration_min: w.planned_duration_min,
-            planned_distance_km: w.planned_distance_km,
-            planned_distance_unit: w.planned_distance_unit,
-            planned_tss: w.planned_tss,
-            order_index: w.order_index,
-            library_workout_id: w.library_workout_id,
-          };
+        if (body.from_week_start === body.to_week_start) return res.status(400).json({ error: 'Choose a different destination week.' });
+        // A single DB transaction owns retry identity and the complete insert.
+        // Authorization is checked here and again inside the service-only RPC.
+        const { data, error } = await admin.rpc('copy_planned_workout_week', {
+          p_actor_id: sessionAthleteId, p_athlete_id: targetAthleteId,
+          p_request_id: body.client_request_id, p_from: body.from_week_start, p_to: body.to_week_start,
         });
-
-        const { data: created, error: insertError } = await admin
-          .from('planned_workouts')
-          .insert(clones)
-          .select(WORKOUT_COLUMNS);
-        if (insertError) {
-          res.status(500).json({ error: insertError.message });
-          return;
+        if (error) {
+          const status = error.code === '42501' ? 403 : error.code === 'PT409' ? 409 : error.code === '22023' ? 400 : 503;
+          const message = status === 403 ? 'No active coaching relationship with this athlete.'
+            : status === 409 ? 'This copy already saved different details. Review the calendar before copying again.'
+            : status === 400 ? 'No visible workouts found in the source week.'
+            : 'Week copying is unavailable. Your retry has not been discarded. Please retry.';
+          return res.status(status).json({ error: message });
         }
-        res.status(200).json({ workouts: created || [] });
-        return;
+        return res.status(200).json(data);
       }
 
       // ── Create a single workout (optionally from the library) ────────────
@@ -383,21 +352,29 @@ return async function handler(req, res) {
           res.status(403).json({ error: 'Workout library is available to coach accounts.' });
           return;
         }
-        const { data: libraryWorkout } = await admin
+        const { data: libraryWorkout, error: libraryError } = await admin
           .from('workout_library')
           .select('*')
           .eq('id', body.library_workout_id)
           .eq('coach_id', requesterProfile.id)
           .maybeSingle();
+        if (libraryError) return res.status(503).json({ error: 'Library assignment is unavailable. Please retry.' });
         if (!libraryWorkout) {
           res.status(404).json({ error: 'Library workout not found.' });
           return;
         }
+        const metadataFields = ['objective', 'coach_instructions', 'target_metric', 'planned_if', 'visibility'];
+        if (!metadataFields.every(field => Object.hasOwn(libraryWorkout, field))) return res.status(503).json({ error: 'Full prescription library assignment is unavailable until the library schema update is installed.' });
         payload = {
           ...payload,
           sport: libraryWorkout.sport,
           title: libraryWorkout.name,
           description: libraryWorkout.description,
+          objective: libraryWorkout.objective,
+          coach_instructions: libraryWorkout.coach_instructions,
+          target_metric: libraryWorkout.target_metric,
+          planned_if: libraryWorkout.planned_if,
+          visibility: libraryWorkout.visibility,
           structure: libraryWorkout.structure,
           planned_duration_min: libraryWorkout.planned_duration_min,
           planned_distance_km: libraryWorkout.planned_distance_km,
@@ -421,6 +398,7 @@ return async function handler(req, res) {
       }
       const validationError = validateWorkoutFields(payload);
       if (validationError) return res.status(400).json({ error: validationError });
+      if (!coachProfile && payload.visibility === 'coach_private') return res.status(403).json({ error: 'Only an assigning coach can create a private draft.' });
       if (payload.status !== 'completed') fillPlannedTotals(payload);
       if (payload.status === 'completed') payload.activity_match_mode = 'manual';
       if (body.client_request_id) payload.id = body.client_request_id;
@@ -462,6 +440,7 @@ return async function handler(req, res) {
       }
 
       const isOwnCalendar = existing.athlete_id === sessionAthleteId;
+      if (isOwnCalendar && !canReadWorkout(existing, { athleteId: sessionAthleteId })) return res.status(404).json({ error: 'Workout not found.' });
       if (body.match_action !== undefined) {
         if (!isOwnCalendar) return res.status(403).json({ error: 'Only the athlete can change this workout match.' });
         const result = await decideWorkoutMatch(admin, sessionAthleteId, body);
@@ -484,6 +463,7 @@ return async function handler(req, res) {
           res.status(403).json({ error: 'Not allowed to edit this workout.' });
           return;
         }
+        if (!canReadWorkout(existing, { coachId: profile.id })) return res.status(404).json({ error: 'Workout not found.' });
         if (existing.coach_id === profile.id) {
           // The assigning coach owns the plan.
           allowedFields = [...PLANNING_FIELDS, 'status', 'coach_feedback'];
@@ -507,19 +487,21 @@ return async function handler(req, res) {
         return;
       }
       if (updates.structure !== undefined) {
-        // Recompute totals from the new structure unless explicitly provided.
+        // Derive omitted totals; explicit null/zero retain the caller's intent.
         const recomputed = fillPlannedTotals({
           structure: updates.structure,
-          planned_duration_min: updates.planned_duration_min ?? null,
-          planned_distance_km: updates.planned_distance_km ?? null,
-          planned_tss: updates.planned_tss ?? null,
+          planned_duration_min: updates.planned_duration_min,
+          planned_distance_km: updates.planned_distance_km,
+          planned_tss: updates.planned_tss,
         });
-        updates.planned_duration_min = recomputed.planned_duration_min;
-        updates.planned_distance_km = recomputed.planned_distance_km;
-        updates.planned_tss = recomputed.planned_tss;
+        // A replacement structure lacking a dimension clears stale totals.
+        updates.planned_duration_min = recomputed.planned_duration_min ?? null;
+        updates.planned_distance_km = recomputed.planned_distance_km ?? null;
+        updates.planned_tss = recomputed.planned_tss ?? null;
       }
       const validationError = validateWorkoutFields(updates);
       if (validationError) return res.status(400).json({ error: validationError });
+      if (isOwnCalendar && updates.visibility === 'coach_private') return res.status(403).json({ error: 'Only an assigning coach can create a private draft.' });
       // Manual completion/skip/undo replaces the link; the imported session
       // returns to the calendar and subsequent imports cannot undo this choice.
       if (updates.status !== undefined || updates.completed_duration_min !== undefined || updates.completed_distance_km !== undefined) {
@@ -556,13 +538,14 @@ return async function handler(req, res) {
 
       const { data: existing } = await admin
         .from('planned_workouts')
-        .select('id, athlete_id, coach_id')
+        .select('id, athlete_id, coach_id, visibility')
         .eq('id', id)
         .maybeSingle();
       if (!existing) {
         res.status(404).json({ error: 'Workout not found.' });
         return;
       }
+      if (existing.athlete_id === sessionAthleteId && !canReadWorkout(existing, { athleteId: sessionAthleteId })) return res.status(404).json({ error: 'Workout not found.' });
 
       const isSelfPlanned = existing.athlete_id === sessionAthleteId && !existing.coach_id;
       let allowed = isSelfPlanned;

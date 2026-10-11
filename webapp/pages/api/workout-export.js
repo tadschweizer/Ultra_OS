@@ -1,5 +1,6 @@
-import { getSupabaseAdminClient } from '../../lib/authServer';
-import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
+import { getSupabaseAdminClient } from '../../lib/authServer.js';
+import { getEffectiveAthleteIdFromRequest } from '../../lib/auth/requireAthlete.js';
+import { canReadWorkout } from '../../lib/workoutVisibility.js';
 import {
   loadAccountAccess,
   loadActiveCoachRelationship,
@@ -10,8 +11,9 @@ async function getOwnCoachProfile(admin, athleteId) {
   return access?.capabilities.coach ? access.coachProfile : null;
 }
 
-export default async function handler(req, res) {
-  const sessionAthleteId = getAthleteIdFromRequest(req);
+export function createWorkoutExportHandler({ getAdmin = getSupabaseAdminClient, resolveAthlete = getEffectiveAthleteIdFromRequest } = {}) {
+return async function handler(req, res) {
+  const sessionAthleteId = await resolveAthlete(req);
   if (!sessionAthleteId) {
     res.status(401).json({ error: 'Not authenticated' });
     return;
@@ -27,7 +29,7 @@ export default async function handler(req, res) {
     return;
   }
 
-  const admin = getSupabaseAdminClient();
+  const admin = getAdmin();
   const { data: workout, error } = await admin
     .from('planned_workouts')
     .select('*')
@@ -43,17 +45,20 @@ export default async function handler(req, res) {
   }
 
   let allowed = workout.athlete_id === sessionAthleteId;
+  let readerCoachId = null;
   if (!allowed) {
     const profile = await getOwnCoachProfile(admin, sessionAthleteId);
     if (profile) {
       const relationship = await loadActiveCoachRelationship(admin, profile.id, workout.athlete_id);
       allowed = Boolean(relationship);
+      if (allowed) readerCoachId = profile.id;
     }
   }
   if (!allowed) {
     res.status(403).json({ error: 'Not allowed to export this workout.' });
     return;
   }
+  if (!canReadWorkout(workout, { athleteId: sessionAthleteId, coachId: readerCoachId })) return res.status(404).json({ error: 'Workout not found.' });
 
   const payload = {
     format: 'threshold-structured-workout-v1',
@@ -82,3 +87,5 @@ export default async function handler(req, res) {
   res.setHeader('Content-Disposition', `attachment; filename="${workout.title.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${workout.workout_date}.json"`);
   res.status(200).send(JSON.stringify(payload, null, 2));
 }
+}
+export default createWorkoutExportHandler();

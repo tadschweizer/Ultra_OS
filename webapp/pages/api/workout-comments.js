@@ -1,5 +1,6 @@
-import { getSupabaseAdminClient } from '../../lib/authServer';
+import { getSupabaseAdminClient } from '../../lib/authServer.js';
 import { getEffectiveAthleteIdFromRequest } from '../../lib/auth/requireAthlete.js';
+import { canReadWorkout } from '../../lib/workoutVisibility.js';
 import {
   attachAuthorNames,
   collectIds,
@@ -47,12 +48,13 @@ async function resolveSubject(admin, sessionAthleteId, { workoutId, activityId }
   if (workoutId) {
     const { data: workout } = await admin
       .from('planned_workouts')
-      .select('id, athlete_id, coach_id')
+      .select('id, athlete_id, coach_id, visibility')
       .eq('id', workoutId)
       .maybeSingle();
     if (!workout) return { allowed: false, notFound: true };
 
     const access = await resolveAccess(admin, sessionAthleteId, workout.athlete_id);
+    if (access.allowed && !canReadWorkout(workout, { athleteId: sessionAthleteId, coachId: access.coachId })) return { allowed: false, notFound: true };
     return {
       ...access,
       ownerAthleteId: workout.athlete_id,
@@ -122,14 +124,15 @@ async function withAuthorNames(admin, comments) {
   });
 }
 
-export default async function handler(req, res) {
-  const sessionAthleteId = await getEffectiveAthleteIdFromRequest(req);
+export function createWorkoutCommentsHandler({ getAdmin = getSupabaseAdminClient, resolveAthlete = getEffectiveAthleteIdFromRequest } = {}) {
+return async function handler(req, res) {
+  const sessionAthleteId = await resolveAthlete(req);
   if (!sessionAthleteId) {
     res.status(401).json({ error: 'Not authenticated' });
     return;
   }
 
-  const admin = getSupabaseAdminClient();
+  const admin = getAdmin();
 
   try {
     if (req.method === 'GET') {
@@ -238,3 +241,5 @@ export default async function handler(req, res) {
     res.status(500).json({ error: error.message });
   }
 }
+}
+export default createWorkoutCommentsHandler();

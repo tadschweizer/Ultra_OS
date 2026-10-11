@@ -1,0 +1,278 @@
+PR134 head 6f1d3f4f3633095a0aac9e83600b77b3ce2bb596
+
+Changed files:
+DEMO_PARITY_MATRIX.md
+DEMO_QA_FIXES.md
+DEMO_VERIFICATION.md
+PRODUCT_EXECUTION_ROADMAP.md
+coach-demo/.gitignore
+coach-demo/README.md
+coach-demo/adapter.js
+coach-demo/browser/workflows.spec.js
+coach-demo/evidence/preview-683a5eb.json
+coach-demo/evidence/preview-edccc86.json
+coach-demo/favicon.svg
+coach-demo/index.html
+coach-demo/main.jsx
+coach-demo/package-lock.json
+coach-demo/package.json
+coach-demo/playwright.config.js
+coach-demo/postcss.config.cjs
+coach-demo/preview-identity.json
+coach-demo/public/favicon.svg
+coach-demo/router.jsx
+coach-demo/scripts/preview-files.mjs
+coach-demo/seed.js
+coach-demo/site-hosting.json
+coach-demo/styles.css
+coach-demo/tailwind.config.cjs
+coach-demo/tests/adapter.test.mjs
+coach-demo/vercel.json
+coach-demo/vite.config.js
+docs/demo-evidence/683a5eb/adapter-tests.txt
+docs/demo-evidence/683a5eb/athlete-messages-320.png
+docs/demo-evidence/683a5eb/coach-390.png
+docs/demo-evidence/683a5eb/coach-desktop.png
+docs/demo-evidence/683a5eb/hosted-browser.txt
+docs/demo-evidence/683a5eb/local-browser.txt
+docs/demo-evidence/683a5eb/production-build.txt
+docs/demo-evidence/683a5eb/production-regression.txt
+docs/demo-evidence/683a5eb/qa-focused-browser.txt
+docs/demo-evidence/683a5eb/qa-library-390.png
+docs/demo-evidence/683a5eb/qa-load-390.png
+docs/demo-evidence/adapter-tests.txt
+docs/demo-evidence/athlete-messages-320.png
+docs/demo-evidence/coach-390.png
+docs/demo-evidence/coach-desktop.png
+docs/demo-evidence/edccc86/adapter-tests.txt
+docs/demo-evidence/edccc86/athlete-messages-320.png
+docs/demo-evidence/edccc86/coach-390.png
+docs/demo-evidence/edccc86/coach-desktop.png
+docs/demo-evidence/edccc86/hosted-browser.txt
+docs/demo-evidence/edccc86/production-build.txt
+docs/demo-evidence/edccc86/production-regression.txt
+docs/demo-evidence/hosted-browser.txt
+docs/demo-evidence/independent-54f2ab/.gitattributes
+docs/demo-evidence/independent-54f2ab/QA_FINAL_RETEST.md
+docs/demo-evidence/independent-54f2ab/README.md
+docs/demo-evidence/independent-54f2ab/threshold-final-retest-54f2ab.zip
+docs/demo-evidence/local-browser.txt
+docs/demo-evidence/production-build.txt
+docs/demo-evidence/production-regression.txt
+docs/demo-evidence/qa-focused-browser.txt
+docs/demo-evidence/qa-library-390.png
+docs/demo-evidence/qa-load-390.png
+docs/demo-evidence/qa-matched-elevation-390.png
+docs/demo-evidence/qa-selection-390.png
+webapp/components/MessageNotificationSettings.js
+webapp/components/TrainingCalendar.js
+webapp/lib/WorkspaceTransport.js
+webapp/lib/calendarMutation.js
+webapp/lib/calendarSelection.js
+webapp/lib/calendarSummary.js
+webapp/lib/libraryWorkoutPayload.js
+webapp/lib/messageClient.js
+webapp/lib/useMessageDraft.js
+webapp/lib/workoutCompliance.js
+webapp/pages/messages.js
+
+No diffs in candidate handlers/domain:
+
+
+coach-demo/adapter.js:21
+21: const PLAN = [
+22:   "title",
+23:   "sport",
+24:   "workout_date",
+25:   "description",
+26:   "objective",
+27:   "coach_instructions",
+28:   "target_metric",
+29:   "planned_if",
+30:   "visibility",
+31:   "structure",
+32:   "planned_duration_min",
+33:   "planned_distance_km",
+34:   "planned_distance_unit",
+35:   "planned_tss",
+36:   "order_index",
+37:   "library_workout_id",
+38: ];
+39: const ACTUAL = [
+40:   "status",
+
+coach-demo/adapter.js:103
+103:   rows(id, role = "coach") {
+104:     const ws = this.state.workouts.filter(
+105:       (w) =>
+106:         w.athlete_id === id &&
+107:         (role === "coach" || w.visibility !== "coach_private"),
+108:     );
+109:     return decorateWorkoutsWithCompliance(
+110:       ws,
+111:       this.state.activities.filter((a) => a.athlete_id === id),
+112:       { today: new Date(TODAY + "T12:00:00") },
+113:     );
+114:   }
+115:   summary(id, role = "coach") {
+116:     return summarizeReconciliationWindow(
+117:       this.state.workouts.filter(
+118:         (w) =>
+119:           w.athlete_id === id &&
+120:           (role === "coach" || w.visibility !== "coach_private"),
+121:       ),
+122:       this.state.activities.filter((a) => a.athlete_id === id),
+
+coach-demo/adapter.js:115
+115:   summary(id, role = "coach") {
+116:     return summarizeReconciliationWindow(
+117:       this.state.workouts.filter(
+118:         (w) =>
+119:           w.athlete_id === id &&
+120:           (role === "coach" || w.visibility !== "coach_private"),
+121:       ),
+122:       this.state.activities.filter((a) => a.athlete_id === id),
+123:       {
+124:         start: "2026-10-05",
+125:         end: "2026-10-11",
+126:         today: new Date(TODAY + "T12:00:00"),
+127:       },
+128:     );
+129:   }
+130:   unread(role, id) {
+131:     return this.state.messages.filter(
+132:       (m) =>
+133:         (!id || m.athlete_id === id) && m.sender_role !== role && !m.read_at,
+134:     ).length;
+
+coach-demo/adapter.js:347
+347:           if (body.action === "copy_week" || body.action === "duplicate") {
+348:             if (role !== "coach")
+349:               return response({ error: "Coach planning action only." }, 403);
+350:             const sources =
+351:               body.action === "duplicate"
+352:                 ? next.workouts.filter(
+353:                     (w) => w.id === body.id && w.athlete_id === target,
+354:                   )
+355:                 : next.workouts.filter(
+356:                     (w) =>
+357:                       w.athlete_id === target &&
+358:                       w.workout_date >= body.from_week_start &&
+359:                       w.workout_date <= plus(body.from_week_start, 6),
+360:                   );
+361:             if (!sources.length)
+362:               return response({ error: "No source workouts." }, 400);
+363:             const shift =
+364:               body.action === "duplicate"
+365:                 ? 1
+366:                 : Math.round(
+
+coach-demo/adapter.js:371
+371:             const retryKey = JSON.stringify([
+372:               body.action,
+373:               target,
+374:               body.id,
+375:               body.from_week_start,
+376:               body.to_week_start,
+377:               sources.map((w) => [w.id, pick(w, PLAN)]),
+378:             ]);
+379:             if (next.requests[retryKey])
+380:               return response({
+381:                 workouts: next.workouts.filter((w) =>
+382:                   next.requests[retryKey].includes(w.id),
+383:                 ),
+384:               });
+385:             const created = sources.map((w) => ({
+386:               ...pick(w, PLAN),
+387:               id: newId(),
+388:               athlete_id: target,
+389:               coach_id: "demo-coach",
+390:               workout_date: plus(w.workout_date, shift),
+
+coach-demo/adapter.js:379
+379:             if (next.requests[retryKey])
+380:               return response({
+381:                 workouts: next.workouts.filter((w) =>
+382:                   next.requests[retryKey].includes(w.id),
+383:                 ),
+384:               });
+385:             const created = sources.map((w) => ({
+386:               ...pick(w, PLAN),
+387:               id: newId(),
+388:               athlete_id: target,
+389:               coach_id: "demo-coach",
+390:               workout_date: plus(w.workout_date, shift),
+391:               status: "planned",
+392:               activity_match_mode: "manual",
+393:               updated_at: now,
+394:             }));
+395:             next.workouts.push(...created);
+396:             next.requests[retryKey] = created.map((w) => w.id);
+397:             return save({ workouts: created });
+398:           }
+
+coach-demo/adapter.js:382
+382:                   next.requests[retryKey].includes(w.id),
+383:                 ),
+384:               });
+385:             const created = sources.map((w) => ({
+386:               ...pick(w, PLAN),
+387:               id: newId(),
+388:               athlete_id: target,
+389:               coach_id: "demo-coach",
+390:               workout_date: plus(w.workout_date, shift),
+391:               status: "planned",
+392:               activity_match_mode: "manual",
+393:               updated_at: now,
+394:             }));
+395:             next.workouts.push(...created);
+396:             next.requests[retryKey] = created.map((w) => w.id);
+397:             return save({ workouts: created });
+398:           }
+399:           if (role === "athlete" && body.visibility === "coach_private")
+400:             return response(
+401:               { error: "Coach-private planning is unavailable to athletes." },
+
+coach-demo/adapter.js:386
+386:               ...pick(w, PLAN),
+387:               id: newId(),
+388:               athlete_id: target,
+389:               coach_id: "demo-coach",
+390:               workout_date: plus(w.workout_date, shift),
+391:               status: "planned",
+392:               activity_match_mode: "manual",
+393:               updated_at: now,
+394:             }));
+395:             next.workouts.push(...created);
+396:             next.requests[retryKey] = created.map((w) => w.id);
+397:             return save({ workouts: created });
+398:           }
+399:           if (role === "athlete" && body.visibility === "coach_private")
+400:             return response(
+401:               { error: "Coach-private planning is unavailable to athletes." },
+402:               403,
+403:             );
+404:           const lib = body.library_workout_id
+405:             ? next.library.find((w) => w.id === body.library_workout_id)
+
+coach-demo/adapter.js:396
+396:             next.requests[retryKey] = created.map((w) => w.id);
+397:             return save({ workouts: created });
+398:           }
+399:           if (role === "athlete" && body.visibility === "coach_private")
+400:             return response(
+401:               { error: "Coach-private planning is unavailable to athletes." },
+402:               403,
+403:             );
+404:           const lib = body.library_workout_id
+405:             ? next.library.find((w) => w.id === body.library_workout_id)
+406:             : null;
+407:           if (body.library_workout_id && !lib)
+408:             return response({ error: "Template not found." }, 404);
+409:           if (lib && role !== "coach")
+410:             return response({ error: "Coach library action only." }, 403);
+411:           const plan = lib
+412:             ? { ...lib, title: lib.name, workout_date: body.workout_date }
+413:             : body;
+414:           const error = validateWorkoutFields(plan);
+415:           if (error) return response({ error }, 400);

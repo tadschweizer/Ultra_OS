@@ -1,0 +1,40 @@
+(node:29052) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-4/source/webapp/pages/api/planned-workouts.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-4\source\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£û planned structure PATCH distinguishes omitted totals, explicit null, zero and unchanged omitted fields (1545.6532ms)
+Γä╣ tests 1
+Γä╣ suites 0
+Γä╣ pass 0
+Γä╣ fail 1
+Γä╣ cancelled 0
+Γä╣ skipped 0
+Γä╣ todo 0
+Γä╣ duration_ms 1967.9562
+
+Γ£û failing tests:
+
+test at tests\calendar-gap-acceptance.test.mjs:141:1
+Γ£û planned structure PATCH distinguishes omitted totals, explicit null, zero and unchanged omitted fields (1545.6532ms)
+  AssertionError [ERR_ASSERTION]: structure-only PATCH derives rather than clears totals
+  + actual - expected
+
+    [
+  +   null,
+  +   null,
+  +   null
+  -   40,
+  -   6,
+  -   33
+    ]
+
+      at TestContext.<anonymous> (file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-4/source/webapp/tests/calendar-gap-acceptance.test.mjs:148:12)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [ null, null, null ],
+    expected: [ 40, 6, 33 ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

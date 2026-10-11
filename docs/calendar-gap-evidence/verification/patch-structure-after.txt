@@ -1,0 +1,25 @@
+
+> threshold@0.1.0 test:calendar-gaps
+> node --test tests/calendar-gap-acceptance.test.mjs
+
+(node:17836) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-4/source/webapp/pages/api/planned-workouts.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-4\source\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö private drafts: athlete hidden; assigning linked coach sees; cross-athlete/unrelated/revoked callers denied (1612.9069ms)
+Γ£ö actual PostgreSQL copy: concurrent/same/lost-response replay once, new operation twice; full prescription survives (1207.0818ms)
+Γ£ö copy key survives uncertain response/refresh; successful write releases it before failed refresh; next copy distinct (0.7691ms)
+Γ£ö direct private create and library assignment preserve metadata; absent library schema/RPC fail honestly (1159.3372ms)
+Γ£ö planned structure PATCH distinguishes omitted totals, explicit null, zero and unchanged omitted fields (1140.2465ms)
+Γ£ö RLS/privileges: direct athlete reads cannot expose private rows; service RPC and retry table remain client-denied (1089.3336ms)
+Γ£ö load matrix: actual manual/synced/matched counts, unknown values and recovery provenance (2.8051ms)
+Γ£ö real signed POST/calendar/me: accepted manual completion contributes and refresh updates; recovery and private drafts do not (1115.18ms)
+Γ£ö inbox SQL excludes private thread title/comment/unread count before aggregation, including another linked coach (1110.9979ms)
+Γä╣ tests 9
+Γä╣ suites 0
+Γä╣ pass 9
+Γä╣ fail 0
+Γä╣ cancelled 0
+Γä╣ skipped 0
+Γä╣ todo 0
+Γä╣ duration_ms 8864.6129

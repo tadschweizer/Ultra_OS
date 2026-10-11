@@ -1,6 +1,7 @@
-import { getSupabaseAdminClient } from '../../../lib/authServer';
-import { checkInReadinessScore, latestFastCheckIn } from '../../../lib/checkIn';
-import { buildAthleteImportHealth } from '../../../lib/importHealth';
+import { getSupabaseAdminClient } from '../../../lib/authServer.js';
+import { checkInReadinessScore, latestFastCheckIn } from '../../../lib/checkIn.js';
+import { buildAthleteImportHealth } from '../../../lib/importHealth.js';
+import { filterReadableWorkouts } from '../../../lib/workoutVisibility.js';
 import {
   requireActiveCoachRelationship,
   requireCoachAccess,
@@ -9,7 +10,6 @@ import {
 // Coach tables are no longer reachable with the public anon key (RLS is on and
 // the anon grants are revoked), so this route uses the service-role client.
 // Authorisation is enforced in the handler from the session athlete id.
-const supabase = getSupabaseAdminClient();
 
 function buildRaceReadiness({ upcomingRace, activeProtocols, compliance, activities, checkins, interventions }) {
   const daysUntilRace = upcomingRace?.event_date ? Math.ceil((new Date(upcomingRace.event_date) - new Date()) / 86400000) : null;
@@ -73,7 +73,9 @@ function buildRaceReadiness({ upcomingRace, activeProtocols, compliance, activit
   };
 }
 
-export default async function handler(req, res) {
+export function createCoachAthleteDetailHandler({ getAdmin = getSupabaseAdminClient } = {}) {
+return async function handler(req, res) {
+  const supabase = getAdmin();
   if (req.method !== 'GET') return res.status(405).end();
   const athleteId = req.query.athlete_id;
   const access = await requireCoachAccess(req, res, supabase);
@@ -129,7 +131,7 @@ export default async function handler(req, res) {
     compliance,
     interventions,
     activities: activitiesRes.data || [],
-    plannedWorkouts: plannedWorkoutsRes.data || [],
+    plannedWorkouts: filterReadableWorkouts(plannedWorkoutsRes.data, { coachId: coachProfile.id }),
     reconciliationActivities: reconActivitiesRes.data || [],
     checkins,
     importJobs: importJobsRes.data || [],
@@ -140,3 +142,5 @@ export default async function handler(req, res) {
     raceReadiness,
   });
 }
+}
+export default createCoachAthleteDetailHandler();

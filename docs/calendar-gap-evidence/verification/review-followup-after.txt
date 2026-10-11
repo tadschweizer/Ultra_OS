@@ -1,0 +1,27 @@
+
+> threshold@0.1.0 test:calendar-gaps
+> node --test tests/calendar-gap-acceptance.test.mjs
+
+(node:24128) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-4/source/webapp/lib/accountExport.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-4\source\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö private drafts: athlete hidden; assigning linked coach sees; cross-athlete/unrelated/revoked callers denied (1633.6144ms)
+Γ£ö actual PostgreSQL copy: concurrent/same/lost-response replay once, new operation twice; full prescription survives (1217.9451ms)
+Γ£ö copy key survives uncertain response/refresh; successful write releases it before failed refresh; next copy distinct (0.781ms)
+Γ£ö direct private create and library assignment preserve metadata; absent library schema/RPC fail honestly (1182.5463ms)
+Γ£ö planned structure PATCH distinguishes omitted totals, explicit null, zero and unchanged omitted fields (1146.7409ms)
+Γ£ö signed personal archive excludes private drafts before pagination without changing authorized coach exports (1128.8316ms)
+Γ£ö load linked records resolve dates independently of the window; missing links stay unknown, manual and matches count once (1146.9614ms)
+Γ£ö RLS/privileges: direct athlete reads cannot expose private rows; service RPC and retry table remain client-denied (1088.2398ms)
+Γ£ö load matrix: actual manual/synced/matched counts, unknown values and recovery provenance (2.2789ms)
+Γ£ö real signed POST/calendar/me: accepted manual completion contributes and refresh updates; recovery and private drafts do not (1098.6944ms)
+Γ£ö inbox SQL excludes private thread title/comment/unread count before aggregation, including another linked coach (1108.4893ms)
+Γä╣ tests 11
+Γä╣ suites 0
+Γä╣ pass 11
+Γä╣ fail 0
+Γä╣ cancelled 0
+Γä╣ skipped 0
+Γä╣ todo 0
+Γä╣ duration_ms 11182.0322

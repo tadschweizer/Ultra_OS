@@ -3,6 +3,7 @@ import { getSupabaseAdminClient } from '../../lib/authServer.js';
 import { parseSubject } from '../../lib/workoutComments.js';
 import { requireSameOriginJson } from '../../lib/billingSecurity.js';
 import { messageActor, messageConversation, inboxSummary, messagingFailure } from '../../lib/messagingServer.js';
+import { canReadWorkout } from '../../lib/workoutVisibility.js';
 // Canonical resolveAccountMode is enforced by messageActor.
 
 export function createMessageCenterHandler({ getClient = getSupabaseAdminClient } = {}) {
@@ -49,7 +50,7 @@ return async function handler(req,res) {
 
         // Verify access to the subject before touching read state.
         const { data: subject } = workoutId
-          ? await admin.from('planned_workouts').select('id, athlete_id').eq('id', workoutId).maybeSingle()
+          ? await admin.from('planned_workouts').select('id, athlete_id, coach_id, visibility').eq('id', workoutId).maybeSingle()
           : await admin.from('strava_activities').select('id, athlete_id').eq('id', activityId).maybeSingle();
         if (!subject) {
           res.status(404).json({ error: 'Workout or activity not found.' });
@@ -71,6 +72,7 @@ return async function handler(req,res) {
           res.status(403).json({ error: 'Not allowed.' });
           return;
         }
+        if (workoutId && !canReadWorkout(subject, { athleteId: sessionAthleteId, coachId: role === 'coach' ? coachProfile.id : null })) return res.status(404).json({ error: 'Workout or activity not found.' });
         const { error: readError } = await admin
           .from('workout_comments')
           .update({ read_at: new Date().toISOString() })

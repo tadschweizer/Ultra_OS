@@ -24,6 +24,10 @@ export async function collectAccountExport(admin, athlete, { pageSize = 1000, ma
         : table === 'message_email_deliveries' ? ['message_id']
         : ['message_preferences', 'athlete_settings'].includes(table) ? ['athlete_id'] : ['id'];
       let query = admin.from(table).select('*').eq(ownerColumn, athlete.id);
+      // This is the athlete's personal archive, not the assigning coach's draft
+      // workspace. Filter before pagination so hidden rows cannot leak or make
+      // a short filtered page truncate later visible records.
+      if (table === 'planned_workouts') query = query.eq('visibility', 'athlete_visible');
       for (const column of orderColumns) query = query.order(column, { ascending: true });
       const { data, error } = await query.range(offset, offset + pageSize - 1);
       if (error) {
@@ -38,6 +42,6 @@ export async function collectAccountExport(admin, athlete, { pageSize = 1000, ma
     if (!unavailable.includes(table)) sections[table] = redactExport(records);
   }
   return { format: 'threshold-personal-training-v1', generatedAt: new Date().toISOString(),
-    scope: 'Your profile and personal training records. Coach-only notes, other athletes, uploaded file contents, and provider credentials are excluded. Contact support for additional records.',
+    scope: 'Your profile and personal training records. Coach-private drafts, coach-only notes, other athletes, uploaded file contents, and provider credentials are excluded. Contact support for additional records.',
     unavailableSections: unavailable, sections };
 }

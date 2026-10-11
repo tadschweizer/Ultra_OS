@@ -1,0 +1,62 @@
+
+> threshold@0.1.0 test:e2e:calendar-gaps
+> node scripts/test-calendar-gaps-browser.mjs
+
+[WebServer] (node:30580) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:25148) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] [@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated and will be removed in a future version. Use webpack.treeshake.removeDebugLogging instead. (Not supported with Turbopack.)
+[WebServer] ΓÜá The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+[WebServer] Browserslist: browsers data (caniuse-lite) is 7 months old. Please run:
+[WebServer]   npx update-browserslist-db@latest
+[WebServer]   Why you should do it regularly: https://github.com/browserslist/update-db#readme
+
+Running 30 tests using 1 worker
+
+(node:10332) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-4/source/webapp/pages/api/planned-workouts.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-4\source\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:16096) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:16096) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-4/source/webapp/pages/api/planned-workouts.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-4\source\webapp\package.json.
+  ok 1 [desktop-chromium] ΓÇ║ e2e\calendar-gaps.spec.mjs:39:1 ΓÇ║ lost copy response, reload retry, private marker and deliberate second copy use production contracts (4.7s)
+  ok 2 [desktop-chromium] ΓÇ║ e2e\calendar-gaps.spec.mjs:63:1 ΓÇ║ athlete calendar hides private drafts; recovery-only load remains unknown with source text (3.3s)
+  ok 3 [desktop-chromium] ΓÇ║ e2e\calendar-gaps.spec.mjs:74:1 ΓÇ║ accepted manual actuals appear in calendar load header with explicit estimated provenance (2.4s)
+  ok 4 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:63:1 ΓÇ║ completion keeps unknown actuals blank, recovers from failure, permits correction and undo (3.2s)
+  ok 5 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:90:1 ΓÇ║ athlete can log an unplanned workout from the mobile entry point (1.0s)
+  ok 6 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:101:1 ΓÇ║ recipient drafts stay separate and failed retries reuse the same message identity (607ms)
+  ok 7 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:117:1 ΓÇ║ incoming reply refreshes without reload and acknowledges only the displayed messages (5.4s)
+  ok 8 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:126:1 ΓÇ║ floating conversation opens the canonical inbox with the selected recipient (1.2s)
+  ok 9 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:135:1 ΓÇ║ older history remains visible after automatic refresh (5.5s)
+  ok 10 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:147:1 ΓÇ║ Today exposes planned training and coach feedback; phone navigation opens logging (1.4s)
+  ok 11 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:173:1 ΓÇ║ athlete rejects an automatic match, refreshes, and explicitly restores automatic matching (2.6s)
+  ok 12 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:191:1 ΓÇ║ athlete replaces a suggested match, retains failed selection, confirms, reloads, then unlinks (4.1s)
+  ok 13 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:217:1 ΓÇ║ confirmed match survives a lost response and a retry of the same selection (1.4s)
+  ok 14 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:230:1 ΓÇ║ coach can inspect a suggested match but athlete match controls stay absent (962ms)
+  ok 15 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:239:1 ΓÇ║ triage template opens once and does not refill the composer after sending (576ms)
+(node:16260) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:16260) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-4/source/webapp/pages/api/planned-workouts.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-4\source\webapp\package.json.
+  ok 16 [mobile-chromium] ΓÇ║ e2e\calendar-gaps.spec.mjs:39:1 ΓÇ║ lost copy response, reload retry, private marker and deliberate second copy use production contracts (4.5s)
+  ok 17 [mobile-chromium] ΓÇ║ e2e\calendar-gaps.spec.mjs:63:1 ΓÇ║ athlete calendar hides private drafts; recovery-only load remains unknown with source text (3.2s)
+  ok 18 [mobile-chromium] ΓÇ║ e2e\calendar-gaps.spec.mjs:74:1 ΓÇ║ accepted manual actuals appear in calendar load header with explicit estimated provenance (2.9s)
+  ok 19 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:63:1 ΓÇ║ completion keeps unknown actuals blank, recovers from failure, permits correction and undo (4.2s)
+  ok 20 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:90:1 ΓÇ║ athlete can log an unplanned workout from the mobile entry point (1.8s)
+  ok 21 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:101:1 ΓÇ║ recipient drafts stay separate and failed retries reuse the same message identity (594ms)
+  ok 22 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:117:1 ΓÇ║ incoming reply refreshes without reload and acknowledges only the displayed messages (5.5s)
+  ok 23 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:126:1 ΓÇ║ floating conversation opens the canonical inbox with the selected recipient (1.6s)
+  ok 24 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:135:1 ΓÇ║ older history remains visible after automatic refresh (5.5s)
+  ok 25 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:147:1 ΓÇ║ Today exposes planned training and coach feedback; phone navigation opens logging (1.9s)
+  ok 26 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:173:1 ΓÇ║ athlete rejects an automatic match, refreshes, and explicitly restores automatic matching (3.3s)
+  ok 27 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:191:1 ΓÇ║ athlete replaces a suggested match, retains failed selection, confirms, reloads, then unlinks (5.4s)
+  ok 28 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:217:1 ΓÇ║ confirmed match survives a lost response and a retry of the same selection (1.8s)
+  ok 29 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:230:1 ΓÇ║ coach can inspect a suggested match but athlete match controls stay absent (1.0s)
+  ok 30 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:239:1 ΓÇ║ triage template opens once and does not refill the composer after sending (619ms)
+
+  30 passed (1.7m)

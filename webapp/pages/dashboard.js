@@ -609,8 +609,8 @@ export default function Dashboard() {
         setInterventionCount(me.interventionCount);
         setLastCheckInDate(me.lastCheckInDate || null);
         setCheckInGate(me.checkInGate || null);
-        setLoadMetrics((current) => current || me.load_metrics || null);
-        setLoadStatus((current) => current || me.load_status || null);
+        setLoadMetrics(me.load_metrics || null);
+        setLoadStatus(me.load_status || null);
         setLoading(false);
       })
       .catch(() => {
@@ -819,11 +819,12 @@ export default function Dashboard() {
               <span title={loadMetrics.explainability} className="cursor-help text-xs text-ink/55">ⓘ</span>
             </div>
             <div className="mt-3 flex items-center gap-4 text-sm">
-              <span>Acute <strong>{loadMetrics.acute}</strong></span>
-              <span>Chronic <strong>{loadMetrics.chronic}</strong></span>
-              <span>Form <strong>{loadMetrics.form}</strong></span>
+              <span>Acute <strong>{loadMetrics.acute ?? '—'}</strong></span>
+              <span>Chronic <strong>{loadMetrics.chronic ?? '—'}</strong></span>
+              <span>Form <strong>{loadMetrics.form ?? '—'}</strong></span>
               <span className="rounded-full bg-paper px-2 py-0.5 text-xs">{loadStatus?.label || 'Unknown'}</span>
             </div>
+            <p className="mt-2 text-xs text-ink/60">{loadMetrics.explainability}</p>
           </section>
         )}
 

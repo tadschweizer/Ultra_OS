@@ -33,10 +33,14 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Run desktop/mobile critical journeys and accessibility smoke
         run: npm run test:e2e:critical
+      - name: Run calendar copy/privacy/load acceptance with isolated SQL fixtures
+        run: npm run test:e2e:calendar-gaps
       - name: Preserve failure traces
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: critical-journey-failures
-          path: webapp/test-results
+          path: |
+            webapp/test-results
+            output/playwright/calendar-gaps
           retention-days: 7

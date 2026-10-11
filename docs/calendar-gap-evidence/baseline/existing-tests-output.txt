@@ -1,0 +1,58 @@
+(node:8136) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-4/source/webapp/lib/workoutValidation.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-4\source\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö completion accepts partial actuals and rejects invalid scores, negative values and impossible dates (1.0846ms)
+Γ£ö later imports cannot fill unknown manual actuals or consume an explicitly linked activity twice (0.6888ms)
+Γ£ö calendar failures resolve with actionable errors and success preserves the returned record (21.5486ms)
+Γ£ö message cursor rejects filter injection and supports timestamp ties (0.5531ms)
+Γ£ö message retries return the original only for the same conversation, role and body (0.5191ms)
+Γ£ö message pages are bounded, ordered chronologically and carry a stable next cursor (0.3286ms)
+Γ£ö history refresh retains older messages and deduplicates new replies (10.6448ms)
+(node:12408) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-4/source/webapp/lib/activityInsights.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-4\source\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö easy run with HR but no configured zones is NOT classified as intervals (2.7271ms)
+Γ£ö run titled with interval language classifies as Intervals (0.2375ms)
+Γ£ö interval keyword does not fire on substrings (0.5884ms)
+Γ£ö high HR counts as intervals only when zone 4 is configured (0.1899ms)
+Γ£ö zones derived from max/resting HR classify threshold runs (0.1577ms)
+Γ£ö long runs are still detected by distance (0.1257ms)
+Γ£ö TRIMP scales with intensity and duration (0.2301ms)
+Γ£ö perceived exertion separates intensity when HR is missing (0.1144ms)
+Γ£ö EWMA converges toward a constant load and weights recency (0.2282ms)
+Γ£ö a +35% week over a flat 4-week baseline is a high-severity spike (0.8433ms)
+Γ£ö a +5% week produces no spike (0.1911ms)
+Γ£ö fewer than 3 non-zero baseline weeks yields no spike (0.1733ms)
+Γ£ö recovery interventions in the spike week are counted and named (0.9344ms)
+Γ£ö near-zero baseline (returning from a break) suppresses the card (0.176ms)
+Γ£ö a partial current week already over threshold flags as this week (0.2689ms)
+Γ£ö activities without moving_time do not poison the weekly sums (0.1843ms)
+Γ£ö getLoadMetrics reports negative form during a load spike (0.6921ms)
+(node:10736) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-4/source/webapp/lib/workoutCompliance.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-4\source\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö summarizeStructure honors repeats and sums duration/distance (0.9307ms)
+Γ£ö estimateTss scores interval work above easy volume (0.3276ms)
+Γ£ö compliancePct compares duration first, then distance (0.1592ms)
+Γ£ö complianceStatus follows the green/yellow/red bands (0.3184ms)
+Γ£ö matchActivitiesToWorkouts pairs same-day activities by closest duration (0.6505ms)
+Γ£ö matchActivitiesToWorkouts fulfills a plan a day off only within tolerance (0.1971ms)
+Γ£ö matchActivitiesToWorkouts will not fulfill a run plan with a ride (0.1277ms)
+Γ£ö decorateWorkoutsWithCompliance exposes the day a matched workout happened (0.373ms)
+Γ£ö decorateWorkoutsWithCompliance marks matched plans as completed with a pct (0.1926ms)
+Γ£ö summarizeWeek rolls up planned vs completed totals (1.3255ms)
+Γ£ö reconciliation window: empty inputs produce an empty summary (1.279ms)
+Γ£ö reconciliation window: matches, misses, upcoming, and unplanned (11.1279ms)
+Γ£ö reconciliation window: persisted completed_activity_id is not double-counted as unplanned (0.7174ms)
+Γ£ö reconciliation window: evening local-time activity stays on its calendar day (0.5228ms)
+Γä╣ tests 38
+Γä╣ suites 0
+Γä╣ pass 38
+Γä╣ fail 0
+Γä╣ cancelled 0
+Γä╣ skipped 0
+Γä╣ todo 0
+Γä╣ duration_ms 130.3122
