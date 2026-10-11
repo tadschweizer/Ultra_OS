@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import NavMenu from '../../../components/NavMenu';
 import { ImportStatusPill } from '../../../components/ImportHealthCard';
 import { IMPORT_STATUSES, classifyImportJob } from '../../../lib/importHealth';
@@ -11,6 +11,7 @@ const statusTone = {
   red: 'bg-red-100 text-red-800 border-red-200',
   yellow: 'bg-amber-100 text-amber-800 border-amber-200',
   green: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+  unknown: 'bg-gray-100 text-gray-700 border-gray-200',
 };
 
 export default function CoachAthleteDetail() {
@@ -20,19 +21,25 @@ export default function CoachAthleteDetail() {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [reportAttempt, setReportAttempt] = useState(0);
 
   useEffect(() => {
     if (!athleteId) return;
+    let cancelled = false;
     setLoading(true);
     setError('');
+    setData(null);
     fetch(`/api/coach/athlete-detail?athlete_id=${athleteId}`)
-      .then((r) => r.json())
-      .then((payload) => {
-        if (payload.error) setError(payload.error);
-        setData(payload);
+      .then(async (r) => {
+        const payload = await r.json();
+        if (!r.ok || payload.error) throw new Error(payload.error || 'Athlete report unavailable. Please try again.');
+        return payload;
       })
-      .catch(() => setError('Could not load athlete report. Please refresh and try again.'))
-      .finally(() => setLoading(false));
+      .then((payload) => {
+        if (!cancelled) setData(payload);
+      })
+      .catch(() => { if (!cancelled) setError('Athlete report unavailable. Please try again.'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
 
     fetch(`/api/coach/messages?athlete_id=${athleteId}`)
       .then((r) => (r.ok ? r.json() : null))
@@ -40,15 +47,11 @@ export default function CoachAthleteDetail() {
         if (payload?.messages) setMessages(payload.messages.slice(-3));
       })
       .catch(() => {});
-  }, [athleteId]);
-
-  const confidenceClass = useMemo(() => {
-    const confidence = data?.raceReadiness?.confidence || 'low';
-    return confidence === 'high' ? 'text-emerald-700' : confidence === 'medium' ? 'text-amber-700' : 'text-red-700';
-  }, [data]);
+    return () => { cancelled = true; };
+  }, [athleteId, reportAttempt]);
 
   if (loading) return <main className="min-h-screen bg-paper p-6 text-ink">Loading coach race-readiness report…</main>;
-  if (error) return <main className="min-h-screen bg-paper p-6 text-red-700">{error}</main>;
+  if (error) return <main className="min-h-screen bg-paper p-6 text-ink"><p role="alert" className="text-red-700">{error}</p><button type="button" className="mt-4 rounded-full border border-ink/20 px-4 py-2" onClick={() => setReportAttempt(attempt => attempt + 1)}>Retry report</button></main>;
   if (!data?.athlete) return <main className="min-h-screen bg-paper p-6 text-ink">Athlete record not found.</main>;
 
   const readiness = data.raceReadiness || {};
@@ -71,8 +74,8 @@ export default function CoachAthleteDetail() {
           <h1 className="text-2xl font-semibold sm:text-3xl">{data.athlete.name}</h1>
           <p className="text-sm text-ink/60">{data.athlete.email} · {data.athlete.primary_sports?.join(', ') || 'No sport set'}</p>
           <div className="mt-4 flex flex-wrap items-center gap-2">
-            <span className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase ${statusTone[data.riskLevel] || statusTone.yellow}`}>Readiness {data.riskLevel}</span>
-            <span className={`text-sm font-semibold uppercase ${confidenceClass}`}>Confidence: {readiness.confidence || 'low'}</span>
+            <span className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase ${statusTone[data.riskLevel] || statusTone.unknown}`}>Recorded check-in band: {data.riskLevel || 'unknown'}</span>
+            <span className="text-sm text-ink/65">Report data: {readiness.dataCoverage?.available ?? 0} of {readiness.dataCoverage?.total ?? 5} input groups. Readiness confidence not assessed.</span>
           </div>
           <p className="mt-3 text-sm text-ink/80">Suggested next action: {readiness.suggestedAction || data.suggestedAction}</p>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -94,12 +97,15 @@ export default function CoachAthleteDetail() {
         <section className="mt-6 rounded-3xl border border-ink/10 bg-white p-5 sm:p-6">
           <h2 className="text-xl font-semibold">Race readiness report</h2>
           <p className="mt-1 text-xs text-ink/55">For coaching support only. This summary does not provide medical advice or diagnosis.</p>
+          <p className="mt-2 text-xs text-ink/65">Report window: {readiness.window?.start} to {readiness.window?.end} (UTC, 28 calendar days). Workouts, daily check-ins and intervention logs show up to 8 records each; workout check-ins show up to 30. Log counts do not establish adherence or readiness.</p>
           <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <Card title="Days until race" value={readiness.daysUntilRaceLabel || 'No upcoming race'} />
             <Card title="Current protocols" value={readiness.protocolSummary || 'No active protocols'} />
             <Card title="Protocol compliance" value={readiness.complianceSummary || 'No compliance data yet'} />
             <Card title="Missing data" value={(readiness.missingData || []).join(', ') || 'None'} />
           </div>
+
+          {(data.compliance || []).map(protocol => <p key={protocol.id} className="mt-3 text-sm"><strong>{protocol.protocol_name}:</strong> {protocol.plannedSessions ?? 'Unknown'} planned sessions ({protocol.startDate} to {protocol.endDate}); {protocol.matchingSampleLogs} matching logs in the latest 8-log sample. Compliance unavailable.</p>)}
 
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <section className="rounded-2xl border border-ink/10 bg-paper p-4">

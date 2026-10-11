@@ -90,8 +90,10 @@ export function fetchMe({ force = false } = {}) {
     try {
       const response = await fetch('/api/me');
       if (!response.ok) {
-        if (response.status === 401) clearMe();
-        if (response.status === 503) {
+        if (response.status === 401 || response.status === 403) clearMe();
+        // Server failures do not establish logout or access. Keep the session
+        // cookie intact and reuse the existing fail-closed retry payload.
+        if (response.status >= 500 && response.status <= 599) {
           const cached = getCachedMe();
           const failure = {
             ...(cached || {}),
