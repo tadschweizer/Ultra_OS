@@ -1,0 +1,86 @@
+[WebServer] (node:21068) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] [@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated and will be removed in a future version. Use webpack.treeshake.removeDebugLogging instead.
+
+Running 60 tests using 1 worker
+
+(node:18572) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-4/release-pr135/webapp/pages/api/planned-workouts.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-4\release-pr135\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:23020) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:23020) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-4/release-pr135/webapp/pages/api/planned-workouts.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-4\release-pr135\webapp\package.json.
+  ok 1 [desktop-chromium] ΓÇ║ e2e\calendar-gaps.spec.mjs:39:1 ΓÇ║ lost copy response, reload retry, private marker and deliberate second copy use production contracts (3.0s)
+  ok 2 [desktop-chromium] ΓÇ║ e2e\calendar-gaps.spec.mjs:63:1 ΓÇ║ athlete calendar hides private drafts; recovery-only load remains unknown with source text (1.8s)
+  ok 3 [desktop-chromium] ΓÇ║ e2e\calendar-gaps.spec.mjs:74:1 ΓÇ║ accepted manual actuals appear in calendar load header with explicit estimated provenance (1.8s)
+  ok 4 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:68:1 ΓÇ║ completion keeps unknown actuals blank, recovers from failure, permits correction and undo (2.2s)
+  ok 5 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:95:1 ΓÇ║ athlete can log an unplanned workout from the mobile entry point (704ms)
+  ok 6 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:106:1 ΓÇ║ recipient drafts stay separate and failed retries reuse the same message identity (447ms)
+  ok 7 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:122:1 ΓÇ║ incoming reply refreshes without reload and acknowledges only the displayed messages (4.2s)
+  ok 8 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:131:1 ΓÇ║ floating conversation opens the canonical inbox with the selected recipient (540ms)
+  ok 9 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:140:1 ΓÇ║ older history remains visible after automatic refresh (5.3s)
+  ok 10 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:152:1 ΓÇ║ Today exposes planned training and coach feedback; phone navigation opens logging (792ms)
+  ok 11 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:178:1 ΓÇ║ athlete rejects an automatic match, refreshes, and explicitly restores automatic matching (1.3s)
+  ok 12 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:196:1 ΓÇ║ athlete replaces a suggested match, retains failed selection, confirms, reloads, then unlinks (2.3s)
+  ok 13 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:222:1 ΓÇ║ confirmed match survives a lost response and a retry of the same selection (709ms)
+  ok 14 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:235:1 ΓÇ║ coach can inspect a suggested match but athlete match controls stay absent (422ms)
+  ok 15 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:244:1 ΓÇ║ triage template opens once and does not refill the composer after sending (372ms)
+  ok 16 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:255:1 ΓÇ║ reviewed native callback refreshes shared athlete load after accepted completion (955ms)
+  ok 17 [desktop-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:269:1 ΓÇ║ reviewed copy retry survives reload, releases confirmed key before GET failure and isolates actors (1.7s)
+  ok 18 [desktop-chromium] ΓÇ║ e2e\message-workspace.spec.mjs:7:1 ΓÇ║ F8 inbox outage is unavailable, preserves known conversations, and retry verifies empty versus existing (6.0s)
+  ok 19 [desktop-chromium] ΓÇ║ e2e\message-workspace.spec.mjs:37:1 ΓÇ║ visible thread alone is read; recipient drafts survive list, switching, browser Back and refresh (4.9s)
+  ok 20 [desktop-chromium] ΓÇ║ e2e\message-workspace.spec.mjs:88:1 ΓÇ║ keyboard send keeps newline and focus, bubbles follow the viewer, context and 320px layout remain usable (1.7s)
+  ok 21 [desktop-chromium] ΓÇ║ e2e\message-workspace.spec.mjs:109:1 ΓÇ║ browser Back during a pending send cannot replace the new thread or clear another recipient draft (2.7s)
+  ok 22 [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:21:1 ΓÇ║ O1 saved templates have an in-place editor (2.0s)
+  ok 23 [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:34:1 ΓÇ║ O1 edits preserve exact fields, recover lost PATCH acknowledgement, cancel and survive reload (5.1s)
+[workout-library] failed: column "objective" does not exist
+[workout-library] failed: column "objective" does not exist
+  ok 24 [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:106:1 ΓÇ║ F6 library outages never assert empty data; retry recovers and refresh preserves known templates (2.8s)
+  ok 25 [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:136:35 ΓÇ║ F7 committed response loss retries once in editor; deliberate next save gets a fresh operation (2.6s)
+  ok 26 [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:136:35 ΓÇ║ F7 committed response loss retries once after refresh; deliberate next save gets a fresh operation (3.0s)
+  ok 27 [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:179:1 ΓÇ║ library validation can be corrected; uncertain save keeps original intent through edits, close and retry (2.6s)
+  ok 28 [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:205:1 ΓÇ║ fast acknowledgement ignores the second pointer event while later intentional clicks and keyboard saves remain new (2.4s)
+  ok 29 [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:235:1 ΓÇ║ real calendar editor saves a full prescription through the signed library API and SQL, reloads and deletes (3.0s)
+  ok 30 [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:287:1 ΓÇ║ F9 assigned plan edits preserve independent target units through signed SQL and athlete reload (5.2s)
+(node:33480) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:33480) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-4/release-pr135/webapp/pages/api/planned-workouts.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-4\release-pr135\webapp\package.json.
+  ok 31 [mobile-chromium] ΓÇ║ e2e\calendar-gaps.spec.mjs:39:1 ΓÇ║ lost copy response, reload retry, private marker and deliberate second copy use production contracts (3.5s)
+  ok 32 [mobile-chromium] ΓÇ║ e2e\calendar-gaps.spec.mjs:63:1 ΓÇ║ athlete calendar hides private drafts; recovery-only load remains unknown with source text (2.4s)
+  ok 33 [mobile-chromium] ΓÇ║ e2e\calendar-gaps.spec.mjs:74:1 ΓÇ║ accepted manual actuals appear in calendar load header with explicit estimated provenance (2.3s)
+  ok 34 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:68:1 ΓÇ║ completion keeps unknown actuals blank, recovers from failure, permits correction and undo (2.9s)
+  ok 35 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:95:1 ΓÇ║ athlete can log an unplanned workout from the mobile entry point (943ms)
+  ok 36 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:106:1 ΓÇ║ recipient drafts stay separate and failed retries reuse the same message identity (609ms)
+  ok 37 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:122:1 ΓÇ║ incoming reply refreshes without reload and acknowledges only the displayed messages (4.3s)
+  ok 38 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:131:1 ΓÇ║ floating conversation opens the canonical inbox with the selected recipient (740ms)
+  ok 39 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:140:1 ΓÇ║ older history remains visible after automatic refresh (5.4s)
+  ok 40 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:152:1 ΓÇ║ Today exposes planned training and coach feedback; phone navigation opens logging (974ms)
+  ok 41 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:178:1 ΓÇ║ athlete rejects an automatic match, refreshes, and explicitly restores automatic matching (1.6s)
+  ok 42 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:196:1 ΓÇ║ athlete replaces a suggested match, retains failed selection, confirms, reloads, then unlinks (3.0s)
+  ok 43 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:222:1 ΓÇ║ confirmed match survives a lost response and a retry of the same selection (807ms)
+  ok 44 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:235:1 ΓÇ║ coach can inspect a suggested match but athlete match controls stay absent (522ms)
+  ok 45 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:244:1 ΓÇ║ triage template opens once and does not refill the composer after sending (396ms)
+  ok 46 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:255:1 ΓÇ║ reviewed native callback refreshes shared athlete load after accepted completion (1.0s)
+  ok 47 [mobile-chromium] ΓÇ║ e2e\daily-loop.spec.mjs:269:1 ΓÇ║ reviewed copy retry survives reload, releases confirmed key before GET failure and isolates actors (1.5s)
+  ok 48 [mobile-chromium] ΓÇ║ e2e\message-workspace.spec.mjs:7:1 ΓÇ║ F8 inbox outage is unavailable, preserves known conversations, and retry verifies empty versus existing (6.0s)
+  ok 49 [mobile-chromium] ΓÇ║ e2e\message-workspace.spec.mjs:37:1 ΓÇ║ visible thread alone is read; recipient drafts survive list, switching, browser Back and refresh (9.2s)
+  ok 50 [mobile-chromium] ΓÇ║ e2e\message-workspace.spec.mjs:88:1 ΓÇ║ keyboard send keeps newline and focus, bubbles follow the viewer, context and 320px layout remain usable (1.7s)
+  ok 51 [mobile-chromium] ΓÇ║ e2e\message-workspace.spec.mjs:109:1 ΓÇ║ browser Back during a pending send cannot replace the new thread or clear another recipient draft (2.5s)
+  ok 52 [mobile-chromium] ΓÇ║ e2e\workout-library.spec.mjs:21:1 ΓÇ║ O1 saved templates have an in-place editor (2.0s)
+  ok 53 [mobile-chromium] ΓÇ║ e2e\workout-library.spec.mjs:34:1 ΓÇ║ O1 edits preserve exact fields, recover lost PATCH acknowledgement, cancel and survive reload (4.9s)
+[workout-library] failed: column "objective" does not exist
+[workout-library] failed: column "objective" does not exist
+  ok 54 [mobile-chromium] ΓÇ║ e2e\workout-library.spec.mjs:106:1 ΓÇ║ F6 library outages never assert empty data; retry recovers and refresh preserves known templates (3.1s)
+  ok 55 [mobile-chromium] ΓÇ║ e2e\workout-library.spec.mjs:136:35 ΓÇ║ F7 committed response loss retries once in editor; deliberate next save gets a fresh operation (2.6s)
+  ok 56 [mobile-chromium] ΓÇ║ e2e\workout-library.spec.mjs:136:35 ΓÇ║ F7 committed response loss retries once after refresh; deliberate next save gets a fresh operation (2.8s)
+  ok 57 [mobile-chromium] ΓÇ║ e2e\workout-library.spec.mjs:179:1 ΓÇ║ library validation can be corrected; uncertain save keeps original intent through edits, close and retry (2.5s)
+  ok 58 [mobile-chromium] ΓÇ║ e2e\workout-library.spec.mjs:205:1 ΓÇ║ fast acknowledgement ignores the second pointer event while later intentional clicks and keyboard saves remain new (2.1s)
+  ok 59 [mobile-chromium] ΓÇ║ e2e\workout-library.spec.mjs:235:1 ΓÇ║ real calendar editor saves a full prescription through the signed library API and SQL, reloads and deletes (3.5s)
+  ok 60 [mobile-chromium] ΓÇ║ e2e\workout-library.spec.mjs:287:1 ΓÇ║ F9 assigned plan edits preserve independent target units through signed SQL and athlete reload (4.7s)
+
+  60 passed (2.6m)

@@ -35,19 +35,19 @@ export default function CalendarPage() {
             </p>
           </div>
           {loadMetrics && (
-            <div className="flex gap-2">
+            <div className="flex min-w-0 max-w-full flex-wrap gap-2">
               {[
                 { label: 'Fitness (CTL)', value: loadMetrics.chronic },
                 { label: 'Fatigue (ATL)', value: loadMetrics.acute },
                 { label: 'Form (TSB)', value: loadMetrics.form },
               ].map((m) => (
-                <div key={m.label} className="rounded-2xl border border-ink/10 bg-white/70 px-3 py-2 text-center">
+                <div key={m.label} className="min-w-0 max-w-full break-words rounded-2xl border border-ink/10 bg-white/70 px-3 py-2 text-center">
                   <p className="text-[10px] uppercase tracking-[0.16em] text-ink/50">{m.label}</p>
                   <p className="mt-0.5 font-mono text-lg font-semibold text-ink">{m.value ?? '—'}</p>
                 </div>
               ))}
               {loadStatus?.label && (
-                <div className="rounded-2xl border border-ink/10 bg-white/70 px-3 py-2 text-center">
+                <div className="min-w-0 max-w-full break-words rounded-2xl border border-ink/10 bg-white/70 px-3 py-2 text-center">
                   <p className="text-[10px] uppercase tracking-[0.16em] text-ink/50">Status</p>
                   <p className="mt-0.5 text-sm font-semibold text-ink">{loadStatus.label}</p>
                 </div>

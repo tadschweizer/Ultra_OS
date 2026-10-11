@@ -1,0 +1,30 @@
+[WebServer] (node:11672) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] [@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated and will be removed in a future version. Use webpack.treeshake.removeDebugLogging instead.
+
+Running 8 tests using 1 worker
+
+(node:32992) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-4/release-pr135/webapp/pages/api/planned-workouts.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-4\release-pr135\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:25568) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:25568) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-4/release-pr135/webapp/pages/api/planned-workouts.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-4\release-pr135\webapp\package.json.
+  ok 1 [desktop-chromium] ΓÇ║ e2e\calendar-gaps.spec.mjs:39:1 ΓÇ║ lost copy response, reload retry, private marker and deliberate second copy use production contracts (2.9s)
+  ok 2 [desktop-chromium] ΓÇ║ e2e\calendar-gaps.spec.mjs:63:1 ΓÇ║ athlete calendar hides private drafts; recovery-only load remains unknown with source text (1.7s)
+  ok 3 [desktop-chromium] ΓÇ║ e2e\calendar-gaps.spec.mjs:74:1 ΓÇ║ accepted manual actuals appear in calendar load header with explicit estimated provenance (1.6s)
+  ok 4 [desktop-chromium] ΓÇ║ e2e\calendar-load-layout.spec.mjs:5:1 ΓÇ║ athlete load and status remain complete at 320px, 390px and desktop with actuals and long labels (3.3s)
+(node:32324) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:32324) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-4/release-pr135/webapp/pages/api/planned-workouts.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-4\release-pr135\webapp\package.json.
+  ok 5 [mobile-chromium] ΓÇ║ e2e\calendar-gaps.spec.mjs:39:1 ΓÇ║ lost copy response, reload retry, private marker and deliberate second copy use production contracts (3.0s)
+  ok 6 [mobile-chromium] ΓÇ║ e2e\calendar-gaps.spec.mjs:63:1 ΓÇ║ athlete calendar hides private drafts; recovery-only load remains unknown with source text (2.0s)
+  ok 7 [mobile-chromium] ΓÇ║ e2e\calendar-gaps.spec.mjs:74:1 ΓÇ║ accepted manual actuals appear in calendar load header with explicit estimated provenance (2.0s)
+  ok 8 [mobile-chromium] ΓÇ║ e2e\calendar-load-layout.spec.mjs:5:1 ΓÇ║ athlete load and status remain complete at 320px, 390px and desktop with actuals and long labels (6.8s)
+
+  8 passed (27.0s)

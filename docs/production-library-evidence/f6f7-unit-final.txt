@@ -1,0 +1,23 @@
+(node:27628) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/pages/api/workout-library.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö shared production payload preserves separate prescription fields, units, null and zero (1.0411ms)
+Γ£ö validation rejects bad metadata and permits all real editor targets (1.4449ms)
+Γ£ö exact additive migration preserves legacy rows, RLS and constraints, and can run twice (1633.1764ms)
+Γ£ö real signed endpoint saves/reloads/patches metadata, filters ownership and denies unauthorized writes (1257.5876ms)
+[workout-library] failed: column "objective" does not exist
+Γ£ö unavailable metadata schema returns truthful service failure without leaking database internals (1256.0633ms)
+Γ£ö signed library fixture uses the active isolated deployment origin regardless of other fixture import order (1189.2653ms)
+Γ£ö F7 signed create retries replay one durable coach-scoped receipt and reject changed intent (1213.3187ms)
+[workout-library] failed: column "objective" of relation "workout_library" does not exist
+Γ£ö create receipt migration is repeatable, service-only, atomic on failure and safe for overlapping retries (1175.4684ms)
+Γ£ö unconfirmed browser operations survive reload, reject changed intent and stay scoped to a coach (1.3222ms)
+Γä╣ tests 9
+Γä╣ suites 0
+Γä╣ pass 9
+Γä╣ fail 0
+Γä╣ cancelled 0
+Γä╣ skipped 0
+Γä╣ todo 0
+Γä╣ duration_ms 7974.2373

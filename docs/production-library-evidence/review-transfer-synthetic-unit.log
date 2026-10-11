@@ -1,0 +1,34 @@
+
+> threshold-synthetic-demo@3.0.0 test
+> node --test tests/*.test.mjs
+
+(node:25452) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/workoutCompliance.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö O1 synthetic template PATCH shares validation, persists, isolates stores and assigns edited metadata (8.6617ms)
+Γ£ö QA F4: selecting/closing details replaces stale deep links while retaining participant context (0.855ms)
+Γ£ö QA F5: matching changes attribution, retaining every weekly actual metric once through reload/unlink (3.2184ms)
+Γ£ö QA F1: shared production library payload and demo reuse retain private prescription (1.0775ms)
+Γ£ö QA F2: missing/partial actuals never substitute planned TSS; recorded and linked loads count once (0.8882ms)
+Γ£ö QA F3: consumed failure emits a state change without saving; reset disarms pending failure (1.031ms)
+Γ£ö deterministic fixtures and refresh persistence; sessions are independent (0.8921ms)
+Γ£ö full plan ΓåÆ athlete partial completion ΓåÆ coach feedback and adjustment ΓåÆ athlete update (1.2439ms)
+Γ£ö role restrictions, private draft filtering and cross-athlete denial (0.7722ms)
+Γ£ö create retry key prevents duplicates, validation retains state (1.4315ms)
+Γ£ö duplicates and copy-week retain all plan fields and clear completion/discussion (1.1442ms)
+Γ£ö skip and undo preserve unknown actuals and do not derive completion from plan (0.6223ms)
+Γ£ö activity linking cannot double count and unlink retains the activity (10.8058ms)
+Γ£ö stale workout write conflicts instead of replacing latest change (0.5573ms)
+Γ£ö role-correct direct messages, exact acknowledgements and retry idempotency (0.9286ms)
+Γ£ö drafts are isolated per role/recipient, durable and version checked (0.9998ms)
+Γ£ö failure simulation and storage errors cannot claim saved success (0.7089ms)
+Γ£ö check-in updates all fields; corrupt storage warns; unsupported provider endpoints fail closed (0.5352ms)
+Γä╣ tests 18
+Γä╣ suites 0
+Γä╣ pass 18
+Γä╣ fail 0
+Γä╣ cancelled 0
+Γä╣ skipped 0
+Γä╣ todo 0
+Γä╣ duration_ms 123.1403

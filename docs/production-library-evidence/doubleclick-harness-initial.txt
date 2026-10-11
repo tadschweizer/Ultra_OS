@@ -1,0 +1,122 @@
+[WebServer] (node:4608) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:29492) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] [@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated and will be removed in a future version. Use webpack.treeshake.removeDebugLogging instead.
+[WebServer] [@sentry/nextjs] It appears you've configured a `sentry.server.config.js` file. Please ensure to put this file's content into the `register()` function of a Next.js instrumentation file instead. To ensure correct functionality of the SDK, `Sentry.init` must be called inside of an instrumentation file. Learn more about setting up an instrumentation file in Next.js: https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation. You can safely delete the `sentry.server.config.js` file afterward.
+[WebServer] [@sentry/nextjs] Could not find a Next.js instrumentation file. This indicates an incomplete configuration of the Sentry SDK. An instrumentation file is required for the Sentry SDK to be initialized on the server: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#create-initialization-config-files (you can suppress this warning by setting SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING=1 as environment variable)
+[WebServer] [@sentry/nextjs] It appears you've configured a `sentry.edge.config.js` file. Please ensure to put this file's content into the `register()` function of a Next.js instrumentation file instead. To ensure correct functionality of the SDK, `Sentry.init` must be called inside of an instrumentation file. Learn more about setting up an instrumentation file in Next.js: https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation. You can safely delete the `sentry.edge.config.js` file afterward.
+[WebServer] [@sentry/nextjs] DEPRECATION WARNING: It is recommended renaming your `sentry.client.config.js` file, or moving its content to `instrumentation-client.ts`. When using Turbopack `sentry.client.config.js` will no longer work. Read more about the `instrumentation-client.ts` file: https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation-client
+[WebServer] ΓÜá The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+[WebServer] Browserslist: browsers data (caniuse-lite) is 7 months old. Please run:
+[WebServer]   npx update-browserslist-db@latest
+[WebServer]   Why you should do it regularly: https://github.com/browserslist/update-db#readme
+(node:19732) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/auth/sessionCookies.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 12 tests using 1 worker
+
+(node:19412) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:19412) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:19412) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/auth/sessionCookies.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+[workout-library] failed: column "objective" does not exist
+[workout-library] failed: column "objective" does not exist
+[workout-library] failed: column "objective" does not exist
+  ok 1 [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:20:1 ΓÇ║ F6 library outages never assert empty data; retry recovers and refresh preserves known templates (5.3s)
+  ok 2 [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:50:35 ΓÇ║ F7 committed response loss retries once in editor; deliberate next save gets a fresh operation (3.6s)
+  ok 3 [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:50:35 ΓÇ║ F7 committed response loss retries once after refresh; deliberate next save gets a fresh operation (4.4s)
+  ok 4 [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:93:1 ΓÇ║ library validation can be corrected; uncertain save keeps original intent through edits, close and retry (3.5s)
+  x  5 [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:119:1 ΓÇ║ fast acknowledgement ignores the second pointer event while later intentional clicks and keyboard saves remain new (3.2s)
+(node:7100) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:7100) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:7100) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/auth/sessionCookies.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+  ok 6 [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:144:1 ΓÇ║ real calendar editor saves a full prescription through the signed library API and SQL, reloads and deletes (5.1s)
+(node:8204) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:8204) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:8204) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/auth/sessionCookies.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+[workout-library] failed: column "objective" does not exist
+[workout-library] failed: column "objective" does not exist
+[workout-library] failed: column "objective" does not exist
+  ok 7 [mobile-chromium] ΓÇ║ e2e\workout-library.spec.mjs:20:1 ΓÇ║ F6 library outages never assert empty data; retry recovers and refresh preserves known templates (4.5s)
+  ok 8 [mobile-chromium] ΓÇ║ e2e\workout-library.spec.mjs:50:35 ΓÇ║ F7 committed response loss retries once in editor; deliberate next save gets a fresh operation (3.6s)
+  ok 9 [mobile-chromium] ΓÇ║ e2e\workout-library.spec.mjs:50:35 ΓÇ║ F7 committed response loss retries once after refresh; deliberate next save gets a fresh operation (4.5s)
+  ok 10 [mobile-chromium] ΓÇ║ e2e\workout-library.spec.mjs:93:1 ΓÇ║ library validation can be corrected; uncertain save keeps original intent through edits, close and retry (3.9s)
+  x  11 [mobile-chromium] ΓÇ║ e2e\workout-library.spec.mjs:119:1 ΓÇ║ fast acknowledgement ignores the second pointer event while later intentional clicks and keyboard saves remain new (3.0s)
+(node:13264) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:13264) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:13264) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/auth/sessionCookies.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+  ok 12 [mobile-chromium] ΓÇ║ e2e\workout-library.spec.mjs:144:1 ΓÇ║ real calendar editor saves a full prescription through the signed library API and SQL, reloads and deletes (6.0s)
+
+
+  1) [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:119:1 ΓÇ║ fast acknowledgement ignores the second pointer event while later intentional clicks and keyboard saves remain new
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoHaveLength[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected length: [32m1[39m
+    Received length: [31m2[39m
+    Received array:  [31m[{"coach_id": "44444444-4444-4444-8444-444444444444", "coach_instructions": "", "created_at": "2026-10-10T05:05:39.716Z", "description": "", "id": "22a96038-9da5-44d5-86e9-b673a1b1e4ba", "name": "Fast pointer acknowledgement", "objective": "", "planned_distance_km": null, "planned_distance_unit": "mi", "planned_duration_min": null, "planned_if": null, "planned_tss": null, "sport": "run", "structure": [], "tags": null, "target_metric": "duration", "updated_at": "2026-10-10T05:05:39.716Z", "visibility": "athlete_visible"}, {"coach_id": "44444444-4444-4444-8444-444444444444", "coach_instructions": "", "created_at": "2026-10-10T05:05:39.475Z", "description": "", "id": "b0488594-bf05-4e75-88fa-1fe1e71c1347", "name": "Fast pointer acknowledgement", "objective": "", "planned_distance_km": null, "planned_distance_unit": "mi", "planned_duration_min": null, "planned_if": null, "planned_tss": null, "sport": "run", "structure": [], "tags": null, "target_metric": "duration", "updated_at": "2026-10-10T05:05:39.475Z", "visibility": "athlete_visible"}][39m
+
+      132 |     await save.click({clickCount:2});await expect(editor.getByText('Saved to library.',{exact:true})).toBeVisible();
+      133 |     let rows=(await f.invokeLibrary()).body.workouts.filter(w=>w.name==='Fast pointer acknowledgement');
+    > 134 |     expect(rows).toHaveLength(1);expect(writes).toHaveLength(1);
+          |                  ^
+      135 |     await save.click();await expect(editor.getByText('Saved to library.',{exact:true})).toBeVisible();
+      136 |     rows=(await f.invokeLibrary()).body.workouts.filter(w=>w.name==='Fast pointer acknowledgement');
+      137 |     expect(rows).toHaveLength(2);expect(writes[1].client_request_id).not.toBe(writes[0].client_request_id);
+        at C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\e2e\workout-library.spec.mjs:134:18
+
+    attachment #2: trace (application/zip) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    test-results\workout-library-fast-ackno-89e84-d-keyboard-saves-remain-new-desktop-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\workout-library-fast-ackno-89e84-d-keyboard-saves-remain-new-desktop-chromium\trace.zip
+
+    ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+
+  2) [mobile-chromium] ΓÇ║ e2e\workout-library.spec.mjs:119:1 ΓÇ║ fast acknowledgement ignores the second pointer event while later intentional clicks and keyboard saves remain new
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoHaveLength[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected length: [32m1[39m
+    Received length: [31m2[39m
+    Received array:  [31m[{"coach_id": "44444444-4444-4444-8444-444444444444", "coach_instructions": "", "created_at": "2026-10-10T05:06:07.089Z", "description": "", "id": "d006faad-75cf-46cc-be83-355a77bb5844", "name": "Fast pointer acknowledgement", "objective": "", "planned_distance_km": null, "planned_distance_unit": "mi", "planned_duration_min": null, "planned_if": null, "planned_tss": null, "sport": "run", "structure": [], "tags": null, "target_metric": "duration", "updated_at": "2026-10-10T05:06:07.089Z", "visibility": "athlete_visible"}, {"coach_id": "44444444-4444-4444-8444-444444444444", "coach_instructions": "", "created_at": "2026-10-10T05:06:06.812Z", "description": "", "id": "0cf3f5cd-13fc-4bcf-a962-4d376a777652", "name": "Fast pointer acknowledgement", "objective": "", "planned_distance_km": null, "planned_distance_unit": "mi", "planned_duration_min": null, "planned_if": null, "planned_tss": null, "sport": "run", "structure": [], "tags": null, "target_metric": "duration", "updated_at": "2026-10-10T05:06:06.812Z", "visibility": "athlete_visible"}][39m
+
+      132 |     await save.click({clickCount:2});await expect(editor.getByText('Saved to library.',{exact:true})).toBeVisible();
+      133 |     let rows=(await f.invokeLibrary()).body.workouts.filter(w=>w.name==='Fast pointer acknowledgement');
+    > 134 |     expect(rows).toHaveLength(1);expect(writes).toHaveLength(1);
+          |                  ^
+      135 |     await save.click();await expect(editor.getByText('Saved to library.',{exact:true})).toBeVisible();
+      136 |     rows=(await f.invokeLibrary()).body.workouts.filter(w=>w.name==='Fast pointer acknowledgement');
+      137 |     expect(rows).toHaveLength(2);expect(writes[1].client_request_id).not.toBe(writes[0].client_request_id);
+        at C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\e2e\workout-library.spec.mjs:134:18
+
+    attachment #2: trace (application/zip) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    test-results\workout-library-fast-ackno-89e84-d-keyboard-saves-remain-new-mobile-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\workout-library-fast-ackno-89e84-d-keyboard-saves-remain-new-mobile-chromium\trace.zip
+
+    ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+
+  2 failed
+    [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:119:1 ΓÇ║ fast acknowledgement ignores the second pointer event while later intentional clicks and keyboard saves remain new
+    [mobile-chromium] ΓÇ║ e2e\workout-library.spec.mjs:119:1 ΓÇ║ fast acknowledgement ignores the second pointer event while later intentional clicks and keyboard saves remain new
+  10 passed (1.1m)

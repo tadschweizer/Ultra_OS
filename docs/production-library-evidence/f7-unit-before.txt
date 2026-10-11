@@ -1,0 +1,41 @@
+(node:18324) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/pages/api/workout-library.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö shared production payload preserves separate prescription fields, units, null and zero (1.374ms)
+Γ£ö validation rejects bad metadata and permits all real editor targets (4.3272ms)
+Γ£ö exact additive migration preserves legacy rows, RLS and constraints, and can run twice (2460.8363ms)
+Γ£ö real signed endpoint saves/reloads/patches metadata, filters ownership and denies unauthorized writes (1701.0057ms)
+[workout-library] failed: column "objective" does not exist
+Γ£ö unavailable metadata schema returns truthful service failure without leaking database internals (1392.8537ms)
+Γ£ö signed library fixture uses the active isolated deployment origin regardless of other fixture import order (1212.7614ms)
+Γ£û F7 signed create retries replay one durable coach-scoped receipt and reject changed intent (1431.1446ms)
+Γä╣ tests 7
+Γä╣ suites 0
+Γä╣ pass 6
+Γä╣ fail 1
+Γä╣ cancelled 0
+Γä╣ skipped 0
+Γä╣ todo 0
+Γä╣ duration_ms 8559.0736
+
+Γ£û failing tests:
+
+test at tests\workout-library.test.mjs:94:1
+Γ£û F7 signed create retries replay one durable coach-scoped receipt and reject changed intent (1431.1446ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + 'bbf0a854-15e8-41c0-aaa6-b86148f423da'
+  - 'e11f589a-99fc-4787-9a64-9b7d577ef9a2'
+
+      at TestContext.<anonymous> (file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/tests/workout-library.test.mjs:99:12)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'bbf0a854-15e8-41c0-aaa6-b86148f423da',
+    expected: 'e11f589a-99fc-4787-9a64-9b7d577ef9a2',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

@@ -1,0 +1,8 @@
+{
+  "checkpoint": "d13ec51f447a9872de5bae0659fba74fc9abc3fb",
+  "runtime_scope": "Complete WorkoutEditor source, including pointer guard; line endings normalized",
+  "matches": true,
+  "sha256": "23f10ab680e79c4917266ae006765fe5f622f6e400110aac99ee1be77ff78334",
+  "unrelated_combined_runtime": "Not ported; transport/copy/load conflict resolution remains in unpublished checkpoint",
+  "library_helpers_match": true
+}

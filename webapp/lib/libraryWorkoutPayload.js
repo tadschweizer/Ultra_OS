@@ -1,6 +1,6 @@
-// Production's current library schema accepts the common fields only. The
-// isolated demo adapter can also preserve the full prescription and visibility.
-export function libraryWorkoutPayload(form, { preservePlanMetadata = false } = {}) {
+// Complete shared prescription; production deployment requires the additive
+// workout_library_plan_metadata migration first.
+export function libraryWorkoutPayload(form) {
   const numberOrNull = (value) => value == null || value === '' ? null : Number(value);
   const payload = {
     name: form.title,
@@ -10,14 +10,12 @@ export function libraryWorkoutPayload(form, { preservePlanMetadata = false } = {
     planned_duration_min: numberOrNull(form.planned_duration_min),
     planned_distance_km: numberOrNull(form.planned_distance_km),
     planned_distance_unit: form.planned_distance_unit || 'mi',
-  };
-  if (preservePlanMetadata) Object.assign(payload, {
-    objective: form.objective ?? '',
-    coach_instructions: form.coach_instructions ?? '',
+    objective: form.objective ?? null,
+    coach_instructions: form.coach_instructions ?? null,
     planned_if: numberOrNull(form.planned_if),
     planned_tss: numberOrNull(form.planned_tss),
     target_metric: form.target_metric || 'duration',
     visibility: form.visibility || 'athlete_visible',
-  });
+  };
   return payload;
 }

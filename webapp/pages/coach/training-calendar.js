@@ -5,12 +5,13 @@ import DashboardTabs from '../../components/DashboardTabs';
 import TrainingCalendar from '../../components/TrainingCalendar';
 import UpgradePrompt from '../../components/UpgradePrompt';
 import EmptyStateCard from '../../components/EmptyStateCard';
-import { usePlan } from '../../lib/planUtils';
+import { useMe, usePlan } from '../../lib/planUtils';
 import { appMenuLinks } from '../../lib/siteNavigation';
 
 export default function CoachTrainingCalendarPage() {
   const router = useRouter();
   const { coachFeatures, planReady } = usePlan();
+  const { me } = useMe();
   const [relationships, setRelationships] = useState([]);
   const [rosterLoading, setRosterLoading] = useState(true);
   const [selectedAthleteId, setSelectedAthleteId] = useState('');
@@ -132,6 +133,7 @@ export default function CoachTrainingCalendarPage() {
             <TrainingCalendar
               key={selectedAthleteId}
               role="coach"
+              libraryOwnerId={me?.account?.coach_profile?.id || null}
               athleteId={selectedAthleteId}
               athleteName={selectedRelationship?.athlete?.name || ''}
             />

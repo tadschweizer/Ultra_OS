@@ -1,0 +1,176 @@
+[
+  {
+    "width": 1440,
+    "phase": "empty-actuals",
+    "expected": [
+      [
+        "Fitness (CTL)",
+        "—"
+      ],
+      [
+        "Fatigue (ATL)",
+        "—"
+      ],
+      [
+        "Form (TSB)",
+        "—"
+      ],
+      [
+        "Status",
+        "No training load data"
+      ]
+    ],
+    "viewport": 1440,
+    "root": 1440,
+    "cards": [
+      {
+        "text": "Fitness (CTL)—",
+        "left": 903.09375,
+        "right": 1010.765625,
+        "width": 107.671875,
+        "hidden": false,
+        "overflow": "visible"
+      },
+      {
+        "text": "Fatigue (ATL)—",
+        "left": 1018.765625,
+        "right": 1126.75,
+        "width": 107.984375,
+        "hidden": false,
+        "overflow": "visible"
+      },
+      {
+        "text": "Form (TSB)—",
+        "left": 1134.75,
+        "right": 1229,
+        "width": 94.25,
+        "hidden": false,
+        "overflow": "visible"
+      },
+      {
+        "text": "StatusNo training load data",
+        "left": 1237,
+        "right": 1399,
+        "width": 162,
+        "hidden": false,
+        "overflow": "visible"
+      }
+    ]
+  },
+  {
+    "width": 1440,
+    "phase": "recorded-actuals",
+    "expected": [
+      [
+        "Fitness (CTL)",
+        "1.4"
+      ],
+      [
+        "Fatigue (ATL)",
+        "8"
+      ],
+      [
+        "Form (TSB)",
+        "-6.6"
+      ],
+      [
+        "Status",
+        "Balanced"
+      ]
+    ],
+    "viewport": 1440,
+    "root": 1440,
+    "cards": [
+      {
+        "text": "Fitness (CTL)1.4",
+        "left": 981.734375,
+        "right": 1089.40625,
+        "width": 107.671875,
+        "hidden": false,
+        "overflow": "visible"
+      },
+      {
+        "text": "Fatigue (ATL)8",
+        "left": 1097.40625,
+        "right": 1205.390625,
+        "width": 107.984375,
+        "hidden": false,
+        "overflow": "visible"
+      },
+      {
+        "text": "Form (TSB)-6.6",
+        "left": 1213.390625,
+        "right": 1307.640625,
+        "width": 94.25,
+        "hidden": false,
+        "overflow": "visible"
+      },
+      {
+        "text": "StatusBalanced",
+        "left": 1315.640625,
+        "right": 1399,
+        "width": 83.359375,
+        "hidden": false,
+        "overflow": "visible"
+      }
+    ]
+  },
+  {
+    "width": 1440,
+    "phase": "long-status",
+    "expected": [
+      [
+        "Fitness (CTL)",
+        "1.4"
+      ],
+      [
+        "Fatigue (ATL)",
+        "8"
+      ],
+      [
+        "Form (TSB)",
+        "-6.6"
+      ],
+      [
+        "Status",
+        "HighTrainingLoadStatusWithUnbrokenSyntheticFixtureLabel"
+      ]
+    ],
+    "viewport": 1440,
+    "root": 1440,
+    "cards": [
+      {
+        "text": "Fitness (CTL)1.4",
+        "left": 251,
+        "right": 358.671875,
+        "width": 107.671875,
+        "hidden": false,
+        "overflow": "visible"
+      },
+      {
+        "text": "Fatigue (ATL)8",
+        "left": 366.671875,
+        "right": 474.65625,
+        "width": 107.984375,
+        "hidden": false,
+        "overflow": "visible"
+      },
+      {
+        "text": "Form (TSB)-6.6",
+        "left": 482.65625,
+        "right": 576.90625,
+        "width": 94.25,
+        "hidden": false,
+        "overflow": "visible"
+      },
+      {
+        "text": "StatusHighTrainingLoadStatusWithUnbrokenSyntheticFixtureLabel",
+        "left": 584.90625,
+        "right": 990.828125,
+        "width": 405.921875,
+        "hidden": false,
+        "overflow": "visible"
+      }
+    ]
+  }
+]

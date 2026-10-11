@@ -21,6 +21,36 @@ const storage = () => {
   };
 };
 
+test('O1 synthetic template PATCH shares validation, persists, isolates stores and assigns edited metadata',async()=>{
+  const saved=storage(),s=new DemoStore(saved),request=s.transport('coach','demo-robin');
+  const {workout:created}=await call(request,'/api/workout-library','POST',{
+    name:'Editable synthetic trail',sport:'run',planned_duration_min:40,planned_distance_km:9.656064,planned_distance_unit:'mi',
+    objective:null,coach_instructions:'Original',planned_if:0,planned_tss:0,structure:[],visibility:'coach_private',target_metric:'heart_rate'});
+  const before=await call(request,'/api/planned-workouts','POST',{library_workout_id:created.id,workout_date:'2026-10-14'});
+  const body={id:created.id,coach_instructions:'Revised recovery',planned_if:0,planned_tss:null,objective:null,visibility:'athlete_visible'};
+  for(let i=0;i<2;i++){
+    const changed=await call(request,'/api/workout-library','PATCH',body);assert.equal(changed.status,200);
+    assert.equal(changed.workout.id,created.id);assert.equal(changed.workout.planned_distance_km,9.656064);
+    assert.equal(changed.workout.planned_if,0);assert.equal(changed.workout.planned_tss,null);
+  }
+  assert.equal((await call(request,'/api/workout-library','PATCH',{id:created.id,target_metric:'bogus'})).status,400);
+  assert.equal((await call(request,'/api/workout-library','PATCH',{id:'unknown',name:'Other'})).status,404);
+  assert.equal((await call(s.transport('athlete','demo-robin'),'/api/workout-library','PATCH',body)).status,403);
+  const refreshed=new DemoStore(saved).transport('coach','demo-robin');
+  const library=await call(refreshed,'/api/workout-library');assert.equal(library.workouts.filter(w=>w.id===created.id).length,1);
+  assert.equal(library.workouts.find(w=>w.id===created.id).coach_instructions,'Revised recovery');
+  const after=await call(refreshed,'/api/planned-workouts','POST',{library_workout_id:created.id,workout_date:'2026-10-15'});
+  assert.equal(before.workout.coach_instructions,'Original');assert.equal(after.workout.coach_instructions,'Revised recovery');
+  assert.equal(after.workout.planned_if,0);assert.equal(after.workout.planned_tss,null);
+  assert.equal(after.workout.library_workout_id,created.id);
+  await call(refreshed,'/api/workout-library','PATCH',{id:created.id,planned_duration_min:null,planned_distance_km:null,planned_if:null});
+  const cleared=await call(refreshed,'/api/planned-workouts','POST',{library_workout_id:created.id,workout_date:'2026-10-16'});
+  for(const key of ['planned_duration_min','planned_distance_km','planned_if','planned_tss'])assert.equal(cleared.workout[key],null);
+  const isolated=await call(new DemoStore(storage()).transport('coach','demo-robin'),'/api/workout-library');
+  assert.equal(isolated.workouts.some(w=>w.id===created.id),false);
+  s.reset();assert.equal((await call(request,'/api/workout-library')).workouts.some(w=>w.id===created.id),false);
+});
+
 test("QA F4: selecting/closing details replaces stale deep links while retaining participant context", () => {
   const query = {
     mode: "athlete",
@@ -132,7 +162,7 @@ test("QA F5: matching changes attribution, retaining every weekly actual metric 
   assert.equal(rawSource.kilojoules, 410);
 });
 
-test("QA F1: library reuse retains private prescription; production payload stays within existing schema", async () => {
+test("QA F1: shared production library payload and demo reuse retain private prescription", async () => {
   const form = {
     title: "Private trail repeats",
     sport: "run",
@@ -159,7 +189,7 @@ test("QA F1: library reuse retains private prescription; production payload stay
       },
     ],
   };
-  const common = libraryWorkoutPayload(form);
+  const payload = libraryWorkoutPayload(form);
   for (const key of [
     "objective",
     "coach_instructions",
@@ -167,8 +197,7 @@ test("QA F1: library reuse retains private prescription; production payload stay
     "visibility",
     "target_metric",
   ])
-    assert.ok(!(key in common));
-  const payload = libraryWorkoutPayload(form, { preservePlanMetadata: true });
+    assert.ok(key in payload);
   const saved = storage(),
     s = new DemoStore(saved),
     coach = s.transport("coach", "demo-robin");

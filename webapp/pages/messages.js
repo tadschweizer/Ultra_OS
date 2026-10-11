@@ -90,6 +90,9 @@ export default function MessagesPage() {
   }, []);
 
   async function load(targetAthleteId = selectedRef.current, { keepSelection = false, older = false, background = false } = {}) {
+    // An empty desktop selection cannot be preserved after an initial outage.
+    // Both explicit retries and background recovery must load its first thread.
+    keepSelection = keepSelection && Boolean(targetAthleteId);
     if (background && requestPending.current) return;
     requestAbort.current?.abort();
     const controller = new AbortController();
@@ -125,7 +128,9 @@ export default function MessagesPage() {
         setAthleteId(firstAthleteId);
         await load(firstAthleteId, { keepSelection: true });
       } else if (visible && nextConversations.length) {
-        const acknowledged = await acknowledgeMessages(d.messages || [], d.role, targetAthleteId || nextConversations[0].athlete_id, request);
+        // Read acknowledgement is a separate write; a rejected POST must not
+        // turn an already successful inbox GET into an unavailable/stale inbox.
+        const acknowledged = await acknowledgeMessages(d.messages || [], d.role, targetAthleteId || nextConversations[0].athlete_id, request).catch(() => false);
         if (version === requestVersion.current) {
           if (!acknowledged) setError('Messages loaded, but read status could not be saved. We will retry.');
           else setConversations((items) => items.map((item) => item.athlete_id === (targetAthleteId || nextConversations[0].athlete_id) ? { ...item, unread_count: Math.max(0, item.unread_count - (d.messages || []).filter((m) => m.sender_role !== d.role && !m.read_at).length) } : item));

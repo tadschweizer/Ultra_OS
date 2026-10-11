@@ -1,0 +1,129 @@
+[WebServer] (node:5412) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:15440) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] [@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated and will be removed in a future version. Use webpack.treeshake.removeDebugLogging instead.
+[WebServer] [@sentry/nextjs] It appears you've configured a `sentry.server.config.js` file. Please ensure to put this file's content into the `register()` function of a Next.js instrumentation file instead. To ensure correct functionality of the SDK, `Sentry.init` must be called inside of an instrumentation file. Learn more about setting up an instrumentation file in Next.js: https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation. You can safely delete the `sentry.server.config.js` file afterward.
+[WebServer] [@sentry/nextjs] Could not find a Next.js instrumentation file. This indicates an incomplete configuration of the Sentry SDK. An instrumentation file is required for the Sentry SDK to be initialized on the server: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#create-initialization-config-files (you can suppress this warning by setting SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING=1 as environment variable)
+[WebServer] [@sentry/nextjs] It appears you've configured a `sentry.edge.config.js` file. Please ensure to put this file's content into the `register()` function of a Next.js instrumentation file instead. To ensure correct functionality of the SDK, `Sentry.init` must be called inside of an instrumentation file. Learn more about setting up an instrumentation file in Next.js: https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation. You can safely delete the `sentry.edge.config.js` file afterward.
+[WebServer] [@sentry/nextjs] DEPRECATION WARNING: It is recommended renaming your `sentry.client.config.js` file, or moving its content to `instrumentation-client.ts`. When using Turbopack `sentry.client.config.js` will no longer work. Read more about the `instrumentation-client.ts` file: https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation-client
+[WebServer] ΓÜá The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+(node:34492) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/auth/sessionCookies.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 1 worker
+
+(node:13324) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:13324) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:13324) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/auth/sessionCookies.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+[WebServer] Browserslist: browsers data (caniuse-lite) is 7 months old. Please run:
+[WebServer]   npx update-browserslist-db@latest
+[WebServer]   Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[workout-library] failed: column "objective" does not exist
+[workout-library] failed: column "objective" does not exist
+  x  1 [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:19:1 ΓÇ║ F6 library outages never assert empty data; retry recovers and refresh preserves known templates (1.0m)
+(node:29052) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:29052) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:29052) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/auth/sessionCookies.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+  x  2 [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:48:35 ΓÇ║ F7 committed response loss retries once in editor; deliberate next save gets a fresh operation (4.9s)
+(node:33732) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:33732) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:33732) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BAS/Documents/Codex/2026-10-09/task-2/production-integration/webapp/lib/auth/sessionCookies.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\package.json.
+  x  3 [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:48:35 ΓÇ║ F7 committed response loss retries once after refresh; deliberate next save gets a fresh operation (1.0m)
+
+
+  1) [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:19:1 ΓÇ║ F6 library outages never assert empty data; retry recovers and refresh preserves known templates
+
+    [31mTest timeout of 60000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 60000ms exceeded.
+    Call log:
+    [2m  - waiting for getByRole('button', { name: 'Library (unavailable)', exact: true })[22m
+
+
+      24 |     await signedLibraryRoutes(page,f);
+      25 |     await page.goto('/coach/training-calendar');
+    > 26 |     await page.getByRole('button',{name:'Library (unavailable)',exact:true}).click();
+         |                                                                              ^
+      27 |     await expect(page.getByText('No saved workouts yet.',{exact:false})).not.toBeVisible();
+      28 |     await expect(page.getByRole('alert').filter({hasText:'Workout library could not be loaded'})).toBeVisible();
+      29 |     await page.screenshot({path:`../output/library-f6-unavailable-${info.project.name}.png`,fullPage:true});
+        at C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\e2e\workout-library.spec.mjs:26:78
+
+    attachment #2: trace (application/zip) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    test-results\workout-library-F6-library-5ff2e-h-preserves-known-templates-desktop-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\workout-library-F6-library-5ff2e-h-preserves-known-templates-desktop-chromium\trace.zip
+
+    ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+
+  2) [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:48:35 ΓÇ║ F7 committed response loss retries once in editor; deliberate next save gets a fresh operation
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoHaveLength[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected length: [32m1[39m
+    Received length: [31m2[39m
+    Received array:  [31m[{"coach_id": "44444444-4444-4444-8444-444444444444", "coach_instructions": "", "created_at": "2026-10-10T04:31:46.167Z", "description": "", "id": "4001d0be-4184-4d3d-9c32-7b92dbf2c1a9", "name": "Uncertain trail save", "objective": "", "planned_distance_km": null, "planned_distance_unit": "mi", "planned_duration_min": null, "planned_if": "0", "planned_tss": null, "sport": "run", "structure": [], "tags": null, "target_metric": "duration", "updated_at": "2026-10-10T04:31:46.167Z", "visibility": "coach_private"}, {"coach_id": "44444444-4444-4444-8444-444444444444", "coach_instructions": "", "created_at": "2026-10-10T04:31:45.980Z", "description": "", "id": "7d1f9364-e9e8-4bb2-9a1d-b8e02f9dd6cf", "name": "Uncertain trail save", "objective": "", "planned_distance_km": null, "planned_distance_unit": "mi", "planned_duration_min": null, "planned_if": "0", "planned_tss": null, "sport": "run", "structure": [], "tags": null, "target_metric": "duration", "updated_at": "2026-10-10T04:31:45.980Z", "visibility": "coach_private"}][39m
+
+      72 |     }
+      73 |     let rows=(await f.invokeLibrary()).body.workouts.filter(w=>w.name==='Uncertain trail save');
+    > 74 |     expect(rows).toHaveLength(1);expect(Number(rows[0].planned_if)).toBe(0);expect(rows[0].visibility).toBe('coach_private');
+         |                  ^
+      75 |     expect(writes[0].client_request_id).toMatch(/^[0-9a-f-]{36}$/);expect(writes[1].client_request_id).toBe(writes[0].client_request_id);
+      76 |     await page.screenshot({path:`../output/library-f7-${refresh?'refresh':'editor'}-${info.project.name}.png`,fullPage:true});
+      77 |     if(refresh){
+        at C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\e2e\workout-library.spec.mjs:74:18
+
+    attachment #2: trace (application/zip) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    test-results\workout-library-F7-committ-17a22-save-gets-a-fresh-operation-desktop-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\workout-library-F7-committ-17a22-save-gets-a-fresh-operation-desktop-chromium\trace.zip
+
+    ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+
+  3) [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:48:35 ΓÇ║ F7 committed response loss retries once after refresh; deliberate next save gets a fresh operation
+
+    [31mTest timeout of 60000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 60000ms exceeded.
+    Call log:
+    [2m  - waiting for getByRole('button', { name: 'Retry unconfirmed library save', exact: true })[22m
+
+
+      65 |     await expect(editor.getByText('Could not save to library.',{exact:true})).toBeVisible();
+      66 |     if(refresh){
+    > 67 |       await page.reload();
+         |                           ^
+      68 |       await page.getByRole('button',{name:'Retry unconfirmed library save',exact:true}).click();
+      69 |       await expect(page.getByRole('button',{name:'Retry unconfirmed library save',exact:true})).not.toBeVisible();
+      70 |     }else{
+        at C:\Users\BAS\Documents\Codex\2026-10-09\task-2\production-integration\webapp\e2e\workout-library.spec.mjs:67:89
+
+    attachment #2: trace (application/zip) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    test-results\workout-library-F7-committ-c2efd-save-gets-a-fresh-operation-desktop-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\workout-library-F7-committ-c2efd-save-gets-a-fresh-operation-desktop-chromium\trace.zip
+
+    ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+
+  3 failed
+    [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:19:1 ΓÇ║ F6 library outages never assert empty data; retry recovers and refresh preserves known templates
+    [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:48:35 ΓÇ║ F7 committed response loss retries once in editor; deliberate next save gets a fresh operation
+    [desktop-chromium] ΓÇ║ e2e\workout-library.spec.mjs:48:35 ΓÇ║ F7 committed response loss retries once after refresh; deliberate next save gets a fresh operation

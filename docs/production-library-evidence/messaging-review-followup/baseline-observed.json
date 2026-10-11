@@ -1,0 +1,42 @@
+{
+  "message-review-faults-revi-eb792-nd-keeps-mobile-list-unread-desktop-chromium": {
+    "history": "No messages yet. Start the loop with a check-in.",
+    "calendar": "/coach/training-calendar?athlete=",
+    "sendDisabled": true,
+    "stale": 0,
+    "alerts": [
+      ""
+    ]
+  },
+  "message-review-faults-revi-74611-box-and-retries-read-status-mobile-chromium": {
+    "rejected": 1,
+    "history": "Unable to load messages right now. Please try again.\n\nRetry loading\n\nRunner · Oct 10, 12:32 PM\n\nLoaded message despite read-status failure",
+    "calendar": "/coach/training-calendar?athlete=22222222-2222-4222-8222-222222222222",
+    "sendDisabled": false,
+    "stale": 1,
+    "alerts": [
+      "Unable to load messages right now. Please try again.",
+      ""
+    ]
+  },
+  "message-review-faults-revi-67156-nd-keeps-mobile-list-unread-desktop-chromium": {
+    "history": "No messages yet. Start the loop with a check-in.",
+    "calendar": "/coach/training-calendar?athlete=",
+    "sendDisabled": true,
+    "stale": 0,
+    "alerts": [
+      ""
+    ]
+  },
+  "message-review-faults-revi-74611-box-and-retries-read-status-desktop-chromium": {
+    "rejected": 1,
+    "history": "Unable to load messages right now. Please try again.\n\nRetry loading\n\nRunner · Oct 10, 12:31 PM\n\nLoaded message despite read-status failure",
+    "calendar": "/coach/training-calendar?athlete=22222222-2222-4222-8222-222222222222",
+    "sendDisabled": false,
+    "stale": 1,
+    "alerts": [
+      "Unable to load messages right now. Please try again.",
+      ""
+    ]
+  }
+}

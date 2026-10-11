@@ -6,6 +6,7 @@ import {
   summarizeReconciliationWindow,
 } from "../webapp/lib/workoutCompliance.js";
 import { validateWorkoutFields, sameWorkoutRequest } from "../webapp/lib/workoutValidation.js";
+import { normalizeLibraryPayload } from "../webapp/lib/libraryValidation.js";
 const clone = (x) => structuredClone(x);
 const stamp = (s) =>
   new Date(Date.parse(TODAY + "T12:00:00Z") + s.revision * 1000).toISOString();
@@ -418,8 +419,9 @@ export class DemoStore {
               { error: "Workout title and date are required." },
               400,
             );
-          const w = fillPlanTotals({
+          const w = {
             ...pick(plan, PLAN),
+            ...(lib ? { library_workout_id: lib.id } : {}),
             ...pick(body, ACTUAL),
             id: newId(),
             athlete_id: target,
@@ -428,7 +430,11 @@ export class DemoStore {
             activity_match_mode: "manual",
             visibility: plan.visibility || "athlete_visible",
             updated_at: now,
-          });
+          };
+          // A library assignment copies the saved prescription exactly,
+          // including a deliberately cleared load/duration/distance. Only
+          // directly planned workouts derive omitted totals here.
+          if (!lib) fillPlanTotals(w);
           next.workouts.push(w);
           if (body.client_request_id)
             next.requests[body.client_request_id] = w.id;
@@ -439,6 +445,18 @@ export class DemoStore {
         if (role !== "coach")
           return response({ error: "Coach library only." }, 403);
         if (method === "GET") return response({ workouts: next.library });
+        if (method === "PATCH") {
+          const existing = next.library.find((w) => w.id === body.id);
+          if (!existing) return response({ error: "Library workout not found." }, 404);
+          try {
+            // Same pure field validation as the signed API; all state remains
+            // synthetic and local to this browser store. Never replace IDs.
+            Object.assign(existing, normalizeLibraryPayload(body), { updated_at: now });
+            return save({ workout: existing });
+          } catch (error) {
+            return response({ error: error.message }, error.status || 400);
+          }
+        }
         if (method === "DELETE") {
           next.library = next.library.filter((w) => w.id !== q.get("id"));
           return save({ success: true });
