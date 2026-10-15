@@ -1,75 +1,105 @@
-# UltraOS - AI Context File (Business)
-ALWAYS read this file before any UltraOS task. This is the ground truth.
+# Threshold — Business direction
 
-## What UltraOS Is
-Performance intelligence platform for serious long-endurance athletes - ultrarunners, gravel cyclists, and long-course triathletes. NOT a training log. NOT a social network. The first platform purpose-built to track, correlate, and surface insights from the full stack of interventions that determine race-day outcomes: heat acclimation, gut training, sodium bicarbonate protocols, sleep manipulation, respiratory training, altitude loading, supplement stacking, probiotic trials, BFR recovery, and every other deliberate action an athlete takes in preparation for a long event.
+Last updated: 2026-10-15
 
-TrainingPeaks logs your workouts. UltraOS tells you what's actually working.
+## What Threshold is
 
-## Positioning Line
-"Performance intelligence for athletes who go long."
+Threshold is a coaching platform for athletes and the coaches who support them. It brings training plans, completed workouts, check-ins, communication, and progress review into one workspace so people can make better decisions about what to do next.
 
-## The Problem We Solve
-TrainingPeaks (founded 1999) is architected around workout data only. It has no answer for: Did my heat acclimation block actually improve my August race performance? Which bicarb protocol produced the best results with the least GI distress in my body specifically? Is my gut trained to absorb 90g/hr carbs? My last two 100-milers fell apart after mile 60 - what did my prep have in common? No platform answers these questions. UltraOS does.
+Our ambition is to build the best coaching platform for athletes, from someone starting a couch-to-5K plan to an experienced endurance athlete preparing for a demanding event. "Best" is a goal we must earn through useful workflows, reliability, and feedback from real users.
 
-## Target Subscriber
-Science-forward serious amateur endurance athlete. Races 2-4 times/year at 50k-100 mile, Ironman, or major gravel distances (Unbound, Belgian Waffle Ride). Already uses TrainingPeaks or Garmin Connect. Reads PubMed occasionally. Willing to pay $240/year for a platform that makes their prep measurably better. Household income $120k+. Spends $5k-20k/year on their sport.
+Threshold is the product name. UltraOS / Ultra_OS remains the repository and legacy technical name; this positioning update does not require renaming existing identifiers.
 
-## Revenue Target
-400-500 paying subscribers = ~$120k ARR = owner salary replacement at ~85% gross margin.
+## Positioning
 
-## Pricing Tiers
-Feature gating lives in `webapp/lib/subscriptionTiers.js`; prices in `webapp/pages/pricing.js`.
+**A shared workspace for coaches and athletes to plan training, stay connected, and make progress.**
 
-Athletes:
-- Free: $0. Strava sync, coach connection, activity log, coach messaging, this week's totals, 3 check-ins/week (daily when coach-linked), 15 intervention logs, research library.
-- Athlete Core: $7/month or $60/year. 12-week distance/time/elevation trends, 4-week block comparison, longest session, unlimited check-ins and logging. Free for athletes coached on a paid Coach plan.
-- Athlete Pro: $18/month or $159/year. CTL/ATL/TSB, training load, ramp rate, monotony, HR drift and aerobic decoupling, training-response correlations, Explorer, Race Blueprint. AI review and suggestions are added later at no extra cost.
+Short description for introductions:
 
-Coaches (billing opens after the closed pilot):
-- Coach Essentials: $29/month or $290/year, up to 10 athletes. Command Center, calendar and assignments, protocols, compliance views, messaging, coach tools; roster athletes get Core.
-- Coach Pro: $79/month or $790/year, up to 25 athletes. Adds per-athlete load trends, the CTL ramp planner, and Athlete Pro for the coach's own training. AI triage and drafted summaries are added later.
+> Threshold helps coaches and athletes work together throughout the training week. Coaches can plan sessions, review completed work, and give feedback. Athletes can understand their plan, record how training went, and keep their coach informed. We are building first for athletic coaching, with the long-term ambition to support other coaching disciplines.
 
-Legacy subscribers keep their price: Research Feed → Core, Individual → Pro, Coach → Coach Pro.
+This describes the product direction. Availability and launch claims must follow the [execution roadmap](PRODUCT_EXECUTION_ROADMAP.md), whose acceptance gates remain open.
 
-## Current Phase
-Phase 1 - Intervention Intelligence MVP
+## The problem we are solving
 
-## Current Metrics
-- Subscriber count: [UPDATE]
-- MRR: $[UPDATE]
-- Churn rate: [UPDATE]
-- NPS: [UPDATE]
-- Email list size: [UPDATE]
+Coaching depends on a repeated conversation: what is the goal, what is the plan, what actually happened, and what should change? When those answers are scattered across calendars, activity apps, spreadsheets, and messages, coaches spend time reconstructing context and athletes can be unsure what to do next. This is our problem hypothesis to validate with pilot participants.
 
-## The 5 Platform Modules
-1. Intervention Intelligence Log - structured queryable log of all non-training performance actions. Core differentiator. No competitor has this.
-2. Race Architecture Builder - input any target race, output a complete personalized preparation blueprint (fueling, hydration, protocol stack, pacing, race week).
-3. Research Intelligence Feed - monthly plain-English digest of peer-reviewed sports science. Included in subscription. The retention engine.
-4. AI Pattern Recognition Engine - personal N=1 insights + anonymized population trends across all users. Year 2+ feature. The data moat.
-5. Coach Command Center - multi-athlete dashboard, protocol assignment, cohort comparison. The revenue multiplier.
+Threshold should make that weekly loop easier:
 
-## Key Competitors
-- TrainingPeaks: $120/yr, 26 years old, built for cycling/tri, workout logger only, no intervention tracking. Architecturally unable to build what we're building without a full rebuild. Most likely acquirer.
-- Strava: social network, 135M users, $80/yr, no performance intelligence. TAM forces them toward mass market - our niche is too small for them to build for.
-- Vert.run: VC-backed, ultra plan delivery tool, different problem (training plans vs. protocol intelligence).
-- Garmin Connect: hardware-first, partner not competitor. Integration target.
-- Whoop/Oura: hardware-dependent, captures body response not intervention inputs.
+1. Coach and athlete establish goals and practical constraints.
+2. The coach plans training the athlete can understand and follow.
+3. The athlete completes sessions and shares results and how they felt.
+4. The coach reviews progress and gives timely, specific feedback.
+5. They adjust the next week together.
 
-## The Moat (Why We're Defensible)
-1. The intervention dataset - every logged entry is irreplaceable, unpurchaseable, time-stamped proof of what athletes did and how they performed. After 3 years, largest structured long-endurance intervention database in the world.
-2. Protocol knowledge base - indexed, athlete-outcome-linked, living content library that a new entrant cannot replicate without years of publishing.
-3. Coach network - once 50+ coaches manage athletes on the platform, switching costs are prohibitive.
-4. Community trust - earned in tight endurance communities over years, cannot be bought.
-5. Academic credibility - Year 3 dataset enables co-authored peer-reviewed research with sports science departments (CU Boulder, University of Utah, St. Mary's UK targets).
+## Who we serve
 
-## Brand Voice
-Peer-to-peer. Science-respecting. No corporate language. No hype. No words like "revolutionary," "game-changing," or "unlock your potential." Writes like a smart athlete who built the tool they wished existed. Direct. Specific. Confident without arrogance.
+- **Coaches:** initially independent coaches and small coaching teams managing athletic training. They need reliable planning, athlete context, and communication tied to the work.
+- **Athletes:** beginners through experienced competitors, including people seeking consistency, a first 5K, a marathon, or a longer endurance goal. Experience, race distance, income, and an interest in sports science are not prerequisites for belonging here.
+- **Self-directed athletes:** the athlete workspace should remain useful without a coach, while making it straightforward to work with one when desired.
 
-## Exit Scenarios
-- Lifestyle business: $120k-$200k+ annual owner income indefinitely. Completely viable.
-- Strategic acquisition ($2M-$10M): TrainingPeaks, Garmin, Wahoo, Whoop, or a nutrition conglomerate at 4-8x ARR. Most likely Year 4-5.
-- Growth round ($5M-$20M+): At $1M+ ARR with proven AI engine and academic publications.
+The initial pilot is deliberately small: one approved coach and up to five athletes. Endurance training is the starting product context, not a requirement that every user be an ultrarunner. Demand, willingness to pay, and the most useful first customer segment still need validation.
 
-## Owner Profile
-Mechanical engineer. Comfortable directing AI tools (Cursor, Claude) and following tutorials. Not a developer. 5-10 hrs/week available. $500-1k/month tool + contractor budget. Building part-time toward salary replacement. Target timeline: 3-4 years to full $120k replacement income.
+## Product priorities
+
+1. **Dependable coaching basics:** onboarding, relationships, calendars, workout planning and assignment, completion review, check-ins, and messaging.
+2. **An effective weekly workspace:** reusable plans and workouts, clear athlete context, useful progress summaries, and less repeated administrative work.
+3. **Trustworthy training information:** understandable calculations, clear data sources, honest missing-data states, and integrations that work reliably.
+4. **A sustainable service:** understandable access and billing, data privacy, supportable workflows, and retention earned through regular use.
+
+Research, educational content, protocols, and intervention tracking can support coaching when they help a coach or athlete make a decision. They are supporting capabilities, not the primary product, required onboarding journey, or reason to subscribe. Existing data and useful workflows remain valuable; the pivot is not authorization to remove them.
+
+AI-generated advice and plans remain deferred under the execution roadmap. The product must deliver value through human coaching and dependable software without relying on future AI.
+
+## Business model and current pricing reference
+
+The working model is subscriptions for coach workspaces and optional paid athlete features, with a useful Free athlete experience. Coach adoption may bring athletes onto the platform; whether that produces sustainable acquisition and retention is a hypothesis to measure.
+
+These prices are displayed in local source on 2026-10-15. They are a reference, not a new pricing decision or proof that paid checkout is accepted in production.
+
+| Plan | Monthly | Annual total | Current packaging reference |
+| --- | --- | --- | --- |
+| Free | $0 | $0 | Athlete entry plan; no card required |
+| Athlete Core | $7 | $60 | Expanded logging/check-ins and volume trends |
+| Athlete Pro | $18 | $159 | Core plus deterministic training analytics and additional tools |
+| Coach Essentials | $29 | $290 | Coach workspace, up to 10 athletes |
+| Coach Pro | $79 | $790 | Up to 25 athletes and advanced coach metrics |
+
+Sources: [pricing page](webapp/pages/pricing.js), [feature tiers](webapp/lib/subscriptionTiers.js), and [billing plan mappings](webapp/lib/billingPlans.js). Athletes linked to a paid coach receive Core features. Pilot grants are separate from paid subscriptions. Coach pricing currently leads to the pilot; public coach billing is not established by this table. Preserve the legacy tier mappings in code during later packaging changes.
+
+The existing planning aspiration is a sustainable owner-operated business. Revenue, owner income, margin, and valuation are different measures. Any revenue target needs a plan mix, annual/monthly split, retention assumptions, and operating costs. The old claim that 400–500 subscribers necessarily yields $120,000 ARR is not a valid forecast at these prices.
+
+## How we will judge progress
+
+Track evidence before making growth or performance claims:
+
+- Activation: a coach and athlete complete their first plan, workout review, and feedback loop.
+- Weekly use: coaches plan and review; athletes see their sessions and share completion/context.
+- Usability: time to plan a week, review an athlete, and resolve a question on desktop and phone.
+- Reliability: saved work persists, permissions hold, and messages and billing behave as expected.
+- Retention and value: participants keep using the workflow and can explain what it helps them do.
+- Business health: paying accounts by plan, recurring revenue, churn, support effort, and costs.
+
+These are proposed measures, not reported results. Use the roadmap's pilot observations and acceptance criteria first. No subscriber count, revenue, margin, or customer outcome is asserted here.
+
+## Differentiation and growth
+
+Earn preference through planning clarity, responsive communication, useful review, and low administrative effort. TrainingPeaks-level daily workflow usefulness is an internal benchmark; replacement claims require the roadmap's parity acceptance tests. Avoid unsupported claims about competitors' limitations, market size, acquisition interest, or an exclusive dataset.
+
+Start with a small coach pilot, observe actual use, fix broken journeys, and then expand through coach referrals and practical demonstrations. Public trial promotion waits for the release gates. Educational content supports this work; a recurring research publication is not a prerequisite.
+
+## Future coaching disciplines
+
+The long-term direction is to support coaching beyond athletic training. The reusable foundation is the coach-client relationship, goals, plans, progress, and feedback. No next discipline or launch date is committed. Expansion should follow evidence of a reliable athletic coaching product, repeat use, and discovery with coaches and clients in the proposed discipline.
+
+Keep new design decisions open to that future where practical, but do not build a generic multi-discipline platform or dilute the athlete experience before the current coaching loop works.
+
+## Guidance and document ownership
+
+- This file owns business positioning, audience, and strategic intent.
+- [PRODUCT_EXECUTION_ROADMAP.md](PRODUCT_EXECUTION_ROADMAP.md) owns execution order, release gates, and completion evidence. Its current M0 work remains the implementation priority.
+- [README-PLATFORM.md](README-PLATFORM.md) translates the direction into product/build guidance.
+- [README-CONTENT.md](README-CONTENT.md) governs communication and content priorities.
+- [AGENTS.md](AGENTS.md) sets repository working rules.
+
+Use plain, specific, respectful language. Lead with the coaching job someone can accomplish. Distinguish vision, implemented functionality, and verified availability in every pitch or demo. Older intervention-first strategy and exported pitch documents are historical material and need reconciliation with these sources before reuse.

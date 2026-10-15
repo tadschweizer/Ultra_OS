@@ -1,5 +1,7 @@
 # UltraOS — AI Analysis Opportunities Roadmap
 
+> Historical planning document. As of 2026-10-15, [README-BUSINESS.md](README-BUSINESS.md) and [README-PLATFORM.md](README-PLATFORM.md) define Threshold's athlete-coaching direction. [PRODUCT_EXECUTION_ROADMAP.md](PRODUCT_EXECUTION_ROADMAP.md) controls the current work queue and acceptance status. The plans, claims, paths, and instructions below are retained as history and must not be used as current execution guidance.
+
 > This document tracks ideas for what the AI engine should be able to extract, analyze, and surface once the Claude API is connected. Each item includes the data source, what to extract, and the athlete-facing output. Check off items as they are built.
 
 ---

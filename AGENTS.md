@@ -2,7 +2,20 @@
 
 For product or implementation work, read `PRODUCT_EXECUTION_ROADMAP.md` before making changes.
 
-- Treat its Current milestone and Next item as the default work queue unless the user explicitly
+## Product direction
+
+- Threshold is a coaching platform for athletes and coaches, from beginners through experienced
+  competitors. Prioritize planning, completion review, check-ins, communication, and useful feedback.
+- Read `README-BUSINESS.md` for business positioning, `README-PLATFORM.md` for product/build
+  guidance, and `README-CONTENT.md` when writing customer-facing content.
+- Research, protocols, and intervention tracking support coaching; they do not define the primary
+  product or onboarding journey. Preserve existing data and useful workflows.
+- Expansion into other coaching disciplines is a future ambition, not current release scope.
+- Explain instructions in beginner-friendly terms, including where to run commands and what to copy.
+
+## Execution rules
+
+- Treat the roadmap's Current milestone and Next item as the default work queue unless the user explicitly
   changes priority.
 - Do not mark an item complete when code is merely written. Run the listed tests, verify its
   acceptance criteria, and add the PR/commit and evidence to the progress log.

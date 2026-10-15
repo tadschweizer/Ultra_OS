@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
-Last updated: 2026-10-11<br>
-Status: Main64a440e remains released and unchanged. Independent QA accepted the original coach-report patchc65a00a1 and the PR#138 timezone correction patchc09d80bb (304 assertions;42 boundary and60 nearby regression observations). The new artifact's independent gate is complete; its runtime/test bytes remain exact, with only acceptance documentation refreshed afterward. PR#138 is the review vehicle; its current published head, fresh CI and automatic preview are tracked in the PR checks and publication manifest. No merge, production deployment or server auth/schema/security change occurred.<br>
-Current milestone: M0 - make the closed coach pilot work end to end; PR#138 coach-report, shared-profile recovery and reconciliation timezone correction independently accepted, awaiting review of the corrected source and latest publication checks<br>
-Next item: Review PR#138's corrected athlete report against its latest head, standard CI and automatic preview; use docs/coach-report-correction/REPORT.md and task-root COACH_REPORT_BOUNDARY_PUBLICATION_MANIFEST.json for accepted-source identity and final publication evidence. Do not rerun the completed independent gate as the default queue. A new blocking review or check failure requires a bounded correction and matching verification before review can close. Merge, production deployment and new schema/security changes remain unauthorized. Physical-phone, hosted signed-workflow, fresh-account, real-mailbox and participant acceptance remain separate open gates; production NULL-score feasibility and the single unreproduced320px QA navigation timeout remain explicit limitations.
+Last updated: 2026-10-15<br>
+Status: GitHub main is `49db06b` at this documentation publication check. This branch updates business and product guidance only; it does not include the separate local billing implementation or re-verify production acceptance.<br>
+Current milestone: M0 - make the closed coach pilot work end to end under the athlete-coaching direction reaffirmed October 15; remaining release and participant acceptance gates stay open<br>
+Next item: Reconcile the separate local M0 reliability/billing work and its verification evidence before selecting the next implementation change. Preserve the Free $0/no-card journey and complete outstanding pilot acceptance. Research and intervention tracking support the coaching workflow; other coaching disciplines remain future scope. Production release and configuration changes require explicit authorization.
 
 ## Purpose
 
@@ -14,18 +14,26 @@ written.
 Supporting evidence lives in:
 
 - `LAUNCH_AUDIT_2026-09-06.md` for the latest source, GitHub, Vercel, Supabase, and public-page review.
-- `NEXT_CHAT_EXECUTION_PROMPT.md` for the bounded first execution session and handoff requirements.
+- `NEXT_CHAT_EXECUTION_PROMPT.md` for historical first-session context, not the current work queue.
 - `COACH_PILOT_READINESS.md` in PR #104 for the detailed coach/athlete journey audit.
 - `COACH_TEST_PLAN.md` for the current manual coach workflow.
-- `README-PLATFORM.md` for the existing architecture and older parity matrix.
+- `README-BUSINESS.md` for the current business direction and audience.
+- `README-PLATFORM.md` for product and technical guidance; `README-CONTENT.md` for messaging.
 - `MULTIUSER_ROADMAP.md` and `AI_ANALYSIS_ROADMAP.md` for historical context. Where they conflict
   with this document, this document controls execution order.
 
 ## Product direction
 
-Threshold's main product goal is to become at least as useful as TrainingPeaks for a coach's and
-athlete's daily planning work, then win on intervention tracking, correlations, and coach decision
-support.
+Threshold's ambition is to build the best coaching platform for athletes and the coaches who
+support them, from beginners through experienced competitors. The core loop is setting goals,
+planning training, recording what happened, reviewing progress, communicating, and adjusting.
+TrainingPeaks-level daily workflow usefulness remains an internal benchmark, with replacement
+claims gated by the acceptance tests below.
+
+Research, protocols, intervention tracking, and correlations support coaching decisions; they are
+not the primary product or required onboarding path. Future expansion into other coaching
+disciplines is a strategic ambition, not an additional current milestone. Prove the athletic
+coaching workflow first. See `README-BUSINESS.md` for the full positioning.
 
 The September launch priority is manual coach/athlete training: create and assign workouts, log or
 import completion, review results, and exchange timely feedback. AI-labelled features and automated
@@ -671,7 +679,9 @@ to another product.
   - Filters and comparison periods are understandable on mobile.
 
 - [ ] **ANA-005 — Threshold differentiation**
-  - Intervention correlations and coach triage link to the underlying check-ins and workouts.
+  - Help coaches identify who needs follow-up and what changed in an athlete's training.
+  - Coach review and supporting correlations link to underlying check-ins and workouts;
+    intervention context is optional when relevant to the coaching question.
   - Show sample size, uncertainty, and data-quality limitations.
   - Never present correlation as causation.
 
@@ -817,6 +827,23 @@ accounts are unavailable; the previous INACTIVE observation below is historical.
 | 2026-09-28 | Do not add a Sentry alert rule or uptime monitor | Owner declined; keep the readiness check manual for the closed pilot |
 
 ## Progress log
+
+### October 15 - Athlete-coaching business and guidance alignment
+
+Owner clarified that Threshold's primary direction is the best coaching platform for athletes,
+with future expansion into other coaching disciplines. Rewrote the business, platform, and content
+guides; aligned AGENTS.md, this roadmap's product direction and ANA-005, and the application README
+introduction. Older planning documents now point to the current sources as historical context.
+Research and intervention features remain supporting capabilities; no data or application behavior
+was removed. M0 remains open; all acceptance checkbox states are unchanged.
+
+Evidence: documentation publication branch `codex/coaching-direction-docs`; no PR created. Prices and tier
+packaging checked against `webapp/pages/pricing.js`, `webapp/lib/subscriptionTiers.js`, and
+`webapp/lib/billingPlans.js`; source entry points checked against the local application. Remote main
+read-only inspection returned `49db06b`; no production verification or release was performed.
+Validation: 36 relative documentation links resolve, referenced source paths exist, and roadmap
+checkbox comparison shows zero changes. Stale-positioning review and `git diff --check` pass.
+No application tests required for this documentation-only change. Resume the M0 queue above.
 
 ### October 10 - isolated calendar/private-draft/load verification and focused fix
 

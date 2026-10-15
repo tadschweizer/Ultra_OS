@@ -1,12 +1,17 @@
-# UltraOS Beta - Next.js + Supabase Web App
+# Threshold - Coaching web application
 
-This repository contains the UltraOS MVP web app. The current scope is:
+This repository contains Threshold's athlete and coach workspace. The product direction is a
+dependable coaching loop: plan training, record completion and check-ins, review progress,
+communicate, and adjust. It serves beginners through experienced athletes; other coaching
+disciplines are a future ambition.
 
-- homepage and Strava OAuth entry
-- Strava callback writing athlete records to Supabase
-- dashboard loading athlete summary and recent activities
-- intervention logging
-- intervention history
+Source includes coach and athlete calendars, workout assignments, completion review, messaging,
+check-ins, activity imports, and supporting training tools. Research and intervention records are
+supporting capabilities. Source presence does not establish live workflow acceptance.
+
+Read [business direction](../README-BUSINESS.md), [product/build guidance](../README-PLATFORM.md),
+and the [execution roadmap](../PRODUCT_EXECUTION_ROADMAP.md) before planning changes. The
+roadmap owns the current milestone, acceptance evidence, and release gates.
 
 The deployed app lives in `webapp/` and Vercel must use `webapp` as the project root.
 

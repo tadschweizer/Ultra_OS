@@ -1,98 +1,67 @@
-# UltraOS - AI Context File (Platform / Technical)
-Update this file every time a meaningful build or architecture decision is made.
+# Threshold — Product and technical guidance
 
-## Current Build Phase
-Phase 1 Platform - Intervention Intelligence MVP
+Last updated: 2026-10-15
 
-## Phase 0 Stack (Months 1-6) - ~$80-150/month
-- Database/log: Airtable Pro ($20/month) - intervention log schema, form view for subscriber entry
-- Research digest: Substack (free) - builds email list simultaneously, doubles as SEO content
-- Billing: Stripe payment link - $39/month "UltraOS Early Access" before any platform exists
-- Subscriber access: Manual Notion/Airtable workspace sharing after payment confirmed
-- AI tools: Claude Pro ($20/month) for all content, prompts, analysis
-- Communication: Loom (free) for onboarding walkthroughs
-- Project management: Notion free tier
+## Direction and authority
 
-## Phase 1 Target Stack (Months 6-14) - ~$300-600/month
-- Frontend framework: Next.js (free, React-based, SEO-friendly, Vercel-native)
-- Database + auth: Supabase Pro ($25/month - PostgreSQL + authentication + REST API)
-- Hosting: Vercel Pro ($20/month - zero-config deployment, GitHub integration)
-- Billing: Stripe + Stripe Billing (subscription management, trials, upgrades)
-- Transactional email: Resend ($20/month, 50k emails)
-- Product analytics: PostHog (free tier, up to 1M events/month)
-- Dev task tracking: Linear (free for small teams)
-- AI-assisted coding: Cursor Pro ($20/month)
-- Developer: Part-time contract, 15 hrs/week, $40-60/hr via Upwork
+Build a dependable coaching platform for athletes and coaches. Read [README-BUSINESS.md](README-BUSINESS.md) for positioning and [PRODUCT_EXECUTION_ROADMAP.md](PRODUCT_EXECUTION_ROADMAP.md) for the current work queue, acceptance criteria, and release evidence. This guide replaces the old intervention-first MVP plan, phased vendor budget, and historical parity table as current build guidance.
 
-## Phase 1 MVP Scope
-1. Intervention Log: form-based entry, searchable/filterable table, calendar view, race tagging
-2. Research Feed: in-platform delivery of monthly digest + email
-3. User auth: Supabase auth, email/password + Google OAuth
-4. Subscription billing: Stripe, monthly and annual plans, upgrade/downgrade
-5. Basic dashboard: recent entries, upcoming race countdown, usage summary
+The current milestone remains M0: make the closed coach pilot work end to end. A coaching-first business direction does not close pilot gates or establish public launch readiness. Consult the roadmap header and its linked verification records for current implementation priorities and remaining acceptance. Separate local reliability/billing work must be reconciled before release. This documentation change does not re-verify deployment state.
 
-OUT OF SCOPE FOR CURRENT MVP: Mobile app, coach dashboard, social features, population AI, full workout logging/calendar
+## Core product loop
 
-## Phase 2 Additions (Months 14-24)
-- Garmin Connect API integration (highest retention priority - build first)
-- Strava API integration refinement and deeper activity detail pulls
-- Race Architecture Builder (hero marketing feature - build second)
-- Coach Dashboard: multi-athlete view, protocol assignment, compliance tracking (build third)
-- Annual plan push system: in-app prompts + email nudge at Day 45
-- Designer: contract 2-week sprint for Figma mockups of RAB and Coach Dashboard ($800-1,200)
+**Set a goal → plan training → complete and record → review and communicate → adjust.**
 
-## Phase 3 Additions (Months 24-36)
-- AI pattern recognition engine: personal insights + population insights dashboard
-- Anonymized data pipeline (consent, GDPR, minimum dataset thresholds)
-- LLM approach: structured prompt engineering with Anthropic Claude API first, then evaluate RAG or fine-tuning at scale
-- Analytics upgrade: PostHog expanded, cohort analysis
-- Academic data export tools
-- B2B API layer (for data licensing)
-- Developer upgrade: senior full-stack with LLM integration experience
+The coach and athlete are both primary users. A coach needs to understand the roster, plan work, review results, and follow up. An athlete needs a clear next session, an easy way to share what happened, and useful feedback. Design for beginners as well as experienced athletes.
 
-## Automation Stack
-- Make.com ($9-29/month): Stripe to Airtable to Email automations (Phase 0-1)
-- n8n self-hosted: evaluate for Phase 2+ (more powerful, more setup)
-- Anthropic API (usage-based ~$5-20/month): AI features in platform Phase 3
+The local application includes coach/athlete calendars, workout assignment and libraries, completion matching, check-ins, messages, coach reporting, settings, activity imports, and billing code. Presence in source is implementation evidence only. The roadmap and linked verification records determine which workflows are accepted locally, deployed, or proven with participants.
 
-## Key Architectural Decisions
-DECISION: Intervention logging is the core system of record for product value - REASON: the business moat is the intervention dataset, not generic workout history - DATE: 2026-03-21
-DECISION: Strava activity context is in scope before AI features - REASON: linked activity context improves intervention data quality and reduces logging friction - DATE: 2026-03-21
-DECISION: AI insight blocks remain placeholder UI only until higher-quality intervention and race context data is captured - REASON: shipping analysis before the dataset is structured would create low-trust output - DATE: 2026-03-21
-DECISION: TrainingPeaks migration must include a migration completeness surface (transferred vs manual mapping) before broad athlete onboarding - REASON: migration transparency is required for data trust and supportability - DATE: 2026-04-30
-DECISION: Parity matrix gates roadmap priority; table-stakes parity ships before advanced differentiation features - REASON: execution quality on core coaching workflows is a prerequisite for retention - DATE: 2026-04-30
+| Area | Source entry point |
+| --- | --- |
+| Athlete planning | `webapp/pages/calendar.js` |
+| Coach planning | `webapp/pages/coach/training-calendar.js` |
+| Coach overview | `webapp/pages/coach-command-center.js` |
+| Athlete review | `webapp/pages/coach/athletes/[athleteId].js` |
+| Communication | `webapp/pages/messages.js`, `webapp/pages/api/message-center.js` |
+| Athlete settings | `webapp/pages/settings.js` |
+| Plan access | `webapp/lib/subscriptionTiers.js`, `webapp/lib/billingPlans.js` |
 
-## TrainingPeaks Parity Matrix (Table-Stakes)
-Legend: ✅ parity-ready · 🟡 partial/in progress · ❌ missing
+## Product decisions
 
-| Domain | Capability | Status | Notes / Next Action |
-|---|---|---|---|
-| Planning | Athlete history ingestion | 🟡 | Initial import flow in connections; needs production API + job monitoring. |
-| Planning | Planned workouts / protocol mapping | 🟡 | Core mapping pass exists; custom TP fields still need manual mapping support. |
-| Planning | Migration completeness visibility | ✅ | UI exists to show transferred vs manual mapping requirements. |
-| Execution Tracking | Session execution logging | ✅ | Intervention log supports per-session outcomes today. |
-| Execution Tracking | Planned vs completed reconciliation | ✅ | Weekly reconciliation on athlete calendar + 28-day rollup on coach athlete detail (`summarizeReconciliationWindow`, `WeeklyReconciliation`). |
-| Coach Reporting | Multi-athlete import health | ✅ | Roster import-health card on Coach Command Center + per-athlete import detail block (`lib/importHealth.js`, latest `trainingpeaks_import_jobs` per athlete). |
-| Coach Reporting | Compliance and adherence rollups | 🟡 | Basic coach dashboard exists; adherence and completion exports not complete. |
-| Athlete Communication | Import issue prompts | 🟡 | Migration completeness UI highlights manual mapping needs; coach can now push an in-app follow-up message (email/push delivery still open). |
-| Athlete Communication | Coach-athlete follow-up workflows | ✅ | One-click "Send follow-up" on import-health rows: templated coach message + `coach_notifications` audit row + idempotent claim on `trainingpeaks_import_jobs.followup_sent_at` (`/api/coach/import-followup`). |
+1. The shared coaching workflow is the center of product value. Planning, completed work, check-ins, and conversations provide context for the next coaching decision.
+2. Coach dashboards, workout calendars, and phone usability are core scope. They are not later additions after a research or intervention product launches.
+3. Research, protocols, and intervention records support specific coaching needs. Preserve existing records and permissions; do not make them a prerequisite for onboarding or daily use.
+4. Deterministic calculations and coach-written feedback remain useful. AI-generated advice, summaries, and plans stay deferred according to the roadmap. No placeholder should promise a working feature or imply that an algorithm replaces the coach's judgment.
+5. TrainingPeaks is a daily-workflow benchmark. Use roadmap acceptance tests rather than a historical feature-presence table to decide whether parity is achieved.
+6. Future coaching disciplines are a strategic option. Reuse relationship, permission, goal, scheduling, and communication patterns where practical. Keep sport-specific measurements explicit; do not rename every athlete concept or redesign the schema speculatively.
 
-Roadmap rule: any ❌ in this matrix is prioritized before advanced differentiation work (AI personalization, novel analytics, or premium visualizations).
+## How to choose and design work
 
-## Current Developer / Contractor
-[NAME, ROLE, HOURLY RATE, HOURS/WEEK, START DATE, CONTRACT TERMS]
+Follow the roadmap's Current milestone and Next item unless the owner changes priority. For each proposed feature, identify the user, the coaching task, the friction removed, and the evidence that would demonstrate improvement. Fix broken end-to-end workflows before adding breadth.
 
-## GitHub Repository
-https://github.com/tadschweizer/Ultra_OS
+- Keep the next action clear, including when there is no plan, no activity, or no connected coach.
+- Preserve entered work, show save/failure states, and make retries understandable.
+- Distinguish planned, completed, imported, estimated, and missing training information.
+- Show the data behind summaries; never imply that a correlation establishes causation.
+- Use practical layouts, readable labels, and useful charts. Prefer solid neutral surfaces and clear rows over decorative effects, nested cards, or AI terminology.
+- Make every introduced coach and athlete workflow usable on a phone as well as desktop.
+- Enforce role/relationship access on the server and keep private coaching context private.
 
-## Staging / Production URLs
-- Staging: not configured
-- Production: https://ultra-os-tb77.vercel.app
+## Current implementation foundation
 
-## Known Technical Debt or Issues
-- Race auto-lookup provider not chosen yet.
-- Athlete settings model not implemented yet for baseline altitude, heart rate zones, and other personal defaults.
-- Current Strava integration uses summary activity data only; average altitude and richer acclimation metrics require deeper activity/detail pulls.
+The application is in `webapp/`: Next.js and React, Supabase-backed data, Stripe billing code, and Vercel deployment configuration. Check [package.json](webapp/package.json) and the implementation before naming versions or claiming an integration works. The current session and API authorization model is described in [auth guidance](webapp/docs-auth-stability.md).
 
-## Website/Platform Builder
-Builder choice is already made for the current product path: Next.js + Supabase + Vercel.
+The previous Airtable/Notion/Stripe-payment-link plan was an early concept, not the current application architecture. Vendor budgets, future contractors, and proposed analytics/email services from that concept are not established operating configuration.
+
+Integrations must be described by verified behavior: connecting an account, importing activity, and delivering a workout are separate capabilities. A provider name or configuration field is not evidence that its integration is available. Consult the roadmap's integration gates.
+
+## Verification and release
+
+Follow [AGENTS.md](AGENTS.md). Run commands from `webapp/` and select checks appropriate to the change. Record actual results and limits; do not copy old test counts as fresh evidence.
+
+- Keep local tests, simulated browser evidence, deployed checks, and real participant acceptance distinct. A successful build or READY deployment does not complete a coaching journey.
+- Preserve historical progress evidence and leave parent milestones open until their criteria pass.
+- No production deployment or production configuration change without explicit owner authorization.
+- Inspect applied database history before proposing a migration. Do not replay recorded migrations or use a broad push to resolve mismatched local/remote migration names.
+
+For implementation details and setup, start with [webapp/README.md](webapp/README.md), then the relevant verification document. Historical roadmaps are background, not an independent queue.

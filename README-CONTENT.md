@@ -1,78 +1,60 @@
-# UltraOS — AI Context File (Content / Community)
-Update after every piece of published content and every community interaction.
+# Threshold — Content and communication guidance
 
-## Publication Details
-- Substack publication name: [YOUR SUBSTACK NAME]
-- Substack URL: [URL]
-- Current free subscriber count: [NUMBER]
-- Current paid subscriber count: [NUMBER]
-- Research digest cadence: Monthly — published first Monday of each month
+Last updated: 2026-10-15
 
-## Research Digest Archive
-[Add each digest topic after publishing]
-Format: "Month Year: Topic 1, Topic 2, Topic 3"
+## Purpose and audience
 
-## Community Presence
-- r/ultramarathon: [account name] — [brief history: X posts, known for Y, account age Z]
-- r/gravelcycling: [account name] — [brief history]
-- Slowtwitch.com: [account status — registered/lurking/active]
-- Facebook Groups: [which groups, account status]
-- Strava: [account, following count]
+Explain how Threshold helps coaches and athletes work together: plan training, understand what happened, stay connected, and decide what to do next. Use [README-BUSINESS.md](README-BUSINESS.md) for positioning and the [execution roadmap](PRODUCT_EXECUTION_ROADMAP.md) for availability and release claims.
 
-## Community Rules to Never Violate
-- r/ultramarathon: No self-promotion without established account history. No product links in posts. Value contribution before any brand mention.
-- r/gravelcycling: Similar rules. Anti-marketing culture strong. Must read like a rider, not a brand.
-- Slowtwitch.com: Extremely sophisticated, skeptical audience. Triathletes who know more than most coaches. Hype is instantly rejected. Data and honesty only.
+Write for coaches and athletes from beginners through experienced competitors. Someone starting a first 5K should feel as welcome as someone training for an ultra. Avoid assuming research literacy, expensive equipment, a race goal, or a particular income.
 
-## Brand Voice Examples
-[PASTE 1-2 PARAGRAPHS OF YOUR BEST PUBLISHED WRITING HERE so AI can match your tone exactly. Update as you publish more — your voice will sharpen over time.]
+## Message hierarchy
 
-Current voice notes:
-- Peer-to-peer, not brand-to-customer
-- Science-respecting but not academic — explain like a smart athlete, not a researcher
-- No words: revolutionary, game-changing, unlock, optimize, elevate, transform
-- Yes words: specific, honest, because, which means, the research says, in practice
-- Sentence length: varied, punchy, no corporate run-ons
-- Paragraphs: short — this audience reads on phones between training sessions
+1. **The coaching job:** what the coach or athlete is trying to accomplish.
+2. **The workflow:** how planning, completion, check-ins, and feedback fit together.
+3. **The benefit to validate:** clearer next steps, easier review, or less administrative work.
+4. **Supporting information:** training data, educational resources, research, or protocols when they help explain the decision.
 
-## Ambassador Roster
-[NAME | SPORT | PLATFORM | FOLLOWER COUNT | CONTACT | PRODUCT STATUS | NOTES]
-Example format: "Jane Smith | Ultrarunning | Instagram @janesmith | 4,200 followers | jane@email.com | Free access granted Month X | Racing WSER in June"
+Suggested introduction:
 
-## Email List
-- Platform: [Substack / ConvertKit / other]
-- Total size: [NUMBER]
-- Segment — free digest readers: [NUMBER]
-- Segment — paying platform subscribers: [NUMBER]
-- Segment — waitlist (not yet subscribed): [NUMBER]
+> Threshold is a shared workspace for coaches and athletes to plan training, stay connected, and make progress. We are building around the work of coaching: a clear plan, useful feedback, and adjustments as life and training change.
 
-## Lead Magnet
-[What you offer for email signup — e.g., "Free Heat Acclimation Protocol PDF" or "Free Race Nutrition Calculator"]
+Describe other coaching disciplines as a future ambition. Do not imply they are supported today.
 
-## Content That Has Performed Best
-[Add top posts/digests after publishing — note which drove the most email signups or subscriber conversions]
+## Content priorities
 
-## SEO Target Keywords (Long-Tail)
-These are the questions serious athletes actually Google — content should answer these:
-- "heat acclimation protocol for ultramarathon"
-- "sodium bicarbonate protocol for 100 mile race"
-- "how to train your gut for ultramarathon"
-- "does bicarb loading work for long distance"
-- "gut training carbohydrates absorption ultrarunning"
-- "heat training timing before race"
-- "HRV sleep protocol endurance athletes"
-- "how to track performance interventions endurance"
-- "TrainingPeaks alternative ultrarunning"
-- "what do elite ultrarunners do differently in training"
+| Audience | Useful topics | What to show or learn |
+| --- | --- | --- |
+| Coaches | Planning a week, reviewing an athlete, giving feedback, adjusting a session | A concrete workflow and where it saves effort |
+| Athletes | Understanding a session, reporting how it went, asking a coach a question | Clear next steps and accessible language |
+| Both | Changing plans around life, reviewing progress, preparing for a goal | How communication improves the next decision |
+| Pilot participants | Short walkthroughs, known limits, feedback prompts | Where people get stuck and what they need next |
 
-## Upcoming Race Calendar (for content timing)
-Time content to athlete prep cycles — publish relevant research 8-12 weeks before these events:
-- Western States 100: Late June
-- Leadville 100: Mid August
-- UTMB: Late August
-- Unbound Gravel: Early June
-- Ironman World Championship: October (Kona) / May (Nice)
-- Belgian Waffle Ride: May
+Research explainers and intervention topics remain optional supporting content. There is no required monthly research digest, intervention-led acquisition funnel, or publication calendar. Choose topics and cadence based on participant questions and available capacity.
 
-## Partnerships / Sponsors / Affiliates
-[None yet — add as they develop]
+## Voice and examples
+
+Be direct, specific, and respectful. Use short paragraphs and explain unfamiliar training terms. Write like someone helping a coach or athlete get a task done. Avoid hype, unsupported outcomes, and phrases such as "revolutionary," "game-changing," or "unlock your potential."
+
+- Prefer "Plan next week and review how this week went" to "Performance intelligence for athletes who go long."
+- Prefer "Share how the session felt with your coach" to "Build your intervention dataset."
+- Prefer "Review the sessions behind this trend" to "Discover what is scientifically working for your body."
+
+"The best coaching platform for athletes" expresses our ambition. Use concrete, verified benefits in customer claims rather than presenting that ambition as an established ranking.
+
+## Claims and publishing checks
+
+- Check feature availability against the roadmap and its evidence. Say whether a demonstration uses fictional data, local behavior, or a verified deployed workflow.
+- Do not promote a public trial or open coach billing before the applicable release gates pass.
+- Use the current pricing source linked in the business guide; do not invent discounts or dates.
+- Do not promise automatic plans, AI advice, device support, or non-athletic coaching availability.
+- Use measured results and approved testimonials only. Do not invent users, time savings, performance improvements, market size, or competitor limitations.
+- Obtain permission before using identifiable athlete stories, screenshots, messages, or results.
+- For research content, cite and check the underlying source, explain limitations, and avoid treating a personal training association as proof of a treatment or performance effect.
+- Check a community's current rules before posting. This guide does not authorize sending, posting, or contacting anyone on the owner's behalf.
+
+## Learning and distribution
+
+Start with pilot walkthroughs and conversations with coaches and athletes. Use their recurring questions to guide useful content and later referral material. A newsletter, social account, or ambassador program is an option, not an established channel or required launch dependency.
+
+When publishing is separately authorized, record the date, audience, topic, link, call to action, and actual response. Track useful conversations, pilot interest, activation, and repeat use rather than assuming views or digest subscriptions establish product value. No channel counts or publication commitments are asserted in this guide.

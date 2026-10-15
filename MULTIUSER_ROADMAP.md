@@ -1,5 +1,7 @@
 # UltraOS → Multi-User Roadmap
 
+> Historical planning document. As of 2026-10-15, [README-BUSINESS.md](README-BUSINESS.md) and [README-PLATFORM.md](README-PLATFORM.md) define Threshold's athlete-coaching direction. [PRODUCT_EXECUTION_ROADMAP.md](PRODUCT_EXECUTION_ROADMAP.md) controls the current work queue and acceptance status. The plans, claims, paths, and instructions below are retained as history and must not be used as current execution guidance.
+
 The goal: let other athletes sign up, log in to their own account, and have their data be completely private to them — while you retain admin visibility to verify things look correct.
 
 ---

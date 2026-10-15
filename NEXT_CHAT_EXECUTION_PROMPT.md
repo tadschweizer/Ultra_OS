@@ -1,5 +1,7 @@
 # Next execution session — no-cost real-user acceptance
 
+> Historical planning document. As of 2026-10-15, [README-BUSINESS.md](README-BUSINESS.md) and [README-PLATFORM.md](README-PLATFORM.md) define Threshold's athlete-coaching direction. [PRODUCT_EXECUTION_ROADMAP.md](PRODUCT_EXECUTION_ROADMAP.md) controls the current work queue and acceptance status. The plans, claims, paths, and instructions below are retained as history and must not be used as current execution guidance.
+
 Updated 2026-09-09. The previous baseline/research-only prompt was expanded by the owner to include
 P0-003 verification and P0-004/P0-005. Implementation is now recorded in PILOT_ACCESS_EXECUTION.md;
 use that record and the linked PRs rather than repeating completed local work.
