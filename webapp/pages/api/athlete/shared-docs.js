@@ -1,4 +1,5 @@
 import { getSupabaseAdminClient } from '../../../lib/authServer.js';
+import { safeSharedDocument } from '../../../lib/safeResourceUrl.js';
 import { getEffectiveAthleteIdFromRequest } from '../../../lib/auth/requireAthlete.js';
 
 // Server-side routes cannot use the anon client: it carries no Supabase
@@ -41,7 +42,7 @@ export function createAthleteSharedDocsHandler({ getClient = getSupabaseAdminCli
         return;
       }
 
-      res.status(200).json({ docs: data || [] });
+      res.status(200).json({ docs: (data || []).map(safeSharedDocument) });
     } catch {
       res.status(503).json({ error: 'Documents could not be loaded. Please retry.' });
     }

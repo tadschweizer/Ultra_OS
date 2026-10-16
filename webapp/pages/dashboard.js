@@ -1,3 +1,4 @@
+import { safeResourceUrl } from '../lib/safeResourceUrl.js';
 import TodayTraining from '../components/TodayTraining';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
@@ -941,11 +942,12 @@ export default function Dashboard() {
                   </div>
                   <p className="mt-2 text-xs uppercase tracking-[0.18em] text-ink/45">{doc.doc_type}</p>
                   {doc.content ? <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-ink/75">{doc.content}</p> : null}
-                  {doc.resource_url ? (
-                    <a href={doc.resource_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex rounded-full border border-ink/15 px-3 py-1 text-xs font-semibold text-ink/75 hover:bg-white">
-                      Open resource
+                  {safeResourceUrl(doc.resource_url) ? (
+                    <a href={safeResourceUrl(doc.resource_url)} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex rounded-full border border-ink/15 px-3 py-1 text-xs font-semibold text-ink/75 hover:bg-white">
+                      Open external resource
                     </a>
                   ) : null}
+                  {doc.doc_type === 'file' && <p className="mt-2 text-xs text-ink/60">External file. Not scanned by Threshold.</p>}
                 </article>
               ))}
             </div>

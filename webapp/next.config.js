@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const { withSentryConfig } = require("@sentry/nextjs");
+const { securityHeaders } = require('./lib/securityHeaders.cjs');
 
 const withPWA = require('@ducanh2912/next-pwa').default({
   dest: 'public',
@@ -13,6 +14,8 @@ const withPWA = require('@ducanh2912/next-pwa').default({
 });
 
 const nextConfig = {
+  poweredByHeader: false,
+  async headers() { return [{ source: '/:path*', headers: securityHeaders }]; },
   reactStrictMode: true,
   // Keep the development badge from covering the first mobile navigation tab.
   ...(process.env.PLAYWRIGHT_TEST === '1' ? { devIndicators: false } : {}),

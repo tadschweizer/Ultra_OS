@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { safeResourceUrl } from '../../../lib/safeResourceUrl.js';
 import { requireAdminAthleteId, requireAthleteId } from '../../../lib/auth/requireAthlete.js';
 
 function getAdminClient() {
@@ -60,6 +61,9 @@ export function createResearchAdminHandler({ getClient = getAdminClient } = {}) 
     }
 
     if (!(await requireAdminAthleteId(req, res, supabase))) return;
+    if (['POST', 'PUT'].includes(req.method) && req.body?.pubmed_url != null && !safeResourceUrl(req.body.pubmed_url)) {
+      return res.status(400).json({ error: 'A valid HTTPS publication URL is required.' });
+    }
 
     if (req.method === 'GET') {
       const { data, error } = await supabase

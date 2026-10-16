@@ -1,3 +1,4 @@
+import { safeResourceUrl } from '../lib/safeResourceUrl.js';
 import { useEffect, useMemo, useState } from 'react';
 import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
@@ -407,7 +408,7 @@ export default function Content() {
               {pubmedResults.map((result) => (
                 <article key={result.pubmed_id} className="rounded-[24px] border border-ink/10 bg-paper p-4">
                   <a
-                    href={result.pubmed_url}
+                    href={safeResourceUrl(result.pubmed_url) || undefined}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-lg font-semibold leading-tight text-ink transition hover:text-ink/70"
@@ -465,7 +466,7 @@ export default function Content() {
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <a
-                      href={entry.pubmed_url}
+                      href={safeResourceUrl(entry.pubmed_url) || undefined}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-2xl font-semibold leading-tight text-ink transition hover:text-ink/70 md:text-3xl"
@@ -509,7 +510,7 @@ export default function Content() {
                   <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <a
-                        href={entry.pubmed_url}
+                        href={safeResourceUrl(entry.pubmed_url) || undefined}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-sm font-semibold text-ink underline underline-offset-4"

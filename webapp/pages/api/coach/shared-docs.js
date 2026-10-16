@@ -1,4 +1,6 @@
 import { getSupabaseAdminClient } from '../../../lib/authServer.js';
+import { safeResourceUrl, safeSharedDocument } from '../../../lib/safeResourceUrl.js';
+import { requireSameOriginJson } from '../../../lib/billingSecurity.js';
 import {
   requireActiveCoachRelationship,
   requireCoachAccess,
@@ -12,6 +14,7 @@ const DOC_TYPES = ['text', 'link', 'file'];
 export function createCoachSharedDocsHandler({ getClient = getSupabaseAdminClient } = {}) {
   return async function handler(req, res) {
     res.setHeader('Cache-Control', 'private, no-store');
+    if (['POST', 'DELETE'].includes(req.method) && !requireSameOriginJson(req, res, req.method)) return;
     try {
       const supabase = getClient();
       const access = await requireCoachAccess(req, res, supabase);
@@ -45,12 +48,21 @@ export function createCoachSharedDocsHandler({ getClient = getSupabaseAdminClien
           return;
         }
 
-        res.status(200).json({ docs: data || [] });
+        res.status(200).json({ docs: (data || []).map(safeSharedDocument) });
         return;
       }
 
       if (req.method === 'POST') {
         const body = req.body || {};
+        if (typeof body.title !== 'string' || body.title.length > 200
+          || (body.content != null && (typeof body.content !== 'string' || body.content.length > 20000))
+          || (body.category != null && (typeof body.category !== 'string' || body.category.length > 100))) {
+          return res.status(400).json({ error: 'Invalid document fields or document too large.' });
+        }
+        const resourceUrl = body.resource_url ? safeResourceUrl(body.resource_url) : null;
+        if ((body.resource_url && !resourceUrl) || (['file', 'link'].includes(body.doc_type) && !resourceUrl)) {
+          return res.status(400).json({ error: 'Use a valid HTTPS resource link. Scripts, executable files and archives are not supported.' });
+        }
         if (!body.athlete_id) {
           res.status(400).json({ error: 'athlete_id is required' });
           return;
@@ -89,7 +101,7 @@ export function createCoachSharedDocsHandler({ getClient = getSupabaseAdminClien
             category: body.category?.trim() || 'General',
             doc_type: body.doc_type,
             content: body.content?.trim() || null,
-            resource_url: body.resource_url?.trim() || null,
+            resource_url: resourceUrl,
             sort_order: Number.isFinite(Number(body.sort_order)) ? Number(body.sort_order) : 0,
           })
           .select('*')

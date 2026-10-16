@@ -1,3 +1,4 @@
+import { safeResourceUrl } from '../lib/safeResourceUrl.js';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
@@ -193,6 +194,10 @@ function AthleteDrawer({ athlete, relationship, protocols, notes, docs = [], onC
   async function submitDoc(e) {
     e.preventDefault();
     setDocMsg('');
+    if (docForm.doc_type !== 'text' && !safeResourceUrl(docForm.resource_url)) {
+      setDocMsg('Use an HTTPS link to a supported resource. Scripts, executables and archives are not supported.');
+      return;
+    }
     const ok = await onAddDoc({ ...docForm, athlete_id: relationship.athlete_id });
     if (ok) {
       setDocForm({ title: '', category: 'General', doc_type: 'text', content: '', resource_url: '' });
@@ -333,7 +338,7 @@ function AthleteDrawer({ athlete, relationship, protocols, notes, docs = [], onC
                     <button type="button" onClick={() => onDeleteDoc(doc.id)} className="rounded-full border border-ink/10 px-2 py-1 text-xs text-ink/60">Remove</button>
                   </div>
                   {doc.content ? <p className="mt-2 text-sm leading-relaxed text-ink/80 whitespace-pre-wrap">{doc.content}</p> : null}
-                  {doc.resource_url ? <a href={doc.resource_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex text-xs font-semibold text-accent underline">Open resource</a> : null}
+                  {safeResourceUrl(doc.resource_url) ? <a href={safeResourceUrl(doc.resource_url)} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex text-xs font-semibold text-accent underline">Open resource</a> : null}
                 </div>
               ))}
             </div>
@@ -353,8 +358,9 @@ function AthleteDrawer({ athlete, relationship, protocols, notes, docs = [], onC
               </div>
               <textarea rows={3} placeholder="Type guidance or recommendations here" value={docForm.content} onChange={(e) => setDocForm((f) => ({ ...f, content: e.target.value }))} className="w-full rounded-xl border border-ink/10 bg-paper px-3 py-2 text-sm text-ink" />
               {(docForm.doc_type === 'link' || docForm.doc_type === 'file') && (
-                <input type="url" required placeholder="Paste YouTube, Drive, Dropbox, or file URL" value={docForm.resource_url} onChange={(e) => setDocForm((f) => ({ ...f, resource_url: e.target.value }))} className="w-full rounded-xl border border-ink/10 bg-paper px-3 py-2 text-sm text-ink" />
+                <input type="url" required placeholder="Paste an HTTPS resource link" value={docForm.resource_url} onChange={(e) => setDocForm((f) => ({ ...f, resource_url: e.target.value }))} className="w-full rounded-xl border border-ink/10 bg-paper px-3 py-2 text-sm text-ink" />
               )}
+              {docForm.doc_type !== 'text' && <p className="text-xs text-ink/60">External resources are hosted by another website and are not scanned by Threshold.</p>}
               <button type="submit" className="rounded-full bg-panel px-4 py-2 text-sm font-semibold text-paper">Save resource</button>
               {docMsg && <p className="text-xs text-ink/60">{docMsg}</p>}
             </form>
@@ -676,7 +682,7 @@ export default function CoachCommandCenter() {
 
   const handleDeleteDoc = useCallback(async (id) => {
     if (!openAthleteId) return;
-    const res = await fetch(`/api/coach/shared-docs?id=${id}`, { method: 'DELETE' });
+    const res = await fetch(`/api/coach/shared-docs?id=${id}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: '{}' });
     if (!res.ok) return;
     setDocsMap((m) => ({
       ...m,

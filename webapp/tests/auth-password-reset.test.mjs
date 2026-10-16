@@ -129,10 +129,10 @@ test('identifiers are bucketed case-insensitively', () => {
   assert.equal(normalizeIdentifier(null), '');
 });
 
-test('client IP prefers the proxy headers in order', () => {
-  assert.equal(getClientIp({ headers: { 'cf-connecting-ip': '1.1.1.1' } }), '1.1.1.1');
+test('client IP trusts only the deployment proxy', () => {
+  assert.equal(getClientIp({ headers: { 'cf-connecting-ip': '1.1.1.1' } }, {}), null);
   // First entry of x-forwarded-for is the original client.
-  assert.equal(getClientIp({ headers: { 'x-forwarded-for': '2.2.2.2, 3.3.3.3' } }), '2.2.2.2');
+  assert.equal(getClientIp({ headers: { 'x-forwarded-for': '2.2.2.2, 3.3.3.3' } }, { VERCEL: '1' }), '2.2.2.2');
   assert.equal(getClientIp({ headers: {}, socket: { remoteAddress: '4.4.4.4' } }), '4.4.4.4');
   assert.equal(getClientIp({ headers: {} }), null);
 });

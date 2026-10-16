@@ -110,7 +110,7 @@ test('shared documents persist through coach/athlete handlers and revoke access 
   const coachHandler=createCoachSharedDocsHandler({getClient:()=>f.admin});
   const athleteHandler=createAthleteSharedDocsHandler({getClient:()=>f.admin});
   const call=async(handler,actor,{method='GET',body={},query={},version=1}={})=>{
-    const res=response();await handler({method,body,query,headers:{cookie:actor?`athlete_id=${signAthleteSession(actor,version)}`:''}},res);return res;
+    const res=response();await handler({method,body,query,headers:{origin:'https://threshold.example','content-type':'application/json',cookie:actor?`athlete_id=${signAthleteSession(actor,version)}`:''}},res);return res;
   };
   try {
     let r=await call(coachHandler,owner,{method:'POST',body:{athlete_id:athlete,title:'Normal recovery',doc_type:'text',content:'Coach-written guidance'}});

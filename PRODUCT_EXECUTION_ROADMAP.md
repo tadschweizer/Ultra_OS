@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
-Last updated: 2026-10-11<br>
-Status: Main64a440e remains released and unchanged. Independent QA accepted the original coach-report patchc65a00a1 and the PR#138 timezone correction patchc09d80bb (304 assertions;42 boundary and60 nearby regression observations). The new artifact's independent gate is complete; its runtime/test bytes remain exact, with only acceptance documentation refreshed afterward. PR#138 is the review vehicle; its current published head, fresh CI and automatic preview are tracked in the PR checks and publication manifest. No merge, production deployment or server auth/schema/security change occurred.<br>
-Current milestone: M0 - make the closed coach pilot work end to end; PR#138 coach-report, shared-profile recovery and reconciliation timezone correction independently accepted, awaiting review of the corrected source and latest publication checks<br>
-Next item: Review PR#138's corrected athlete report against its latest head, standard CI and automatic preview; use docs/coach-report-correction/REPORT.md and task-root COACH_REPORT_BOUNDARY_PUBLICATION_MANIFEST.json for accepted-source identity and final publication evidence. Do not rerun the completed independent gate as the default queue. A new blocking review or check failure requires a bounded correction and matching verification before review can close. Merge, production deployment and new schema/security changes remain unauthorized. Physical-phone, hosted signed-workflow, fresh-account, real-mailbox and participant acceptance remain separate open gates; production NULL-score feasibility and the single unreproduced320px QA navigation timeout remain explicit limitations.
+Last updated: 2026-10-15<br>
+Status: Production security release is explicitly authorized. The exact security migration is applied and its live grants/RLS verified. Isolated release tests pass 476/476 and production build passes. Strava webhook ingestion remains disabled by owner decision; unrelated billing changes are excluded. See SECURITY_RELEASE_2026-10-15.md.<br>
+Current milestone: M0 - deploy and verify the scoped security hardening release, preserving the closed coach pilot.<br>
+Next item: Verify the staged security deployment, promote it and check production sign-in, protected readiness, security headers and webhook rejection. Then review firewall log-only traffic before enforcement; Strava provider signing support, broader hosted workflow and pilot acceptance remain open.
 
 ## Purpose
 
