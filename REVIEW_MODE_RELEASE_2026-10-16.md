@@ -45,3 +45,15 @@ See [Supabase RLS advisor explanation](https://supabase.com/docs/guides/database
 - CI, deployed checks and release commit: recorded below after release.
 
 These checks verify review mode; they do not certify all coaching workflows, physical-phone behavior, or the broader M0 pilot gates.
+
+## Release result
+
+[PR #140](https://github.com/tadschweizer/Ultra_OS/pull/140), implementation commit d25a24cfb34b858aac497b2f22bae50cc9662e38.
+[Full CI](https://github.com/tadschweizer/Ultra_OS/actions/runs/38959102217) passed: 482 regression checks, 4 integration checks, production build, 181 critical browser checks (3 existing intentional skips), and 6 calendar acceptance checks.
+Staged production deployment **dpl_94M4tLDCGmYRsFbzMMWQCdds4DFR** was tested and promoted to the main domains.
+
+Hosted checks on the staged build and www.mythreshold.co verified owner API/browser access, anonymous 401 and non-member 403 for reads/writes, mobile fit, revoked-session rejection, review access during view-as, and continued blocking of ordinary athlete mutations during view-as.
+A real deployment-verification note was saved, reloaded and resolved; no training/participant fixtures were created. The database has one reviewer, zero open notes and one resolved release note.
+Owner uses **Continue with Google**, selecting **tadschweizer@gmail.com**.
+
+This final evidence update changes documentation only; all application files match the tested implementation commit.

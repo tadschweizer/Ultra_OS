@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
 Last updated: 2026-10-16<br>
-Status: Owner-requested private site review built on production main e65d456; 482 local regressions, 4 desktop/mobile browser checks and production build pass. Private notes migration applied as 20261016195758. Release verification is in REVIEW_MODE_RELEASE_2026-10-16.md.<br>
-Current milestone: M0 - owner-directed private review mode release; existing coaching pilot acceptance gates remain open.<br>
-Next item: Complete private review deployment and hosted access verification, then collect owner feedback page by page. Preserve the billing/reliability queue and log-only firewall follow-up; Strava remains disabled. Physical-phone, mailbox and participant gates remain separate.
+Status: Owner-only review mode is deployed and verified on www.mythreshold.co (dpl_94M4tLDCGmYRsFbzMMWQCdds4DFR), PR #140 / implementation d25a24c. CI passed 482 regression, 4 integration, 181 browser (3 intentional skips), and 6 calendar checks. See REVIEW_MODE_RELEASE_2026-10-16.md. Notes migration 20261016195758 is applied; do not replay.<br>
+Current milestone: M0 - private owner review mode delivered; collect real-site feedback while existing coaching pilot acceptance gates remain open.<br>
+Next item: Owner signs in with Google (tadschweizer@gmail.com) and uses Leave feedback to review the actual website page by page. Triage saved notes next; preserve the billing/reliability queue, log-only firewall follow-up, and separate physical-phone/mailbox/participant gates. Strava remains disabled.
 
 ## Purpose
 
