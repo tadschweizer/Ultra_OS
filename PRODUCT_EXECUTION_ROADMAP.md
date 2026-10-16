@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
 Last updated: 2026-10-15<br>
-Status: Production security release is explicitly authorized. The exact security migration is applied and its live grants/RLS verified. Isolated release tests pass 476/476 and production build passes. Strava webhook ingestion remains disabled by owner decision; unrelated billing changes are excluded. See SECURITY_RELEASE_2026-10-15.md.<br>
-Current milestone: M0 - deploy and verify the scoped security hardening release, preserving the closed coach pilot.<br>
-Next item: Verify the staged security deployment, promote it and check production sign-in, protected readiness, security headers and webhook rejection. Then review firewall log-only traffic before enforcement; Strava provider signing support, broader hosted workflow and pilot acceptance remain open.
+Status: Security commit 997f7a6 is deployed to mythreshold.co as dpl_4AZUPTKLJbicGvosJnVpxZYA6XvB. Exact migration 20261016034417 is applied; live grants/RLS verified. Isolated tests pass 476/476, build and 2 browser checks pass, and staged plus production acceptance pass 29 checks each. PR #139 records the isolated release. Unrelated billing changes are excluded. See SECURITY_RELEASE_2026-10-15.md.<br>
+Current milestone: M0 - scoped security protections deployed and checked; continue closed coach pilot reliability and remaining operational security acceptance.<br>
+Next item: Finish PR #139 CI/review and source integration; review authentication firewall log-only traffic before enforcement. Strava signing interoperability remains unverified and ingestion is disabled by owner decision. Preserve the prior billing/reliability queue and separate physical-phone, hosted workflow, mailbox and participant acceptance gates.
 
 ## Purpose
 

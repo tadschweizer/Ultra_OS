@@ -20,12 +20,14 @@ The release branch is based on production/main `49db06b0af16e0a03876fe16c8932aeb
 - Regression suite: **476 passed**, zero failures/skips (`output/security-isolated-regression.log` in the canonical checkout).
 - Production build: passed (`output/security-isolated-build.log`).
 - The earlier 481-test result included the separate billing branch; 476 is the correct count for this isolated security release.
-- Initial browser checks: 35 passed, 3 intentional project exclusions on the original working branch. Release-specific checks and deployment identity are recorded below as they finish.
+- Isolated release desktop/mobile malicious-resource browser checks: **2/2 passed** (`output/security-isolated-browser.log`). Earlier broader browser checks on the original working branch passed 35 with 3 intentional project exclusions.
 
 ## Deployment acceptance
 
-Pending staged production deployment, signed QA login, readiness/header/webhook checks and production promotion.
+Deployed commit `997f7a6` as Vercel production deployment `dpl_4AZUPTKLJbicGvosJnVpxZYA6XvB` (Next.js 16.4.2). The staged production URL passed 29 checks before promotion. After promotion, `https://mythreshold.co` passed the same 29 checks: browser headers, public health, two unauthorized-readiness cases, three authorized readiness requests, three Stripe no-op signature cases, disabled Strava/COROS ingestion, two real QA logins/profile reads, six direct protected-RPC denials under the two QA identities, four unsafe-file/link rejections, cross-origin rejection, and coach/athlete document reads. Evidence: `output/security-staged-acceptance.json` and `output/security-production-acceptance.json` in the canonical checkout. No payment was created and no malicious document was persisted.
 
 ## Remaining limits
 
 External-file links are screened by URL and extension; their bytes are not malware-scanned. Strict script CSP remains report-only; object/frame/base protections are enforced. Strava signing interoperability remains unavailable/unverified. Six high dependency findings remain in the Tailwind/PWA glob build chain with no compatible patched release at verification. These limits are not silently marked complete.
+
+Source review and CI: https://github.com/tadschweizer/Ultra_OS/pull/139. The application is deployed from the isolated security branch; merge/CI state is tracked in the PR, separately from live acceptance.
