@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
-Last updated: 2026-10-15<br>
-Status: Security commit 997f7a6 is deployed to mythreshold.co as dpl_4AZUPTKLJbicGvosJnVpxZYA6XvB. Exact migration 20261016034417 is applied; live grants/RLS verified. Isolated tests pass 476/476, build and 2 browser checks pass, and staged plus production acceptance pass 29 checks each. PR #139 records the isolated release. Unrelated billing changes are excluded. See SECURITY_RELEASE_2026-10-15.md.<br>
-Current milestone: M0 - scoped security protections deployed and checked; continue closed coach pilot reliability and remaining operational security acceptance.<br>
-Next item: Finish PR #139 CI/review and source integration; review authentication firewall log-only traffic before enforcement. Strava signing interoperability remains unverified and ingestion is disabled by owner decision. Preserve the prior billing/reliability queue and separate physical-phone, hosted workflow, mailbox and participant acceptance gates.
+Last updated: 2026-10-16<br>
+Status: Owner-only review mode is deployed and verified on www.mythreshold.co (dpl_94M4tLDCGmYRsFbzMMWQCdds4DFR), PR #140 / implementation d25a24c. CI passed 482 regression, 4 integration, 181 browser (3 intentional skips), and 6 calendar checks. See REVIEW_MODE_RELEASE_2026-10-16.md. Notes migration 20261016195758 is applied; do not replay.<br>
+Current milestone: M0 - private owner review mode delivered; collect real-site feedback while existing coaching pilot acceptance gates remain open.<br>
+Next item: Owner signs in with Google (tadschweizer@gmail.com) and uses Leave feedback to review the actual website page by page. Triage saved notes next; preserve the billing/reliability queue, log-only firewall follow-up, and separate physical-phone/mailbox/participant gates. Strava remains disabled.
 
 ## Purpose
 

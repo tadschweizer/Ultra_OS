@@ -6,6 +6,7 @@ import ImpersonationBanner from '../components/ImpersonationBanner';
 import OnboardingGate from '../components/OnboardingGate';
 import TrustLinks from '../components/TrustLinks';
 import StravaAttribution from '../components/StravaAttribution';
+import SiteReview from '../components/SiteReview';
 
 
 /**
@@ -77,6 +78,7 @@ export default function MyApp({ Component, pageProps }) {
           </div>
         </AppShell>
       </OnboardingGate>
+      <SiteReview />
     </div>
   );
 }
