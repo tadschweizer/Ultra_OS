@@ -9,6 +9,7 @@
     "pages:build": "npx @cloudflare/next-on-pages",
     "pages:deploy": "npm run pages:build && wrangler pages deploy",
     "pages:preview": "npm run pages:build && wrangler pages dev",
+    "test:security": "node --test tests/security-hardening.test.mjs tests/billing-webhook.test.mjs tests/strava-lifecycle.test.mjs",
     "test:auth": "node --test tests/auth-regression.test.mjs tests/auth-oauth-regression.test.mjs tests/auth-password-reset.test.mjs",
     "test:protocols": "node --test tests/protocol-lifecycle.test.mjs",
     "test:auth:smoke": "node --test tests/auth-smoke.test.mjs tests/auth-regression.test.mjs tests/auth-oauth-regression.test.mjs tests/auth-password-reset.test.mjs",
@@ -22,7 +23,7 @@
     "test:e2e:roles": "playwright test e2e/role-aware-navigation.spec.mjs",
     "test:integrations": "node --test tests/integration-availability.test.mjs",
     "test:e2e:pilot-ux": "playwright test e2e/pilot-ux.spec.mjs",
-    "test:auth:full": "node --test tests/auth-smoke.test.mjs tests/auth-regression.test.mjs tests/auth-oauth-regression.test.mjs tests/auth-password-reset.test.mjs tests/role-access.test.mjs tests/research-admin.test.mjs tests/pilot-entitlements.test.mjs tests/billing-plans.test.mjs tests/billing-flow.test.mjs tests/coach-group-membership.test.mjs tests/coach-invitation-api.test.mjs tests/coach-invitation-migration.test.mjs tests/protocol-lifecycle.test.mjs tests/delete-account.test.mjs tests/workout-compliance.test.mjs tests/training-calculations.test.mjs tests/training-insights.test.mjs tests/coach-import-health.test.mjs tests/stream-analysis.test.mjs tests/admin-demo.test.mjs tests/activity-sync.test.mjs tests/strava-lifecycle.test.mjs tests/workout-comments.test.mjs tests/readiness.test.mjs tests/billing-webhook.test.mjs tests/billing-webhook-sql.test.mjs tests/account-data.test.mjs tests/staging-safety.test.mjs tests/subscription-tiers.test.mjs tests/volume-trends.test.mjs tests/daily-loop.test.mjs tests/workout-match.test.mjs tests/message-lifecycle.test.mjs tests/ai-deferral.test.mjs tests/pilot-release.test.mjs tests/pilot-release-api.test.mjs tests/workout-library.test.mjs tests/workspace-transport-integration.test.mjs tests/calendar-gap-acceptance.test.mjs tests/coach-report.test.mjs tests/me-client-recovery.test.mjs",
+    "test:auth:full": "node --test tests/security-hardening.test.mjs tests/auth-smoke.test.mjs tests/auth-regression.test.mjs tests/auth-oauth-regression.test.mjs tests/auth-password-reset.test.mjs tests/role-access.test.mjs tests/research-admin.test.mjs tests/pilot-entitlements.test.mjs tests/billing-plans.test.mjs tests/billing-flow.test.mjs tests/coach-group-membership.test.mjs tests/coach-invitation-api.test.mjs tests/coach-invitation-migration.test.mjs tests/protocol-lifecycle.test.mjs tests/delete-account.test.mjs tests/workout-compliance.test.mjs tests/training-calculations.test.mjs tests/training-insights.test.mjs tests/coach-import-health.test.mjs tests/stream-analysis.test.mjs tests/admin-demo.test.mjs tests/activity-sync.test.mjs tests/strava-lifecycle.test.mjs tests/workout-comments.test.mjs tests/readiness.test.mjs tests/billing-webhook.test.mjs tests/billing-webhook-sql.test.mjs tests/account-data.test.mjs tests/staging-safety.test.mjs tests/subscription-tiers.test.mjs tests/volume-trends.test.mjs tests/daily-loop.test.mjs tests/workout-match.test.mjs tests/message-lifecycle.test.mjs tests/ai-deferral.test.mjs tests/pilot-release.test.mjs tests/pilot-release-api.test.mjs tests/workout-library.test.mjs tests/workspace-transport-integration.test.mjs tests/calendar-gap-acceptance.test.mjs tests/coach-report.test.mjs tests/me-client-recovery.test.mjs",
     "test:billing": "node --test tests/billing-plans.test.mjs tests/billing-flow.test.mjs tests/billing-webhook.test.mjs tests/billing-webhook-sql.test.mjs",
     "test:e2e:billing": "playwright test e2e/billing-review.spec.mjs",
     "test:trust": "node --test tests/account-data.test.mjs tests/delete-account.test.mjs tests/staging-safety.test.mjs tests/subscription-tiers.test.mjs tests/volume-trends.test.mjs",
@@ -45,7 +46,7 @@
     "axios": "^1.6.7",
     "cookie": "^0.7.2",
     "exa-js": "^2.13.0",
-    "next": "16.2.11",
+    "next": "16.4.2",
     "pg": "^8.20.0",
     "postcss": "^8.4.24",
     "react": "18.2.0",
@@ -55,6 +56,7 @@
     "workbox-webpack-plugin": "^7.4.0",
     "zod": "^4.4.3"
   },
+  "overrides": { "serialize-javascript": "7.1.2", "postcss-selector-parser": "7.1.6" },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
     "@cloudflare/next-on-pages": "^1.13.16",

@@ -1,5 +1,6 @@
 import { getSupabaseAdminClient } from '../../../lib/authServer';
 import { requireCoachAccess } from '../../../lib/auth/roleAccessServer.js';
+import { safeResourceUrl } from '../../../lib/safeResourceUrl.js';
 
 // Coach tables are no longer reachable with the public anon key (RLS is on and
 // the anon grants are revoked), so this route uses the service-role client.
@@ -22,6 +23,9 @@ export default async function handler(req, res) {
     // ── PATCH: update editable profile fields ────────────────────────────────
     if (req.method === 'PATCH') {
       const body = req.body || {};
+      if (body.avatar_url && !safeResourceUrl(body.avatar_url)) {
+        return res.status(400).json({ error: 'Use a valid HTTPS image URL.' });
+      }
       const updates = {};
       const editable = ['display_name', 'bio', 'specialties', 'certifications', 'avatar_url', 'max_athletes'];
       for (const key of editable) {

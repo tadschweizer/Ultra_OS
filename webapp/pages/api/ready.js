@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/nextjs';
+import crypto from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { databaseProbe, schemaProbe, evaluateReadiness } from '../../lib/readiness.js';
 
@@ -24,6 +25,7 @@ export function createReadinessHandler({
   timeoutMs,
   now,
   alert = defaultAlert,
+  secret,
 } = {}) {
   return async function handler(req, res) {
     res.setHeader?.('Cache-Control', 'no-store');
@@ -31,6 +33,20 @@ export function createReadinessHandler({
       res.setHeader?.('Allow', 'GET, HEAD');
       res.status(405).json({ error: 'Method not allowed' });
       return;
+    }
+    // Deep health probes are for authenticated monitoring. A missing configured
+    // secret must not silently turn the production endpoint public again.
+    if (secret) {
+      const expected = secret();
+      const actual = req.headers?.authorization;
+      if (typeof expected !== 'string' || expected.length < 32) {
+        return res.status(503).json({ status: 'unconfigured' });
+      }
+      const token = `Bearer ${expected}`;
+      if (typeof actual !== 'string' || Buffer.byteLength(actual) !== Buffer.byteLength(token)
+        || !crypto.timingSafeEqual(Buffer.from(actual), Buffer.from(token))) {
+        return res.status(401).json({ error: 'Not authenticated.' });
+      }
     }
     const { ready, results } = await evaluateReadiness({
       checks: { database: databaseProbe(getClient), schema: schemaProbe(getClient) },
@@ -54,4 +70,4 @@ function defaultAlert(results) {
   }
 }
 
-export default createReadinessHandler();
+export default createReadinessHandler({ secret: () => process.env.READINESS_PROBE_SECRET });

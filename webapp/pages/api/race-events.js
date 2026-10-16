@@ -1,4 +1,5 @@
 import { getSupabaseAdminClient } from '../../lib/authServer.js';
+import { safeResourceUrl } from '../../lib/safeResourceUrl.js';
 import { getAthleteIdFromRequest } from '../../lib/auth/sessionCookies.js';
 import { getEffectiveAthleteIdFromRequest } from '../../lib/auth/requireAthlete.js';
 
@@ -50,6 +51,9 @@ export default async function handler(req, res) {
 
   if (req.method === 'POST') {
     const body = req.body || {};
+    if (body.url && !safeResourceUrl(body.url)) {
+      return res.status(400).json({ error: 'Use a valid HTTPS race URL.' });
+    }
     if (!body.name?.trim()) {
       res.status(400).json({ error: 'Name is required' });
       return;

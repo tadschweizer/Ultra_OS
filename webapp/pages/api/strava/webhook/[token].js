@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { readBoundedBody, verifyStravaSignature } from '../../../../lib/webhookVerification.js';
 import { getSupabaseAdminClient } from '../../../../lib/authServer.js';
 
 const sameSecret = (a, b) => {
@@ -9,8 +10,7 @@ const sameSecret = (a, b) => {
 const id = value => (typeof value === 'number' && Number.isSafeInteger(value) && value > 0)
   || (typeof value === 'string' && /^[1-9]\d{0,18}$/.test(value));
 
-// Strava does not sign POST bodies. The registered callback has a random,
-// server-only path secret, and must also match the configured subscription ID.
+// Verify signed raw POST bodies as well as the callback path and subscription.
 // Never log the callback URL. Provider network calls are outside this fast handler.
 export function createStravaWebhookHandler({ getClient = getSupabaseAdminClient,
   env = () => process.env } = {}) {
@@ -29,7 +29,15 @@ export function createStravaWebhookHandler({ getClient = getSupabaseAdminClient,
       return res.status(200).json({ 'hub.challenge': req.query['hub.challenge'] });
     }
     if (req.method !== 'POST') { res.setHeader('Allow', 'GET, POST'); return res.status(405).json({ error: 'Method not allowed.' }); }
-    const event = req.body;
+    if (!config.STRAVA_WEBHOOK_SIGNING_SECRET) return res.status(503).json({ error: 'Webhook unavailable.' });
+    let event;
+    try {
+      const raw = await readBoundedBody(req, 16 * 1024);
+      if (!verifyStravaSignature(raw, req.headers?.['x-strava-signature'], config.STRAVA_WEBHOOK_SIGNING_SECRET)) {
+        return res.status(403).json({ error: 'Invalid signature.' });
+      }
+      event = JSON.parse(raw.toString('utf8'));
+    } catch { return res.status(400).json({ error: 'Invalid event.' }); }
     if (!id(config.STRAVA_WEBHOOK_SUBSCRIPTION_ID)) return res.status(503).json({ error: 'Webhook unavailable.' });
     if (!event || !id(event.subscription_id) || String(event.subscription_id) !== config.STRAVA_WEBHOOK_SUBSCRIPTION_ID) {
       return res.status(403).json({ error: 'Invalid subscription.' });
@@ -52,5 +60,5 @@ export function createStravaWebhookHandler({ getClient = getSupabaseAdminClient,
     } catch { return res.status(503).json({ error: 'Event could not be saved. Retry delivery.' }); }
   };
 }
-export const config = { api: { bodyParser: { sizeLimit: '16kb' } } };
+export const config = { api: { bodyParser: false } };
 export default createStravaWebhookHandler();

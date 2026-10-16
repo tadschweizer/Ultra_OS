@@ -1,4 +1,6 @@
 import test from 'node:test';
+import crypto from 'node:crypto';
+import { Readable } from 'node:stream';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
@@ -140,13 +142,19 @@ test('revoked Threshold session cannot disconnect or import', async () => {
   const res=response();await handler(request(),res);assert.equal(res.code,401);
 });
 test('webhook validates both path secret and subscription; challenge does not touch database', async () => {
-  let calls=0;const env={STRAVA_WEBHOOK_CALLBACK_SECRET:'a'.repeat(48),STRAVA_WEBHOOK_VERIFY_TOKEN:'verify-only',STRAVA_WEBHOOK_SUBSCRIPTION_ID:'55'};
+  let calls=0;const env={STRAVA_WEBHOOK_CALLBACK_SECRET:'a'.repeat(48),STRAVA_WEBHOOK_SIGNING_SECRET:'test-signing-secret',STRAVA_WEBHOOK_VERIFY_TOKEN:'verify-only',STRAVA_WEBHOOK_SUBSCRIPTION_ID:'55'};
   const handler=createStravaWebhookHandler({env:()=>env,getClient:()=>({rpc:async()=>{calls++;return {};}})});
   const query={token:env.STRAVA_WEBHOOK_CALLBACK_SECRET,'hub.mode':'subscribe','hub.verify_token':'verify-only','hub.challenge':'challenge'};
   let res=response();await handler({method:'GET',query},res);assert.equal(res.code,200);assert.equal(res.body['hub.challenge'],'challenge');assert.equal(calls,0);
   res=response();await handler({method:'GET',query:{...query,token:'ø'.repeat(48)}},res);assert.equal(res.code,404);
-  res=response();await handler({method:'POST',query,body:{subscription_id:56}},res);assert.equal(res.code,403);assert.equal(calls,0);
-  res=response();await handler({method:'POST',query,body:{subscription_id:55,owner_id:100,object_id:123,event_time:1791043200,object_type:'activity',aspect_type:'delete'}},res);
+  const signed = body => {
+    const raw = JSON.stringify(body), t = Math.floor(Date.now()/1000);
+    const req = Readable.from([Buffer.from(raw)]);
+    Object.assign(req,{method:'POST',query,headers:{'x-strava-signature':`t=${t},v1=${crypto.createHmac('sha256',env.STRAVA_WEBHOOK_SIGNING_SECRET).update(`${t}.${raw}`).digest('hex')}`}});
+    return req;
+  };
+  res=response();await handler(signed({subscription_id:56}),res);assert.equal(res.code,403);assert.equal(calls,0);
+  res=response();await handler(signed({subscription_id:55,owner_id:100,object_id:123,event_time:1791043200,object_type:'activity',aspect_type:'delete'}),res);
   assert.equal(res.code,200);assert.equal(calls,1);
 });
 

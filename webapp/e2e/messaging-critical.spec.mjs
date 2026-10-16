@@ -56,7 +56,10 @@ test('failed send preserves draft and pending send locks editing and repeat subm
   release(); await expect(page.locator('main [role="alert"]')).toContainText('Unable to send message');
   await expect(page.getByLabel('Your message')).toHaveValue('Keep this draft after failure.'); expect(store.posts).toHaveLength(1);
   store.fail = false; await page.getByRole('button', { name: 'Send', exact: true }).click();
-  await expect(page.getByText('Keep this draft after failure.', { exact: true })).toBeVisible(); expect(store.messages).toHaveLength(1);
+  // Optimistic text can appear before the route handler acknowledges the retry.
+  await expect.poll(() => store.messages.length).toBe(1);
+  await expect(page.getByLabel('Your message')).toHaveValue('');
+  await expect(page.getByText('Keep this draft after failure.', { exact: true })).toBeVisible();
 });
 
 test('athlete without an active conversation cannot submit a message', async ({ page }) => {

@@ -1,3 +1,4 @@
+import { safeResourceUrl } from '../lib/safeResourceUrl.js';
 import { useEffect, useState } from 'react';
 import NavMenu from '../components/NavMenu';
 import RaceSearchInput from '../components/RaceSearchInput';
@@ -386,9 +387,9 @@ export default function RacesPage() {
                           {event.distance_miles && <span>{event.distance_miles} mi</span>}
                           {event.race_type && <span>{event.race_type}</span>}
                         </div>
-                        {event.url && (
+                        {safeResourceUrl(event.url) && (
                           <a
-                            href={event.url}
+                            href={safeResourceUrl(event.url)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="mt-1.5 block text-xs text-accent underline"

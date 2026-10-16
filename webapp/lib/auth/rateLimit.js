@@ -1,7 +1,9 @@
+import crypto from 'node:crypto';
+import { isIP } from 'node:net';
 /**
  * Durable rate limiting and lockout for the auth endpoints.
  *
- * Backed by the `auth_attempts` table rather than process memory: the app
+ * Backed by atomic `auth_rate_buckets` reservations rather than process memory: the app
  * runs on serverless (Cloudflare Pages / Vercel), where an in-memory counter
  * resets on every cold start and is never shared between instances — which
  * makes it useless against exactly the distributed guessing it is meant to
@@ -12,10 +14,7 @@
  *     grinding one account from many addresses; and
  *   - per IP, which stops one host spraying many accounts.
  *
- * Failures are fail-OPEN. If the database is unreachable, we let the request
- * through rather than locking every user out of the product — availability of
- * the login page matters more than a perfect limiter, and the password check
- * itself still has to pass.
+ * Requests reserve atomic database counters before provider work. Errors fail closed.
  */
 
 export const RATE_LIMITS = Object.freeze({
@@ -45,40 +44,18 @@ export const RATE_LIMITED_MESSAGE =
   'Too many attempts. Wait a few minutes and try again.';
 
 /**
- * Best-effort client IP. Cloudflare sets cf-connecting-ip; most other proxies
- * set x-forwarded-for, whose first entry is the original client.
+ * Trust only the known deployment proxy; local requests use their socket IP.
  */
-export function getClientIp(req) {
-  const header = (name) => {
-    const value = req?.headers?.[name];
-    return Array.isArray(value) ? value[0] : value;
-  };
-  const cf = header('cf-connecting-ip');
-  if (cf) return cf.trim();
-  const forwarded = header('x-forwarded-for');
-  if (forwarded) return forwarded.split(',')[0].trim();
-  const real = header('x-real-ip');
-  if (real) return real.trim();
-  return req?.socket?.remoteAddress || null;
+export function getClientIp(req, env = process.env) {
+  // Vercel overwrites x-forwarded-for. Do not trust arbitrary Cloudflare headers
+  // on a directly reachable Vercel deployment or untrusted forwarded headers locally.
+  const candidate = env.VERCEL === '1' ? req?.headers?.['x-forwarded-for'] : req?.socket?.remoteAddress;
+  const value = typeof candidate === 'string' ? candidate.split(',')[0].trim() : '';
+  return isIP(value) ? value : null;
 }
-
 /** Emails are bucketed case-insensitively so casing can't split the counter. */
 export function normalizeIdentifier(value) {
   return typeof value === 'string' ? value.trim().toLowerCase() : '';
-}
-
-async function countRecentFailures(admin, { kind, identifier, windowMs }) {
-  const since = new Date(Date.now() - windowMs).toISOString();
-  const { count, error } = await admin
-    .from('auth_attempts')
-    .select('id', { count: 'exact', head: true })
-    .eq('kind', kind)
-    .eq('identifier', identifier)
-    .eq('succeeded', false)
-    .gte('created_at', since);
-
-  if (error) throw error;
-  return count ?? 0;
 }
 
 /**
@@ -92,15 +69,16 @@ export async function recordAuthAttempt(admin, { kind, identifier, ip, succeeded
     if (normalized) rows.push({ kind, identifier: normalized, ip: ip || null, succeeded });
     if (ip) rows.push({ kind, identifier: `ip:${ip}`, ip, succeeded });
     if (!rows.length) return;
-    await admin.from('auth_attempts').insert(rows);
+    const { error } = await admin.from('auth_attempts').insert(rows);
+    if (error) throw error;
   } catch (error) {
     console.error('[rateLimit] could not record attempt:', error?.message);
   }
 }
 
 /**
- * Clears the failure counters for an identifier after a genuine success, so a
- * user who fumbled their password a few times isn't left near the limit.
+ * Clears legacy failure audit rows after success. Atomic request reservations
+ * intentionally remain until expiry, so success cannot reset the abuse budget.
  */
 export async function clearAuthAttempts(admin, { kind, identifier, ip }) {
   try {
@@ -127,52 +105,38 @@ export async function clearAuthAttempts(admin, { kind, identifier, ip }) {
 }
 
 /**
- * Returns { allowed, retryAfterSeconds }. Fails open on database errors.
+ * Returns { allowed, retryAfterSeconds }. Fails closed on database errors.
  */
 export async function checkAuthRateLimit(admin, { kind, identifier, ip }) {
   const policy = RATE_LIMITS[kind];
-  if (!policy) return { allowed: true, retryAfterSeconds: 0 };
-
+  if (!policy) return { allowed: false, unavailable: true, retryAfterSeconds: 60 };
   try {
-    const checks = [];
+    const buckets = [{ value: `ip:${ip || 'unknown'}`, ...policy.ip }];
     const normalized = normalizeIdentifier(identifier);
-    if (normalized) {
-      checks.push({ identifier: normalized, ...policy.identifier });
-    }
-    if (ip) {
-      checks.push({ identifier: `ip:${ip}`, ...policy.ip });
-    }
-
-    for (const check of checks) {
-      const failures = await countRecentFailures(admin, {
-        kind,
-        identifier: check.identifier,
-        windowMs: check.windowMs,
+    if (normalized) buckets.push({ value: `identifier:${normalized}`, ...policy.identifier });
+    for (const bucket of buckets) {
+      const { data, error } = await admin.rpc('consume_auth_rate_limit', {
+        p_key: crypto.createHash('sha256').update(`${kind}:${bucket.value}`).digest('hex'),
+        p_limit: bucket.limit, p_window_seconds: bucket.windowMs / 1000,
       });
-      if (failures >= check.limit) {
-        return {
-          allowed: false,
-          retryAfterSeconds: Math.ceil(check.windowMs / 1000),
-        };
-      }
+      if (error || typeof data !== 'boolean') throw new Error('Rate limiter unavailable');
+      if (!data) return { allowed: false, retryAfterSeconds: bucket.windowMs / 1000 };
     }
-
     return { allowed: true, retryAfterSeconds: 0 };
-  } catch (error) {
-    console.error('[rateLimit] check failed, allowing request:', error?.message);
-    return { allowed: true, retryAfterSeconds: 0 };
+  } catch {
+    console.error('[rateLimit] limiter unavailable; request rejected');
+    return { allowed: false, unavailable: true, retryAfterSeconds: 60 };
   }
 }
-
 /**
  * Guard for an API handler. Writes the 429 response and returns false when the
  * caller must stop; returns true when the request may proceed.
  */
 export async function enforceAuthRateLimit(admin, res, { kind, identifier, ip }) {
-  const { allowed, retryAfterSeconds } = await checkAuthRateLimit(admin, { kind, identifier, ip });
+  const { allowed, unavailable, retryAfterSeconds } = await checkAuthRateLimit(admin, { kind, identifier, ip });
   if (allowed) return true;
 
   res.setHeader('Retry-After', String(retryAfterSeconds));
-  res.status(429).json({ error: RATE_LIMITED_MESSAGE });
+  res.status(unavailable ? 503 : 429).json({ error: unavailable ? 'Sign-in protection is temporarily unavailable. Please retry.' : RATE_LIMITED_MESSAGE });
   return false;
 }
