@@ -10,6 +10,11 @@ const withPWA = require('@ducanh2912/next-pwa').default({
   disable: process.env.NODE_ENV === 'development',
   workboxOptions: {
     disableDevLogs: true,
+    // Private reviewer access and notes must never survive in an offline cache.
+    runtimeCaching: [
+      { urlPattern: ({ url }) => url.pathname === '/api/site-review', handler: 'NetworkOnly' },
+      ...require('@ducanh2912/next-pwa').runtimeCaching,
+    ],
   },
 });
 

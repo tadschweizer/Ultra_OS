@@ -63,7 +63,8 @@ export async function middleware(req) {
   }
 
   // Exiting impersonation and logging out must always work.
-  if (pathname === '/api/admin/impersonate' || pathname.startsWith('/api/auth/')) {
+  // Review notes are owner-only and never write to the impersonated athlete.
+  if (pathname === '/api/site-review' || pathname === '/api/admin/impersonate' || pathname.startsWith('/api/auth/')) {
     return NextResponse.next();
   }
 
