@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
 Last updated: 2026-10-16<br>
-Status: Weekly planning and coach/athlete review workflow deployed with owner authorization on mythreshold.co and www.mythreshold.co, PR #141 / main 0415ffe, Vercel dpl_EV67hYZtVjzAx4wRc7pVLEfe6BFG READY. Migration 20261017012725 applied; do not replay local 20261017003222. See WEEKLY_COACHING_RELEASE_2026-10-16.md. Owner review mode and prior security controls remain deployed.<br>
-Current milestone: M0 - calendar Copy week destination-picker follow-up implemented locally; weekly planning and coaching review are deployed; owner-approved no-charge coach pilot access is active through November 15, 2026 at 6:55 PM Mountain. Live owner calendar, roster, planning controls and review queue verified. Real-participant acceptance remains open.<br>
-Next item: Review and release the tested Copy week destination-picker follow-up, then use the owner coach and athlete accounts to walk through a real assigned week, completion, request/reply, review and upcoming adjustment. Final CI passed 488 regression, 191 browser (3 intentional skips), and 6 calendar checks. Preserve physical-phone/mailbox/participant gates and billing/reliability queue. Strava/COROS/Suunto in progress; Garmin next.
+Status: Copy week destination picker released through PR #142 / merge 72e4ce5, Vercel dpl_F85PBT7KHehZze8RwKeUhXDHZD79 READY on both production domains. Weekly planning and coach/athlete review workflow deployed with owner authorization on mythreshold.co and www.mythreshold.co, PR #141 / main 0415ffe, Vercel dpl_EV67hYZtVjzAx4wRc7pVLEfe6BFG READY. Migration 20261017012725 applied; do not replay local 20261017003222. See WEEKLY_COACHING_RELEASE_2026-10-16.md. Owner review mode and prior security controls remain deployed.<br>
+Current milestone: M0 - calendar Copy week destination picker merged and deployed with user authorization; weekly planning and coaching review are deployed; owner-approved no-charge coach pilot access is active through November 15, 2026 at 6:55 PM Mountain. Live owner calendar, roster, planning controls and review queue verified. Real-participant acceptance remains open.<br>
+Next item: Use the owner coach and athlete accounts to walk through a real assigned week, completion, request/reply, review and upcoming adjustment. Final CI passed 488 regression, 191 browser (3 intentional skips), and 6 calendar checks. Preserve physical-phone/mailbox/participant gates and billing/reliability queue. Strava/COROS/Suunto in progress; Garmin next.
 
 ## Purpose
 
@@ -1064,3 +1064,13 @@ Owner pilot access approved and provisioned 2026-10-17 01:55 UTC for 30 days, wi
 - No production migration or deployment performed for this follow-up. Physical-phone and real-participant acceptance remain separate.
 
 - Release follow-up: CI run 38994276211 found transient Send-button contrast during its disabled-to-enabled opacity fade. Removed that button transition; keep the accessibility assertion intact and require fresh full CI before merging.
+
+
+### 2026-10-16 — Copy week release verified
+
+- User explicitly authorized release, auth smoke and merge. PR #142 merged as `72e4ce5cc5cf233917aa7a115bc6d0cf44bea94c` after all checks passed on final implementation head `d48df4b085aa9a76e636b45722a308862c7475f6`.
+- Final Auth Smoke run: https://github.com/tadschweizer/Ultra_OS/actions/runs/38994908811 — SUCCESS. 488 regression, 4 integration-availability, 191 browser checks (3 intentional skips), 6 isolated SQL calendar checks, and production build passed.
+- Earlier run 38994276211 failed transient Send-button contrast; removed the disabled-to-enabled fade and retained the accessibility assertions. Six repeated local desktop/mobile runs passed before final CI. No failing checks were bypassed.
+- Production deployment `dpl_F85PBT7KHehZze8RwKeUhXDHZD79` for merge `72e4ce5` is READY, target production, aliasError null. Both mythreshold.co and www.mythreshold.co assigned successfully.
+- Post-deploy checks: both public health endpoints 200; login 200; anonymous account and planned-workout APIs 401. Live calendar JavaScript contains the destination picker. No production training records were created for these checks.
+- No migrations or service configuration changes. Signed-in human workflow, physical-phone, mailbox and participant gates remain separate from automated checks. This follow-up evidence edit does not change application code.
