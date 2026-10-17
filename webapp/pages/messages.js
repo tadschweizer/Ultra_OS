@@ -242,5 +242,7 @@ export default function MessagesPage() {
     if (history && !loadingOlder && !historyLoaded.current) history.scrollTop = history.scrollHeight;
   }, [messages, athleteId]);
 
-  return <MessageWorkspace {...{role,conversations,messages,athleteId,threadOpen,loading,error,inboxLoaded,loadError,sending,loadingOlder,nextCursor,selectedConversation,selectConversation,showConversations,load,historyRef,composerRef,send,draft,canSend,templates,selectedTemplate,conversationName,formatTimestamp}} templateMeta={TEMPLATE_META} loadOlder={()=>{setLoadingOlder(true);load(athleteId,{keepSelection:true,older:true});}} />;
+  const contextParams=new URLSearchParams();
+  if(router.query.athlete_id===athleteId){for(const key of ['week','workout'])if(typeof router.query[key]==='string')contextParams.set(key,router.query[key]);}
+  return <MessageWorkspace calendarContext={contextParams.toString()} {...{role,conversations,messages,athleteId,threadOpen,loading,error,inboxLoaded,loadError,sending,loadingOlder,nextCursor,selectedConversation,selectConversation,showConversations,load,historyRef,composerRef,send,draft,canSend,templates,selectedTemplate,conversationName,formatTimestamp}} templateMeta={TEMPLATE_META} loadOlder={()=>{setLoadingOlder(true);load(athleteId,{keepSelection:true,older:true});}} />;
 }

@@ -41,6 +41,8 @@ export function summarizeCalendarWeek(days) {
     importedActivityCount: imported.length,
     actualDurationMin,
     actualDistanceKm,
+    missingActualDurationCount: completedWorkouts.filter(w=>w.completed_duration_min==null).length+imported.filter(a=>a.duration_min==null).length,
+    missingActualDistanceCount: completedWorkouts.filter(w=>w.completed_distance_km==null).length+imported.filter(a=>a.distance_km==null).length,
     actualTss: actualLoad.tss,
     missingActualTssCount: actualLoad.missingCount,
     elevationGainM: sumBy(recordedActivities, (activity) => activity.elevation_gain_m ?? activity.total_elevation_gain),

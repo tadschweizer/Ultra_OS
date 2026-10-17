@@ -269,7 +269,7 @@ test('reviewed native callback refreshes shared athlete load after accepted comp
 test('reviewed copy retry survives reload, releases confirmed key before GET failure and isolates actors',async({page},info)=>{
   test.setTimeout(60000);if(info.project.name==='mobile-chromium')await page.setViewportSize({width:320,height:900});
   const day=new Date().toISOString().slice(0,10),requests=[],receipts=new Map(),external=[];
-  let actor=messageId,lost=true,failRefresh=false;
+  let actor=messageId,lost=true,failRefresh=false,failAfterCopy=false;
   const source={id:'copy-source',title:'Scoped trail session',workout_date:day,sport:'run',status:'planned',planned_duration_min:40,structure:[]};
   page.on('request',r=>{if(!['127.0.0.1','localhost'].includes(new URL(r.url()).hostname))external.push(r.url());});
   await page.route('**/api/**',async route=>{
@@ -285,6 +285,9 @@ test('reviewed copy retry survives reload, releases confirmed key before GET fai
         const key=actor+':'+body.client_request_id;const replayed=receipts.has(key);
         receipts.set(key,body);result={workouts:[{...source,id:'isolated-copy-'+receipts.size,workout_date:body.to_week_start}],replayed};
         if(lost){lost=false;return route.abort('failed');}
+        // Arm the refresh failure only after the copy has been acknowledged.
+        // A reload can still have initial GETs in flight when the button appears.
+        if(failAfterCopy){failAfterCopy=false;failRefresh=true;}
       }
     }
     await route.fulfill({status:200,json:result});
@@ -292,7 +295,7 @@ test('reviewed copy retry survives reload, releases confirmed key before GET fai
   const copies=page.getByRole('button',{name:'Copy week to next week',exact:true});
   await page.goto(`/coach/training-calendar?athlete=${athleteId}`);await copies.first().click();
   await expect(page.getByText(/Connection lost/)).toBeVisible();const first=requests[0].client_request_id;
-  await page.reload();await expect(copies.first()).toBeVisible();failRefresh=true;await copies.first().click();
+  await page.reload();await expect(copies.first()).toBeVisible();failAfterCopy=true;await copies.first().click();
   await expect(page.getByText('Isolated GET failure after confirmed copy',{exact:true})).toBeVisible();
   expect(requests[1].client_request_id).toBe(first);expect(receipts.size).toBe(1);
   await page.reload();await copies.first().click();await expect.poll(()=>requests.length).toBe(3);

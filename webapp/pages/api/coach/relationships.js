@@ -68,6 +68,8 @@ export default async function handler(req, res) {
       const checkins = checkinRes.data || [];
       const loadInterventions = loadInterventionRes.data || [];
       const loadActivities = loadActivityRes.data || [];
+      const reviewResult=await supabase.rpc('coaching_review_counts',{p_actor_id:profile.athlete_id});
+      const reviewCounts=reviewResult.error?null:reviewResult.data;
 
       const enriched = (relationships || []).map((rel) => {
         const athlete = athletes.find((a) => a.id === rel.athlete_id) || null;
@@ -129,10 +131,15 @@ export default async function handler(req, res) {
           protocolComplianceGap,
           lastCheckinAt: lastCheckin?.created_at || latestFast?.inserted_at || null,
           readiness,
-          alertLevel: readiness,
-          flagReasons,
-          flagSuggestion,
-          communicationSlaHours: daysSinceCoachNote === null ? null : daysSinceCoachNote * 24,
+          alertLevel: reviewCounts?.some(r=>r.athlete_id===rel.athlete_id&&(Number(r.pending_reviews)>0||Number(r.response_requests)>0))?'yellow':'green',
+          pendingReviews: reviewCounts ? Number(reviewCounts.find(r=>r.athlete_id===rel.athlete_id)?.pending_reviews||0) : null,
+          responseRequests: reviewCounts ? Number(reviewCounts.find(r=>r.athlete_id===rel.athlete_id)?.response_requests||0) : null,
+          flagReasons: reviewCounts ? [
+            Number(reviewCounts.find(r=>r.athlete_id===rel.athlete_id)?.pending_reviews||0)>0?'Completed sessions await review':null,
+            Number(reviewCounts.find(r=>r.athlete_id===rel.athlete_id)?.response_requests||0)>0?'Athlete requested a response':null,
+          ].filter(Boolean):['Session review information unavailable'],
+          flagSuggestion: 'Open the session review list to inspect results and respond.',
+          communicationSlaHours: null,
           loadMetrics: advancedMetrics ? loadMetrics : null,
           loadStatus: buildLoadStatus(loadMetrics),
         };

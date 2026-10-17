@@ -1,4 +1,6 @@
 import { useWorkspaceTransport } from '../lib/WorkspaceTransport';
+import WorkoutReview from './WorkoutReview';
+import { prescription } from '../lib/weeklyPlan';
 import { libraryWorkoutPayload } from '../lib/libraryWorkoutPayload';
 import { libraryEditPayload, libraryCanonicalDistance, libraryDisplayDistance } from '../lib/libraryEditPayload';
 import { targetUnitLabel, initializeTargetUnits, convertPaceTarget } from '../lib/workoutTargetUnits';
@@ -311,13 +313,13 @@ function StepRow({ step, onChange, onRemove, onConvertPace, disabled = false }) 
   );
 }
 
-function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose, defaultDistanceUnit = 'mi', libraryEdit = false }) {
+export function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose, defaultDistanceUnit = 'mi', libraryEdit = false, preserveSnapshot = false }) {
   const [form, setForm] = useState(() => {
     const base = { ...emptyForm, client_request_id: crypto.randomUUID(), ...initial };
     const unit = base.planned_distance_unit || defaultDistanceUnit || 'mi';
     return {
       ...base,
-      structure: initializeTargetUnits(Array.isArray(base.structure) ? base.structure : [], unit),
+      structure: preserveSnapshot ? (base.structure||[]) : initializeTargetUnits(Array.isArray(base.structure) ? base.structure : [], unit),
       planned_distance_unit: unit,
       // Editable value shown in the athlete's preferred unit; the canonical
       // km value is recomputed from this on save.
@@ -377,11 +379,11 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
     const result = await onSave(libraryEdit ? libraryEditPayload(form, dirty.current) : {
       ...form,
       structure,
-      planned_duration_min: form.planned_duration_min === '' ? null : Number(form.planned_duration_min),
-      planned_distance_km: unitToKm(form.planned_distance, distanceUnit),
+      planned_duration_min: preserveSnapshot&&!dirty.current.has('planned_duration_min')?initial.planned_duration_min:form.planned_duration_min === '' ? null : Number(form.planned_duration_min),
+      planned_distance_km: preserveSnapshot&&!dirty.current.has('planned_distance')?initial.planned_distance_km:unitToKm(form.planned_distance, distanceUnit),
       planned_distance_unit: distanceUnit,
-      planned_tss: tssEstimate,
-      planned_if: form.planned_if === '' ? null : Number(form.planned_if),
+      planned_tss: preserveSnapshot?initial.planned_tss:tssEstimate,
+      planned_if: preserveSnapshot&&!dirty.current.has('planned_if')?initial.planned_if:form.planned_if === '' ? null : Number(form.planned_if),
       ...(form.logCompletion ? { status: 'completed', completed_duration_min: form.planned_duration_min === '' ? null : Number(form.planned_duration_min), completed_distance_km: unitToKm(form.planned_distance, distanceUnit), planned_duration_min: null, planned_distance_km: null, planned_tss: null } : {}),
     });
     savingRef.current = false;
@@ -534,11 +536,11 @@ function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, onClose,
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-ink/55">{libraryEdit ? 'Planned TSS' : 'Estimated TSS'}</label>
+              <label className="mb-1 block text-xs text-ink/55">{libraryEdit ? 'Planned TSS' : preserveSnapshot?'Stored planning load (unchanged)':'Estimated planning load'}</label>
               {libraryEdit ? <input aria-label="Planned TSS" type="number" min="0" step="any" disabled={saving}
                 value={form.planned_tss ?? ''} onChange={e=>setField('planned_tss',e.target.value)}
                 className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink"/> : <div className="rounded-2xl border border-ink/10 bg-paper px-4 py-3 font-mono text-sm text-ink/70">
-                {tssEstimate ?? '—'}
+                {(preserveSnapshot?initial.planned_tss:tssEstimate) ?? '—'}
               </div>}
             </div>
           </div>
@@ -645,8 +647,8 @@ function fmtCommentTime(value) {
  * activity. `subject` is the query the API keys the thread on, so the same
  * component serves both without knowing which it is looking at.
  */
-function CommentThread({ subject, role, onCountChange }) {
-  const { request } = useWorkspaceTransport();
+function CommentThread({ subject, role, onCountChange, onSaved, readOnly=false }) {
+  const { request, getAccountScope } = useWorkspaceTransport();
   const [comments, setComments] = useState([]);
   const [body, setBody] = useState('');
   const [loading, setLoading] = useState(true);
@@ -654,6 +656,10 @@ function CommentThread({ subject, role, onCountChange }) {
   const [error, setError] = useState('');
 
   const params = useMemo(() => new URLSearchParams(subject).toString(), [subject]);
+  const draftKey=`threshold.session-comment.v1:${getAccountScope?.()}:${role}:${params}`;
+  const [draftLoaded,setDraftLoaded]=useState(false);
+  useEffect(()=>{try{setBody(localStorage.getItem(draftKey)||'');}catch{}setDraftLoaded(true);},[draftKey]);
+  useEffect(()=>{if(draftLoaded)try{if(body)localStorage.setItem(draftKey,body);else localStorage.removeItem(draftKey);}catch{}},[body,draftKey,draftLoaded]);
   const endRef = useRef(null);
 
   useEffect(() => {
@@ -703,6 +709,7 @@ function CommentThread({ subject, role, onCountChange }) {
         return next;
       });
       setBody('');
+      onSaved?.();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -761,7 +768,7 @@ function CommentThread({ subject, role, onCountChange }) {
 
       {error && <p className="mt-2 text-xs text-rose-600">{error}</p>}
 
-      <div className="mt-3 flex gap-2">
+      {!readOnly&&<div className="mt-3 flex gap-2">
         <input
           value={body}
           onChange={(e) => setBody(e.target.value)}
@@ -777,12 +784,18 @@ function CommentThread({ subject, role, onCountChange }) {
         >
           {sending ? 'Sending…' : 'Send'}
         </button>
-      </div>
+      </div>}
     </div>
   );
 }
 
-function WorkoutDetail({ workout, matchActivities = [], role, onUpdate, onEdit, onDelete, onClose }) {
+function WorkoutDetail({ workout, matchActivities = [], role, onUpdate, onEdit, onDelete, onClose, onAdjust, reviewerCoachId, adjustmentNotice }) {
+  const assigningCoach=role==='coach'&&workout.coach_id===reviewerCoachId;
+  const {getAccountScope}=useWorkspaceTransport();
+  const draftKey=`threshold.completion.v1:${getAccountScope?.()}:${role}:${workout.id}`;
+  const [threadVersion,setThreadVersion]=useState(0);
+  const [reviewVersion,setReviewVersion]=useState(0);
+  const draftVersion=useRef(workout.updated_at);
   const distanceUnit = workout.planned_distance_unit || 'mi';
   const [completion, setCompletion] = useState({
     completed_duration_min: workout.completed_duration_min ?? '',
@@ -792,6 +805,15 @@ function WorkoutDetail({ workout, matchActivities = [], role, onUpdate, onEdit, 
     athlete_comment: workout.athlete_comment ?? '',
   });
   const [feedback, setFeedback] = useState(workout.coach_feedback || '');
+  const fingerprint=(c,f)=>JSON.stringify([String(c.completed_duration_min??''),String(c.completed_distance??''),String(c.athlete_rpe??''),c.athlete_comment||'',f||'']);
+  const savedSnapshot=useRef(fingerprint(completion,feedback));
+  const [saveEpoch,setSaveEpoch]=useState(0);
+  const [draftLoaded,setDraftLoaded]=useState(false);
+  useEffect(()=>{try{const draft=JSON.parse(localStorage.getItem(draftKey));if(draft){setCompletion(draft.completion);setFeedback(draft.feedback);draftVersion.current=draft.version||workout.updated_at;}}catch{}setDraftLoaded(true);},[draftKey]);
+  useEffect(()=>{if(draftLoaded)try{
+    if(fingerprint(completion,feedback)===savedSnapshot.current)localStorage.removeItem(draftKey);
+    else localStorage.setItem(draftKey,JSON.stringify({completion,feedback,version:draftVersion.current}));
+  }catch{}},[completion,feedback,draftKey,draftLoaded,saveEpoch]);
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
   const dialogRef = useDialogFocus(onClose, busy);
@@ -811,10 +833,17 @@ function WorkoutDetail({ workout, matchActivities = [], role, onUpdate, onEdit, 
     setSaveError('');
     setSaved(false);
     try {
-      const result = remove ? await onDelete(workout.id) : await onUpdate(workout.id, { expected_updated_at: workout.updated_at, ...updates });
+      const result = remove ? await onDelete(workout.id) : await onUpdate(workout.id, { expected_updated_at: draftVersion.current, ...updates });
       if (!result?.ok) setSaveError(result?.error || 'Could not save. Your answers are still here; please retry.');
       else {
         setSaved(true);
+        draftVersion.current=result.workout?.updated_at||workout.updated_at;
+        const confirmed=result.workout;
+        if(confirmed)savedSnapshot.current=fingerprint({
+          completed_duration_min:confirmed.completed_duration_min??'',completed_distance:kmToUnit(confirmed.completed_distance_km??'',distanceUnit),
+          athlete_rpe:confirmed.athlete_rpe??'',athlete_comment:confirmed.athlete_comment??'',
+        },confirmed.coach_feedback||'');
+        setSaveEpoch(n=>n+1);
         if (updates.match_action) {
           const value = result.workout;
           setCompletion((previous) => ({ ...previous,
@@ -846,7 +875,6 @@ function WorkoutDetail({ workout, matchActivities = [], role, onUpdate, onEdit, 
               {[
                 fmtDuration(workout.planned_duration_min) && `Planned ${fmtDuration(workout.planned_duration_min)}`,
                 formatDistance(workout.planned_distance_km, workout.planned_distance_unit),
-                workout.planned_tss && `TSS ${Math.round(workout.planned_tss)}`,
               ].filter(Boolean).join(' · ') || 'No planned targets'}
             </p>
           </div>
@@ -893,8 +921,8 @@ function WorkoutDetail({ workout, matchActivities = [], role, onUpdate, onEdit, 
           </div>
           {workout.status === 'completed' ? (
             <p className="mt-2 text-sm text-ink/75">
-              Completed{workout.completed_duration_min ? ` · ${fmtDuration(workout.completed_duration_min)}` : ''}
-              {workout.completed_distance_km ? ` · ${formatDistance(workout.completed_distance_km, workout.planned_distance_unit)}` : ''}
+              Completed · {workout.completed_duration_min != null ? fmtDuration(workout.completed_duration_min)||'0m' : 'Duration unknown'}
+              {' · '}{workout.completed_distance_km != null ? formatDistance(workout.completed_distance_km, workout.planned_distance_unit)||'0' : 'Distance unknown'}
               {workout.compliance_pct != null ? ` · ${workout.compliance_pct}% of plan` : ''}
               {workout.athlete_rpe ? ` · RPE ${workout.athlete_rpe}` : ''}
             </p>
@@ -909,6 +937,7 @@ function WorkoutDetail({ workout, matchActivities = [], role, onUpdate, onEdit, 
           {workout.completed_activity_id && <p className="mt-1 text-xs text-emerald-700">
             {workout.linked_activity ? 'Confirmed imported activity.' : 'The linked activity is no longer available. Saved actuals are retained; you can unlink or replace it.'}
           </p>}
+          {workout.status==='completed'&&!workout.completed_activity_id&&!workout.matched_activity&&<p className="mt-1 text-xs">Source: athlete-entered completion. Missing values are unknown.</p>}
           {workout.athlete_comment && (
             <p className="mt-2 rounded-xl bg-paper p-3 text-sm text-ink/75">Athlete: {workout.athlete_comment}</p>
           )}
@@ -985,7 +1014,8 @@ function WorkoutDetail({ workout, matchActivities = [], role, onUpdate, onEdit, 
               onChange={(e) => setCompletion((c) => ({ ...c, athlete_comment: e.target.value }))}
               className="mt-2 w-full rounded-xl border border-ink/10 bg-paper px-3 py-2 text-sm text-ink"
             />
-            <div className="mt-3 flex gap-2">
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button disabled={busy} onClick={()=>submit({athlete_rpe:completion.athlete_rpe===''?null:Number(completion.athlete_rpe),athlete_comment:completion.athlete_comment||null})} className="rounded border px-3 py-2">Save feedback only</button>
               <button
                 disabled={busy}
                 onClick={() => submit({
@@ -1015,11 +1045,12 @@ function WorkoutDetail({ workout, matchActivities = [], role, onUpdate, onEdit, 
             completed_duration_min: null, completed_distance_km: null, athlete_rpe: null })}
             className="mt-3 rounded-full border border-ink/20 px-4 py-2 text-sm disabled:opacity-50">Undo completion / skip</button>
         )}
-        {saveError && <p role="alert" className="mt-3 text-sm text-red-700">{saveError}</p>}
+        {saveError && <div><p role="alert" className="mt-3 text-sm text-red-700">{saveError}</p><button disabled={busy} className="mt-2 min-h-11 rounded border px-3" onClick={()=>{if(window.confirm('Discard this local draft and reload the latest saved workout?')){localStorage.removeItem(draftKey);window.location.reload();}}}>Discard draft and reload</button></div>}
         {saved && <p role="status" className="mt-3 text-sm text-emerald-700">Saved.</p>}
 
+        {adjustmentNotice&&<p role="status" className="mt-3 rounded border border-emerald-300 bg-white p-3 text-sm">Upcoming session saved. Finish reviewing this result with a reply or review acknowledgement.</p>}
         {/* Coach feedback */}
-        {role === 'coach' && (
+        {role === 'coach' && !assigningCoach && (
           <div className="mt-4 rounded-2xl border border-ink/10 bg-white p-4">
             <p className="text-xs uppercase tracking-[0.22em] text-ink/55">Coach feedback</p>
             <textarea
@@ -1040,7 +1071,9 @@ function WorkoutDetail({ workout, matchActivities = [], role, onUpdate, onEdit, 
         )}
 
 
-        <CommentThread subject={{ workout_id: workout.id }} role={role} />
+        {(role==='athlete'||assigningCoach)&&<WorkoutReview workout={workout} role={role} hasUnsavedFeedback={(completion.athlete_comment||'')!==(workout.athlete_comment||'')||String(completion.athlete_rpe??'')!==String(workout.athlete_rpe??'')} refreshToken={reviewVersion} onReply={()=>setThreadVersion(v=>v+1)} onAdjust={onAdjust}/>}
+        <CommentThread key={threadVersion} subject={{ workout_id: workout.id }} role={role} readOnly={assigningCoach} onSaved={()=>setReviewVersion(v=>v+1)}/>
+        <a className="mt-3 inline-block min-h-11 rounded border px-3 py-2" href={`/messages?mode=${role}&athlete_id=${workout.athlete_id}&week=${workout.workout_date}&workout=${workout.id}`}>Open messages with this session context</a>
 
         {/* Edit / delete */}
         <div className="mt-5 flex flex-wrap gap-2 items-center justify-between border-t border-ink/8 pt-4">
@@ -1151,7 +1184,7 @@ function ActivityDetail({ activity, role, distanceUnit = 'mi', onCountChange, on
           <StatTile label="Elevation gain" value={fmtElevation(activity.elevation_gain_m, distanceUnit)} />
           <StatTile label="Avg HR" value={activity.average_heartrate ? `${activity.average_heartrate} bpm` : null} />
           <StatTile label="Max HR" value={activity.max_heartrate ? `${activity.max_heartrate} bpm` : null} />
-          <StatTile label="TSS" value={activity.tss != null ? activity.tss : null} />
+          <p className="text-xs text-ink/60">Training-load comparison is unavailable until the source and calculation method are verified.</p>
           <StatTile label="IF" value={activity.intensity_factor != null ? activity.intensity_factor : null} />
           <StatTile label="Calories" value={activity.calories ? `${activity.calories.toLocaleString()} kcal` : null} />
           <StatTile label="Work" value={activity.kilojoules ? `${activity.kilojoules.toLocaleString()} kJ` : null} />
@@ -1440,7 +1473,8 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
   const { request, today, preserveLibraryPlanMetadata, refreshAccount, getAccountScope } = useWorkspaceTransport();
   const calendarMutation = useCallback((url, options) => performCalendarMutation(url, { ...options, request }), [request]);
   const router = useRouter();
-  const anchorMonday = useMemo(() => mondayOf(today || new Date()), [today]);
+  const selectedWeek=typeof router.query.week==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(router.query.week)&&Number.isFinite(Date.parse(router.query.week))?router.query.week:null;
+  const anchorMonday = useMemo(() => mondayOf(selectedWeek?`${selectedWeek}T12:00:00`:today || new Date()), [today,selectedWeek]);
   const [pastWeeks, setPastWeeks] = useState(INITIAL_PAST_WEEKS);
   const [futureWeeks, setFutureWeeks] = useState(INITIAL_FUTURE_WEEKS);
   const [workouts, setWorkouts] = useState([]);
@@ -1460,6 +1494,8 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
   const [loadingEarlier, setLoadingEarlier] = useState(false);
   const [error, setError] = useState('');
   const [editorInitial, setEditorInitial] = useState(null);
+  const [adjustmentOrigin,setAdjustmentOrigin]=useState(null);
+  const [adjustmentSavedFor,setAdjustmentSavedFor]=useState(null);
   const [libraryEditor, setLibraryEditor] = useState(null);
   useEffect(()=>setLibraryEditor(null),[libraryOwnerId,request,role]);
   const [detailId, setDetailId] = useState(null);
@@ -1472,6 +1508,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
   const scrollRef = useRef(null);
   const todayRowRef = useRef(null);
   const didInitialScroll = useRef(false);
+  useEffect(()=>{didInitialScroll.current=false;},[selectedWeek]);
   const prependHeightRef = useRef(null);
   const extendingRef = useRef(false);
 
@@ -1610,23 +1647,33 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
   }, [pastWeeks]);
 
   const scrollToToday = useCallback(() => {
+    if(selectedWeek){const {week,workout,activity,...query}=router.query;router.replace({pathname:router.pathname,query},undefined,{shallow:true,scroll:false});return;}
     const container = scrollRef.current;
     const row = todayRowRef.current;
     if (container && row) {
       const delta = row.getBoundingClientRect().top - container.getBoundingClientRect().top;
       container.scrollTo({ top: Math.max(0, container.scrollTop + delta - 44), behavior: 'smooth' });
     }
-  }, []);
+  }, [selectedWeek,router]);
 
   // ── Mutations ──────────────────────────────────────────────────────────────
+
+  function editExistingWorkout(w) {
+    selectCalendarDetail();
+    setEditorInitial({...prescription(w),id:w.id,workout_date:w.workout_date,expected_updated_at:w.updated_at,
+      description:w.description||'',objective:w.objective||'',coach_instructions:w.coach_instructions||'',
+      target_metric:w.target_metric||'duration',planned_if:w.planned_if??'',visibility:w.visibility||'athlete_visible',
+      planned_duration_min:w.planned_duration_min??'',planned_distance_km:w.planned_distance_km??'',
+      structure:Array.isArray(w.structure)?w.structure:[]});
+  }
 
   const saveWorkout = useCallback(async (form) => {
     const result = await calendarMutation('/api/planned-workouts', {
       method: form.id ? 'PATCH' : 'POST', body: { ...form, athlete_id: athleteId || undefined },
     });
-    if (result.ok) await reload();
+    if (result.ok) {if(adjustmentOrigin)setAdjustmentSavedFor(adjustmentOrigin);await reload();}
     return result;
-  }, [athleteId, reload, calendarMutation]);
+  }, [athleteId, reload, calendarMutation,adjustmentOrigin]);
 
   const updateWorkout = useCallback(async (id, updates) => {
     const result = await calendarMutation('/api/planned-workouts', { method: 'PATCH', body: { id, ...updates } });
@@ -1803,7 +1850,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
           defaultDistanceUnit={distanceUnitPref}
           onSave={saveWorkout}
           onSaveToLibrary={role === 'coach' ? saveToLibrary : null}
-          onClose={() => { setEditorInitial(null); if (router.query.log === '1') selectCalendarDetail(); }}
+          onClose={() => { const id=adjustmentOrigin||editorInitial?.id;setEditorInitial(null);setAdjustmentOrigin(null); if(id)selectCalendarDetail({workout:id});else if (router.query.log === '1') selectCalendarDetail(); }}
         />
       )}
       {libraryEditor && <WorkoutEditor key={libraryEditor.id} initial={{...libraryEditor,title:libraryEditor.name}}
@@ -1821,29 +1868,18 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
       {detailWorkout && (
         <WorkoutDetail
           key={detailWorkout.id}
+          reviewerCoachId={libraryOwnerId}
+          adjustmentNotice={adjustmentSavedFor===detailWorkout.id}
           workout={detailWorkout}
           matchActivities={matchActivities}
           role={role}
           onUpdate={updateWorkout}
-          onEdit={(w) => {
-            selectCalendarDetail();
-            setEditorInitial({
-              id: w.id,
-              title: w.title,
-              sport: w.sport,
-              workout_date: w.workout_date,
-              description: w.description || '',
-              objective: w.objective || '',
-              coach_instructions: w.coach_instructions || '',
-              target_metric: w.target_metric || 'duration',
-              planned_if: w.planned_if ?? '',
-              visibility: w.visibility || 'athlete_visible',
-              planned_duration_min: w.planned_duration_min ?? '',
-              planned_distance_km: w.planned_distance_km ?? '',
-              planned_distance_unit: w.planned_distance_unit || null,
-              structure: Array.isArray(w.structure) ? w.structure : [],
-            });
+          onAdjust={()=>{
+            const next=workouts.filter(w=>w.workout_date>detailWorkout.workout_date&&w.status==='planned'&&w.coach_id===detailWorkout.coach_id).sort((a,b)=>a.workout_date.localeCompare(b.workout_date)||a.order_index-b.order_index)[0];
+            if(next){setAdjustmentOrigin(detailWorkout.id);setAdjustmentSavedFor(null);editExistingWorkout(next);}
+            else {selectCalendarDetail();setError('No upcoming assigned session is loaded. Open the next week or add a workout.');}
           }}
+          onEdit={editExistingWorkout}
           onDelete={deleteWorkout}
           onClose={() => selectCalendarDetail()}
         />
@@ -1999,7 +2035,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
           </div>
 
           {weeks.map((week) => (
-            <div key={week.key} data-week-key={week.key} ref={week.isCurrentWeek ? todayRowRef : null}>
+            <div key={week.key} data-week-key={week.key} ref={(selectedWeek?week.key===toDateKey(anchorMonday):week.isCurrentWeek) ? todayRowRef : null}>
               {week.monthLabel && (
                 <div className="my-3 flex items-center gap-3">
                   <span className="rounded-full bg-panel px-4 py-1.5 text-xs font-bold uppercase tracking-[0.22em] text-paper">{week.monthLabel}</span>
@@ -2101,7 +2137,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
                                 {metricLine([
                                   fmtDuration(w.planned_duration_min),
                                   formatDistance(w.planned_distance_km, w.planned_distance_unit),
-                                  w.planned_tss ? `TSS ${Math.round(w.planned_tss)}` : null,
+
                                   w.status === 'skipped' ? 'Skipped' : null,
                                 ])}
                               </p>
@@ -2133,7 +2169,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
                               {metricLine([
                                 fmtDuration(activity.duration_min),
                                 formatDistance(activity.distance_km, distanceUnitPref),
-                                activity.tss ? `${activity.tss} TSS` : null,
+
                               ])}
                             </p>
                             <p className={`${CELL_DETAIL_LINE} mt-px break-words text-[10px] leading-tight text-sky-800/60`}>
@@ -2192,15 +2228,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
                       formatValue={(v) => kmToUnit(v, distanceUnitPref) || 0}
                       unit={` ${distanceUnitPref}`}
                     />
-                    <ProgressMeter
-                      label="TSS"
-                      actual={week.summary.actualTss}
-                      planned={week.summary.plannedTss}
-                      formatValue={(v) => Math.round(v)}
-                    />
-                    {week.summary.missingActualTssCount > 0 && (
-                      <p className="text-[10px] text-ink/60">Actual TSS unknown for {week.summary.missingActualTssCount} completed session{week.summary.missingActualTssCount === 1 ? '' : 's'}; total includes recorded TSS only.</p>
-                    )}
+                    {(week.summary.missingActualDurationCount>0||week.summary.missingActualDistanceCount>0)&&<p className="text-xs">Partial totals: duration unknown for {week.summary.missingActualDurationCount} sessions; distance unknown for {week.summary.missingActualDistanceCount}. Unknown values are excluded.</p>}
 
                     {(week.summary.elevationGainM > 0 || week.summary.kilojoules > 0) && (
                       <div className="flex flex-wrap gap-x-2 gap-y-0.5 border-t border-ink/8 pt-1.5 text-[10px] text-ink/55">
@@ -2257,18 +2285,16 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
                 )}
                 <span className="font-semibold text-ink/45">{week.days[0].date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} wk</span>
                 <span>
-                  Planned {fmtDuration(week.summary.plannedDurationMin) || '0m'} · {kmToUnit(week.summary.plannedDistanceKm, distanceUnitPref) || 0} {distanceUnitPref} · TSS {Math.round(week.summary.plannedTss)}
+                  Planned {fmtDuration(week.summary.plannedDurationMin) || '0m'} · {kmToUnit(week.summary.plannedDistanceKm, distanceUnitPref) || 0} {distanceUnitPref}
                 </span>
                 {week.summary.hasActuals && (
                   <span className="font-semibold text-ink/75">
-                    Actual {fmtDuration(week.summary.actualDurationMin) || '0m'} · {kmToUnit(week.summary.actualDistanceKm, distanceUnitPref) || 0} {distanceUnitPref} · TSS {Math.round(week.summary.actualTss)}
+                    Actual {fmtDuration(week.summary.actualDurationMin) || '0m'} · {kmToUnit(week.summary.actualDistanceKm, distanceUnitPref) || 0} {distanceUnitPref}
                     {week.summary.elevationGainM > 0 ? ` · ${fmtElevation(week.summary.elevationGainM, distanceUnitPref)}` : ''}
                   </span>
                 )}
                 <span>{week.summary.completedSessionCount} completed{week.summary.importedActivityCount ? ` · ${week.summary.importedActivityCount} imported` : ''}</span>
-                {week.summary.missingActualTssCount > 0 && (
-                  <span>Actual TSS unknown for {week.summary.missingActualTssCount} completed session{week.summary.missingActualTssCount === 1 ? '' : 's'}; total includes recorded TSS only.</span>
-                )}
+                {(week.summary.missingActualDurationCount>0||week.summary.missingActualDistanceCount>0)&&<span>Partial totals: {week.summary.missingActualDurationCount} durations and {week.summary.missingActualDistanceCount} distances unknown.</span>}
               </div>
             </div>
           ))}
