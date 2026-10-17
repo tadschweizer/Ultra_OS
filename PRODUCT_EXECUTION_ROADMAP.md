@@ -1056,7 +1056,7 @@ Owner pilot access approved and provisioned 2026-10-17 01:55 UTC for 30 days, wi
 
 ### 2026-10-16 — Calendar Copy week destination picker
 
-- Branch: `codex/calendar-copy-week-picker`; isolated from unrelated canonical checkout work.
+- PR #142: https://github.com/tadschweizer/Ultra_OS/pull/142; implementation commit `a2bc7b3`, branch `codex/calendar-copy-week-picker`; isolated from unrelated canonical checkout work.
 - Replaced next-week-only shortcut with a small Copy week button on each populated calendar week and an accessible destination dialog. Any selected date resolves to its Monday; copying to the same week is blocked.
 - Requires explicit acknowledgement that copied prescriptions are added alongside existing sessions. Existing workouts are never replaced. Existing service-only atomic copy, visibility rules, prescription fields, weekday/order offsets and retry identities are unchanged.
 - Destination selection survives reload, scoped by account, athlete and source week. Server-confirmed copy shows an acknowledgement. Failed copies retain the dialog and can retry without duplicating an acknowledged operation. Results, feedback and messages are not copied.
