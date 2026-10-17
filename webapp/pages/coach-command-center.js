@@ -1,4 +1,5 @@
 import { safeResourceUrl } from '../lib/safeResourceUrl.js';
+import { CoachReviewQueue } from '../components/WorkoutReview';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
@@ -586,8 +587,8 @@ export default function CoachCommandCenter() {
       {
         key: 'attention',
         question: 'Who needs attention?',
-        hint: 'Red readiness status',
-        athletes: active.filter((r) => r.alertLevel === 'red'),
+        hint: 'Completed sessions await review',
+        athletes: active.filter((r) => r.pendingReviews > 0),
       },
       {
         key: 'racing',
@@ -600,8 +601,8 @@ export default function CoachCommandCenter() {
       },
       {
         key: 'missing-data',
-        question: 'Who is missing data?',
-        hint: 'No log in 5+ days',
+        question: 'Who has older preparation logs?',
+        hint: 'No preparation log in 5+ days; training may still be recorded',
         athletes: active.filter((r) => r.daysSinceLog === null || r.daysSinceLog >= 5),
       },
       {
@@ -613,8 +614,8 @@ export default function CoachCommandCenter() {
       {
         key: 'needs-message',
         question: 'Who needs a message?',
-        hint: 'No coach touchpoint in 3+ days',
-        athletes: active.filter((r) => r.communicationSlaHours === null || r.communicationSlaHours > 72),
+        hint: 'Athlete explicitly requested a response',
+        athletes: active.filter((r) => r.responseRequests > 0),
       },
       {
         key: 'protocol-actions',
@@ -974,15 +975,16 @@ export default function CoachCommandCenter() {
           </section>
 
           <CoachRequestsPanel />
+          <CoachReviewQueue />
 
 
 
           <section className="mt-6 rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
             <p className="text-sm uppercase tracking-[0.25em] text-accent">Coach KPIs</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
-              <SummaryCard label="At-risk athletes" value={relationshipMeta.atRiskAthletes} accent="text-amber-400" />
+              <SummaryCard label="Athletes awaiting review / reply" value={relationships.some(r=>r.pendingReviews==null)?'Unavailable':relationshipMeta.atRiskAthletes} accent="text-amber-400" />
               <SummaryCard label="Intervention lift" value={coachKpis?.intervention_lift_score ?? '—'} accent="text-emerald-300" />
-              <SummaryCard label="Comm SLA (hrs)" value={relationshipMeta.avgCommunicationSlaHours ?? '—'} accent="text-sky-300" />
+              <SummaryCard label="Response requests" value={relationships.some(r=>r.responseRequests==null)?'Unavailable':relationships.reduce((sum,r)=>sum+(r.responseRequests||0),0)} accent="text-sky-300" />
             </div>
           </section>
 

@@ -1,7 +1,7 @@
 import MessageNotificationSettings from './MessageNotificationSettings.js';
 
 export default function MessageWorkspace({role,conversations,messages,athleteId,threadOpen,loading,error,inboxLoaded,loadError,sending,loadingOlder,nextCursor,
-  selectedConversation,selectConversation,showConversations,load,loadOlder,historyRef,composerRef,send,draft,canSend,templates,templateMeta,selectedTemplate,conversationName,formatTimestamp}) {
+  selectedConversation,selectConversation,showConversations,load,loadOlder,historyRef,composerRef,send,draft,canSend,templates,templateMeta,selectedTemplate,conversationName,formatTimestamp,calendarContext=''}) {
   const {body,setBody,templateKey,setTemplateKey}=draft;
   return (
     <main className="min-h-screen bg-paper px-3 py-4 text-ink md:px-6 md:py-6">
@@ -36,7 +36,7 @@ export default function MessageWorkspace({role,conversations,messages,athleteId,
               <div className="min-w-0 flex-1"><h2 className="truncate text-sm font-semibold">{selectedConversation?conversationName(selectedConversation,role):'Select a conversation'}</h2><p className="mt-0.5 text-xs text-ink/55">{selectedConversation?'Open conversations refresh automatically.':'Your coaching inbox'}</p></div>
               {role==='coach'&&conversations.length>0&&<select aria-label="Selected athlete" disabled={sending} value={athleteId} onChange={e=>selectConversation(e.target.value)} className="max-w-[42%] rounded-lg border border-ink/10 bg-paper px-2 py-2 text-xs">{conversations.map(c=><option key={c.athlete_id} value={c.athlete_id}>{conversationName(c,role)}</option>)}</select>}
             </div>
-            {selectedConversation&&<a href={role==='coach'?`/coach/training-calendar?athlete=${encodeURIComponent(athleteId)}`:'/calendar'} className="border-b border-ink/10 bg-paper/60 px-4 py-2 text-xs font-semibold text-panel hover:underline">View training calendar →</a>}
+            {selectedConversation&&<a href={role==='coach'?`/coach/training-calendar?athlete=${encodeURIComponent(athleteId)}${calendarContext?`&${calendarContext}`:''}`:`/calendar${calendarContext?`?${calendarContext}`:''}`} className="border-b border-ink/10 bg-paper/60 px-4 py-2 text-xs font-semibold text-panel hover:underline">View training calendar →</a>}
             <div ref={historyRef} tabIndex={0} aria-label="Conversation history" className="h-[42dvh] min-h-[180px] overflow-y-auto overscroll-contain px-4 py-4 md:h-[430px]">
               {loading&&<p role="status" className="text-sm text-ink/60">Loading messages.</p>}
               {error&&<div className="mb-4"><p role="alert" className="text-sm text-red-700">{error}</p>{error.startsWith('Unable to load')&&<button onClick={()=>load(athleteId,{keepSelection:Boolean(athleteId)})} className="mt-2 text-sm font-semibold text-panel">Retry loading</button>}</div>}
