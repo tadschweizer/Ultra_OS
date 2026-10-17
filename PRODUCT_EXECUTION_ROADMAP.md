@@ -1062,3 +1062,5 @@ Owner pilot access approved and provisioned 2026-10-17 01:55 UTC for 30 days, wi
 - Destination selection survives reload, scoped by account, athlete and source week. Server-confirmed copy shows an acknowledgement. Failed copies retain the dialog and can retry without duplicating an acknowledged operation. Results, feedback and messages are not copied.
 - Local validation: 488 regression tests passed; production build passed; targeted desktop/mobile retry tests passed; all six database-backed calendar browser acceptance checks passed. All 28 daily-loop browser checks passed.
 - No production migration or deployment performed for this follow-up. Physical-phone and real-participant acceptance remain separate.
+
+- Release follow-up: CI run 38994276211 found transient Send-button contrast during its disabled-to-enabled opacity fade. Removed that button transition; keep the accessibility assertion intact and require fresh full CI before merging.
