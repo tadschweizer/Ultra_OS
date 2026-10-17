@@ -1,3 +1,4 @@
+import CopyWeekDialog from './CopyWeekDialog';
 import { useWorkspaceTransport } from '../lib/WorkspaceTransport';
 import WorkoutReview from './WorkoutReview';
 import { prescription } from '../lib/weeklyPlan';
@@ -1726,8 +1727,10 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
   const applyLibraryWorkout = useCallback((libraryWorkoutId, date) => mutateCalendar('/api/planned-workouts', {
     body: { athlete_id: athleteId || undefined, library_workout_id: libraryWorkoutId, workout_date: date },
   }), [athleteId, mutateCalendar]);
+  const [copySource, setCopySource] = useState(null);
+  const [copyNotice, setCopyNotice] = useState('');
   const copyRequests = useRef(null);
-  const copyWeekForward = useCallback((fromWeekStartKey) => {
+  const copyWeek = useCallback((fromWeekStartKey, destination) => {
     const scope = getAccountScope?.() || 'isolated-workspace';
     if (!copyRequests.current || copyRequests.current.scope !== scope) {
       let storage;
@@ -1735,9 +1738,13 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
       copyRequests.current = { scope, ...createCopyWeekRequests({ scope, storage }) };
     }
     const body = copyRequests.current.begin({ action: 'copy_week', athlete_id: athleteId || undefined,
-      from_week_start: fromWeekStartKey, to_week_start: toDateKey(addDays(new Date(`${fromWeekStartKey}T00:00:00`), 7)) });
+      from_week_start: fromWeekStartKey, to_week_start: destination });
     return mutateCalendar('/api/planned-workouts', { body }, (result) => {
-      if (Array.isArray(result.workouts)) copyRequests.current.complete(body);
+      if (Array.isArray(result.workouts)) {
+        copyRequests.current.complete(body);
+        setCopySource(null);
+        setCopyNotice(`Week copied to the week starting ${destination}.`);
+      }
     });
   }, [athleteId, mutateCalendar, getAccountScope]);
 
@@ -1843,6 +1850,11 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
 
   return (
     <div>
+      {copyNotice && <p role="status" className="mb-3 rounded-lg bg-white p-3 text-sm">{copyNotice}</p>}
+      {copySource && <CopyWeekDialog key={`${athleteId || 'self'}:${copySource}:${getAccountScope?.()}`} source={copySource}
+        defaultDestination={toDateKey(addDays(new Date(`${copySource}T00:00:00`), 7))}
+        storageKey={`threshold.copy-destination:${getAccountScope?.()}:${athleteId || 'self'}:${copySource}`}
+        onCopy={destination => copyWeek(copySource, destination)} onClose={() => setCopySource(null)} />}
       {editorInitial && (
         <WorkoutEditor
           initial={editorInitial}
@@ -2263,12 +2275,12 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
                   </div>
                   {week.summary.totalCount > 0 && (
                     <button
-                      onClick={() => copyWeekForward(week.key)}
+                      onClick={() => { setCopyNotice(''); setCopySource(week.key); }}
                       className="mt-2 rounded-full border border-ink/10 px-2 py-1 text-[10px] font-semibold text-ink/60 hover:bg-ink/5"
-                      title="Copy this week's workouts to next week"
-                      aria-label="Copy week to next week"
+                      title="Copy this week's workouts to another week"
+                      aria-label="Copy week"
                     >
-                      Copy → next wk
+                      Copy week
                     </button>
                   )}
                 </div>
@@ -2277,10 +2289,10 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
               {/* Mobile week summary */}
               <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl bg-white/60 px-3 py-1.5 text-[11px] text-ink/60 lg:hidden">
                 {role === 'coach' && week.summary.totalCount > 0 && (
-                  <button onClick={() => copyWeekForward(week.key)} aria-label="Copy week to next week"
-                    title="Copy this week's workouts to next week"
+                  <button onClick={() => { setCopyNotice(''); setCopySource(week.key); }} aria-label="Copy week"
+                    title="Copy this week's workouts to another week"
                     className="min-h-11 rounded-full border border-ink/10 px-3 py-2 font-semibold text-ink/70 hover:bg-ink/5">
-                    Copy week to next week
+                    Copy week
                   </button>
                 )}
                 <span className="font-semibold text-ink/45">{week.days[0].date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} wk</span>

@@ -39,17 +39,22 @@ async function setup(page,{coach=false,recoveryOnly=false}={}){
 test('lost copy response, reload retry, private marker and deliberate second copy use production contracts',async({page},info)=>{
   const {f,state,start}=await setup(page,{coach:true});try{
     await page.goto(`/coach/training-calendar?athlete=${athlete}`);
-    const buttons=page.getByRole('button',{name:'Copy week to next week'});
+    const buttons=page.getByRole('button',{name:'Copy week',exact:true});
+    async function copy(){
+      await buttons.first().click();
+      await page.getByRole('checkbox',{name:/Add these workouts/}).check();
+      await page.getByRole('button',{name:'Copy workouts',exact:true}).click();
+    }
     await expect(buttons.first()).toBeVisible({timeout:30000});
-    state.lost=true;await buttons.first().click();
+    state.lost=true;await copy();
     await expect(page.getByText(/Connection lost/)).toBeVisible();
     const id=state.requests[0].client_request_id;
     await page.reload();await expect(buttons.first()).toBeVisible();
-    state.failRefresh=true;await buttons.first().click();
+    state.failRefresh=true;await copy();
     await expect.poll(()=>state.requests.length).toBe(2);
     expect(state.requests[1].client_request_id).toBe(id);
     expect((await f.pg.query('select count(*)::int n from workout_week_copies')).rows[0].n).toBe(1);
-    await page.reload();await expect(buttons.first()).toBeVisible();await buttons.first().click();
+    await page.reload();await expect(buttons.first()).toBeVisible();await copy();
     await expect.poll(()=>state.requests.length).toBe(3);
     expect(state.requests[2].client_request_id).not.toBe(id);
     expect((await f.pg.query('select count(*)::int n from workout_week_copies')).rows[0].n).toBe(2);
