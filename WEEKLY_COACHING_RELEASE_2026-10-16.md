@@ -44,3 +44,11 @@ The corrected retry test passed ten repeated desktop/mobile cases. All six calen
 Final local verification: production-build browser run passed 189 cases with three intentional skips. Two existing coach-report asset-name assertions failed because the custom production harness serves hashed bundle names; both passed when rerun using the repository's normal development-server configuration (15.6 seconds). Their report calculations, error recovery and access checks remain covered. No application changes were needed. Combined evidence covers all 191 critical browser cases, plus six calendar acceptance cases and ten repeated copy-retry cases. This is evidence across runs, not a claim that the custom production-harness suite passed unchanged.
 
 [Repeated GitHub CI](https://github.com/tadschweizer/Ultra_OS/actions/runs/38991793750) has passed regression, integration and build stages and is still running its broader browser repeat at this documentation checkpoint. The deployment decision also uses the completed local checks above. No full participant or signed-in coach workflow acceptance is claimed while the owner lacks pilot access.
+
+## Final CI and owner pilot approval
+
+The owner explicitly approved no-charge pilot access. The verified owner coach received a 30-day grant ending **November 15, 2026 at 6:55 PM Mountain** (2026-11-16 01:55:30 UTC). The paid subscription and account roles were unchanged. A separate read confirmed the grant active.
+
+Live signed-in browser verification now loads the coach calendar, existing athlete roster, Plan week preview controls, and review queue without the entitlement gate. No test workouts or messages were published. A full real coach/athlete journey remains an acceptance task.
+
+Final GitHub run **38991793750 succeeded**: 488 regression checks, 4 integration checks, production build, 191 critical desktop/mobile browser checks (3 intentional skips), and 6 calendar acceptance checks. The earlier copy-retry test timing failure was corrected; no unresolved CI failure remains. PR #141 is merged as 0415ffe. Production deployment a442ab9 / dpl_8MbRR6P15pnjsyjC5s6UAZwzmSMg was READY with both production aliases and no alias error. This final follow-up changes release documentation only.

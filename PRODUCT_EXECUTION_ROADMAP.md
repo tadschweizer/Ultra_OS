@@ -2,8 +2,8 @@
 
 Last updated: 2026-10-16<br>
 Status: Weekly planning and coach/athlete review workflow deployed with owner authorization on mythreshold.co and www.mythreshold.co, PR #141 / main 0415ffe, Vercel dpl_EV67hYZtVjzAx4wRc7pVLEfe6BFG READY. Migration 20261017012725 applied; do not replay local 20261017003222. See WEEKLY_COACHING_RELEASE_2026-10-16.md. Owner review mode and prior security controls remain deployed.<br>
-Current milestone: M0 - one-week planning and the coaching review loop are deployed. Owner account lacks active paid/pilot coaching access; no grant or subscription was changed. Real-participant pilot acceptance remains open.<br>
-Next item: Resolve the pending owner decision about no-charge pilot access, then use the real coach/athlete accounts to walk through planning, completion, request/reply, review and adjustment. Preserve physical-phone/mailbox/participant gates and the existing billing/reliability queue. Strava/COROS/Suunto in progress; Garmin next.
+Current milestone: M0 - weekly planning and coaching review are deployed; owner-approved no-charge coach pilot access is active through November 15, 2026 at 6:55 PM Mountain. Live owner calendar, roster, planning controls and review queue verified. Real-participant acceptance remains open.<br>
+Next item: Use the owner coach and athlete accounts to walk through a real assigned week, completion, request/reply, review and upcoming adjustment. Final CI passed 488 regression, 191 browser (3 intentional skips), and 6 calendar checks. Preserve physical-phone/mailbox/participant gates and billing/reliability queue. Strava/COROS/Suunto in progress; Garmin next.
 
 ## Purpose
 
@@ -1050,3 +1050,5 @@ distinct. Documentation-only queue entry on PR #134; no runtime edit, merge or r
 Owner authorized production release in this chat. Focused branch codex/weekly-coaching-release starts from current main 2930618 and retains security and owner review mode. Six database scenarios and 482 existing regression checks passed on this base. Migration and deployment evidence will be recorded in WEEKLY_COACHING_RELEASE_2026-10-16.md. No synthetic participant records will be created in production.
 
 Release result: PR #141 merged as 0415ffe; both production aliases verified on READY deployment dpl_EV67hYZtVjzAx4wRc7pVLEfe6BFG. Live migration catalog and health checks passed. Owner Google login works at mythreshold.co; new APIs correctly enforce its missing pilot/paid entitlement. See the release record for test totals and the corrected network-fault fixture. No production training records were fabricated.
+
+Owner pilot access approved and provisioned 2026-10-17 01:55 UTC for 30 days, with no paid subscription change. PR #141 is merged; final CI 38991793750 passed. Live signed-in calendar showed the existing athlete, Plan week controls and review list. No new production training records were created during this verification.
