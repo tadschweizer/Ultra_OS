@@ -292,18 +292,31 @@ test('reviewed copy retry survives reload, releases confirmed key before GET fai
     }
     await route.fulfill({status:200,json:result});
   });
-  const copies=page.getByRole('button',{name:'Copy week to next week',exact:true});
-  await page.goto(`/coach/training-calendar?athlete=${athleteId}`);await copies.first().click();
-  await expect(page.getByText(/Connection lost/)).toBeVisible();const first=requests[0].client_request_id;
-  await page.reload();await expect(copies.first()).toBeVisible();failAfterCopy=true;await copies.first().click();
+  const copies=page.getByRole('button',{name:'Copy week',exact:true});
+  let selectedDestination;
+  async function copy() {
+    await copies.first().click();
+    const picker=page.getByLabel('Destination week',{exact:true});
+    if(!selectedDestination){
+      const next=new Date(`${await picker.inputValue()}T12:00:00`);next.setDate(next.getDate()+16);
+      await picker.fill(next.toISOString().slice(0,10));
+      selectedDestination=await picker.inputValue();
+      await expect(page.getByRole('button',{name:'Copy workouts',exact:true})).toBeDisabled();
+    } else if(actor===messageId) await expect(picker).toHaveValue(selectedDestination);
+    await page.getByRole('checkbox',{name:/Add these workouts/}).check();
+    await page.getByRole('button',{name:'Copy workouts',exact:true}).click();
+  }
+  await page.goto(`/coach/training-calendar?athlete=${athleteId}`);await copy();
+  await expect(page.getByText(/Connection lost/)).toBeVisible();const first=requests[0].client_request_id;expect(requests[0].to_week_start).toBe(selectedDestination);expect(new Date(`${selectedDestination}T12:00:00`).getDay()).toBe(1);
+  await page.reload();await expect(copies.first()).toBeVisible();failAfterCopy=true;await copy();
   await expect(page.getByText('Isolated GET failure after confirmed copy',{exact:true})).toBeVisible();
   expect(requests[1].client_request_id).toBe(first);expect(receipts.size).toBe(1);
-  await page.reload();await copies.first().click();await expect.poll(()=>requests.length).toBe(3);
+  await page.reload();await copy();await expect.poll(()=>requests.length).toBe(3);
   expect(requests[2].client_request_id).not.toBe(first);expect(receipts.size).toBe(2);
   // An uncertain operation for actor A must not become actor B's retry key.
-  lost=true;await copies.first().click();await expect(page.getByText(/Connection lost/)).toBeVisible();const uncertain=requests[3].client_request_id;
+  lost=true;await copy();await expect(page.getByText(/Connection lost/)).toBeVisible();const uncertain=requests[3].client_request_id;
   actor=secondId;await page.evaluate(id=>sessionStorage.setItem('threshold.me.v1',JSON.stringify({athlete:{id,onboarding_complete:true,primary_role:'coach',subscription_tier:'coach_pro'},account:{primary_role:'coach',capabilities:{athlete:true,coach:true},coach_access:{eligible:true}}})),actor);
-  await page.reload();await copies.first().click();await expect.poll(()=>requests.length).toBe(5);
+  await page.reload();await copy();await expect.poll(()=>requests.length).toBe(5);
   expect(requests[4].client_request_id).not.toBe(uncertain);expect(requests[4].actor).toBe(secondId);expect(external).toEqual([]);
   await page.screenshot({path:`../output/review-transfer-native-copy-${info.project.name}.png`});
 });
