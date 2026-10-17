@@ -1,6 +1,6 @@
 # Weekly coaching workflow — implementation and release record
 
-October 16, 2026. Local implementation; not deployed. Production migration and release require separate authorization. Existing M0 physical-phone, mailbox, participant, and elapsed-use gates remain open.
+October 16, 2026. Deployed with owner authorization in PR #141. See WEEKLY_COACHING_RELEASE_2026-10-16.md for the production migration, verification, and remaining owner-access setup. The implementation evidence below records the original local checkpoint; existing M0 physical-phone, mailbox, participant, and elapsed-use gates remain open.
 
 ## What was built
 

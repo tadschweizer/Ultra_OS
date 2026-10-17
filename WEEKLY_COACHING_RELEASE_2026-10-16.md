@@ -32,3 +32,15 @@ Supabase security advisor found only the expected RLS-without-policy INFO notice
 ## Initial CI result and correction
 
 [Initial CI](https://github.com/tadschweizer/Ultra_OS/actions/runs/38990891351) passed 488 regression tests, integration checks and build; browser stage passed 190 with three intentional skips and one failure in the existing copy-week retry fixture. Its trace proves the injected GET 503 occurred before the acknowledged POST 200, followed by a successful GET 200. The fixture armed its failure when the button became visible, while initial reload requests were still pending. The fixture now arms the failure only when the copy POST is acknowledged. Application code is unchanged by this correction. Corrected-run evidence follows below.
+
+## Production result
+
+PR #141 merged as `0415ffe82422960f73a53fecbc1b63e41f854e32`. Vercel automatically deployed main as **dpl_EV67hYZtVjzAx4wRc7pVLEfe6BFG**, READY, with `mythreshold.co` and `www.mythreshold.co` aliases. Application files match the tested implementation `1724314`; subsequent differences are the corrected test fixture and release documentation.
+
+Live browser checks confirmed `/api/health` reports `ok`, and both new endpoints enforce the signed-in owner's missing coach entitlement. The owner-access question remains pending; no pilot grant, subscription, or account role was changed.
+
+The corrected retry test passed ten repeated desktop/mobile cases. All six calendar copy/privacy/load acceptance browser tests passed against the release production build. The complete local browser rerun and repeated GitHub CI result are recorded below.
+
+Final local verification: production-build browser run passed 189 cases with three intentional skips. Two existing coach-report asset-name assertions failed because the custom production harness serves hashed bundle names; both passed when rerun using the repository's normal development-server configuration (15.6 seconds). Their report calculations, error recovery and access checks remain covered. No application changes were needed. Combined evidence covers all 191 critical browser cases, plus six calendar acceptance cases and ten repeated copy-retry cases. This is evidence across runs, not a claim that the custom production-harness suite passed unchanged.
+
+[Repeated GitHub CI](https://github.com/tadschweizer/Ultra_OS/actions/runs/38991793750) has passed regression, integration and build stages and is still running its broader browser repeat at this documentation checkpoint. The deployment decision also uses the completed local checks above. No full participant or signed-in coach workflow acceptance is claimed while the owner lacks pilot access.
