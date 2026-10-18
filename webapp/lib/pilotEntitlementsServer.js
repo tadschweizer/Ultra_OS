@@ -1,3 +1,4 @@
+import { athleteOpenAccess } from './athleteAccessPolicy.js';
 import { coachEntitlement, hasPaidAccess, isActiveCoachingRelationship } from './pilotEntitlements.js';
 import { COACH_TIERS } from './subscriptionTiers.js';
 
@@ -29,6 +30,7 @@ export async function loadCoachEntitlement(admin, profile, athlete = null, now =
  */
 export async function loadCheckInEntitlement(admin, athlete, now = new Date()) {
   if (!athlete?.id) throw new EntitlementLookupError();
+  if (athleteOpenAccess()) return { unlimited: true, source: 'open_access', linkedToPaidCoach: false };
   // Every paid tier already includes Core, so paid access needs no coach lookup
   // and survives pilot-table failures.
   if (hasPaidAccess(athlete)) return { unlimited: true, source: 'independent_paid', linkedToPaidCoach: false };

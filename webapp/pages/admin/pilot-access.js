@@ -46,7 +46,7 @@ export default function PilotAccessPage() {
       <p className="font-semibold">{result.profile.display_name || 'Coach'} · {result.action ? 'Saved' : 'Current record'}</p>
       <p>Coach profile: {result.profile.id}</p>
       <p>Account: {result.profile.athlete_id}</p>
-      <p>{!result.grant ? 'No pilot grant.' : result.grant.revoked_at ? 'Pilot revoked.' : `Pilot ends ${new Date(result.grant.expires_at).toLocaleString()}`}</p>
+      <p>{!result.grant ? 'No pilot grant.' : result.grant.revoked_at ? 'Pilot revoked.' : result.grant.expires_at === 'infinity' ? 'Permanent complimentary coach access.' : `Pilot ends ${new Date(result.grant.expires_at).toLocaleString()}`}</p>
       <p>After expiry or revocation, linked athletes return to their own check-in allowance. Historical data and independent paid access remain.</p>
     </div>}
   </main>;

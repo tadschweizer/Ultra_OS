@@ -1,3 +1,4 @@
+import { applyComplimentaryAccess } from './complimentaryAccessServer.js';
 import { createClient } from '@supabase/supabase-js';
 import { normalizeSubscriptionTier } from './subscriptionTiers.js';
 import { getSessionFromRequest } from './auth/sessionCookies.js';
@@ -226,8 +227,8 @@ export async function getAthleteByCookie(req, client) {
   if (!athlete) return null;
   // Revoked by a password change, reset, or "sign out everywhere".
   if (Number(athlete.session_version || 1) !== session.sessionVersion) return null;
-  return {
+  return applyComplimentaryAccess(client, {
     ...athlete,
     subscription_tier: normalizeSubscriptionTier(athlete.subscription_tier),
-  };
+  });
 }

@@ -1,3 +1,5 @@
+import { applyComplimentaryAccess } from '../../lib/complimentaryAccessServer.js';
+import { athleteOpenAccess } from '../../lib/athleteAccessPolicy.js';
 import { getSupabaseAdminClient } from '../../lib/authServer.js';
 import { canLogCheckIn, buildUsageSnapshot, getFeatureList, getIncludedAthletes, getSubscriptionTierLabel, normalizeSubscriptionTier } from '../../lib/subscriptionTiers.js';
 import { isFastCheckIn } from '../../lib/checkIn.js';
@@ -37,7 +39,7 @@ return async function handler(req, res) {
   if (!isImpersonating) renewAthleteCookieIfStale(res, session);
 
   // Fetch athlete
-  const { data: athlete, error: athleteError } = await admin
+  const { data: storedAthlete, error: athleteError } = await admin
     .from('athletes')
     .select('id, name, email, strava_id, token_expires_at, onboarding_complete, primary_role, primary_sports, years_racing_band, weekly_training_hours_band, home_elevation_ft, target_race_id, is_admin, subscription_tier, supabase_user_id, stripe_subscription_id, stripe_subscription_status, email_verified_at')
     .eq('id', athleteId)
@@ -47,11 +49,14 @@ return async function handler(req, res) {
     res.status(500).json({ error: athleteError.message });
     return;
   }
-  if (!athlete) {
+  if (!storedAthlete) {
     clearAthleteCookie(res);
     res.status(401).json({ error: 'Not authenticated' });
     return;
   }
+  let athlete;
+  try { athlete = await applyComplimentaryAccess(admin, storedAthlete); }
+  catch { return res.status(503).json({ error: 'Access could not be verified. Please retry.' }); }
   const { count, error: interventionsError } = await admin
     .from('interventions')
     .select('id', { count: 'exact', head: true })
@@ -158,6 +163,8 @@ return async function handler(req, res) {
   res.status(200).json({
     athlete: normalizedAthlete,
     account: {
+      athlete_open_access: athleteOpenAccess(),
+      complimentary_access: athlete.complimentary_access === true,
       coach_access: coachAccess,
       features: getFeatureList(normalizedTier, featureOptions),
       feature_sources: featureOptions,

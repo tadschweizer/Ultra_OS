@@ -35,6 +35,8 @@ jobs:
         run: npm run test:e2e:critical
       - name: Run calendar copy/privacy/load acceptance with isolated SQL fixtures
         run: npm run test:e2e:calendar-gaps
+      - name: Verify free athlete access and public copy
+        run: npm run test:e2e:free-access
       - name: Preserve failure traces
         if: failure()
         uses: actions/upload-artifact@v4

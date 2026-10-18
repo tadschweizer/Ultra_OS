@@ -1,3 +1,4 @@
+import { athleteOpenAccess } from './athleteAccessPolicy.js';
 /**
  * Plan tiers and the features each one unlocks. This file is the single source
  * of truth for plan gating: pages and API routes ask `hasFeature`, never compare
@@ -146,6 +147,7 @@ export function getIncludedAthletes(value) {
  */
 export function getFeatureSet(tier, { linkedToPaidCoach = false, coachPilot = false } = {}) {
   const features = new Set(TIER_FEATURES[normalizeSubscriptionTier(tier)]);
+  if (athleteOpenAccess()) PRO_FEATURES.forEach(feature => features.add(feature));
   if (linkedToPaidCoach) CORE_FEATURES.forEach((feature) => features.add(feature));
   if (coachPilot) COACH_PILOT_FEATURES.forEach((feature) => features.add(feature));
   return features;
@@ -193,6 +195,7 @@ export function canLogCheckIn(athlete, currentWeeklyCheckIns, entitlement = null
 }
 
 function checkInsUncapped(athlete, entitlement) {
+  if (athleteOpenAccess() || athlete?.complimentary_access) return true;
   const tier = normalizeSubscriptionTier(athlete?.subscription_tier);
   if (entitlement && tier !== 'free') return false;
   return hasFeature(athlete, 'unlimited_checkins');

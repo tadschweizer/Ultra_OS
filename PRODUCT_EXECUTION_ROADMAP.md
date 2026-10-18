@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
-Last updated: 2026-10-16<br>
+Last updated: 2026-10-18<br>
 Status: Copy week destination picker released through PR #142 / merge 72e4ce5, Vercel dpl_F85PBT7KHehZze8RwKeUhXDHZD79 READY on both production domains. Weekly planning and coach/athlete review workflow deployed with owner authorization on mythreshold.co and www.mythreshold.co, PR #141 / main 0415ffe, Vercel dpl_EV67hYZtVjzAx4wRc7pVLEfe6BFG READY. Migration 20261017012725 applied; do not replay local 20261017003222. See WEEKLY_COACHING_RELEASE_2026-10-16.md. Owner review mode and prior security controls remain deployed.<br>
-Current milestone: M0 - calendar Copy week destination picker merged and deployed with user authorization; weekly planning and coaching review are deployed; owner-approved no-charge coach pilot access is active through November 15, 2026 at 6:55 PM Mountain. Live owner calendar, roster, planning controls and review queue verified. Real-participant acceptance remains open.<br>
-Next item: Use the owner coach and athlete accounts to walk through a real assigned week, completion, request/reply, review and upcoming adjustment. Final CI passed 488 regression, 191 browser (3 intentional skips), and 6 calendar checks. Preserve physical-phone/mailbox/participant gates and billing/reliability queue. Strava/COROS/Suunto in progress; Garmin next.
+Current milestone: M0 — owner-authorized free athlete access and concrete coaching website copy. Local implementation verified; release pending final CI. Permanent owner coach access and reserved verified-email athlete grants are part of this release.<br>
+Next item: Complete full CI and production verification for free athlete access, then invite Beth through the normal coach relationship flow after she creates and verifies her account. Preserve real-participant, physical-phone and mailbox gates; Strava/COROS/Suunto in progress, Garmin next.
 
 ## Purpose
 
@@ -1074,3 +1074,14 @@ Owner pilot access approved and provisioned 2026-10-17 01:55 UTC for 30 days, wi
 - Production deployment `dpl_F85PBT7KHehZze8RwKeUhXDHZD79` for merge `72e4ce5` is READY, target production, aliasError null. Both mythreshold.co and www.mythreshold.co assigned successfully.
 - Post-deploy checks: both public health endpoints 200; login 200; anonymous account and planned-workout APIs 401. Live calendar JavaScript contains the destination picker. No production training records were created for these checks.
 - No migrations or service configuration changes. Signed-in human workflow, physical-phone, mailbox and participant gates remain separate from automated checks. This follow-up evidence edit does not change application code.
+
+
+### 2026-10-18 — Free athlete access and coaching website copy
+
+- Owner authorization: all currently available athlete features free until explicit go-ahead to restore billing; permanent free owner coach access and permanent athlete access for owner and named friend. No general free coach access was authorized.
+- `NEXT_PUBLIC_ATHLETE_OPEN_ACCESS=true` grants the existing athlete Pro feature set and uncaps logging/check-ins. It does not grant coach/administrator permissions or deferred AI. Checkout GET/POST and billing previews refuse new subscriptions while open access is active; existing billing-history management remains available. Reverting the flag requires a rebuild and deployment; do not turn it off without owner approval.
+- `COMPLIMENTARY_ATHLETE_EMAILS` is server-only deployment configuration for permanent grants. Resolve against confirmed primary Supabase Auth email, never profile email or user metadata; failures are recoverable and fail closed. These grants remain independent of open-access mode and Stripe webhook updates. Do not publish email values in repository documents.
+- PostgreSQL `infinity` is supported for a non-expiring existing coach grant; start-time and revocation checks remain enforced. No new schema migration. Apply the owner's non-expiring grant only after compatible application code is deployed.
+- Homepage and guide explain copy/customize a week, prescription/result review, response requests and next-session adjustment. Free-access pricing replaces purchase CTAs while enabled. Provider copy now says Strava/COROS/Suunto in progress, Garmin next. No claimed measured savings or competitor superiority.
+- Local checks: 492 regression tests passed; free-access desktop/mobile tests passed (2), including accessibility and direct checkout rejection; production build with open access enabled passed. Added these checks to Auth Smoke.
+- Production data check found only a canceled subscription recorded. Friend has not registered yet; verified-email grant will apply on signup. No invitation email or athlete records were created automatically.

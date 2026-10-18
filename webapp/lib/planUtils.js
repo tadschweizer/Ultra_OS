@@ -1,3 +1,4 @@
+import { athleteOpenAccess } from './athleteAccessPolicy';
 import { useEffect, useState } from 'react';
 import {
   getFeatureList,
@@ -54,7 +55,7 @@ export function usePlan() {
     // True once we know the real plan (from cache or network); pages should
     // never render a "locked" state before this flips to true.
     planReady: !loading || Boolean(me),
-    planLabel: getPlanLabel(planId),
+    planLabel: me?.account?.complimentary_access ? 'Permanent complimentary access' : athleteOpenAccess() ? 'Free athlete access' : getPlanLabel(planId),
     entitlementError: me?.entitlementError || null,
     coachAccess: me?.account?.coach_access || null,
     features,

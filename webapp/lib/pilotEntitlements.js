@@ -4,14 +4,14 @@ import { isEntitledSubscriptionStatus } from './billingPlans.js';
 export function hasActivePilot(grant, now = new Date()) {
   return Boolean(grant && !grant.revoked_at
     && Date.parse(grant.starts_at) <= now.getTime()
-    && Date.parse(grant.expires_at) > now.getTime());
+    && (grant.expires_at === 'infinity' || Date.parse(grant.expires_at) > now.getTime()));
 }
 
 // Preserve the existing administrator-provisioned paid-tier pattern. Stripe-owned
 // accounts additionally require the canonical active/trialing/past_due status.
 export function hasPaidAccess(athlete, tiers = [...PAID_ATHLETE_TIERS, ...COACH_TIERS]) {
   return tiers.includes(normalizeSubscriptionTier(athlete?.subscription_tier))
-    && (!athlete?.stripe_subscription_id || isEntitledSubscriptionStatus(athlete.stripe_subscription_status));
+    && (athlete?.complimentary_access === true || !athlete?.stripe_subscription_id || isEntitledSubscriptionStatus(athlete.stripe_subscription_status));
 }
 
 export function isActiveCoachingRelationship(relationship, now = new Date()) {

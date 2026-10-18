@@ -1,3 +1,5 @@
+import FreeAthleteAccess from '../components/FreeAthleteAccess';
+import { athleteOpenAccess } from '../lib/athleteAccessPolicy';
 import { useEffect, useState } from 'react';
 import NavMenu from '../components/NavMenu';
 import { fetchMe } from '../lib/meClient';
@@ -19,7 +21,7 @@ const athletePlans = [
     badge: 'Connect + track',
     description: 'Connect to your coach and keep a clean training log. No card needed.',
     includes: [
-      'Strava activity sync',
+      'Manual activity logging; provider connections as available',
       'Join a coach and see assigned workouts',
       'Activity history with per-session stats',
       'Workout comments + coach messaging',
@@ -158,7 +160,7 @@ const faq = [
   },
   {
     q: 'Do you integrate with Garmin and Strava?',
-    a: 'Strava is live today. Threshold supports both Strava-synced sessions and manual logging.',
+    a: 'Strava, COROS and Suunto are in progress; Garmin is next. Manual logging is available now.',
   },
   {
     q: 'Coaching more athletes than the plan includes?',
@@ -258,6 +260,7 @@ export default function PricingPage() {
     };
   }, []);
 
+  if (athleteOpenAccess()) return <FreeAthleteAccess />;
   return (
     <main className="min-h-screen bg-paper text-ink">
 
