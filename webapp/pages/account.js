@@ -267,7 +267,7 @@ export default function AccountPage() {
             <a href="/pricing" className="mt-5 inline-flex rounded-full bg-ink px-5 py-3 text-sm font-semibold text-paper">
               {athleteOpenAccess() ? 'View access details' : 'View Pricing'}
             </a>
-            {athlete?.stripe_customer_id || athlete?.stripe_subscription_id ? (
+            {(!athleteOpenAccess() && !account?.complimentary_access && planId !== 'free') || athlete?.stripe_customer_id || athlete?.stripe_subscription_id ? (
               <button type="button" disabled={billingBusy} onClick={openBillingPortal} className="mt-3 inline-flex rounded-full border border-ink/10 px-5 py-3 text-sm font-semibold text-ink disabled:opacity-60">
                 {billingBusy ? 'Opening billing…' : 'Manage Billing'}
               </button>

@@ -1087,3 +1087,5 @@ Owner pilot access approved and provisioned 2026-10-17 01:55 UTC for 30 days, wi
 - Homepage and guide explain copy/customize a week, prescription/result review, response requests and next-session adjustment. Free-access pricing replaces purchase CTAs while enabled. Provider copy now says Strava/COROS/Suunto in progress, Garmin next. No claimed measured savings or competitor superiority.
 - Local checks: 492 regression tests passed; free-access desktop/mobile tests passed (2), including accessibility and direct checkout rejection; production build with open access enabled passed. Added these checks to Auth Smoke.
 - Production data check found only a canceled subscription recorded. Friend has not registered yet; verified-email grant will apply on signup. No invitation email or athlete records were created automatically.
+
+- Release check found existing paid-account billing controls missing when the fixture had no Stripe identifiers (CI 39158480120). Retain the established paid-plan fallback when open access is off, while complimentary accounts without billing history keep it hidden. Require the full suite again before release.
