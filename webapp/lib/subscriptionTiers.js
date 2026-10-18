@@ -1,3 +1,4 @@
+import { athleteOpenAccess } from './athleteAccessPolicy.js';
 /**
  * Plan tiers and the features each one unlocks. This file is the single source
  * of truth for plan gating: pages and API routes ask `hasFeature`, never compare
@@ -144,8 +145,9 @@ export function getIncludedAthletes(value) {
  * coached on a paid coach plan; `coachPilot` grants Coach Pro's coach tools to
  * an approved pilot coach without changing their stored tier.
  */
-export function getFeatureSet(tier, { linkedToPaidCoach = false, coachPilot = false } = {}) {
+export function getFeatureSet(tier, { linkedToPaidCoach = false, coachPilot = false, complimentaryAthlete = false } = {}) {
   const features = new Set(TIER_FEATURES[normalizeSubscriptionTier(tier)]);
+  if (athleteOpenAccess() || complimentaryAthlete) PRO_FEATURES.forEach(feature => features.add(feature));
   if (linkedToPaidCoach) CORE_FEATURES.forEach((feature) => features.add(feature));
   if (coachPilot) COACH_PILOT_FEATURES.forEach((feature) => features.add(feature));
   return features;
@@ -156,7 +158,7 @@ export function getFeatureList(tier, options) {
 }
 
 export function hasFeature(athlete, feature, options) {
-  return getFeatureSet(athlete?.subscription_tier, options).has(feature);
+  return getFeatureSet(athlete?.subscription_tier, { ...options, complimentaryAthlete: athlete?.complimentary_access === true || options?.complimentaryAthlete === true }).has(feature);
 }
 
 export function getUnlockLabel(feature) {
@@ -193,6 +195,7 @@ export function canLogCheckIn(athlete, currentWeeklyCheckIns, entitlement = null
 }
 
 function checkInsUncapped(athlete, entitlement) {
+  if (athleteOpenAccess() || athlete?.complimentary_access) return true;
   const tier = normalizeSubscriptionTier(athlete?.subscription_tier);
   if (entitlement && tier !== 'free') return false;
   return hasFeature(athlete, 'unlimited_checkins');

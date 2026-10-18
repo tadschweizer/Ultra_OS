@@ -1,3 +1,5 @@
+import FreeAthleteAccess from '../../components/FreeAthleteAccess';
+import { athleteOpenAccess } from '../../lib/athleteAccessPolicy';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 
@@ -10,7 +12,7 @@ function formatPrice(price) {
   return `${amount} / ${price.intervalCount > 1 ? `${price.intervalCount} ` : ''}${price.interval}${price.intervalCount > 1 ? 's' : ''}`;
 }
 
-export default function BillingReviewPage() {
+function BillingReviewPage() {
   const router = useRouter();
   const plan = typeof router.query.plan === 'string' ? router.query.plan : '';
   const [review, setReview] = useState(null);
@@ -93,3 +95,5 @@ export default function BillingReviewPage() {
     </section>
   </main>;
 }
+
+export default function CheckoutAccess() { return athleteOpenAccess() ? <FreeAthleteAccess /> : <BillingReviewPage />; }

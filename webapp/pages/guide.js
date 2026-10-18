@@ -3,8 +3,8 @@ import DashboardTabs from '../components/DashboardTabs';
 import { usePlan } from '../lib/planUtils';
 
 const sections = [
-  { title: 'Plan and log workouts', body: 'Create workouts on the training calendar, record completion and actual values, and review planned versus completed work.', value: 'Manual planning stays available during the pilot.', cta: { label: 'Open the training calendar', href: '/calendar' } },
-  { title: 'Daily check-ins and messages', body: 'Record legs feel, energy and RPE after training. Use Messages or a session discussion to share feedback with your coach.', value: 'Your account shows the check-in access for your plan and coach relationship.', cta: { label: 'Open Messages', href: '/messages' } },
+  { title: 'Plan and log workouts', body: 'Use Copy week beside a populated calendar week, choose the destination week, and confirm. Keep existing sessions, edit individual prescriptions, then review the completed workouts against the plan.', value: 'Manual planning stays available during the pilot.', cta: { label: 'Open the training calendar', href: '/calendar' } },
+  { title: 'Daily check-ins and messages', body: 'Record legs feel, energy and RPE after training. Use Messages or a session discussion to share feedback with your coach.', value: 'Mark session feedback as needing a response. Your coach can reply, acknowledge review or adjust upcoming training.', cta: { label: 'Open Messages', href: '/messages' } },
   {
     title: 'Intervention Log',
     body:

@@ -1,3 +1,4 @@
+import { athleteOpenAccess } from '../lib/athleteAccessPolicy';
 import { useEffect, useState } from 'react';
 import Head from 'next/head';
 import NavMenu from '../components/NavMenu';
@@ -8,18 +9,18 @@ const publicLinks = [
   { href: '/pricing', label: 'Pricing' },
 ];
 const pilotSteps = [
-  { title: 'Plan the week', body: 'Create and assign workouts on the training calendar. Give each session a date, a goal and clear instructions.' },
+  { title: 'Plan the week', body: 'Copy any week to another week or start from saved workouts. Preview and customize prescriptions for each athlete before publishing.' },
   { title: 'Log what happened', body: 'Athletes record completion and actual values, or import supported activities. Keep planned and actual work distinct.' },
   { title: 'Check in', body: 'Record legs feel, energy and RPE, with an optional note. The coach can review these alongside the training history.' },
-  { title: 'Review and reply', body: 'Discuss a session or use the shared inbox. The coach decides what to change and communicates it directly.' },
+  { title: 'Review and reply', body: 'See completed sessions awaiting review and requests needing a reply. Reply, mark Reviewed—no change, or adjust an upcoming session.' },
 ];
 const pilotFeatures = [
   { title: 'Coach calendar and roster', body: 'Plan workouts, review logged results and find the athlete you need to speak with.' },
-  { title: 'Daily athlete check-ins', body: 'Athletes linked to an eligible paid or pilot coach can record daily feedback. Product limits and access are shown in the account.' },
+  { title: 'Daily athlete check-ins', body: 'Record how the session felt and ask your coach for a response. Your feedback stays with the assigned session.' },
   { title: 'Messages and session discussions', body: 'Keep coach feedback with the training. Open inbox conversations refresh automatically.' },
   { title: 'Calculated training comparisons', body: 'Review totals, training-load estimates and check-in comparisons where your plan and available data support them. They use rules and formulas, with assumptions and data limits.' },
   { title: 'Manual race and intervention records', body: 'Keep race dates, course details, goals and intervention history editable. You and your coach choose the plan.' },
-  { title: 'Supported activity imports', body: 'Strava availability is shown in Connections. Other providers stay unavailable until their access and integration are ready.' },
+  { title: 'Supported activity imports', body: 'Strava, COROS and Suunto are in progress; Garmin is next. Record workouts manually while those connections are developed.' },
 ];
 
 export default function LandingPage() {
@@ -41,9 +42,9 @@ export default function LandingPage() {
     <main className="min-h-screen bg-paper text-ink">
       <Head>
         <title>Threshold | Training plans, check-ins and coach feedback</title>
-        <meta name="description" content="A closed coach pilot for planning workouts, logging results, daily check-ins and coach-athlete feedback. Coach access requires approval." />
+        <meta name="description" content="Copy and customize a training week, review planned versus actual results, and reply or adjust the next session. Coach access requires approval." />
         <meta property="og:title" content="Threshold | Plan, log, review and reply" />
-        <meta property="og:description" content="Manual workout planning and athlete feedback in one place. Closed pilot, with administrator-approved coach access." />
+        <meta property="og:description" content="Weekly planning, completed-session review and coach replies together. Coach access requires approval." />
       </Head>
       <header className="sticky top-0 z-50 px-4 pt-4">
         <div className="mx-auto flex max-w-6xl items-center justify-between rounded-full border border-ink/10 bg-white/90 px-4 py-3 backdrop-blur">
@@ -59,10 +60,9 @@ export default function LandingPage() {
         <section className="mt-6 grid gap-8 rounded-[32px] border border-ink/10 bg-[linear-gradient(145deg,#f7f2ea,#eadcc7)] p-6 md:p-10 lg:grid-cols-[1.4fr_1fr]">
           <div>
             <p className="ui-eyebrow !text-ink">Closed coach pilot</p>
-            <h1 className="font-display mt-4 text-4xl font-semibold leading-tight md:text-6xl">Plan the work. Keep the feedback close.</h1>
+            <h1 className="font-display mt-4 text-4xl font-semibold leading-tight md:text-6xl">Plan the week. Review the result. Keep coaching.</h1>
             <p className="mt-5 max-w-2xl text-base leading-8 text-ink/75">
-              Plan workouts, record what happened, check in and talk with your coach.
-              Threshold brings that daily training loop into one place.
+              Copy a training week, tailor each athlete’s sessions, then review the prescription, results and feedback together. Reply or adjust the next workout while the session is still in view.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
               <a href={coachHref} className="ui-button-primary">Create a pilot account</a>
@@ -81,8 +81,9 @@ export default function LandingPage() {
             </ol>
           </aside>
         </section>
+        {athleteOpenAccess() && <p className="mt-6 rounded-2xl border border-ink/10 bg-white p-5 text-sm"><strong>Free athlete access.</strong> All currently available athlete features are free during early access. No card needed. <a href="/pricing" className="text-ink underline">See access details</a>.</p>}
         <section className="mt-12">
-          <h2 className="text-3xl font-semibold">The pilot workflow</h2>
+          <h2 className="text-3xl font-semibold">From a planned week to the next coaching decision</h2>
           <div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {pilotSteps.map((step, index) => <article key={step.title} className="ui-card">
               <p className="font-mono text-sm text-ink">0{index + 1}</p>
@@ -116,7 +117,7 @@ export default function LandingPage() {
         </section>
         <section className="mt-8 rounded-2xl border border-ink/10 bg-white p-6">
           <h2 className="text-xl font-semibold">Training on your own?</h2>
-          <p className="mt-3 text-sm leading-7 text-ink/75">Keep your workout, race and intervention history together. Your account shows which calculated comparisons your plan includes.</p>
+          <p className="mt-3 text-sm leading-7 text-ink/75">Keep your workout, race and intervention history together. Review available calculated comparisons alongside your training records.</p>
           <a href={athleteId ? '/dashboard' : '/signup'} className="ui-button-secondary mt-4">Start as an athlete</a>
         </section>
         <footer className="mt-10 flex flex-wrap gap-5 text-sm">

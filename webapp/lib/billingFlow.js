@@ -1,3 +1,4 @@
+import { athleteOpenAccess } from './athleteAccessPolicy.js';
 import crypto from 'crypto';
 import cookie from 'cookie';
 import { getAthleteByCookie, getSupabaseAdminClient } from './authServer.js';
@@ -33,6 +34,7 @@ export function createBillingFlowHandler(action, {
   return async function handler(req, res) {
     res.setHeader('Cache-Control', 'no-store');
     try {
+      if (action !== 'portal' && athleteOpenAccess()) return res.status(403).json({ error: 'Athlete access is currently free. No subscription or card is needed.', code: 'ATHLETE_OPEN_ACCESS' });
       // Old signup/email destinations are read-only bookmarks; no Stripe call.
       if (action === 'checkout' && req.method === 'GET') {
         if (!getPublicCheckoutPath(req.query?.plan)) {
@@ -54,6 +56,7 @@ export function createBillingFlowHandler(action, {
       }
       const athlete = await getAthlete(req, getClient());
       if (!athlete) return res.status(401).json({ error: 'Please log in to review billing.' });
+      if (action !== 'portal' && athlete.complimentary_access) return res.status(403).json({ error: 'Your athlete account has permanent complimentary access. No subscription is needed.' });
       const stripe = getStripe();
       const siteUrl = billingSiteUrl();
       if (action === 'portal') {

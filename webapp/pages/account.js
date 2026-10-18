@@ -1,3 +1,4 @@
+import { athleteOpenAccess } from '../lib/athleteAccessPolicy';
 import { useEffect, useRef, useState } from 'react';
 import NavMenu from '../components/NavMenu';
 import DashboardTabs from '../components/DashboardTabs';
@@ -260,13 +261,13 @@ export default function AccountPage() {
             <p className="text-sm uppercase tracking-[0.25em] text-accent">Plan</p>
             <p className="mt-4 text-2xl font-semibold text-ink">{planLabel}</p>
             <p className="mt-4 text-sm leading-7 text-ink/76">
-              Your current subscription tier is saved automatically from Stripe webhooks and applied across Threshold without manual refresh.
+              {athleteOpenAccess() || account?.complimentary_access ? 'Your athlete features are available at no charge. No new subscription is needed.' : 'Your subscription and billing history are managed through Stripe.'}
             </p>
             <p className="mt-2 text-xs uppercase tracking-[0.18em] text-ink/45">Tier code: {planId}</p>
             <a href="/pricing" className="mt-5 inline-flex rounded-full bg-ink px-5 py-3 text-sm font-semibold text-paper">
-              View Pricing
+              {athleteOpenAccess() ? 'View access details' : 'View Pricing'}
             </a>
-            {planId !== 'free' || athlete?.stripe_subscription_id ? (
+            {(!athleteOpenAccess() && !account?.complimentary_access && planId !== 'free') || athlete?.stripe_customer_id || athlete?.stripe_subscription_id ? (
               <button type="button" disabled={billingBusy} onClick={openBillingPortal} className="mt-3 inline-flex rounded-full border border-ink/10 px-5 py-3 text-sm font-semibold text-ink disabled:opacity-60">
                 {billingBusy ? 'Opening billing…' : 'Manage Billing'}
               </button>
