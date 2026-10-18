@@ -31,6 +31,7 @@ export async function loadCoachEntitlement(admin, profile, athlete = null, now =
 export async function loadCheckInEntitlement(admin, athlete, now = new Date()) {
   if (!athlete?.id) throw new EntitlementLookupError();
   if (athleteOpenAccess()) return { unlimited: true, source: 'open_access', linkedToPaidCoach: false };
+  if (athlete.complimentary_access) return { unlimited: true, source: 'complimentary', linkedToPaidCoach: false };
   // Every paid tier already includes Core, so paid access needs no coach lookup
   // and survives pilot-table failures.
   if (hasPaidAccess(athlete)) return { unlimited: true, source: 'independent_paid', linkedToPaidCoach: false };

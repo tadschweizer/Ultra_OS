@@ -145,9 +145,9 @@ export function getIncludedAthletes(value) {
  * coached on a paid coach plan; `coachPilot` grants Coach Pro's coach tools to
  * an approved pilot coach without changing their stored tier.
  */
-export function getFeatureSet(tier, { linkedToPaidCoach = false, coachPilot = false } = {}) {
+export function getFeatureSet(tier, { linkedToPaidCoach = false, coachPilot = false, complimentaryAthlete = false } = {}) {
   const features = new Set(TIER_FEATURES[normalizeSubscriptionTier(tier)]);
-  if (athleteOpenAccess()) PRO_FEATURES.forEach(feature => features.add(feature));
+  if (athleteOpenAccess() || complimentaryAthlete) PRO_FEATURES.forEach(feature => features.add(feature));
   if (linkedToPaidCoach) CORE_FEATURES.forEach((feature) => features.add(feature));
   if (coachPilot) COACH_PILOT_FEATURES.forEach((feature) => features.add(feature));
   return features;
@@ -158,7 +158,7 @@ export function getFeatureList(tier, options) {
 }
 
 export function hasFeature(athlete, feature, options) {
-  return getFeatureSet(athlete?.subscription_tier, options).has(feature);
+  return getFeatureSet(athlete?.subscription_tier, { ...options, complimentaryAthlete: athlete?.complimentary_access === true || options?.complimentaryAthlete === true }).has(feature);
 }
 
 export function getUnlockLabel(feature) {

@@ -11,7 +11,7 @@ export function hasActivePilot(grant, now = new Date()) {
 // accounts additionally require the canonical active/trialing/past_due status.
 export function hasPaidAccess(athlete, tiers = [...PAID_ATHLETE_TIERS, ...COACH_TIERS]) {
   return tiers.includes(normalizeSubscriptionTier(athlete?.subscription_tier))
-    && (athlete?.complimentary_access === true || !athlete?.stripe_subscription_id || isEntitledSubscriptionStatus(athlete.stripe_subscription_status));
+    && (!athlete?.stripe_subscription_id || isEntitledSubscriptionStatus(athlete.stripe_subscription_status));
 }
 
 export function isActiveCoachingRelationship(relationship, now = new Date()) {

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { getFeatureList, canLogCheckIn, canLogIntervention, buildUsageSnapshot } from '../lib/subscriptionTiers.js';
-import { hasActivePilot, coachEntitlement } from '../lib/pilotEntitlements.js';
+import { hasActivePilot, coachEntitlement, hasPaidAccess } from '../lib/pilotEntitlements.js';
 import { loadCheckInEntitlement } from '../lib/pilotEntitlementsServer.js';
 import { applyComplimentaryAccess } from '../lib/complimentaryAccessServer.js';
 import { createBillingFlowHandler } from '../lib/billingFlow.js';
@@ -60,4 +60,13 @@ test('permanent coach approval has no expiry but still honors start and revocati
   assert.equal(hasActivePilot({ ...grant, revoked_at: '2026-02-01' }), false);
   assert.equal(hasActivePilot({ ...grant, starts_at: '2126-01-01' }), false);
   assert.equal(hasActivePilot({ ...grant, expires_at: 'garbage' }), false);
+});
+
+
+test('complimentary athlete access never revives a canceled coach subscription', async () => {
+  const athlete = { id: 'former-coach', subscription_tier: 'coach_pro', stripe_subscription_id: 'sub_old', stripe_subscription_status: 'canceled', complimentary_access: true };
+  assert.equal(hasPaidAccess(athlete, ['coach_pro']), false);
+  assert.equal(coachEntitlement({ athlete, profile: { id: 'coach' } }).eligible, false);
+  assert.equal((await loadCheckInEntitlement({}, athlete)).unlimited, true);
+  assert.ok(getFeatureList('coach_essentials', { complimentaryAthlete: true }).includes('steady_state_analysis'));
 });

@@ -156,6 +156,7 @@ return async function handler(req, res) {
     return res.status(503).json({ error: 'Access could not be verified. Please try again.' });
   }
   const featureOptions = {
+    complimentaryAthlete: athlete.complimentary_access === true,
     linkedToPaidCoach: checkInEntitlement.linkedToPaidCoach === true,
     coachPilot: coachAccess.pilot === true,
   };
