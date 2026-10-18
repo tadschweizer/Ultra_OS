@@ -1078,6 +1078,8 @@ Owner pilot access approved and provisioned 2026-10-17 01:55 UTC for 30 days, wi
 
 ### 2026-10-18 — Free athlete access and coaching website copy
 
+- PR #143: https://github.com/tadschweizer/Ultra_OS/pull/143; implementation `6c2d8b7`; final CI and production confirmation pending.
+
 - Owner authorization: all currently available athlete features free until explicit go-ahead to restore billing; permanent free owner coach access and permanent athlete access for owner and named friend. No general free coach access was authorized.
 - `NEXT_PUBLIC_ATHLETE_OPEN_ACCESS=true` grants the existing athlete Pro feature set and uncaps logging/check-ins. It does not grant coach/administrator permissions or deferred AI. Checkout GET/POST and billing previews refuse new subscriptions while open access is active; existing billing-history management remains available. Reverting the flag requires a rebuild and deployment; do not turn it off without owner approval.
 - `COMPLIMENTARY_ATHLETE_EMAILS` is server-only deployment configuration for permanent grants. Resolve against confirmed primary Supabase Auth email, never profile email or user metadata; failures are recoverable and fail closed. These grants remain independent of open-access mode and Stripe webhook updates. Do not publish email values in repository documents.
