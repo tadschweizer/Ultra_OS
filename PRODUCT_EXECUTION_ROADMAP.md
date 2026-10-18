@@ -2,8 +2,8 @@
 
 Last updated: 2026-10-18<br>
 Status: Copy week destination picker released through PR #142 / merge 72e4ce5, Vercel dpl_F85PBT7KHehZze8RwKeUhXDHZD79 READY on both production domains. Weekly planning and coach/athlete review workflow deployed with owner authorization on mythreshold.co and www.mythreshold.co, PR #141 / main 0415ffe, Vercel dpl_EV67hYZtVjzAx4wRc7pVLEfe6BFG READY. Migration 20261017012725 applied; do not replay local 20261017003222. See WEEKLY_COACHING_RELEASE_2026-10-16.md. Owner review mode and prior security controls remain deployed.<br>
-Current milestone: M0 — owner-authorized free athlete access and concrete coaching website copy. Local implementation verified; release pending final CI. Permanent owner coach access and reserved verified-email athlete grants are part of this release.<br>
-Next item: Complete full CI and production verification for free athlete access, then invite Beth through the normal coach relationship flow after she creates and verifies her account. Preserve real-participant, physical-phone and mailbox gates; Strava/COROS/Suunto in progress, Garmin next.
+Current milestone: M0 — free athlete access and concrete coaching website copy deployed through PR #143 / merge 729ece2. Final Auth Smoke passed; production and signed-in owner calendar verified. Permanent owner coach grant applied; permanent athlete grants reserved by verified email.<br>
+Next item: Named friend signs up and verifies her email, then connects through the normal coach relationship flow. Run the real coach/athlete planning, completion and review journey. Preserve real-participant, physical-phone and mailbox gates; Strava/COROS/Suunto in progress, Garmin next.
 
 ## Purpose
 
@@ -1078,7 +1078,7 @@ Owner pilot access approved and provisioned 2026-10-17 01:55 UTC for 30 days, wi
 
 ### 2026-10-18 — Free athlete access and coaching website copy
 
-- PR #143: https://github.com/tadschweizer/Ultra_OS/pull/143; implementation `6c2d8b7`; final CI and production confirmation pending.
+- PR #143: https://github.com/tadschweizer/Ultra_OS/pull/143; final tested implementation `75a3845a82ff8b64ee1df60080aa33b9e67085e3`, merged as `729ece26b762af2d7cd0486de503f34b498a8cad`.
 
 - Owner authorization: all currently available athlete features free until explicit go-ahead to restore billing; permanent free owner coach access and permanent athlete access for owner and named friend. No general free coach access was authorized.
 - `NEXT_PUBLIC_ATHLETE_OPEN_ACCESS=true` grants the existing athlete Pro feature set and uncaps logging/check-ins. It does not grant coach/administrator permissions or deferred AI. Checkout GET/POST and billing previews refuse new subscriptions while open access is active; existing billing-history management remains available. Reverting the flag requires a rebuild and deployment; do not turn it off without owner approval.
@@ -1089,3 +1089,13 @@ Owner pilot access approved and provisioned 2026-10-17 01:55 UTC for 30 days, wi
 - Production data check found only a canceled subscription recorded. Friend has not registered yet; verified-email grant will apply on signup. No invitation email or athlete records were created automatically.
 
 - Release check found existing paid-account billing controls missing when the fixture had no Stripe identifiers (CI 39158480120). Retain the established paid-plan fallback when open access is off, while complimentary accounts without billing history keep it hidden. Require the full suite again before release.
+
+### 2026-10-18 — Free access release verified
+
+- Final Auth Smoke https://github.com/tadschweizer/Ultra_OS/actions/runs/39159833095 succeeded: 493 regression, 4 integration-availability, 191 critical desktop/mobile browser checks (3 intentional skips), 6 database-backed calendar checks, 2 free-access public-copy/accessibility checks, and production build. No failing tests bypassed. The earlier billing-control failure was corrected and the complete suite rerun.
+- Additional local checks passed: 22 role/security tests with open access enabled, 44 focused entitlement tests, and 12 billing browser tests. Complimentary athlete access does not count as a paid coach subscription or revive canceled coach eligibility.
+- Production deployment `dpl_7xzchfAR9y55eiXMtZ7zR2Abaa6K` READY for merge `729ece2`, aliasError null, both mythreshold.co and www.mythreshold.co assigned. Both public health endpoints returned 200; anonymous account/planned-workout APIs returned 401; checkout returned 403 with ATHLETE_OPEN_ACCESS. Live homepage and pricing display the updated coaching message and free athlete access.
+- Authorized production configuration applied: public open-access flag enabled and private verified-email permanent athlete allowlist saved. Keep individual permanent grants when general billing eventually resumes. No schema migration was needed.
+- After compatible code deployed, existing owner coach grant updated to `expires_at = infinity`; existing start time retained, revoked_at null. Verified the stored grant, signed-in account showing Permanent complimentary access / PRO, and coach calendar loading roster, planning, review, library and Copy week controls without a paywall.
+- Friend is not registered yet: permanent athlete access is reserved and activates after verified signup. Coach relationship still needs to be established normally. No invitation emails or synthetic training records were created.
+- Physical-phone, mailbox and real-participant acceptance remain outstanding. Do not infer observed time savings from automated checks. Rolling back to application code that predates infinity support requires restoring a valid finite coach expiry first.
