@@ -1,6 +1,6 @@
 # Athlete invitation and onboarding simplification
 
-Updated: October 19, 2026. Status: owner approved production release; isolated release branch under verification.
+Updated: October 19, 2026. Status: deployed to production with owner authorization.
 
 ## Problem and resulting flow
 
@@ -39,3 +39,11 @@ Browser tests use intercepted API fixtures; API regressions use isolated fixture
 Owner authorized release on October 19 after reviewing the two-screen design. Changes are isolated on `codex/athlete-onboarding-release`, based on production main `eb1808c`; unrelated original-checkout edits are preserved. The new onboarding suite is included in the required Auth Smoke critical browser command. No migration or provider settings change is needed.
 
 Exact release commit, CI and deployment evidence will be appended after verification. Real email/provider round trips and physical-phone acceptance remain open.
+
+## Production release — October 19
+
+- PR [#144](https://github.com/tadschweizer/Ultra_OS/pull/144) merged as `59e06671dd8cb24c0b2135f55e5bb9a60f8b3f41` at 23:36 UTC.
+- [Auth Smoke](https://github.com/tadschweizer/Ultra_OS/actions/runs/39341359723) passed on exact PR head `0167624f48bb7c5576c494484afcb49405b12386`: 493 regressions, 4 integration checks, production build, 201 browser checks (3 existing skips), 6 isolated calendar checks and 2 free-access checks. Merged application/test files match the tested head.
+- Production `dpl_4fbgop93jzn2LDJa9mv2MMsVwo8i` is READY. Both `mythreshold.co` and `www.mythreshold.co` resolve to this deployment and implementation commit. Build took approximately 21 seconds.
+- Live browser inspection confirmed invitation signup shows the athlete invitation explanation with no role picker. Login and Strava destinations retain the invitation; clicking Log in opened the expected invitation-preserving URL. Read-only inspection used a non-valid release-check token; no production account, invitation, training or relationship was created.
+- No migration, provider credentials, entitlements or service settings changed. Existing local work is preserved. This verifies release and public signup rendering, not a real athlete account/provider/physical-phone round trip. Those acceptance checks remain open.
