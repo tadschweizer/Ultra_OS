@@ -133,28 +133,33 @@ export default function SignupPage() {
   async function handleGoogleSignup() {
     setError('');
     setLoading(true);
-    const intentResponse = await fetch('/api/auth/role-intent', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ role, next: nextPath }),
-    });
-    if (!intentResponse.ok) {
-      const intentData = await intentResponse.json().catch(() => ({}));
-      setError(intentData.error || 'Could not save your signup choice. Please try again.');
-      setLoading(false);
-      return;
-    }
+    try {
+      const intentResponse = await fetch('/api/auth/role-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role, next: nextPath }),
+      });
+      if (!intentResponse.ok) {
+        const intentData = await intentResponse.json().catch(() => ({}));
+        setError(intentData.error || 'Could not save your signup choice. Please try again.');
+        setLoading(false);
+        return;
+      }
 
-    const supabase = getSupabaseClient();
-    const { error: oauthError } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
-      },
-    });
+      const supabase = getSupabaseClient();
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
+        },
+      });
 
-    if (oauthError) {
-      setError('Google sign-up failed. Please try again.');
+      if (oauthError) {
+        setError('Google sign-up failed. Please try again.');
+        setLoading(false);
+      }
+    } catch {
+      setError('Google sign-up could not start. Check your connection and try again.');
       setLoading(false);
     }
   }
@@ -188,7 +193,7 @@ export default function SignupPage() {
             Already have an account? <a href={`/login?next=${encodeURIComponent(nextPath)}`} className="font-semibold text-accent hover:underline">Log in</a>
           </p>
 
-          <div className="mt-6">
+          {isCoachInvitationPath(nextPath) ? <p className="mt-6 rounded-xl bg-paper p-4 text-sm leading-6">You’re creating an athlete account for your coach’s invitation. After signup, accept the invitation to connect.</p> : <div className="mt-6">
             <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-ink/50">How will you use Threshold?</p>
             <div className="space-y-2">
               {ROLE_OPTIONS
@@ -212,7 +217,7 @@ export default function SignupPage() {
                 );
               })}
             </div>
-          </div>
+          </div>}
 
           <div className="mt-5 rounded-[14px] border border-accent/20 bg-accent/8 px-4 py-3">
             <p className="text-xs font-semibold text-accent">Free tier includes</p>

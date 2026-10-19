@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
-Last updated: 2026-10-18<br>
+Last updated: 2026-10-19<br>
 Status: Copy week destination picker released through PR #142 / merge 72e4ce5, Vercel dpl_F85PBT7KHehZze8RwKeUhXDHZD79 READY on both production domains. Weekly planning and coach/athlete review workflow deployed with owner authorization on mythreshold.co and www.mythreshold.co, PR #141 / main 0415ffe, Vercel dpl_EV67hYZtVjzAx4wRc7pVLEfe6BFG READY. Migration 20261017012725 applied; do not replay local 20261017003222. See WEEKLY_COACHING_RELEASE_2026-10-16.md. Owner review mode and prior security controls remain deployed.<br>
-Current milestone: M0 — free athlete access and concrete coaching website copy deployed through PR #143 / merge 729ece2. Final Auth Smoke passed; production and signed-in owner calendar verified. Permanent owner coach grant applied; permanent athlete grants reserved by verified email.<br>
-Next item: Named friend signs up and verifies her email, then connects through the normal coach relationship flow. Run the real coach/athlete planning, completion and review journey. Preserve real-participant, physical-phone and mailbox gates; Strava/COROS/Suunto in progress, Garmin next.
+Current milestone: M0 — owner-approved athlete onboarding simplification in release verification (ATHLETE_ONBOARDING_SIMPLIFICATION.md); free athlete access and concrete coaching website copy deployed through PR #143 / merge 729ece2. Final Auth Smoke passed; production and signed-in owner calendar verified. Permanent owner coach grant applied; permanent athlete grants reserved by verified email.<br>
+Next item: Complete authorized onboarding release after exact-branch CI, then verify a fresh invited athlete signup and real provider connection on a physical phone. Preserve real-participant and mailbox acceptance, free-access grants, completed-session analysis review, and the coach/athlete planning loop.
 
 ## Purpose
 
@@ -1099,3 +1099,8 @@ Owner pilot access approved and provisioned 2026-10-17 01:55 UTC for 30 days, wi
 - After compatible code deployed, existing owner coach grant updated to `expires_at = infinity`; existing start time retained, revoked_at null. Verified the stored grant, signed-in account showing Permanent complimentary access / PRO, and coach calendar loading roster, planning, review, library and Copy week controls without a paywall.
 - Friend is not registered yet: permanent athlete access is reserved and activates after verified signup. Coach relationship still needs to be established normally. No invitation emails or synthetic training records were created.
 - Physical-phone, mailbox and real-participant acceptance remain outstanding. Do not infer observed time savings from automated checks. Rolling back to application code that predates infinity support requires restoring a valid finite coach expiry first.
+
+
+## October 19 — Approved athlete onboarding simplification
+
+Owner approved production release of the reviewed two-screen onboarding. Personal invitation signup removes redundant role choices; onboarding loads existing coach links, starts with optional activity connections, and finishes at Calendar after optional profile details. Races move out of setup; existing data is preserved. No new provider availability, migrations, grants or service settings are included. Release isolated from the mixed D: checkout onto origin/main eb1808c. Prior local checks: 36 browser and 57 regression passed. Exact-branch CI and deployment evidence will be recorded in ATHLETE_ONBOARDING_SIMPLIFICATION.md; participant gates remain open.

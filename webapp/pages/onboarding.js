@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
-import RaceSearchInput from '../components/RaceSearchInput';
-import { safePostAuthPath } from '../lib/auth/redirects.js';
+import { safePostAuthPath, isCoachInvitationPath } from '../lib/auth/redirects.js';
+import { clearMe } from '../lib/meClient';
 
 export const SPORT_GROUPS = [
   {
@@ -30,792 +30,201 @@ export const SPORT_GROUPS = [
   },
 ];
 
-const yearsOptions = ['1', '2-3', '4-6', '7+'];
-const hoursOptions = ['<8', '8-12', '12-16', '16-20', '20+'];
 
-const ROLE_OPTIONS = [
-  {
-    id: 'coach',
-    title: "I'm a coach",
-    body: 'Set up your roster, get your coach code, and run your athletes from the Command Center.',
-  },
-  {
-    id: 'athlete-with-coach',
-    title: "I'm an athlete joining a coach",
-    body: 'Connect with your coach code so everything you log reaches your coach.',
-  },
-  {
-    id: 'individual',
-    title: "I'm an individual athlete",
-    body: 'Self-coached. Threshold correlates your own data and coaches you directly.',
-  },
-];
+const button = 'inline-flex min-h-12 items-center justify-center rounded-full bg-panel px-6 py-3 text-sm font-semibold text-paper disabled:opacity-50';
+const field = 'w-full rounded-xl border border-ink/20 bg-white px-4 py-3 text-ink';
 
-const STEP_LABELS = {
-  path: 'Your Path',
-  'coach-setup': 'Coach Setup',
-  'coach-code': 'Your Coach',
-  race: 'Your Race',
-  sport: 'Your Sport',
-  strava: 'Connect Data',
-};
-
-function stepsForRole(role) {
-  if (role === 'coach') return ['path', 'coach-setup'];
-  if (role === 'athlete-with-coach') return ['path', 'coach-code', 'race', 'sport', 'strava'];
-  return ['path', 'race', 'sport', 'strava'];
-}
-
-function fieldClassName() {
-  return 'w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-ink';
-}
-
-function StepIndicator({ steps, stepIndex }) {
-  return (
-    <div className="flex flex-wrap items-center gap-3">
-      <span className="rounded-full bg-panel px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-paper">
-        Step {stepIndex + 1} of {steps.length}
-      </span>
-      {steps.map((key, index) => (
-        <span
-          key={key}
-          className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] ${
-            index === stepIndex ? 'bg-white text-ink' : 'bg-white/50 text-ink/52'
-          }`}
-        >
-          {STEP_LABELS[key]}
-        </span>
-      ))}
-    </div>
-  );
+async function readJson(path, options) {
+  const response = await fetch(path, options);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || 'Could not load your setup. Please try again.');
+  return data;
 }
 
 export default function OnboardingPage() {
   const router = useRouter();
   const [role, setRole] = useState('individual');
-  const [roleInitialized, setRoleInitialized] = useState(false);
-  const [roleError, setRoleError] = useState('');
-  const [formError, setFormError] = useState('');
-  const [stravaAvailable, setStravaAvailable] = useState(false);
-  const [stravaConnected, setStravaConnected] = useState(false);
-  const [stepIndex, setStepIndex] = useState(0);
+  const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [raceSearchQuery, setRaceSearchQuery] = useState('');
-  const [manualRace, setManualRace] = useState(false);
-  const [stravaName, setStravaName] = useState('');
+  const [loadError, setLoadError] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
+  const [connections, setConnections] = useState([]);
+  const [connectionError, setConnectionError] = useState('');
+  const [code, setCode] = useState('');
+  const [availability, setAvailability] = useState(null);
+  const [stravaConnected, setStravaConnected] = useState(false);
   const [coachProfile, setCoachProfile] = useState(null);
-  const [coachCodeCopied, setCoachCodeCopied] = useState(false);
-  const [coachCodeInput, setCoachCodeInput] = useState('');
-  const [coachConnection, setCoachConnection] = useState(null);
-  const [coachCodeError, setCoachCodeError] = useState('');
-  const [connectingCoach, setConnectingCoach] = useState(false);
-  const [form, setForm] = useState({
-    target_race_id: '',
-    target_race: null,
-    primary_sports: [],
-    years_racing_band: '',
-    weekly_training_hours_band: '',
-    home_elevation_ft: '',
-  });
+  const [copied, setCopied] = useState(false);
+  const [form, setForm] = useState({ primary_sports: [], weekly_training_hours_band: '', years_racing_band: '', home_elevation_ft: '', target_race_id: null });
 
-  const steps = useMemo(() => stepsForRole(role), [role]);
-  const currentStep = steps[Math.min(stepIndex, steps.length - 1)];
-
-  useEffect(() => {
-    fetch('/api/integrations/status').then((res) => res.ok ? res.json() : {})
-      .then((data) => setStravaAvailable(data.strava === true)).catch(() => {});
-    fetch('/api/me').then((res) => res.ok ? res.json() : {})
-      .then((data) => setStravaConnected(Boolean(data.athlete?.strava_id))).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    async function loadOnboarding() {
-      try {
-        const res = await fetch('/api/onboarding');
-        if (!res.ok) {
-          setLoading(false);
-          return;
-        }
-        const data = await res.json();
-        const serverRole = ROLE_OPTIONS.some((option) => option.id === data.signupRole)
-          ? data.signupRole
-          : data.athlete?.primary_role === 'coach'
-            ? 'coach'
-            : null;
-        if (serverRole) {
-          setRole(serverRole);
-          setStepIndex(1);
-        }
-        setForm({
-          target_race_id: data.targetRace?.id || '',
-          target_race: data.targetRace
-            ? {
-                name: data.targetRace.name,
-                event_date: data.targetRace.event_date,
-                distance_miles: data.targetRace.distance_miles || '',
-                location: data.targetRace.location || '',
-                race_type: data.targetRace.race_type || '',
-              }
-            : null,
-          primary_sports: data.athlete?.primary_sports || [],
-          years_racing_band: data.athlete?.years_racing_band || '',
-          weekly_training_hours_band: data.athlete?.weekly_training_hours_band || '',
-          home_elevation_ft: data.athlete?.home_elevation_ft ?? '',
-        });
-        if (router.query.name) {
-          setStravaName(String(router.query.name));
-        }
-      } finally {
-        setRoleInitialized(true);
-        setLoading(false);
-      }
-    }
-
-    loadOnboarding();
-  }, [router.query.name]);
-
-  useEffect(() => {
-    if (role !== 'coach' || coachProfile) return;
-    let cancelled = false;
-    fetch('/api/coach-profile', { method: 'POST' })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (!cancelled && data?.profile) setCoachProfile(data.profile);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [role, coachProfile]);
-
-  useEffect(() => {
-    if (!navigator.geolocation || form.home_elevation_ft) return;
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        if (position.coords.altitude !== null && position.coords.altitude !== undefined) {
-          setForm((current) => ({
-            ...current,
-            home_elevation_ft: Math.round(position.coords.altitude * 3.28084),
-          }));
-        }
-      },
-      () => {}
-    );
-  }, [form.home_elevation_ft]);
-
-  async function pickRole(nextRole) {
-    setRoleError('');
-    setSaving(true);
+  async function loadConnections() {
+    setConnectionError('');
     try {
-      const response = await fetch('/api/onboarding', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: nextRole }),
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        setRoleError(data.error || 'Could not save your role. Please try again.');
-        return;
-      }
+      const data = await readJson('/api/coach-connection');
+      setConnections(data.connections || []);
+    } catch {
+      setConnectionError('We could not check your coach connection. Try again before entering a code.');
+    }
+  }
+
+  async function load() {
+    setLoading(true); setLoadError('');
+    try {
+      const data = await readJson('/api/onboarding');
+      const nextRole = data.athlete?.primary_role === 'coach' ? 'coach' : data.signupRole === 'athlete-with-coach' ? 'athlete-with-coach' : 'individual';
       setRole(nextRole);
-      setCoachProfile(nextRole === 'coach' ? null : coachProfile);
-    } catch {
-      setRoleError('Could not save your role. Please try again.');
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function connectCoach() {
-    const code = coachCodeInput.trim().toUpperCase();
-    if (!code) {
-      setCoachCodeError('Enter the coach code your coach shared with you.');
-      return;
-    }
-    setConnectingCoach(true);
-    setCoachCodeError('');
-    try {
-      const res = await fetch('/api/coach-connection', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ coach_code: code }),
+      setForm({
+        primary_sports: data.athlete?.primary_sports || [],
+        weekly_training_hours_band: data.athlete?.weekly_training_hours_band || '',
+        years_racing_band: data.athlete?.years_racing_band || '',
+        home_elevation_ft: data.athlete?.home_elevation_ft ?? '',
+        target_race_id: data.targetRace?.id || data.athlete?.target_race_id || null,
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setCoachCodeError(data.error || 'Could not connect to that coach code.');
-        return;
+      if (nextRole === 'coach') {
+        const profile = await readJson('/api/coach-profile', { method: 'POST' });
+        if (!profile.profile?.coach_code) throw new Error('Could not load your coach code. Please try again.');
+        setCoachProfile(profile.profile);
+      } else {
+        await loadConnections();
+        await Promise.all([
+          readJson('/api/integrations/status').then(setAvailability).catch(() => setAvailability(null)),
+          readJson('/api/me').then(data => setStravaConnected(Boolean(data.athlete?.strava_id))).catch(() => {}),
+        ]);
       }
-      setCoachConnection(data.connection);
-    } catch {
-      setCoachCodeError('Something went wrong. Please try again.');
-    } finally {
-      setConnectingCoach(false);
-    }
-  }
-
-  async function copyCoachCode() {
-    if (!coachProfile?.coach_code) return;
-    try {
-      await navigator.clipboard.writeText(coachProfile.coach_code);
-      setCoachCodeCopied(true);
-      setTimeout(() => setCoachCodeCopied(false), 2000);
-    } catch {
-      // Clipboard unavailable; the code is visible on screen regardless.
-    }
-  }
-
-  const slideMap = {
-    path: (
-      <section key="path" className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr]">
-        <div>
-          <p className="text-sm uppercase tracking-[0.35em] text-accent">Welcome to Threshold</p>
-          <h1 className="font-display mt-4 text-5xl leading-tight md:text-7xl">How will you use Threshold?</h1>
-          <p className="mt-6 max-w-2xl text-base leading-8 text-ink/76">
-            Coaches run their roster from the Command Center. Athletes log the data that makes coaching smarter — with or without a coach attached.
-          </p>
-        </div>
-
-          <div className="space-y-3 rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-          {ROLE_OPTIONS.map((option) => {
-            const active = role === option.id;
-            return (
-              <button
-                key={option.id}
-                type="button"
-                onClick={() => pickRole(option.id)}
-                disabled={saving}
-                className={`w-full rounded-[24px] border px-5 py-4 text-left transition ${
-                  active ? 'border-ink bg-panel text-paper' : 'border-ink/10 bg-paper text-ink hover:bg-[#efe7dc]'
-                }`}
-              >
-                <p className="text-base font-semibold">{option.title}</p>
-                <p className={`mt-1 text-sm ${active ? 'text-paper/75' : 'text-ink/60'}`}>{option.body}</p>
-              </button>
-            );
-          })}
-          {roleError ? (
-            <p className="rounded-[14px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {roleError}
-            </p>
-          ) : null}
-        </div>
-      </section>
-    ),
-    'coach-setup': (
-      <section key="coach-setup" className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr]">
-        <div>
-          <p className="text-sm uppercase tracking-[0.35em] text-accent">Coach setup</p>
-          <h1 className="font-display mt-4 text-5xl leading-tight md:text-7xl">Your roster starts with one code.</h1>
-          <p className="mt-6 max-w-2xl text-base leading-8 text-ink/76">
-            Share your coach code with athletes. When they sign up and enter it, they land on your roster — and everything they log starts feeding your Command Center.
-          </p>
-        </div>
-
-        <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-          <p className="text-xs uppercase tracking-[0.22em] text-accent">Your coach code</p>
-          {coachProfile ? (
-            <div className="mt-3 flex items-center gap-3">
-              <p className="rounded-[18px] bg-paper px-5 py-3 font-mono text-2xl font-semibold tracking-[0.2em] text-ink">
-                {coachProfile.coach_code}
-              </p>
-              <button
-                type="button"
-                onClick={copyCoachCode}
-                className="rounded-full border border-ink/10 px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-paper"
-              >
-                {coachCodeCopied ? 'Copied ✓' : 'Copy'}
-              </button>
-            </div>
-          ) : (
-            <p className="mt-3 text-sm text-ink/60">Generating your coach code…</p>
-          )}
-
-          <div className="mt-5 space-y-2.5">
-            {[
-              'Send the code to your athletes — they enter it during signup.',
-              'Assign protocols to athletes or whole groups from the Command Center.',
-              'Triage who needs attention, who races soon, and who is off-protocol.',
-            ].map((item) => (
-              <div key={item} className="flex items-start gap-3 text-sm text-ink/70">
-                <span className="mt-0.5 text-emerald-500">✓</span>
-                <span>{item}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-6 space-y-3">
-            <button
-              type="button"
-              onClick={() => completeOnboarding()}
-              disabled={saving || !coachProfile}
-              className="inline-flex w-full items-center justify-center rounded-full bg-panel px-6 py-3 text-sm font-semibold text-paper disabled:opacity-50"
-            >
-              Open your Command Center →
-            </button>
-            <a href="/pricing" className="block text-center text-sm font-semibold text-accent hover:underline">
-              See Coach plan pricing
-            </a>
-          </div>
-        </div>
-      </section>
-    ),
-    'coach-code': (
-      <section key="coach-code" className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr]">
-        <div>
-          <p className="text-sm uppercase tracking-[0.35em] text-accent">Your coach</p>
-          <h1 className="font-display mt-4 text-5xl leading-tight md:text-7xl">Connect to your coach.</h1>
-          <p className="mt-6 max-w-2xl text-base leading-8 text-ink/76">
-            Enter the coach code your coach shared with you. Your coach must approve the request before your training appears on their dashboard. You can manage requests in Account Settings → Coach Connection.
-          </p>
-        </div>
-
-        <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-          {coachConnection ? (
-            <div className="rounded-[24px] bg-paper p-5">
-              <p className="text-sm uppercase tracking-[0.22em] text-accent">{coachConnection.status === 'active' ? 'Connected' : 'Request sent'}</p>
-              <p className="mt-3 text-xl font-semibold text-ink">
-                {coachConnection.coach?.display_name || 'Your coach'}
-              </p>
-              <p className="mt-2 text-sm text-ink/68">
-                {coachConnection.status === 'active' ? 'Your coach connection is active.' : 'Waiting for your coach to approve your request.'} Continue to set up your race and training profile.
-              </p>
-            </div>
-          ) : (
-            <>
-              <label className="mb-2 block text-sm font-semibold text-ink">Coach code</label>
-              <input
-                type="text"
-                value={coachCodeInput}
-                onChange={(event) => setCoachCodeInput(event.target.value)}
-                placeholder="e.g. COACH-A1B2"
-                className={`${fieldClassName()} font-mono uppercase tracking-[0.12em]`}
-              />
-              {coachCodeError ? (
-                <p className="mt-3 rounded-[14px] border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
-                  {coachCodeError}
-                </p>
-              ) : null}
-              <button
-                type="button"
-                onClick={connectCoach}
-                disabled={connectingCoach}
-                className="mt-4 inline-flex w-full items-center justify-center rounded-full bg-panel px-6 py-3 text-sm font-semibold text-paper disabled:opacity-50"
-              >
-                {connectingCoach ? 'Connecting…' : 'Connect to coach'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setStepIndex((current) => current + 1)}
-                className="mt-3 w-full rounded-full border border-ink/10 bg-paper px-6 py-3 text-sm font-semibold text-ink transition hover:bg-white"
-              >
-                I&apos;ll connect later
-              </button>
-              <p className="mt-3 text-center text-xs text-ink/40">
-                No code yet? Ask your coach, or use <a href="/account#coach-connection" className="underline">Account Settings → Coach Connection</a> later.
-              </p>
-            </>
-          )}
-        </div>
-      </section>
-    ),
-    race: (
-      <section key="race" className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr]">
-        <div>
-          <p className="text-sm uppercase tracking-[0.35em] text-accent">Your next target</p>
-          <h1 className="font-display mt-4 text-5xl leading-tight md:text-7xl">Set your target race.</h1>
-          <p className="mt-6 max-w-2xl text-base leading-8 text-ink/76">
-            Search the catalog first. If your event is not there, add it manually and keep moving.
-          </p>
-        </div>
-
-        <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-          <label className="mb-2 block text-sm font-semibold text-ink">Search races</label>
-          <RaceSearchInput
-            value={raceSearchQuery}
-            onChange={(v) => {
-              setManualRace(false);
-              setRaceSearchQuery(v);
-            }}
-            onSelect={(race) => {
-              setRaceSearchQuery(race.name || '');
-              setForm((current) => ({
-                ...current,
-                target_race_id: race.catalog_id || '',
-                target_race: {
-                  name: race.name,
-                  event_date: race.event_date || '',
-                  distance_miles: race.distance_miles || '',
-                  location: race.location || '',
-                  race_type: race.race_type || '',
-                },
-              }));
-              if (race.source === 'web') {
-                setManualRace(true);
-              }
-            }}
-            placeholder="Western States 100"
-          />
-
-          <div className="mt-5 flex items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={() => {
-                setManualRace((current) => !current);
-              }}
-              className="text-sm font-semibold text-accent"
-            >
-              {manualRace ? 'Hide manual race entry' : 'Race not listed? Enter it manually'}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setForm((current) => ({ ...current, target_race_id: '', target_race: null }));
-                setManualRace(false);
-                setFormError('');
-                setStepIndex((current) => current + 1);
-              }}
-              className="text-sm font-semibold text-ink/62"
-            >
-              I’ll add my race later
-            </button>
-          </div>
-
-          {manualRace ? (
-            <div className="mt-5 grid gap-4">
-              <input
-                type="text"
-                placeholder="Race name"
-                value={form.target_race?.name || ''}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    target_race_id: '',
-                    target_race: { ...(current.target_race || {}), name: event.target.value },
-                  }))
-                }
-                className={fieldClassName()}
-              />
-              <div className="grid gap-4 md:grid-cols-2">
-                <input
-                  type="date"
-                  value={form.target_race?.event_date || ''}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      target_race_id: '',
-                      target_race: { ...(current.target_race || {}), event_date: event.target.value },
-                    }))
-                  }
-                  className={fieldClassName()}
-                />
-                <input
-                  type="number"
-                  step="0.1"
-                  placeholder="Distance (mi)"
-                  value={form.target_race?.distance_miles || ''}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      target_race_id: '',
-                      target_race: { ...(current.target_race || {}), distance_miles: event.target.value },
-                    }))
-                  }
-                  className={fieldClassName()}
-                />
-              </div>
-              <input
-                type="text"
-                placeholder="Location"
-                value={form.target_race?.location || ''}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    target_race_id: '',
-                    target_race: { ...(current.target_race || {}), location: event.target.value },
-                  }))
-                }
-                className={fieldClassName()}
-              />
-            </div>
-          ) : null}
-
-          {form.target_race ? (
-            <div className="mt-5 rounded-[24px] bg-paper p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-accent">Selected race</p>
-              <p className="mt-2 text-lg font-semibold text-ink">{form.target_race.name}</p>
-              <p className="mt-2 text-sm text-ink/68">
-                {form.target_race.event_date} · {form.target_race.location || 'Location needed'} · {form.target_race.distance_miles || 'Distance needed'} mi
-              </p>
-            </div>
-          ) : null}
-        </div>
-      </section>
-    ),
-    sport: (
-      <section key="sport" className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr]">
-        <div>
-          <p className="text-sm uppercase tracking-[0.35em] text-accent">Your background</p>
-          <h1 className="font-display mt-4 text-5xl leading-tight md:text-7xl">Tell Threshold how you train.</h1>
-          <p className="mt-6 max-w-2xl text-base leading-8 text-ink/76">
-            This gives the dashboard and future insights the context they need from day one.
-          </p>
-        </div>
-
-        <div className="space-y-5 rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-          <div className="space-y-5">
-            {SPORT_GROUPS.map((group) => (
-              <div key={group.label}>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-ink/40">{group.label}</p>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {group.sports.map((sport) => {
-                    const active = form.primary_sports.includes(sport);
-                    return (
-                      <button
-                        key={sport}
-                        type="button"
-                        onClick={() =>
-                          setForm((current) => ({
-                            ...current,
-                            primary_sports: active
-                              ? current.primary_sports.filter((item) => item !== sport)
-                              : [...current.primary_sports, sport],
-                          }))
-                        }
-                        className={`rounded-[24px] border px-4 py-3 text-left transition ${
-                          active ? 'border-ink bg-panel text-paper' : 'border-ink/10 bg-paper text-ink hover:bg-[#efe7dc]'
-                        }`}
-                      >
-                        <p className="text-sm font-semibold">{sport}</p>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            <select
-              value={form.years_racing_band}
-              onChange={(event) => setForm((current) => ({ ...current, years_racing_band: event.target.value }))}
-              className={fieldClassName()}
-            >
-              <option value="">Years racing at this distance</option>
-              {yearsOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={form.weekly_training_hours_band}
-              onChange={(event) => setForm((current) => ({ ...current, weekly_training_hours_band: event.target.value }))}
-              className={fieldClassName()}
-            >
-              <option value="">Weekly training hours</option>
-              {hoursOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-
-            <input
-              type="number"
-              placeholder="Home elevation (ft)"
-              value={form.home_elevation_ft}
-              onChange={(event) => setForm((current) => ({ ...current, home_elevation_ft: event.target.value }))}
-              className={fieldClassName()}
-            />
-          </div>
-        </div>
-      </section>
-    ),
-    strava: (
-      <section key="strava" className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr]">
-        <div>
-          <p className="text-sm uppercase tracking-[0.35em] text-accent">Training context</p>
-          <h1 className="font-display mt-4 text-5xl leading-tight md:text-7xl">
-            Connect Strava to add training context to every protocol you log
-          </h1>
-          <p className="mt-6 max-w-2xl text-base leading-8 text-ink/76">
-            Threshold uses your Strava activity data to link interventions to specific workouts — so you can see whether your heat block happened on a hard week or an easy week.
-          </p>
-        </div>
-
-        <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
-          {stravaConnected ? (
-            <div className="rounded-[24px] bg-paper p-5">
-              <p className="text-sm uppercase tracking-[0.22em] text-accent">Connected</p>
-              <p className="mt-3 text-xl font-semibold text-ink">{stravaName || 'Strava connected'}</p>
-              <p className="mt-2 text-sm text-ink/68">Training context is ready. Finish setup to open your dashboard.</p>
-            </div>
-          ) : null}
-
-          <div className="mt-5 space-y-3">
-            {stravaAvailable ? <a
-              href={`/api/strava/login?next=${encodeURIComponent(safePostAuthPath(
-                typeof router.query.next === 'string' ? router.query.next : '',
-                ''
-              ))}`}
-              className="inline-flex w-full items-center justify-center rounded-full bg-panel px-6 py-3 text-sm font-semibold text-paper"
-            >
-              Connect Strava
-            </a> : <p className="text-sm text-ink/68">Strava connection is currently unavailable. Continue setup and log training manually.</p>}
-            <button
-              type="button"
-              onClick={() => completeOnboarding()}
-              disabled={saving}
-              className="w-full rounded-full border border-ink/10 bg-paper px-6 py-3 text-sm font-semibold text-ink transition hover:bg-white"
-            >
-              Skip — I&apos;ll connect later
-            </button>
-            <p className="text-center text-xs text-ink/40">You can connect or manually log activities any time from Connections.</p>
-          </div>
-        </div>
-      </section>
-    ),
-  };
-
-  async function saveProgress(onboardingComplete = false) {
-    if (saving) return false;
-    setSaving(true);
-    setFormError('');
-    const payload = {
-      onboarding_complete: onboardingComplete,
-      primary_sports: form.primary_sports,
-      years_racing_band: form.years_racing_band,
-      weekly_training_hours_band: form.weekly_training_hours_band,
-      home_elevation_ft: form.home_elevation_ft,
-      target_race: form.target_race,
-      target_race_id: form.target_race_id || null,
-      role,
-    };
-    try {
-      const res = await fetch('/api/onboarding', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        setFormError('We could not save your setup. Your answers are still here; please try again.');
-      }
-      const data = await res.json().catch(() => ({}));
-      if (res.ok && data.targetRace?.id) setForm((current) => ({ ...current, target_race_id: data.targetRace.id }));
-      return res.ok;
-    } catch {
-      setFormError('We could not save your setup. Check your connection and try again.');
-      return false;
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function nextFromRace() {
-    if (manualRace && (!form.target_race?.name?.trim() || !form.target_race?.event_date || !(Number(form.target_race?.distance_miles) > 0) || !form.target_race?.location?.trim())) {
-      setFormError('Enter your race name, date, distance greater than zero, and location, or choose “I’ll add my race later”.');
-      return;
-    }
-    if (await saveProgress(false)) setStepIndex((current) => current + 1);
-  }
-
-  async function nextFromSport() {
-    if (!form.primary_sports.length || !form.years_racing_band || !form.weekly_training_hours_band) {
-      setFormError('Choose at least one sport, your years racing, and your weekly training hours to continue.');
-      return;
-    }
-    if (await saveProgress(false)) setStepIndex((current) => current + 1);
-  }
-
-  async function completeOnboarding() {
-    const ok = await saveProgress(true);
-    if (ok) {
-      const destination = safePostAuthPath(
-        typeof router.query.next === 'string' ? router.query.next : '',
-        ''
-      );
-      router.push(destination || (role === 'coach' ? '/coach-command-center' : '/dashboard?welcome=1'));
-    }
+    } catch (err) { setLoadError(err.message); }
+    finally { setLoading(false); }
   }
 
   useEffect(() => {
-    if (router.query.strava === 'connected' && stravaConnected && !loading && roleInitialized) {
-      const timeoutId = setTimeout(() => {
-        completeOnboarding();
-      }, 1200);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [router.query.strava, stravaConnected, loading, roleInitialized]);
+    if (!router.isReady) return;
+    // Recover an invitation destination before asking for any profile details.
+    const next = safePostAuthPath(router.query.next, '');
+    if (isCoachInvitationPath(next)) { router.replace(next); return; }
+    load();
+  }, [router.isReady]);
 
-  if (loading || !roleInitialized) {
-    return <div className="flex min-h-screen items-center justify-center bg-paper text-ink">Loading...</div>;
+  async function connectCoach(event) {
+    event.preventDefault();
+    if (busyRef.current) return;
+    if (!code.trim()) { setError('Enter the code your coach shared with you.'); return; }
+    busyRef.current = true; setBusy(true); setError('');
+    try {
+      const data = await readJson('/api/coach-connection', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ coach_code: code.trim().toUpperCase() }),
+      });
+      setConnections(current => [...current, data.connection]); setCode('');
+    } catch (err) { setError(err.message); await loadConnections(); }
+    finally { busyRef.current = false; setBusy(false); }
   }
 
+  async function finish() {
+    if (busyRef.current) return;
+    busyRef.current = true; setBusy(true); setError('');
+    try {
+      await readJson('/api/onboarding', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...form, role, onboarding_complete: true }),
+      });
+      clearMe();
+      const next = safePostAuthPath(router.query.next, '');
+      window.location.assign(next && !next.startsWith('/onboarding') ? next : role === 'coach' ? '/coach-command-center' : '/calendar');
+    } catch {
+      setError('We could not save your setup. Your answers are still here; please try again.');
+      busyRef.current = false; setBusy(false);
+    }
+  }
+
+  async function copyCode() {
+    try { await navigator.clipboard.writeText(coachProfile.coach_code); setCopied(true); }
+    catch { setError('Copy was unavailable. Select the coach code above and copy it manually.'); }
+  }
+
+  const returnPath = safePostAuthPath(router.query.next, '/calendar');
+  const isCoach = role === 'coach';
   return (
-    <main className="min-h-screen bg-paper px-4 py-6 text-ink">
-      <div className="mx-auto max-w-6xl">
-        <section className="overflow-hidden rounded-[42px] border border-ink/10 bg-[linear-gradient(135deg,#f7f2ea_0%,#ebe1d4_55%,#dcc9b0_100%)] p-6 md:p-10">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <p className="text-xs uppercase tracking-[0.35em] text-accent">Threshold onboarding</p>
-            <StepIndicator steps={steps} stepIndex={stepIndex} />
+    <main className="min-h-screen bg-paper px-4 py-8 text-ink sm:py-12">
+      <div className="mx-auto max-w-3xl">
+        <a href="/" className="text-xs font-semibold uppercase tracking-[0.25em] text-ink">Threshold</a>
+        {loading ? <p role="status" className="py-16">Loading your setup…</p> : loadError ? (
+          <div className="mt-8 rounded-2xl border border-ink/10 bg-white p-6">
+            <p role="alert">{loadError}</p><button className={`${button} mt-5`} onClick={load}>Try again</button>
           </div>
-
-          <div className="mt-10 overflow-hidden">
-            <div
-              className="flex transition-transform duration-500 ease-out"
-              style={{ transform: `translateX(-${stepIndex * 100}%)` }}
-            >
-              {steps.map((key) => (
-                <div key={key} className="w-full shrink-0 pr-4">
-                  {slideMap[key]}
-                </div>
-              ))}
+        ) : (
+          <>
+            {!isCoach && <nav aria-label="Setup progress" className="mt-8 flex flex-wrap items-center gap-4 text-sm">
+              <span className="font-semibold">Step {step + 1} of 2</span>
+              <span aria-current={step === 0 ? 'step' : undefined} className={step === 0 ? 'text-ink font-semibold' : 'text-ink/60'}>Connections</span>
+              <span aria-current={step === 1 ? 'step' : undefined} className={step === 1 ? 'text-ink font-semibold' : 'text-ink/60'}>About you</span>
+            </nav>}
+            <h1 className="font-display mt-6 text-4xl leading-tight sm:text-5xl">{isCoach ? 'Welcome, coach.' : step === 0 ? 'Your training, connected.' : 'A little about your training.'}</h1>
+            <p className="mt-4 max-w-xl leading-7 text-ink/70">{isCoach ? 'Invite your first athlete from your roster, then plan their training.' : step === 0 ? 'Check your coach connection and connect an activity account if you use one. You can also log training manually.' : 'Give your coach a starting point. These details are optional, and you can update them in Settings. Add races later from Races.'}</p>
+            {isCoach ? (
+              <section className="mt-8 rounded-2xl border border-ink/10 bg-white p-6">
+                <h2 className="text-lg font-semibold">Your coach code</h2>
+                <p className="my-4 break-all font-mono text-2xl">{coachProfile?.coach_code}</p>
+                <button onClick={copyCode} className="min-h-12 rounded-full border border-ink/20 px-5">{copied ? 'Copied' : 'Copy code'}</button>
+                <p className="mt-4 text-sm leading-6 text-ink/70">Athletes using this code send a request for your approval. A personal invitation link lets them accept your invitation directly.</p>
+              </section>
+            ) : step === 0 ? (
+              <div className="mt-8 space-y-6">
+                <section className="rounded-2xl border border-ink/10 bg-white p-5 sm:p-6">
+                  <h2 className="text-xl font-semibold">Your coach</h2>
+                  {connectionError ? <div className="mt-4"><p role="alert" className="text-sm text-red-700">{connectionError}</p><button onClick={loadConnections} className="mt-3 min-h-12 underline">Check again</button></div> : connections.length ? connections.map(connection => (
+                    <div key={connection.id} className="mt-4 border-l-4 border-accent pl-4">
+                      <p className="font-semibold">{connection.coach?.display_name || 'Your coach'}</p>
+                      <p className="mt-1 text-sm text-ink/70">{connection.status === 'active' ? 'Connected — your coach can plan and review your training.' : 'Request sent — waiting for your coach to approve.'}</p>
+                    </div>
+                  )) : (
+                    <details className="mt-4" open={role === 'athlete-with-coach'}>
+                      <summary className="min-h-11 cursor-pointer text-sm font-semibold">Have a coach code?</summary>
+                      <p className="mb-4 text-sm leading-6 text-ink/70">If your coach sent an invitation link, open that link to accept it. A coach code sends a request for approval.</p>
+                      <form onSubmit={connectCoach} className="space-y-3">
+                        <label htmlFor="coach-code" className="block text-sm font-semibold">Coach code</label>
+                        <input id="coach-code" value={code} onChange={event => setCode(event.target.value)} className={field} autoCapitalize="characters" />
+                        <button disabled={busy} className={button}>{busy ? 'Sending…' : 'Send connection request'}</button>
+                      </form>
+                    </details>
+                  )}
+                </section>
+                <section className="rounded-2xl border border-ink/10 bg-white p-5 sm:p-6">
+                  <h2 className="text-xl font-semibold">Activity accounts <span className="text-sm font-normal text-ink/60">Optional</span></h2>
+                  <p className="mt-2 text-sm leading-6 text-ink/70">Connect a supported account to import activities. You can manage connections later.</p>
+                  {availability === null && <p role="status" className="mt-3 text-sm">Availability could not be checked. You can connect later from Connections.</p>}
+                  {['Strava', 'Garmin', 'COROS'].map(provider => (
+                    <div key={provider} className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/10 py-5 last:border-0">
+                      <div><h3 className="font-semibold">{provider}</h3><p className="mt-1 text-sm text-ink/65">{provider === 'Strava' ? stravaConnected ? 'Connected' : availability?.strava ? 'Ready to connect' : 'Currently unavailable' : 'Not available yet'}</p></div>
+                      {provider === 'Strava' && availability?.strava && !stravaConnected && <a className={button} href={`/api/strava/login?next=${encodeURIComponent(returnPath)}`}>Connect Strava</a>}
+                    </div>
+                  ))}
+                </section>
+              </div>
+            ) : (
+              <section className="mt-8 rounded-2xl border border-ink/10 bg-white p-5 sm:p-6">
+                <h2 className="text-xl font-semibold">What do you enjoy?</h2>
+                <p className="mt-2 text-sm text-ink/65">Choose any that fit. No racing experience needed.</p>
+                <div className="mt-5 space-y-5">{SPORT_GROUPS.map(group => <details key={group.label} open={group.label === 'Running' || group.sports.some(sport => form.primary_sports.includes(sport))}>
+                  <summary className="mb-2 min-h-11 cursor-pointer text-sm font-semibold text-ink/70">{group.label}</summary>
+                  <div className="flex flex-wrap gap-2">{group.sports.map(sport => {
+                    const selected = form.primary_sports.includes(sport);
+                    return <button key={sport} type="button" aria-pressed={selected} onClick={() => setForm(current => ({ ...current, primary_sports: selected ? current.primary_sports.filter(item => item !== sport) : [...current.primary_sports, sport] }))} className={`min-h-11 rounded-xl border px-4 py-2 text-sm ${selected ? 'border-panel bg-panel text-paper' : 'border-ink/15 bg-paper text-ink'}`}>{sport}</button>;
+                  })}</div>
+                </details>)}</div>
+                <label htmlFor="training-hours" className="mb-2 mt-6 block text-sm font-semibold">Usual training hours per week (optional)</label>
+                <select id="training-hours" className={field} value={form.weekly_training_hours_band} onChange={event => setForm(current => ({ ...current, weekly_training_hours_band: event.target.value }))}>
+                  <option value="">Not sure yet</option>{['<8', '8-12', '12-16', '16-20', '20+'].map(value => <option key={value} value={value}>{value}</option>)}
+                </select>
+              </section>
+            )}
+            {error && <p role="alert" className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</p>}
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
+              {!isCoach && step === 1 ? <button disabled={busy} onClick={() => { setStep(0); setError(''); window.scrollTo(0, 0); }} className="min-h-12 rounded-full border border-ink/20 px-6">Back</button> : <span className="text-sm text-ink/60">{isCoach ? 'Ready when you are.' : 'Connections can be added later.'}</span>}
+              <button disabled={busy} className={button} onClick={isCoach || step === 1 ? finish : () => { setStep(1); setError(''); window.scrollTo(0, 0); }}>{busy ? 'Saving…' : isCoach ? 'Open your roster' : step === 0 ? 'Continue' : 'Open my training'}</button>
             </div>
-          </div>
-
-          {formError && <p role="alert" className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{formError}</p>}
-          <div className="mt-8 flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() => setStepIndex((current) => Math.max(0, current - 1))}
-              className={`rounded-full border border-ink/10 px-5 py-3 text-sm font-semibold text-ink ${stepIndex === 0 ? 'invisible' : ''}`}
-            >
-              Back
-            </button>
-
-            {currentStep === 'path' ? (
-              <button
-                type="button"
-                onClick={() => setStepIndex(1)}
-                disabled={saving}
-                className="rounded-full bg-panel px-6 py-3 text-sm font-semibold text-paper"
-              >
-                Continue
-              </button>
-            ) : null}
-            {currentStep === 'coach-code' && coachConnection ? (
-              <button
-                type="button"
-                onClick={() => setStepIndex((current) => current + 1)}
-                className="rounded-full bg-panel px-6 py-3 text-sm font-semibold text-paper"
-              >
-                Continue
-              </button>
-            ) : null}
-            {currentStep === 'race' ? (
-              <button type="button" onClick={nextFromRace} disabled={saving} className="rounded-full bg-panel px-6 py-3 text-sm font-semibold text-paper">
-                Continue
-              </button>
-            ) : null}
-            {currentStep === 'sport' ? (
-              <button type="button" onClick={nextFromSport} disabled={saving} className="rounded-full bg-panel px-6 py-3 text-sm font-semibold text-paper">
-                Continue
-              </button>
-            ) : null}
-          </div>
-        </section>
+          </>
+        )}
       </div>
     </main>
   );

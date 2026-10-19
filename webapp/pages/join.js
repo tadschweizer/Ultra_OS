@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
+import { clearMe } from '../lib/meClient';
 
 function InviteShell({ children }) {
   return (
@@ -16,6 +17,7 @@ function CoachInvitationJoin({ token }) {
   const [status, setStatus] = useState('checking');
   const [preview, setPreview] = useState(null);
   const [authenticated, setAuthenticated] = useState(false);
+  const [onboardingComplete, setOnboardingComplete] = useState(false);
   const [message, setMessage] = useState('');
   const acceptingRef = useRef(false);
   const returnPath = `/join?coach_invite=${encodeURIComponent(token)}`;
@@ -34,6 +36,8 @@ function CoachInvitationJoin({ token }) {
         if (cancelled) return;
         setPreview(invite);
         setAuthenticated(meResponse.ok);
+        const me = await meResponse.json().catch(() => ({}));
+        setOnboardingComplete(Boolean(me.athlete?.onboarding_complete));
         setMessage(invite.error || '');
         setStatus(inviteResponse.ok ? 'ready' : (invite.code || 'error'));
       } catch {
@@ -60,6 +64,7 @@ function CoachInvitationJoin({ token }) {
         body: JSON.stringify({ token }),
       });
       const data = await response.json().catch(() => ({}));
+      if (response.ok) clearMe();
       setPreview((current) => ({ ...current, ...data }));
       setMessage(data.error || '');
       setStatus(response.ok ? (data.already_accepted ? 'already_accepted' : 'accepted') : (data.code || 'error'));
@@ -108,7 +113,7 @@ function CoachInvitationJoin({ token }) {
       <InviteShell>
         <h1 className="mt-4 font-display text-3xl font-semibold">{status === 'accepted' ? 'Invitation accepted' : 'Already connected'}</h1>
         <p className="mt-3 text-sm leading-6 text-ink/60">You are connected to {coachName}. The relationship now appears in your account and your coach&apos;s roster.</p>
-        <a href="/dashboard" className="mt-7 inline-flex rounded-full bg-ink px-6 py-3 text-sm font-semibold text-paper">Continue to Threshold</a>
+        <a href={onboardingComplete ? "/calendar" : "/onboarding"} className="mt-7 inline-flex rounded-full bg-ink px-6 py-3 text-sm font-semibold text-paper">Continue to Threshold</a>
       </InviteShell>
     );
   }
