@@ -1,6 +1,6 @@
 # Athlete invitation and onboarding simplification
 
-Updated: October 19, 2026. Status: implemented and tested locally; not deployed.
+Updated: October 19, 2026. Status: owner approved production release; isolated release branch under verification.
 
 ## Problem and resulting flow
 
@@ -36,6 +36,6 @@ Browser tests use intercepted API fixtures; API regressions use isolated fixture
 
 ## Release handoff
 
-Changes remain uncommitted in the existing mixed working tree on `codex/m0-reliability-billing-persistence`. No PR/commit or deployment is claimed. Changed application files: `webapp/pages/onboarding.js`, `webapp/pages/signup.js`, `webapp/pages/join.js`. Tests: `webapp/e2e/onboarding-streamlined.spec.mjs` and `webapp/e2e/pilot-ux.spec.mjs`. Roadmap updated without closing M0 gates.
+Owner authorized release on October 19 after reviewing the two-screen design. Changes are isolated on `codex/athlete-onboarding-release`, based on production main `eb1808c`; unrelated original-checkout edits are preserved. The new onboarding suite is included in the required Auth Smoke critical browser command. No migration or provider settings change is needed.
 
-Before release, isolate these changes from unrelated work, run release checks on that exact branch, and obtain the owner's production authorization. After authorized deployment, use one real new athlete invitation to verify account creation, consent, connected coach, provider return, and first calendar visit on a physical phone. Preserve completed-session analysis and existing participant gates as separate work.
+Exact release commit, CI and deployment evidence will be appended after verification. Real email/provider round trips and physical-phone acceptance remain open.
