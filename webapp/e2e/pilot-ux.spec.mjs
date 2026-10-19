@@ -77,30 +77,26 @@ test('configured Strava offers a real connect link while unfinished providers re
   await expect(page.locator('article').filter({ has: page.getByText('Garmin', { exact: true }) }).getByRole('link')).toHaveCount(0);
 });
 
-test('onboarding reports missing fields and retains the step after a failed save', async ({ page }) => {
+test('onboarding retains optional answers after a failed save', async ({ page }) => {
   await mockAccount(page, { saveFails: true, onboarding: true });
   await page.goto('/onboarding');
-  await page.getByRole('button', { name: 'Race not listed? Enter it manually' }).click();
-  await page.getByRole('button', { name: 'Continue', exact: true }).last().click();
-  await expect(page.locator('main [role="alert"]')).toContainText('race name, date');
-  await page.getByRole('button', { name: 'I’ll add my race later' }).click();
-  await page.getByRole('button', { name: 'Continue', exact: true }).last().click();
-  await expect(page.locator('main [role="alert"]')).toContainText('Choose at least one sport');
+  await expect(page.getByText('Step 1 of 2', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
   await page.getByRole('button', { name: 'Ultrarunner', exact: true }).click();
-  await page.locator('select').nth(0).selectOption('2-3');
-  await page.locator('select').nth(1).selectOption('8-12');
-  await page.getByRole('button', { name: 'Continue', exact: true }).last().click();
+  await page.getByLabel('Usual training hours').selectOption('8-12');
+  await page.getByRole('button', { name: 'Open my training' }).click();
   await expect(page.locator('main [role="alert"]')).toContainText('Your answers are still here');
-  await expect(page.getByText('Step 3 of 4', { exact: true })).toBeVisible();
+  await expect(page.getByText('Step 2 of 2', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Ultrarunner', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await noOverflow(page);
 });
 
 test('query string alone cannot claim a Strava connection or finish onboarding', async ({ page }) => {
   await mockAccount(page, { onboarding: true });
   await page.goto('/onboarding?strava=connected');
-  await expect(page.getByText('Step 2 of 4', { exact: true })).toBeVisible();
-  await page.waitForTimeout(1500);
+  await expect(page.getByText('Step 1 of 2', { exact: true })).toBeVisible();
   await expect(page).toHaveURL(/\/onboarding\?strava=connected$/);
-  await expect(page.getByText('Strava connected', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('Connected', { exact: true })).toHaveCount(0);
 });
 
 test('coach calendar explains disconnected imports without hiding stored training', async ({ page }) => {
