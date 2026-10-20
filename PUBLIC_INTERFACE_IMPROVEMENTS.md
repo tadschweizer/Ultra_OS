@@ -73,6 +73,19 @@ The capture test intercepts every API request. It neither signs in to a real acc
 
 ## Release boundary
 
+### October 20 main-branch reconciliation
+
+Merged main `ed059a7` into PR #146 after the completed-session analysis release. Resolved
+the roadmap-only conflict by retaining the newer release and acceptance evidence alongside
+the public-interface status. Application files merged without conflicts; the session-analysis
+implementation remains identical to main. The combined package scripts retain both test suites.
+
+Repeated verification on the combined tree: 504/504 full regression tests and 18/18
+public-interface/session-analysis browser tests passed across desktop and mobile Chromium.
+Logs: `webapp/output-public-merge-regression.log` and `webapp/output-public-merge-browser.log`.
+The earlier production build results above apply to the pre-merge implementation; the updated
+branch's hosted CI and preview build run again after pushing the merge.
+
 Implementation and local verification do not establish deployed behavior, physical-phone acceptance, or screen-reader usability with actual assistive technology. No production deployment or service change was authorized by this work. Real invited-athlete, mailbox/provider and participant gates remain open.
 
 The test-managed local servers completed and stopped normally. Automatic approval review subsequently blocked a persistent local preview-server launch without a more specific reason. Verified screenshots remain available under `webapp/output/public-interface/`.
