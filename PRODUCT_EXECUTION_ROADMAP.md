@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
-Last updated: 2026-10-19<br>
+Last updated: 2026-10-20<br>
 Status: Athlete onboarding simplification deployed through PR #144 / merge 59e0667, Vercel dpl_4fbgop93jzn2LDJa9mv2MMsVwo8i READY on both domains; see ATHLETE_ONBOARDING_SIMPLIFICATION.md. Copy week destination picker released through PR #142 / merge 72e4ce5, Vercel dpl_F85PBT7KHehZze8RwKeUhXDHZD79 READY on both production domains. Weekly planning and coach/athlete review workflow deployed with owner authorization on mythreshold.co and www.mythreshold.co, PR #141 / main 0415ffe, Vercel dpl_EV67hYZtVjzAx4wRc7pVLEfe6BFG READY. Migration 20261017012725 applied; do not replay local 20261017003222. See WEEKLY_COACHING_RELEASE_2026-10-16.md. Owner review mode and prior security controls remain deployed.<br>
-Current milestone: M0 — athlete onboarding simplification deployed and public invitation signup verified (PR #144 / 59e0667; ATHLETE_ONBOARDING_SIMPLIFICATION.md); free athlete access and concrete coaching website copy deployed through PR #143 / merge 729ece2. Final Auth Smoke passed; production and signed-in owner calendar verified. Permanent owner coach grant applied; permanent athlete grants reserved by verified email.<br>
-Next item: Verify a fresh invited athlete signup and real provider connection on a physical phone. Preserve real-participant and mailbox acceptance, free-access grants, completed-session analysis review, and the coach/athlete planning loop.
+Current milestone: M0 — athlete onboarding simplification deployed and public invitation signup verified (PR #144 / 59e0667; ATHLETE_ONBOARDING_SIMPLIFICATION.md); free athlete access and concrete coaching website copy deployed through PR #143 / merge 729ece2. Final Auth Smoke passed; production and signed-in owner calendar verified. Permanent owner coach grant applied; permanent athlete grants reserved by verified email. Owner-authorized public-interface improvements locally verified in d485634; not deployed (PUBLIC_INTERFACE_IMPROVEMENTS.md).<br>
+Next item: Review the public-interface changes; production release requires explicit owner authorization. Verify a fresh invited athlete signup and real provider connection on a physical phone. Preserve real-participant and mailbox acceptance, free-access grants, completed-session analysis review, and the coach/athlete planning loop.
 
 ## Purpose
 
@@ -817,6 +817,22 @@ accounts are unavailable; the previous INACTIVE observation below is historical.
 | 2026-09-28 | Do not add a Sentry alert rule or uptime monitor | Owner declined; keep the readiness check manual for the closed pilot |
 
 ## Progress log
+
+### October 20 — Public interface improvements, locally verified
+
+Implemented all five owner-approved Impeccable findings in `d485634`: access wording follows
+existing entitlements; signup/login labels and role controls are accessible; mobile navigation
+uses a native modal with focus wrapping; the guide follows one coaching week; the homepage
+shows the actual session interface with fictional data and an early athlete entry point.
+Shared public navigation, role-appropriate mobile actions and consolidated trust links are included.
+
+Verification: 493 regression tests passed; existing onboarding/role browser coverage 15 passed
+with 3 intentional viewport skips; public/free-access browser coverage 14 passed; switch-off
+fallback 2 passed; production build passed (41 static pages); production-bundle browser smoke
+2 passed. Automated axe checks passed in tested views and the 14-file detector found no issues.
+See [PUBLIC_INTERFACE_IMPROVEMENTS.md](PUBLIC_INTERFACE_IMPROVEMENTS.md) for scope and evidence.
+No production deployment or service changes occurred. Physical-phone, real-participant,
+mailbox/provider and actual screen-reader acceptance remain separate.
 
 ### October 10 - isolated calendar/private-draft/load verification and focused fix
 
