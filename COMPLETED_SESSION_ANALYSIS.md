@@ -47,3 +47,13 @@ Reference workflows: [Intervals.icu activity analysis](https://www.intervals.icu
 
 Owner authorized deployment. Release branch: codex/completed-session-analysis-release, based on current main c04c814 in D:\UltraOS\session-analysis-release. Only this feature is transferred; newer copy-week, onboarding and free-access changes remain intact. Session analysis tests are included in both full regression and critical browser CI scripts. No database migration or provider enablement is included. Exact-head CI and production evidence follow after verification.
 
+
+## October 20 production release
+
+Owner-authorized release merged in PR #145, merge 9da585458e3f3d4c8860028d0235cfbb2553ecc4. Exact PR head cd70016408b4c3494a5f417c2c9fc0bba28facbe passed Auth Smoke run 39451538194: 504 regression tests, 4 integration checks, 207 desktop/mobile journeys (3 skipped), 6 calendar acceptance checks, 2 free-access/public-copy checks, and the production build. The initial run exposed an ambiguous completion-test status locator; the test now specifically identifies Saved while preserving the accessible analysis loading status.
+
+Vercel production deployment dpl_8MPcctvLJzoUQyiKaSjc2zVvJmNF is READY. GitHub deployment 7204670897 maps the exact merge SHA to https://ultra-os-tb77-agvzui02b-tadschweizers-projects.vercel.app; mythreshold.co and www.mythreshold.co resolve to this release in Vercel. No migrations, provider enablement, or service configuration changes were made.
+
+Read-only signed-in production verification: an existing unassigned Strava session loaded real pace, HR, power, cadence and elevation timelines, selected-session statistics, best efforts and saved-threshold HR distribution. The recording had gaps and correctly withheld continuous-distance splits. Two existing assigned sessions displayed planned-versus-actual comparisons but were unconfirmed suggested matches; the server correctly rejected completed-workout analysis because the saved workouts are not completed. Follow-up: reconcile the suggested-match UI with the completed-analysis state so it explains confirmation clearly. No matches, completions or feedback were changed during verification. Confirmed assigned completion is covered by fixture tests, not a real production participant check. Physical-phone and separate linked-coach acceptance remain open.
+
+Previous production rollback target: dpl_9hapxUo3FvFHDjz6749tQ1y3Ya6U. M0 participant, mailbox and phone gates remain open.
