@@ -1,6 +1,7 @@
 import CopyWeekDialog from './CopyWeekDialog';
 import { useWorkspaceTransport } from '../lib/WorkspaceTransport';
 import WorkoutReview from './WorkoutReview';
+import SessionAnalysis from './SessionAnalysis';
 import { prescription } from '../lib/weeklyPlan';
 import { libraryWorkoutPayload } from '../lib/libraryWorkoutPayload';
 import { libraryEditPayload, libraryCanonicalDistance, libraryDisplayDistance } from '../lib/libraryEditPayload';
@@ -865,7 +866,7 @@ function WorkoutDetail({ workout, matchActivities = [], role, onUpdate, onEdit, 
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm" onClick={(e) => { if (!busy && e.target === e.currentTarget) onClose(); }}>
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Workout details" className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-[28px] border border-ink/10 bg-paper p-6">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Workout details" className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-[28px] border border-ink/10 bg-paper p-6">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-[0.25em] text-accent">
@@ -913,6 +914,8 @@ function WorkoutDetail({ workout, matchActivities = [], role, onUpdate, onEdit, 
             </div>
           </div>
         )}
+
+        {workout.status === 'completed' && <SessionAnalysis key={workout.id} workout={workout} distanceUnit={distanceUnit} />}
 
         {/* Completion status */}
         <div className="mt-5 rounded-2xl border border-ink/10 bg-white p-4">
@@ -1142,7 +1145,7 @@ function ActivityDetail({ activity, role, distanceUnit = 'mi', onCountChange, on
       className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Workout details" className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-[28px] border border-ink/10 bg-paper p-6">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Workout details" className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-[28px] border border-ink/10 bg-paper p-6">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-xs uppercase tracking-[0.25em] text-sky-700">
@@ -1161,6 +1164,8 @@ function ActivityDetail({ activity, role, distanceUnit = 'mi', onCountChange, on
             Close
           </button>
         </div>
+
+        <SessionAnalysis key={activity.id} activity={activity} distanceUnit={distanceUnit} />
 
         {/* Headline numbers, the three an athlete looks for first. */}
         <div className="mt-4 grid grid-cols-3 gap-2 rounded-2xl border border-sky-200 bg-sky-50/60 p-4 text-center">
