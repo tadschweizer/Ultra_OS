@@ -1,271 +1,127 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/router';
 import { useMe } from '../lib/meClient';
 import { getMobileTabs, getSidebarSections } from '../lib/siteNavigation';
 
-const sheetSections = [
-  {
-    title: 'Training',
-    icon: (
-      <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4 stroke-accent" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M2 10h3l2-6 3 12 2-8 2 4h4" />
-      </svg>
-    ),
-    items: [
-      { href: '/insights', label: 'Insights', description: 'N=1 correlations from your data' },
-      { href: '/race-outcome', label: 'Race Debrief', description: 'Log a completed race' },
-      { href: '/explorer', label: 'Explorer', description: 'Browse all activities' },
-    ],
-  },
-  {
-    title: 'Platform',
-    icon: (
-      <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4 stroke-accent" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="10" cy="10" r="8" />
-        <path d="M10 6v4l3 3" />
-      </svg>
-    ),
-    items: [
-      { href: '/connections', label: 'Connections', description: 'Strava and data sources' },
-      { href: '/coaches', label: 'Coaches', description: 'Find a coach' },
-      { href: '/notifications', label: 'Notifications', description: 'Alerts and updates' },
-    ],
-  },
-  {
-    title: 'Account',
-    icon: (
-      <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4 stroke-accent" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M16 17v-1a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v1" />
-        <circle cx="10" cy="7" r="3" />
-      </svg>
-    ),
-    items: [
-      { href: '/account', label: 'Account Settings', description: 'Email, billing, security' },
-      { href: '/guide', label: 'Guide', description: 'How Threshold works' },
-      { href: '/pricing', label: 'Pricing', description: 'Plans and upgrades' },
-    ],
-  },
-];
 
-export default function NavMenu({ primaryLink = null, links = [] }) {
+export default function NavMenu({ primaryLink = null, links = [], label = 'Navigation' }) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const dialogRef = useRef(null);
+  const triggerRef = useRef(null);
+  const titleId = useId();
   const router = useRouter();
   const me = useMe();
   const account = me?.account || null;
   const isAdmin = Boolean(account?.capabilities?.administrator);
   const coachFirst = account?.primary_role === 'coach' && account?.capabilities?.coach;
-  const bottomNavHrefs = new Set(getMobileTabs(account).map((item) => item.href));
-  const visibleSheetSections = account
-    ? getSidebarSections(account).map((section) => ({
-        ...section,
-        icon: sheetSections.find((candidate) => candidate.title === section.title)?.icon || null,
-        items: section.items.map((item) => ({ ...item, description: item.description || '' })),
-      }))
-    : [{
-        title: 'Explore',
-        icon: null,
-        items: links.length ? links : [
-          { href: '/guide', label: 'How It Works', description: '' },
-          { href: '/content', label: 'Research', description: '' },
-          { href: '/pricing', label: 'Pricing', description: '' },
-        ],
-      }];
+  const bottomNavHrefs = new Set(account ? getMobileTabs(account).map(item => item.href) : []);
+  const sections = account
+    ? getSidebarSections(account)
+    : [{ title: 'Explore', items: links.length ? links : [
+        { href: '/', label: 'Home' },
+        { href: '/guide', label: 'How it works' },
+        { href: '/content', label: 'Research' },
+        { href: '/pricing', label: 'Access & pricing' },
+      ] }];
+  const action = account
+    ? { href: coachFirst ? '/coach-command-center' : '/log-intervention', label: coachFirst ? 'Open Coach Roster' : 'Log intervention' }
+    : { href: '/signup?role=coach', label: 'Create a coach pilot account' };
 
+  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => { setOpen(false); }, [router.asPath]);
+
+  // Native modal dialogs provide focus containment and make the page behind
+  // the sheet inert. Never simulate a modal with only a visual backdrop.
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Avoid horizontal page drift while keeping the menu itself scrollable.
-  useEffect(() => {
-    const previousBodyOverflow = document.body.style.overflow;
-    const previousHtmlOverflow = document.documentElement.style.overflow;
-
-    if (open) {
-      document.body.style.overflowX = 'hidden';
-      document.documentElement.style.overflowX = 'hidden';
-    } else {
-      document.body.style.overflowX = '';
-      document.documentElement.style.overflowX = '';
+    const dialog = dialogRef.current;
+    if (!mounted || !dialog) return;
+    if (!open) {
+      if (dialog.open) dialog.close();
+      return;
     }
-
+    const previousOverflow = document.body.style.overflow;
+    dialog.showModal();
+    document.body.style.overflow = 'hidden';
+    const desktop = window.matchMedia('(min-width: 1024px)');
+    const closeOnDesktop = () => { if (desktop.matches) setOpen(false); };
+    desktop.addEventListener('change', closeOnDesktop);
+    closeOnDesktop();
     return () => {
-      document.body.style.overflow = previousBodyOverflow;
-      document.documentElement.style.overflow = previousHtmlOverflow;
+      desktop.removeEventListener('change', closeOnDesktop);
+      if (dialog.open) dialog.close();
+      document.body.style.overflow = previousOverflow;
+      if (triggerRef.current?.isConnected) triggerRef.current.focus();
     };
-  }, [open]);
+  }, [open, mounted]);
 
-  // Close on route change
-  useEffect(() => { setOpen(false); }, [router.pathname]);
+  function keepTabInMenu(event) {
+    if (event.key !== 'Tab') return;
+    const items = [...dialogRef.current.querySelectorAll('a[href], button:not(:disabled), [tabindex="0"]')]
+      .filter(element => element.getClientRects().length > 0);
+    const first = items[0];
+    const last = items[items.length - 1];
+    if ((event.shiftKey && document.activeElement === first)
+      || (!event.shiftKey && document.activeElement === last)) {
+      event.preventDefault();
+      (event.shiftKey ? last : first)?.focus();
+    }
+  }
 
-  // Close on Escape
-  useEffect(() => {
-    function onKey(e) { if (e.key === 'Escape') setOpen(false); }
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, []);
-
-  return (
-    <div className="relative z-[70] lg:hidden">
-      <div className="flex items-center gap-3">
-        {primaryLink ? (
-          <a
-            href={primaryLink.href}
-            className={primaryLink.variant === 'secondary' ? 'ui-button-secondary py-2' : 'ui-button-primary py-2'}
-          >
-            {primaryLink.label}
-          </a>
-        ) : null}
-
-        {/* Trigger button — morphs between hamburger and × */}
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          className="relative z-[60] inline-flex h-11 w-11 items-center justify-center rounded-pill border border-ink/10 bg-white/70 text-ink backdrop-blur transition"
-          aria-expanded={open}
-          aria-label={open ? 'Close menu' : 'Open menu'}
-        >
-          {/* Admin badge dot */}
-          {isAdmin && !open ? (
-            <span className="absolute -right-0.5 -top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-amber-500 text-[7px] font-bold text-white shadow-sm">
-              A
-            </span>
-          ) : null}
-          {open ? (
-            <svg viewBox="0 0 20 20" fill="none" className="h-5 w-5 stroke-ink" strokeWidth="2" strokeLinecap="round">
-              <line x1="5" y1="5" x2="15" y2="15" />
-              <line x1="15" y1="5" x2="5" y2="15" />
-            </svg>
-          ) : (
-            <span className="flex flex-col gap-[4.5px]">
-              <span className="block h-[2px] w-5 rounded bg-current" />
-              <span className="block h-[2px] w-3.5 rounded bg-current" />
-              <span className="block h-[2px] w-5 rounded bg-current" />
-            </span>
-          )}
-        </button>
-      </div>
-
-      {mounted && open ? createPortal(
-      <>
-      {/* Backdrop — tap to dismiss */}
-        <div
-          className="fixed inset-0 z-[90] bg-ink/30 backdrop-blur-[2px]"
-          onClick={() => setOpen(false)}
-          aria-hidden="true"
-        />
-
-      {/* Slide-up bottom sheet */}
-      <div
-        className="fixed inset-x-0 bottom-0 top-4 z-[100] flex items-end overflow-hidden px-3 lg:hidden"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-      >
-        <div
-          className="flex w-full flex-col overflow-hidden rounded-[28px] border border-ink/10 bg-white shadow-[0_-8px_40px_rgba(19,24,22,0.18)]"
-          style={{ height: 'calc(100dvh - 1rem - env(safe-area-inset-bottom))' }}
-        >
-          {/* Drag handle */}
-          <div className="flex shrink-0 justify-center pb-1 pt-3">
-            <div className="h-1 w-10 rounded-full bg-ink/15" />
-          </div>
-
-          {/* Sheet header */}
-          <div className="flex shrink-0 items-center justify-between px-5 pb-3 pt-2">
-            <span className="font-display text-xl font-semibold text-ink">More</span>
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); setOpen(false); }}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-ink/8 transition active:bg-ink/15"
-              aria-label="Close menu"
-            >
-              <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4 stroke-ink" strokeWidth="2" strokeLinecap="round">
-                <line x1="5" y1="5" x2="15" y2="15" />
-                <line x1="15" y1="5" x2="5" y2="15" />
-              </svg>
+  return <div className="lg:hidden">
+    <div className="flex items-center gap-3">
+      {primaryLink && <a href={primaryLink.href} className="ui-button-secondary min-h-11">{primaryLink.label}</a>}
+      <button ref={triggerRef} type="button" onClick={() => setOpen(true)}
+        className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-ink/20 bg-white text-ink"
+        aria-expanded={open} aria-haspopup="dialog" aria-controls={titleId + '-dialog'} aria-label="Open menu">
+        <svg viewBox="0 0 20 20" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
+          <path d="M3 5h14M3 10h14M3 15h14" />
+        </svg>
+      </button>
+    </div>
+    {mounted && createPortal(
+      <dialog ref={dialogRef} id={titleId + '-dialog'} aria-labelledby={titleId}
+        className="threshold-nav-dialog"
+        onKeyDown={keepTabInMenu}
+        onCancel={event => { event.preventDefault(); setOpen(false); }}
+        onClose={() => setOpen(false)}
+        onClick={event => { if (event.target === event.currentTarget) setOpen(false); }}>
+        <div className="flex max-h-[calc(100dvh-2rem)] flex-col p-5">
+          <div className="mb-3 flex shrink-0 items-center justify-between gap-4">
+            <h2 id={titleId} className="text-xl font-semibold">{account ? 'More' : label}</h2>
+            <button type="button" autoFocus onClick={() => setOpen(false)} aria-label="Close menu"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-ink/20">
+              <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15" /></svg>
             </button>
           </div>
-
-          {/* Admin toggle strip — only for admins */}
-          {isAdmin ? (
-            <div className="mx-4 mb-1 flex shrink-0 items-center justify-between rounded-[18px] bg-amber-50 px-4 py-2.5">
-              <div className="flex items-center gap-2">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-[9px] font-bold text-white">A</span>
-                <span className="text-xs font-semibold text-amber-800">Admin access on</span>
-              </div>
-              <a
-                href={router.pathname === '/admin' ? '/dashboard' : '/admin'}
-                onClick={() => setOpen(false)}
-                className="rounded-full bg-amber-500 px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-amber-600"
-              >
-                {router.pathname === '/admin' ? '← Athlete view' : 'Admin panel →'}
-              </a>
-            </div>
-          ) : null}
-
-          {/* Sections */}
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-8">
-            {visibleSheetSections.map((section, si) => (
-              <div key={section.title} className={si > 0 ? 'mt-5' : ''}>
-                <div className="mb-2 flex items-center gap-2 px-1">
-                  {section.icon}
-                  <span className="text-xs font-semibold uppercase tracking-[0.2em] text-ink/45">
-                    {section.title}
-                  </span>
-                </div>
-
-                <div className="space-y-1 rounded-[22px] bg-ink/3 p-2">
-                  {section.items
-                    .filter((item) => !bottomNavHrefs.has(item.href))
-                    .map((item) => {
-                      const isActive = router.pathname === item.href;
-                      return (
-                        <a
-                          key={item.href}
-                          href={item.href}
-                          onClick={() => setOpen(false)}
-                          className={`flex items-center justify-between rounded-[14px] px-4 py-3 transition ${
-                            isActive ? 'bg-panel' : 'hover:bg-white'
-                          }`}
-                        >
-                          <div>
-                            <p className={`text-sm font-semibold ${isActive ? 'text-paper' : 'text-ink'}`}>
-                              {item.label}
-                            </p>
-                            <p className={`mt-0.5 text-xs ${isActive ? 'text-paper/65' : 'text-ink/48'}`}>
-                              {item.description}
-                            </p>
-                          </div>
-                          {isActive ? (
-                            <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-paper/60">
-                              Here
-                            </span>
-                          ) : (
-                            <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4 flex-shrink-0 stroke-ink/25" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M6 4l4 4-4 4" />
-                            </svg>
-                          )}
-                        </a>
-                      );
-                    })}
-                </div>
-              </div>
-            ))}
-
-            {/* Quick CTA */}
-            <a
-              href={coachFirst ? '/coach-command-center' : '/log-intervention'}
-              onClick={() => setOpen(false)}
-              className="mt-6 block rounded-full bg-ink py-3.5 text-center text-sm font-semibold text-paper"
-            >
-              {coachFirst ? 'Open Coach Roster' : '+ Log Intervention'}
-            </a>
+          <div className="min-h-0 overflow-y-auto overscroll-contain">
+            {isAdmin && <a className="mb-4 flex min-h-11 items-center font-semibold text-ink underline"
+              href={router.pathname === '/admin' ? '/dashboard' : '/admin'} onClick={() => setOpen(false)}>
+              {router.pathname === '/admin' ? 'Athlete view' : 'Admin panel'}
+            </a>}
+            <nav aria-label={label}>
+              {sections.map(section => <div key={section.title} className="mb-4">
+                {account && <h3 className="mb-2 text-sm font-semibold text-ink/75">{section.title}</h3>}
+                <ul className="divide-y divide-ink/10">
+                  {section.items.filter(item => !bottomNavHrefs.has(item.href)).map(item => <li key={item.href}>
+                    <a href={item.href} onClick={() => setOpen(false)}
+                      aria-current={router.pathname === item.href ? 'page' : undefined}
+                      className="flex min-h-11 flex-col justify-center py-3 text-ink hover:underline">
+                      <span className="font-semibold">{item.label}</span>
+                      {item.description && <span className="mt-1 text-sm text-ink/75">{item.description}</span>}
+                    </a>
+                  </li>)}
+                </ul>
+              </div>)}
+            </nav>
+            <a href={action.href} onClick={() => setOpen(false)} className="ui-button-primary mt-2 w-full min-h-11">{action.label}</a>
+            {!account && <div className="mt-3 flex flex-wrap gap-x-5">
+              <a href="/signup" onClick={() => setOpen(false)} className="inline-flex min-h-11 items-center font-semibold text-ink underline">Join as an athlete</a>
+              <a href={primaryLink?.href?.startsWith('/login') ? primaryLink.href : '/login'} onClick={() => setOpen(false)} className="inline-flex min-h-11 items-center font-semibold text-ink underline">Log in</a>
+            </div>}
           </div>
         </div>
-      </div>
-      </>,
-      document.body
-      ) : null}
-    </div>
-  );
+      </dialog>, document.body)}
+  </div>;
 }
