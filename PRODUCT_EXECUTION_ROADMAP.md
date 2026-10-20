@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
-Last updated: 2026-10-19<br>
+Last updated: 2026-10-20<br>
 Status: Athlete onboarding simplification deployed through PR #144 / merge 59e0667, Vercel dpl_4fbgop93jzn2LDJa9mv2MMsVwo8i READY on both domains; see ATHLETE_ONBOARDING_SIMPLIFICATION.md. Copy week destination picker released through PR #142 / merge 72e4ce5, Vercel dpl_F85PBT7KHehZze8RwKeUhXDHZD79 READY on both production domains. Weekly planning and coach/athlete review workflow deployed with owner authorization on mythreshold.co and www.mythreshold.co, PR #141 / main 0415ffe, Vercel dpl_EV67hYZtVjzAx4wRc7pVLEfe6BFG READY. Migration 20261017012725 applied; do not replay local 20261017003222. See WEEKLY_COACHING_RELEASE_2026-10-16.md. Owner review mode and prior security controls remain deployed.<br>
-Current milestone: M0 — athlete onboarding simplification deployed and public invitation signup verified (PR #144 / 59e0667; ATHLETE_ONBOARDING_SIMPLIFICATION.md); free athlete access and concrete coaching website copy deployed through PR #143 / merge 729ece2. Final Auth Smoke passed; production and signed-in owner calendar verified. Permanent owner coach grant applied; permanent athlete grants reserved by verified email.<br>
-Next item: Verify a fresh invited athlete signup and real provider connection on a physical phone. Preserve real-participant and mailbox acceptance, free-access grants, completed-session analysis review, and the coach/athlete planning loop.
+Current milestone: M0 — completed-session analysis release authorized October 20, isolated from current main; verification and production release in progress (COMPLETED_SESSION_ANALYSIS.md). Athlete onboarding simplification deployed and public invitation signup verified (PR #144 / 59e0667; ATHLETE_ONBOARDING_SIMPLIFICATION.md); free athlete access and concrete coaching website copy deployed through PR #143 / merge 729ece2. Final Auth Smoke passed; production and signed-in owner calendar verified. Permanent owner coach grant applied; permanent athlete grants reserved by verified email.<br>
+Next item: Finish exact-head CI and the authorized completed-session analysis release; verify production, then verify a fresh invited athlete signup and real provider connection on a physical phone. Preserve real-participant and mailbox acceptance, free-access grants, completed-session analysis review, and the coach/athlete planning loop.
 
 ## Purpose
 
@@ -1106,3 +1106,8 @@ Owner pilot access approved and provisioned 2026-10-17 01:55 UTC for 30 days, wi
 Owner approved production release of the reviewed two-screen onboarding. Personal invitation signup removes redundant role choices; onboarding loads existing coach links, starts with optional activity connections, and finishes at Calendar after optional profile details. Races move out of setup; existing data is preserved. No new provider availability, migrations, grants or service settings are included. Release isolated from the mixed D: checkout onto origin/main eb1808c. Prior local checks: 36 browser and 57 regression passed. Exact-branch CI and deployment evidence will be recorded in ATHLETE_ONBOARDING_SIMPLIFICATION.md; participant gates remain open.
 
 Release result: PR #144 merged as 59e0667; exact-head Auth Smoke 39341359723 passed 493 regressions, 4 integrations, build, 201 browser checks (3 existing skips), 6 calendar and 2 free-access checks. Production deployment dpl_4fbgop93jzn2LDJa9mv2MMsVwo8i READY on both domains. Live browser verified simplified invitation signup and invitation-preserving login navigation. No real signup/provider acceptance claimed.
+
+
+## October 20 — Authorized completed-session analysis release
+
+Owner requested deployment. Prepared only the session-analysis components, API, calculations, tests, calendar entry points and verification notes on codex/completed-session-analysis-release from c04c814. Existing copy-week, onboarding and free-access behavior is retained. No migration or provider configuration change is required. Release evidence will be recorded in COMPLETED_SESSION_ANALYSIS.md after exact-head CI and deployment verification. Live participant recordings and physical-phone acceptance remain separate open gates.

@@ -80,7 +80,7 @@ test('completion keeps unknown actuals blank, recovers from failure, permits cor
   await expect(dialog.getByRole('alert')).toContainText('Save unavailable');
   await expect(dialog.getByLabel('Actual duration in minutes')).toHaveValue('20');
   state.fail = false; await dialog.getByRole('button',{name:'Mark completed',exact:true}).click();
-  await expect(dialog.getByRole('status')).toHaveText('Saved.');
+  await expect(dialog.getByRole('status').filter({ hasText: /^Saved\.$/ })).toBeVisible();
   expect(state.workouts[0].completed_distance_km).toBeNull();
   await dialog.getByLabel('Actual duration in minutes').fill('25');
   await dialog.getByRole('button',{name:'Save correction',exact:true}).click();
