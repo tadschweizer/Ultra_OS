@@ -822,6 +822,7 @@ function WorkoutDetail({ workout, matchActivities = [], role, onUpdate, onEdit, 
   const [saveError, setSaveError] = useState('');
   const [saved, setSaved] = useState(false);
   const currentMatch = workout.linked_activity || workout.matched_activity;
+  const suggestedCompletion = Boolean(workout.matched_activity && !workout.completed_activity_id);
   const [selectedActivity, setSelectedActivity] = useState(String(workout.completed_activity_id || currentMatch?.id || ''));
   const matchCandidates = matchActivities.filter((a) =>
     (!a.linked_workout_id || a.linked_workout_id === workout.id)
@@ -915,7 +916,15 @@ function WorkoutDetail({ workout, matchActivities = [], role, onUpdate, onEdit, 
           </div>
         )}
 
-        {workout.status === 'completed' && <SessionAnalysis key={workout.id} workout={workout} distanceUnit={distanceUnit} />}
+        {suggestedCompletion ? (
+          <section aria-label="Activity match confirmation" className="mt-5 border-y border-ink/20 py-4">
+            <h4 className="font-semibold text-ink">Confirm the activity match to analyze this workout</h4>
+            <p className="mt-2 text-sm text-ink/75">An imported activity may match this plan, but the match has not been saved.</p>
+            <p className="mt-2 text-sm text-ink/75">{role === 'athlete'
+              ? 'Confirm the activity match below, or choose another imported session. Analysis will load after confirmation.'
+              : 'Ask the athlete to confirm the imported activity match.'}</p>
+          </section>
+        ) : workout.status === 'completed' && <SessionAnalysis key={workout.id} workout={workout} distanceUnit={distanceUnit} />}
 
         {/* Completion status */}
         <div className="mt-5 rounded-2xl border border-ink/10 bg-white p-4">
@@ -923,7 +932,9 @@ function WorkoutDetail({ workout, matchActivities = [], role, onUpdate, onEdit, 
             <p className="text-xs uppercase tracking-[0.22em] text-ink/55">Completion</p>
             <span className={`h-3 w-3 rounded-full ${COMPLIANCE_DOT[workout.compliance_status] || COMPLIANCE_DOT.none}`} />
           </div>
-          {workout.status === 'completed' ? (
+          {suggestedCompletion ? (
+            <p className="mt-2 text-sm text-ink/75">Suggested completion</p>
+          ) : workout.status === 'completed' ? (
             <p className="mt-2 text-sm text-ink/75">
               Completed · {workout.completed_duration_min != null ? fmtDuration(workout.completed_duration_min)||'0m' : 'Duration unknown'}
               {' · '}{workout.completed_distance_km != null ? formatDistance(workout.completed_distance_km, workout.planned_distance_unit)||'0' : 'Distance unknown'}
@@ -935,7 +946,7 @@ function WorkoutDetail({ workout, matchActivities = [], role, onUpdate, onEdit, 
           ) : (
             <p className="mt-2 text-sm text-ink/55">Not completed yet.</p>
           )}
-          {workout.matched_activity && (
+          {suggestedCompletion && (
             <p className="mt-1 text-xs text-emerald-700">Suggested match to an imported activity.{role === 'athlete' ? ' Confirm it or choose another session below.' : ''}</p>
           )}
           {workout.completed_activity_id && <p className="mt-1 text-xs text-emerald-700">
