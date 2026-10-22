@@ -117,3 +117,35 @@ test('notification preferences retain edits after failure, persist on reload and
   await expect(page.getByLabel('Show an unread badge')).not.toBeChecked();
   await expect(page.getByLabel('Your message')).toBeVisible();
 });
+
+test('unavailable email alerts explain the disabled control and refresh without losing edits',async({page})=>{
+  const store=newStore();store.emailAvailable=false;await routeMessages(page,'athlete',store);await page.goto('/messages');await openFirstMessageThread(page);
+  await page.getByText('Notification preferences',{exact:true}).click();
+  const email=page.getByLabel('Email me about unread direct messages');
+  await expect(email).toBeDisabled();
+  await expect(page.getByText('Email alerts cannot be turned on while delivery is unavailable. You can still turn off existing alerts and change your unread badge.')).toBeVisible();
+  await page.getByLabel('Show an unread badge').uncheck();
+  store.preferenceReadFail=true;await page.getByRole('button',{name:'Refresh email availability'}).click();
+  await expect(page.getByRole('status').filter({hasText:'Email availability could not be checked. Your choices are unchanged.'})).toBeVisible();
+  await expect(page.getByLabel('Show an unread badge')).not.toBeChecked();
+  store.preferenceReadFail=false;store.emailAvailable=true;
+  await page.getByRole('button',{name:'Refresh email availability'}).click();
+  await expect(email).toBeEnabled();await expect(page.getByLabel('Show an unread badge')).not.toBeChecked();
+  expect(store.preferences).toEqual({email_enabled:false,badge_enabled:true});
+  await page.locator('details').filter({has:page.getByText('Notification preferences',{exact:true})}).screenshot({path:`output/message-preferences/available-${test.info().project.name}.png`});
+  await email.check();await page.getByRole('button',{name:'Save notification preferences'}).click();
+  await expect(page.getByText('Notification preferences saved.')).toBeVisible();
+  await page.reload();await openFirstMessageThread(page);await page.getByText('Notification preferences',{exact:true}).click();
+  await expect(email).toBeChecked();await expect(page.getByLabel('Show an unread badge')).not.toBeChecked();
+});
+
+test('existing email alerts can be switched off when delivery is unavailable',async({page})=>{
+  const store=newStore();store.emailAvailable=false;store.preferences={email_enabled:true,badge_enabled:true};
+  await routeMessages(page,'athlete',store);await page.goto('/messages');await openFirstMessageThread(page);
+  await page.getByText('Notification preferences',{exact:true}).click();
+  const email=page.getByLabel('Email me about unread direct messages');await expect(email).toBeEnabled();await email.uncheck();
+  await page.locator('details').filter({has:page.getByText('Notification preferences',{exact:true})}).screenshot({path:`output/message-preferences/unavailable-${test.info().project.name}.png`});
+  await page.getByRole('button',{name:'Save notification preferences'}).click();await expect(page.getByText('Notification preferences saved.')).toBeVisible();
+  await page.reload();await openFirstMessageThread(page);await page.getByText('Notification preferences',{exact:true}).click();
+  await expect(email).not.toBeChecked();await expect(email).toBeDisabled();
+});
