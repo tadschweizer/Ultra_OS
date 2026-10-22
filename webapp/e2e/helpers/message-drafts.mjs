@@ -3,11 +3,12 @@ export function mockMessagingPersistence(request,store,role) {
   const url=new URL(request.url());const payload=request.method()==='GET'?null:request.postDataJSON();
   if(url.pathname==='/api/message-preferences') {
     store.preferences ||= {email_enabled:false,badge_enabled:true};
+    if(request.method()==='GET' && store.preferenceReadFail)return {status:503,body:{error:'Preferences unavailable.'}};
     if(request.method()==='PUT') {
       if(store.preferenceFail)return {status:503,body:{error:'Preferences could not be saved.'}};
       store.preferences={...payload};
     }
-    return {status:200,body:{preferences:store.preferences,email_available:true}};
+    return {status:200,body:{preferences:store.preferences,email_available:store.emailAvailable ?? true}};
   }
   if(url.pathname!=='/api/message-drafts')return null;
   store.drafts ||= new Map();
