@@ -1222,4 +1222,3 @@ Main advanced to f004a11698fe45372c7a5d600000be5744535aec following external mer
 ### October 27 - Feedback task review workflow (local draft)
 
 Extended the existing private review notes with contributor/owner authorization, approval and acceptance stages, atomic history, retries and a live filtered panel. Exact corrected Beth login is linked but email verification is pending; production access remains unchanged. Local evidence and rollout gates are in FEEDBACK_WORKFLOW.md. No merge, deployment or hosted migration authorized or executed.
-

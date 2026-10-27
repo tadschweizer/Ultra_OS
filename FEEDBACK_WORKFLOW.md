@@ -2,7 +2,7 @@
 
 ## Investigation and implementation plan — October 27, 2026
 
-- Isolated branch `codex/feedback-review-workflow` starts at fetched main `f004a11`. Original dirty checkout and PR #151 checkout are untouched.
+- Isolated branch `codex/feedback-review-workflow` starts at fetched main `f004a11` and was rebased onto `241b047` after PR #151 merged externally. Original dirty checkout and PR #151 checkout are untouched.
 - Reuse `SiteReview`, `/api/site-review`, `site_reviewers`, and `site_review_notes`; no parallel site-feedback tracker. Existing admin/coach tools serve different purposes.
 - Keep revocation-checked signed athlete sessions and service-only database access. Explicit contributor/owner roles grant no general admin access. Membership and owner promotion are separate, specifically approved rollout operations.
 - Extend notes with pending review → approved → in progress → awaiting acceptance → completed, immutable event history, submitter attribution, approval/acceptance actors and times, atomic retry-safe writes, and stale-update conflicts.
@@ -35,10 +35,9 @@ The panel refreshes every 10 seconds while open and visible and on window focus.
 
 ## Local evidence
 
-- Full regression: 511 passed; focused suite: 12 passed, including reopening and atomic rollback after history insertion failure.
+- Full regression: 514 passed on the rebased tree (Node 24.14.0); focused suite: 12 passed, including reopening and atomic rollback after history insertion failure.
 - Integration availability: 4 passed.
-- Desktop/mobile Chromium: 6 passed, covering lost-response retry, stages, explicit acceptance, history/export, polling, preserved updates, load errors/recovery, draft retention, access denial, axe accessibility and viewport fit. Screenshots are in local `output/playwright/`.
+- Desktop/mobile Chromium: 6 passed, covering lost submission/update response retries, initial loading/errors, stages, explicit acceptance, history/export, polling, preserved updates, load errors/recovery, draft retention, access denial, axe accessibility and viewport fit. Screenshots are in local `output/playwright/`.
 - PostgreSQL tests use local PGlite with synthetic local IDs. Browser API fixtures are simulations, not production acceptance.
 - Production build: `npm run build -- --webpack` passed (existing Sentry/React/middleware warnings). Default Turbopack startup/build stalled in this environment; the repository already uses webpack for isolated browser verification.
 - Official Supabase function/security documentation checked through docs search. Changelog markdown retrieval was unavailable; no dependency/API-version change was made.
-
