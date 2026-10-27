@@ -1,4 +1,5 @@
 -- Schema only: no membership grants or owner promotions. Provision separately after approval.
+-- Production applied as 20261027211954_feedback_review_workflow; do not replay this file there.
 alter table public.site_reviewers add column role text not null default 'contributor' check (role in ('owner','contributor'));
 alter table public.site_reviewers add column display_name text not null default 'Reviewer' check (length(display_name) between 1 and 80);
 alter table public.site_review_notes drop constraint site_review_notes_status_check;
@@ -23,7 +24,8 @@ create table public.site_review_events (
 );
 create index site_review_events_note_created on public.site_review_events(note_id, created_at);
 alter table public.site_review_events enable row level security;
-revoke all on public.site_review_events from public, anon, authenticated;
+-- Reset inherited Supabase default grants before allowing append-only server access.
+revoke all on public.site_review_events from public, anon, authenticated, service_role;
 grant select, insert on public.site_review_events to service_role;
 insert into public.site_review_events(id,note_id,actor_name,status,message)
 select id,id,'Legacy review',status,'Imported from the previous review workflow; prior approval history is unavailable.' from public.site_review_notes;
