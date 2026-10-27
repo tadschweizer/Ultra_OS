@@ -2,8 +2,8 @@
 
 Last updated: 2026-10-27<br>
 Status: Athlete onboarding simplification deployed through PR #144 / merge 59e0667, Vercel dpl_4fbgop93jzn2LDJa9mv2MMsVwo8i READY on both domains; see ATHLETE_ONBOARDING_SIMPLIFICATION.md. Copy week destination picker released through PR #142 / merge 72e4ce5, Vercel dpl_F85PBT7KHehZze8RwKeUhXDHZD79 READY on both production domains. Weekly planning and coach/athlete review workflow deployed with owner authorization on mythreshold.co and www.mythreshold.co, PR #141 / main 0415ffe, Vercel dpl_EV67hYZtVjzAx4wRc7pVLEfe6BFG READY. Migration 20261017012725 applied; do not replay local 20261017003222. See WEEKLY_COACHING_RELEASE_2026-10-16.md. Owner review mode and prior security controls remain deployed.<br>
-Current milestone: M0 - feedback PR #152 merged externally before its schema rollout; local compatibility and uncertain-save repairs are under review (FEEDBACK_REPAIR_2026-10-27.md). Existing coaching and human acceptance gates remain open.<br>
-Next item: Independently retest the follow-up feedback repairs and review exact-head checks before any separately authorized release. Preserve the verification/membership gates for Beth and all existing participant, provider and physical-phone acceptance gates.
+Current milestone: M0 - feedback workflow migration 20261027211954 and Tad owner access are live; repository reconciliation of append-only history permissions is under review (FEEDBACK_HISTORY_PERMISSIONS.md).<br>
+Next item: Review the feedback history permission reconciliation; do not replay hosted migrations. Beth must complete normal email verification before her contributor grant. Preserve existing participant acceptance gates.
 
 
 ## Purpose
@@ -1228,3 +1228,7 @@ Feedback draft [PR #152](https://github.com/tadschweizer/Ultra_OS/pull/152): imp
 ### October 27 - Local feedback restoration and uncertain-save repair
 
 Verified external merge/deployment of PR #152 before the role-column migration. Original owner membership and 22 notes remain intact. Separate local commits preserve exact uncertain submissions and restore membership-scoped legacy feedback when that column is absent. Results: 515 regression tests, 13 API/PostgreSQL checks, 10 desktop/mobile scenarios plus four final focused checks, and production webpack build passed. See FEEDBACK_REPAIR_2026-10-27.md; no live changes by this task.
+
+## Feedback history permission reconciliation - 2026-10-27
+
+Production default privileges reproduced locally; explicit service_role revocation now precedes SELECT/INSERT. All 13 focused PostgreSQL/API tests pass, including UPDATE/DELETE/TRUNCATE denial. Historical migration version mapping and non-destructive recovery constraints documented in FEEDBACK_HISTORY_PERMISSIONS.md. Review-only branch; no production action in this reconciliation.

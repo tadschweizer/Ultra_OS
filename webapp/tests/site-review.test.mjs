@@ -13,7 +13,7 @@ const id = '33333333-3333-4333-8333-333333333333';
 let pg;
 before(async()=>{
   pg=new PGlite();
-  await pg.exec('create role anon; create role authenticated; create role service_role bypassrls; create table athletes(id uuid primary key,session_version integer default 1); grant select on athletes to service_role;');
+  await pg.exec('create role anon; create role authenticated; create role service_role bypassrls; alter default privileges in schema public grant all on tables to service_role; create table athletes(id uuid primary key,session_version integer default 1); grant select on athletes to service_role;');
   await pg.exec(readFileSync(new URL('../supabase/migrations/20261016195233_private_site_review.sql',import.meta.url),'utf8'));
   await pg.exec(`insert into athletes(id) values('${owner}'),('${beth}'),('${other}'); insert into site_reviewers values('${owner}'); insert into site_review_notes(id,athlete_id,pathname,note,status) values('${id}','${owner}','/','Old note','resolved');`);
   await pg.exec(readFileSync(new URL('../supabase/migrations/20261027190238_feedback_review_workflow.sql',import.meta.url),'utf8'));
@@ -107,6 +107,8 @@ test('database API cannot bypass membership, transitions, RLS or event immutabil
   await fixture(beth).invoke('POST',submission);
   await assert.rejects(pg.query(`select write_site_review('${beth}','${id}','${randomUUID()}','transition',1,'approved','','',null,null)`),/Owner required/);
   await assert.rejects(pg.query("update site_review_events set message='tamper'"),/permission denied/);
+  await assert.rejects(pg.query('delete from site_review_events'),/permission denied/);
+  await assert.rejects(pg.query('truncate site_review_events'),/permission denied/);
   await pg.exec('reset role');
   assert.equal((await pg.query("select count(*)::int n from pg_class where relname in ('site_reviewers','site_review_notes','site_review_events') and relrowsecurity")).rows[0].n,3);
 });
