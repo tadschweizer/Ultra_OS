@@ -1,8 +1,8 @@
 # Threshold Product Execution Roadmap
 
-Last updated: 2026-10-22<br>
+Last updated: 2026-10-27<br>
 Status: Athlete onboarding simplification deployed through PR #144 / merge 59e0667, Vercel dpl_4fbgop93jzn2LDJa9mv2MMsVwo8i READY on both domains; see ATHLETE_ONBOARDING_SIMPLIFICATION.md. Copy week destination picker released through PR #142 / merge 72e4ce5, Vercel dpl_F85PBT7KHehZze8RwKeUhXDHZD79 READY on both production domains. Weekly planning and coach/athlete review workflow deployed with owner authorization on mythreshold.co and www.mythreshold.co, PR #141 / main 0415ffe, Vercel dpl_EV67hYZtVjzAx4wRc7pVLEfe6BFG READY. Migration 20261017012725 applied; do not replay local 20261017003222. See WEEKLY_COACHING_RELEASE_2026-10-16.md. Owner review mode and prior security controls remain deployed.<br>
-Current milestone: M0 — email notification availability guidance and safe refresh locally verified in fb842e5; draft review preparation, not deployed. Suggested-match analysis PR #148 has passing CI and awaits review/release. Existing deployed analysis and coaching releases remain in place.<br>
+Current milestone: M0 — email notification availability guidance and safe refresh locally verified in fb842e5; draft review preparation, not deployed. Suggested-match analysis PR #148 has passing CI and awaits review/release. Existing deployed analysis and coaching releases remain in place. Public-interface PR #146 merged into main as d10d95b; deployment status was not reverified here.<br>
 Next item: Review the notification availability clarification and suggested-match PR #148 separately. Preserve real confirmed-assigned/linked-coach recording acceptance, fresh invited-athlete/provider/physical-phone and mailbox/participant gates. Provider activation and any production release need separate owner authorization.
 
 ## Purpose
@@ -818,6 +818,33 @@ accounts are unavailable; the previous INACTIVE observation below is historical.
 
 ## Progress log
 
+### October 20 — Public-interface PR #146 conflict resolution
+
+Merged main `ed059a7` into `codex/public-interface-improvements`. The only conflict was
+the roadmap milestone/next-item text. Retained main's completed-session production release
+and outstanding acceptance gates alongside the unreleased public-interface work.
+The package scripts retain both branches' test coverage; session-analysis application code
+matches main unchanged. On the combined tree, all 504 regression tests and all 18 public-interface
+and session-analysis desktop/mobile browser tests passed. Evidence:
+`webapp/output-public-merge-regression.log` and `webapp/output-public-merge-browser.log`.
+This updates PR #146 only; no production release is authorized by the conflict-resolution request.
+
+### October 20 — Public interface improvements, locally verified
+
+Implemented all five owner-approved Impeccable findings in `d485634`: access wording follows
+existing entitlements; signup/login labels and role controls are accessible; mobile navigation
+uses a native modal with focus wrapping; the guide follows one coaching week; the homepage
+shows the actual session interface with fictional data and an early athlete entry point.
+Shared public navigation, role-appropriate mobile actions and consolidated trust links are included.
+
+Verification: 493 regression tests passed; existing onboarding/role browser coverage 15 passed
+with 3 intentional viewport skips; public/free-access browser coverage 14 passed; switch-off
+fallback 2 passed; production build passed (41 static pages); production-bundle browser smoke
+2 passed. Automated axe checks passed in tested views and the 14-file detector found no issues.
+See [PUBLIC_INTERFACE_IMPROVEMENTS.md](PUBLIC_INTERFACE_IMPROVEMENTS.md) for scope and evidence.
+No production deployment or service changes occurred. Physical-phone, real-participant,
+mailbox/provider and actual screen-reader acceptance remain separate.
+
 ### October 10 - isolated calendar/private-draft/load verification and focused fix
 
 Fresh main `fa8ebe2b377784007b4a40b4e982f92a11224075` reproduced duplicate week
@@ -1117,9 +1144,21 @@ Added unit-labelled Y-axis ticks for each recorded channel, doubled running/walk
 Production build and diff whitespace checks also passed. Implementation is recorded in the chart refinement commit on codex/analysis-chart-axes.
 
 October 20 release verified: PR #147 merged as 34a3851d2d80d41874f7cf308a537176fe26fd4f. Exact-head Auth Smoke run 39465414228 passed: 505 regression, 4 integration, 207 browser journeys (3 skipped), 6 calendar acceptance, 2 free-access checks and production build. Vercel dpl_6ZHayeAZvQ6DpGoFR3jHQFz1Frb1 READY on mythreshold.co and www.mythreshold.co; GitHub deployment 7207208261 confirms the merge SHA. Signed-in production workout showed pace axis 5:24 /mi, 8:07 /mi, 10:49 /mi; cadence axis uses spm and summary is 174 spm. No workout data or service configuration changed. Existing suggested-match and participant acceptance follow-ups remain open.
+
+## October 27 open-PR conflict review
+
+- PR #146 merges main e3c50db, retaining the chart refinement release record and the pending public-interface work. Only the roadmap header required manual conflict resolution; application changes merged cleanly.
+- PRs #148, #149, #150 and #151 are independent branches targeting main, with no ancestry stack and no current base conflicts. Their existing release and real-participant acceptance limits remain open.
+- This review does not authorize merging PRs, production deployment or remote database changes.
+- Local merge verification on Node 22.23.4: 505 regression tests, four integration checks, production build, and 18 desktop/mobile public-interface/session-analysis browser checks passed. Exact remote-head CI is checked after pushing the merge; real-participant acceptance is unchanged.
+
 ### October 22 — Message notification availability (local)
 
 - Implementation `fb842e5`, base main `e3c50db`. The email checkbox is intentionally disabled when the preference endpoint reports delivery unavailable. Preserve that safeguard; no server/provider enablement is included. The UI now explains what is unavailable and which choices remain usable, associates the explanation with the checkbox, and provides an availability refresh without saving or replacing unsaved choices. Saving also uses the server's latest availability result.
 - New recovery expectation failed before the update. Afterward, all 18 existing/new critical messaging browser checks passed across desktop and 390px mobile. Four final availability cases passed again: failed refresh preserves choices, recovered availability permits selection, refresh performs no preference write, save/reload persists choices, and existing email alerts can be switched off while delivery is unavailable. Desktop/mobile settings screenshots inspected.
 - Node 22.23.4: full regression 505 passed; production build passed with loopback public Supabase placeholders; whitespace passed; Impeccable detector returned zero findings. Evidence: MESSAGE_NOTIFICATION_AVAILABILITY_VERIFICATION.md.
 - This verifies isolated interface recovery, not real email delivery or a production fix. No API/database/provider/service changes or production writes. Human mailbox and participant gates remain open. Separate PR #148 was checked: Auth Smoke and preview checks pass, with no merge/release performed.
+
+### October 27 — Current-main conflict reconciliation for PR #149
+
+Main advanced to d10d95b after PR #146 merged. Retained both roadmap workstreams; only the roadmap conflicted and application files merged cleanly. No release or remote migration was performed. Local combined tree passed 505 full regression tests and all 18 desktop/mobile critical messaging checks. Logs: webapp/review-149-regression.log and review-149-browser.log. Full build and critical acceptance are verified by exact-head CI after pushing.
