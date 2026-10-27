@@ -18,6 +18,11 @@
 .toolbar { flex-wrap: wrap; border-top: 1px solid #d4d9ce; padding-top: 18px; margin: 20px 0; }
 .toolbar select { padding: 8px 4px; background: transparent; max-width: 150px; }
 .notes { list-style: none; padding: 0; }
+.notes > li > strong { display: block; margin-bottom: 6px; }
+.notes details { margin: 14px 0; }
+.notes summary { cursor: pointer; min-height: 42px; padding: 8px 0; }
+.notes details ol { padding-left: 18px; }
+.notes > li > textarea { min-height: 80px; }
 .notes li { border-top: 1px solid #d4d9ce; padding: 18px 0; }
 .notes a { color: #263e34; font-size: 13px; text-decoration: underline; overflow-wrap: anywhere; }
 .note { white-space: pre-wrap; overflow-wrap: anywhere; margin: 10px 0; font-size: 15px; }
