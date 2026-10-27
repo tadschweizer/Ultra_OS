@@ -33,3 +33,7 @@ Local logs: webapp/review-151-before.log, review-151-unit.log, review-151-regres
 ### Verification after main advanced
 
 Reconciled main d10d95b after PR #146 merged by another action. Only the roadmap conflicted; application changes merged cleanly. On the combined tree, 508 regression tests, 50 desktop/mobile daily-flow/public-interface checks, and the production build passed. Logs: webapp/review-151-combined-regression.log, review-151-combined-browser.log and review-151-combined-build.log. Exact-head CI follows this normal merge push.
+
+### Verification after suggested-match work merged
+
+Reconciled main c42aab6 after PR #148 merged by another action. Only the roadmap conflicted. Updated the focused regression to verify suggested-completion wording alongside preserved actuals and compliance. Combined tree passed 508 regression tests, 60 desktop/mobile daily-flow, session-analysis and public-interface checks, and the production build. Logs: webapp/review-151-c42-regression.log, review-151-c42-browser.log and review-151-c42-build.log. Exact-head CI follows the normal merge push.

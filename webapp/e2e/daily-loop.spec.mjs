@@ -412,7 +412,11 @@ for (const confirmed of [true, false]) test(`edited ${confirmed ? 'confirmed' : 
     await expect(card.getByTitle('3 comments')).toHaveText('3 notes');
     await expect(card.locator('..').locator('..')).toContainText(actualDay.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }));
     if (!(await details.isVisible())) await card.click();
-    await expect(details.getByText(/Completed.*1h.*50% of plan/)).toBeVisible();
+    await expect(card).toContainText(/1h.*50%/);
+    if (confirmed) await expect(details.getByText(/Completed.*1h.*50% of plan/)).toBeVisible();
+    else await expect(details.getByText('Suggested completion', { exact: true })).toBeVisible();
+    await expect(details.getByLabel('Actual duration in minutes')).toHaveValue('60');
+    await expect(details.getByLabel('Actual distance in km')).toHaveValue('10');
     await expect(details.getByText(confirmed ? 'Confirmed imported activity.' : /Suggested match to an imported activity/, { exact: confirmed })).toBeVisible();
     await expect(details.getByText(/linked activity is no longer available/)).toHaveCount(0);
     await details.getByRole('button', { name: 'Close', exact: true }).click();
