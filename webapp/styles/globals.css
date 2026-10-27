@@ -2,6 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Native modal behavior keeps focus inside the menu and its background inert. */
+.threshold-nav-dialog {
+  position: fixed;
+  inset: auto 0 0;
+  margin: 0 auto max(0.75rem, env(safe-area-inset-bottom));
+  width: min(100% - 1.5rem, 34rem);
+  max-width: none;
+  max-height: calc(100dvh - 2rem);
+  padding: 0;
+  border: 1px solid rgb(19 24 22 / 15%);
+  border-radius: 16px;
+  background: white;
+  color: var(--color-ink, #132b3b);
+}
+.threshold-nav-dialog::backdrop { background: rgb(19 24 22 / 45%); }
+.threshold-nav-dialog :focus-visible,
+.public-site :focus-visible { outline: 2px solid #163346; outline-offset: 3px; }
+
 :root {
   --font-sans: "Inter", "Aptos", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   --font-display: "Lora", "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;

@@ -58,10 +58,10 @@ export default function AuthShell({ eyebrow, title, subtitle, error, notice, chi
 }
 
 export const authInputClass =
-  'w-full rounded-[14px] border border-ink/12 bg-paper px-4 py-3 text-sm text-ink placeholder-ink/30 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20';
+  'w-full rounded-[14px] border border-ink/12 bg-paper px-4 py-3 text-base text-ink placeholder-ink/60 focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/30';
 
 export const authLabelClass =
-  'mb-1.5 block text-xs font-semibold uppercase tracking-[0.2em] text-ink/50';
+  'mb-1.5 block text-sm font-semibold text-ink/75';
 
 export const authSubmitClass =
   'w-full rounded-full bg-ink px-6 py-3.5 text-sm font-semibold text-paper shadow-[0_4px_16px_rgba(19,24,22,0.2)] transition hover:opacity-85 disabled:opacity-50';

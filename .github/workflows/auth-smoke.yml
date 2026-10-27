@@ -37,6 +37,8 @@ jobs:
         run: npm run test:e2e:calendar-gaps
       - name: Verify free athlete access and public copy
         run: npm run test:e2e:free-access
+      - name: Verify public navigation, forms and accessible mobile menu
+        run: npm run test:e2e:public-interface
       - name: Preserve failure traces
         if: failure()
         uses: actions/upload-artifact@v4

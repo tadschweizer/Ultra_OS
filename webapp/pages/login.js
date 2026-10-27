@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import NavMenu from '../components/NavMenu';
+import PublicHeader from '../components/PublicHeader';
 import { clearMe } from '../lib/meClient';
 import { buildOnboardingPath, isCoachInvitationPath, safePostAuthPath } from '../lib/auth/redirects.js';
 
@@ -96,7 +96,7 @@ export default function LoginPage() {
         ? destination
         : buildOnboardingPath(destination);
     } catch {
-      setError('Something went wrong. Please try again.');
+      setError('Could not connect to Threshold. Check your connection and try again. Your entries are still here.');
       setLoading(false);
     }
   }
@@ -120,64 +120,43 @@ export default function LoginPage() {
     }
   }
 
-  if (checking) return null;
+  if (checking) return <main className="public-site min-h-screen bg-paper text-ink"><PublicHeader /><p role="status" className="mx-auto max-w-md px-4 py-10">Checking your session…</p></main>;
 
   return (
     <main className="min-h-screen bg-paper text-ink">
-      <div className="sticky top-0 z-50 px-4 pt-4">
-        <div className="mx-auto max-w-6xl">
-          <div className="flex items-center justify-between rounded-full border border-ink/10 bg-white/80 px-4 py-3 shadow-sm backdrop-blur">
-            <a href="/" className="text-xs font-semibold uppercase tracking-[0.35em] text-accent">Threshold</a>
-            <div className="hidden items-center gap-7 lg:flex">
-              <a href="/guide" className="text-sm font-semibold text-ink/65 transition hover:text-ink">How it works</a>
-              <a href="/content" className="text-sm font-semibold text-ink/65 transition hover:text-ink">Research</a>
-              <a href="/pricing" className="text-sm font-semibold text-ink/65 transition hover:text-ink">Pricing</a>
-              <a href={`/signup?next=${encodeURIComponent(nextPath)}`} className="ui-button-primary py-2.5">Sign Up</a>
-            </div>
-            <NavMenu
-              label="Login navigation"
-              links={[
-                { href: '/guide', label: 'How It Works' },
-                { href: '/content', label: 'Research' },
-                { href: '/pricing', label: 'Pricing' },
-              ]}
-              primaryLink={{ href: `/signup?next=${encodeURIComponent(nextPath)}`, label: 'Sign Up' }}
-            />
-          </div>
-        </div>
-      </div>
+      <PublicHeader primaryLink={{ href: `/signup?next=${encodeURIComponent(nextPath)}`, label: 'Sign up' }} />
 
       <div className="mx-auto max-w-md px-4 py-16">
-        <div className="rounded-[32px] border border-ink/10 bg-white px-8 py-10 shadow-[0_8px_32px_rgba(19,24,22,0.07)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-accent">Welcome Back</p>
+        <div className="rounded-2xl border border-ink/10 bg-white px-5 py-7 sm:px-8">
           <h1 className="mt-3 text-3xl font-semibold text-ink">Log in to Threshold</h1>
-          <p className="mt-2 text-sm text-ink/55">
-            Don&apos;t have an account? <a href={`/signup?next=${encodeURIComponent(nextPath)}`} className="font-semibold text-accent hover:underline">Sign up free</a>
+          <p className="mt-2 text-sm text-ink/75">
+            Don&apos;t have an account? <a href={`/signup?next=${encodeURIComponent(nextPath)}`} className="font-semibold text-ink hover:underline">Sign up free</a>
           </p>
 
           {error ? (
-            <div className="mt-6 rounded-[14px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div role="alert" className="mt-5 rounded-[14px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {error}
             </div>
           ) : null}
 
           <form onSubmit={handleEmailLogin} className="mt-8 space-y-4">
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.2em] text-ink/50">Email</label>
+              <label htmlFor="login-email" className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.2em] text-ink/75">Email</label>
               <input
+                id="login-email"
                 type="email"
                 required
                 autoComplete="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="you@example.com"
-                className="w-full rounded-[14px] border border-ink/12 bg-paper px-4 py-3 text-sm text-ink placeholder-ink/30 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                className="w-full rounded-[14px] border border-ink/12 bg-paper px-4 py-3 text-base text-ink placeholder-ink/60 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
               />
             </div>
             <div>
               <div className="mb-1.5 flex items-center justify-between">
-                <label htmlFor="login-password" className="block text-xs font-semibold uppercase tracking-[0.2em] text-ink/50">Password</label>
-                <a href="/forgot-password" className="text-xs font-semibold text-accent hover:underline">
+                <label htmlFor="login-password" className="block text-xs font-semibold uppercase tracking-[0.2em] text-ink/75">Password</label>
+                <a href="/forgot-password" className="text-xs font-semibold text-ink hover:underline">
                   Forgot password?
                 </a>
               </div>
@@ -189,7 +168,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 placeholder="••••••••"
-                className="w-full rounded-[14px] border border-ink/12 bg-paper px-4 py-3 text-sm text-ink placeholder-ink/30 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                className="w-full rounded-[14px] border border-ink/12 bg-paper px-4 py-3 text-base text-ink placeholder-ink/60 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
               />
             </div>
             <button
@@ -203,7 +182,7 @@ export default function LoginPage() {
 
           <div className="my-6 flex items-center gap-3">
             <div className="h-px flex-1 bg-ink/8" />
-            <span className="text-xs text-ink/35">or continue with</span>
+            <span className="text-xs text-ink/75">or continue with</span>
             <div className="h-px flex-1 bg-ink/8" />
           </div>
 
