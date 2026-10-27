@@ -89,6 +89,6 @@ test('existing reviewer keeps feedback controls when the approval migration is n
   await page.getByRole('button',{name:'Save note',exact:true}).click();await page.getByRole('button',{name:'Retry submission',exact:true}).click();
   await expect(page.getByText('Existing private feedback',{exact:true})).toBeVisible();expect(state.notes).toHaveLength(1);
   await expect(page.getByRole('button',{name:'Approve task'})).toHaveCount(0);await expect(page.getByLabel('Add an update')).toHaveCount(0);
-  await page.getByRole('button',{name:'Mark resolved',exact:true}).click();await page.getByLabel('Filter review notes').selectOption('resolved');await expect(page.getByRole('button',{name:'Reopen',exact:true})).toBeVisible();
+  state.failUpdate=true;await page.getByRole('button',{name:'Mark resolved',exact:true}).click();await page.getByRole('button',{name:'Retry last change'}).click();await page.getByLabel('Filter review notes').selectOption('resolved');await expect(page.getByRole('button',{name:'Reopen',exact:true})).toBeVisible();
   await page.reload();await page.getByRole('button',{name:'Leave feedback',exact:true}).click();await page.getByLabel('Filter review notes').selectOption('all');await expect(page.getByText('Existing private feedback',{exact:true})).toBeVisible();
 });

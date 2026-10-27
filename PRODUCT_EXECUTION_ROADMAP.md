@@ -2,8 +2,8 @@
 
 Last updated: 2026-10-27<br>
 Status: Athlete onboarding simplification deployed through PR #144 / merge 59e0667, Vercel dpl_4fbgop93jzn2LDJa9mv2MMsVwo8i READY on both domains; see ATHLETE_ONBOARDING_SIMPLIFICATION.md. Copy week destination picker released through PR #142 / merge 72e4ce5, Vercel dpl_F85PBT7KHehZze8RwKeUhXDHZD79 READY on both production domains. Weekly planning and coach/athlete review workflow deployed with owner authorization on mythreshold.co and www.mythreshold.co, PR #141 / main 0415ffe, Vercel dpl_EV67hYZtVjzAx4wRc7pVLEfe6BFG READY. Migration 20261017012725 applied; do not replay local 20261017003222. See WEEKLY_COACHING_RELEASE_2026-10-16.md. Owner review mode and prior security controls remain deployed.<br>
-Current milestone: M0 - owner-requested feedback task workflow implemented locally; verification and rollout gates are in FEEDBACK_WORKFLOW.md. Workout-save PR #151 is merged into main 241b047; deployment and live acceptance remain separate (WORKOUT_SAVE_REFRESH_VERIFICATION.md). Existing coaching/analysis releases and human acceptance gates remain open.<br>
-Next item: Review the feedback workflow draft PR, confirm normal account verification for Beth, and obtain specific rollout/membership approval before production changes. Preserve confirmed-assigned/linked-coach, invited-athlete/provider/physical-phone and mailbox/participant gates.
+Current milestone: M0 - feedback PR #152 merged externally before its schema rollout; local compatibility and uncertain-save repairs are under review (FEEDBACK_REPAIR_2026-10-27.md). Existing coaching and human acceptance gates remain open.<br>
+Next item: Independently retest the follow-up feedback repairs and review exact-head checks before any separately authorized release. Preserve the verification/membership gates for Beth and all existing participant, provider and physical-phone acceptance gates.
 
 
 ## Purpose
@@ -1224,3 +1224,7 @@ Main advanced to f004a11698fe45372c7a5d600000be5744535aec following external mer
 Extended the existing private review notes with contributor/owner authorization, approval and acceptance stages, atomic history, retries and a live filtered panel. Exact corrected Beth login is linked but email verification is pending; production access remains unchanged. Local evidence and rollout gates are in FEEDBACK_WORKFLOW.md. No merge, deployment or hosted migration authorized or executed.
 
 Feedback draft [PR #152](https://github.com/tadschweizer/Ultra_OS/pull/152): implementation 68b85f1, verification 6882ec1; rebased onto main 241b047. Local results: 514 regression, 12 focused API/PostgreSQL, four integration and six desktop/mobile browser checks passed; production webpack build passed. Rollout remains gated as documented in FEEDBACK_WORKFLOW.md.
+
+### October 27 - Local feedback restoration and uncertain-save repair
+
+Verified external merge/deployment of PR #152 before the role-column migration. Original owner membership and 22 notes remain intact. Separate local commits preserve exact uncertain submissions and restore membership-scoped legacy feedback when that column is absent. Results: 515 regression tests, 13 API/PostgreSQL checks, 10 desktop/mobile scenarios plus four final focused checks, and production webpack build passed. See FEEDBACK_REPAIR_2026-10-27.md; no live changes by this task.

@@ -215,7 +215,8 @@ export default function SiteReview() {
             <p className={styles.note}>{n.note}</p>
             {n.element && <p className={styles.context}>{n.element.split(' · ')[0]}</p>}
             <p className={styles.context}>Submitted by {n.athlete_id === actor ? 'you' : n.submitter?.display_name || 'Reviewer'} · {new Date(n.created_at).toLocaleString()}<br />Updated {new Date(n.updated_at || n.created_at).toLocaleString()} · {n.viewport}</p>
-            {legacy ? <button disabled={busy} onClick={() => change(n,n.status === 'open' ? 'resolved' : 'open')}>{n.status === 'open' ? 'Mark resolved' : 'Reopen'}</button> : <>
+            {legacy && pendingFor(n.id).length > 0 && !busy && <p>Confirm the previous change before editing again. {pendingFor(n.id).map(p => <button key={p.requestId} onClick={() => change(n,p.status)}>Retry last change</button>)}</p>}
+            {legacy ? <button disabled={busy || pendingFor(n.id).length > 0} onClick={() => change(n,n.status === 'open' ? 'resolved' : 'open')}>{n.status === 'open' ? 'Mark resolved' : 'Reopen'}</button> : <>
             <details><summary>Updates and history</summary><ol>{[...(n.history || [])].sort((a,b) => a.created_at.localeCompare(b.created_at)).map(h => <li key={h.id}><strong>{statuses[h.status] || h.status}</strong> · {h.actor_name}<br /><small>{new Date(h.created_at).toLocaleString()}</small><p className={styles.note}>{h.message}</p></li>)}</ol></details>
             <label htmlFor={`update-${n.id}`}>Add an update</label><textarea id={`update-${n.id}`} disabled={busy || pendingFor(n.id).length > 0} maxLength={5000} value={updates[n.id] || ''} onChange={e => setUpdates(current => ({ ...current, [n.id]: e.target.value }))} />
             {pendingFor(n.id).length > 0 && !busy && <p>Confirm the previous change before editing again. {pendingFor(n.id).map(p => <button key={p.requestId} onClick={() => change(n,p.status)}>Retry last change</button>)}</p>}
