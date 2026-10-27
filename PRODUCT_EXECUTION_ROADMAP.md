@@ -1,8 +1,8 @@
 # Threshold Product Execution Roadmap
 
-Last updated: 2026-10-23<br>
+Last updated: 2026-10-27<br>
 Status: Athlete onboarding simplification deployed through PR #144 / merge 59e0667, Vercel dpl_4fbgop93jzn2LDJa9mv2MMsVwo8i READY on both domains; see ATHLETE_ONBOARDING_SIMPLIFICATION.md. Copy week destination picker released through PR #142 / merge 72e4ce5, Vercel dpl_F85PBT7KHehZze8RwKeUhXDHZD79 READY on both production domains. Weekly planning and coach/athlete review workflow deployed with owner authorization on mythreshold.co and www.mythreshold.co, PR #141 / main 0415ffe, Vercel dpl_EV67hYZtVjzAx4wRc7pVLEfe6BFG READY. Migration 20261017012725 applied; do not replay local 20261017003222. See WEEKLY_COACHING_RELEASE_2026-10-16.md. Owner review mode and prior security controls remain deployed.<br>
-Current milestone: M0 — athlete attention navigation locally verified in 1e140b9, awaiting draft review/release. Suggested-match analysis PR #148 and email availability PR #149 have passing checks and await review; deployed coaching/analysis releases and separate human gates remain in place.<br>
+Current milestone: M0 — athlete attention navigation locally verified in 1e140b9, awaiting draft review/release. Suggested-match analysis PR #148 and email availability PR #149 have passing checks and await review; deployed coaching/analysis releases and separate human gates remain in place. Public-interface PR #146 merged into main as d10d95b; deployment status was not reverified here.<br>
 Next item: Review the focused athlete attention navigation change, PR #148 and PR #149 separately. Verify real confirmed-assigned and linked-coach recording acceptance, then fresh invited-athlete/provider/physical-phone journeys. Preserve mailbox/participant gates; no production release authorized by local verification.
 
 ## Purpose
@@ -818,6 +818,33 @@ accounts are unavailable; the previous INACTIVE observation below is historical.
 
 ## Progress log
 
+### October 20 — Public-interface PR #146 conflict resolution
+
+Merged main `ed059a7` into `codex/public-interface-improvements`. The only conflict was
+the roadmap milestone/next-item text. Retained main's completed-session production release
+and outstanding acceptance gates alongside the unreleased public-interface work.
+The package scripts retain both branches' test coverage; session-analysis application code
+matches main unchanged. On the combined tree, all 504 regression tests and all 18 public-interface
+and session-analysis desktop/mobile browser tests passed. Evidence:
+`webapp/output-public-merge-regression.log` and `webapp/output-public-merge-browser.log`.
+This updates PR #146 only; no production release is authorized by the conflict-resolution request.
+
+### October 20 — Public interface improvements, locally verified
+
+Implemented all five owner-approved Impeccable findings in `d485634`: access wording follows
+existing entitlements; signup/login labels and role controls are accessible; mobile navigation
+uses a native modal with focus wrapping; the guide follows one coaching week; the homepage
+shows the actual session interface with fictional data and an early athlete entry point.
+Shared public navigation, role-appropriate mobile actions and consolidated trust links are included.
+
+Verification: 493 regression tests passed; existing onboarding/role browser coverage 15 passed
+with 3 intentional viewport skips; public/free-access browser coverage 14 passed; switch-off
+fallback 2 passed; production build passed (41 static pages); production-bundle browser smoke
+2 passed. Automated axe checks passed in tested views and the 14-file detector found no issues.
+See [PUBLIC_INTERFACE_IMPROVEMENTS.md](PUBLIC_INTERFACE_IMPROVEMENTS.md) for scope and evidence.
+No production deployment or service changes occurred. Physical-phone, real-participant,
+mailbox/provider and actual screen-reader acceptance remain separate.
+
 ### October 10 - isolated calendar/private-draft/load verification and focused fix
 
 Fresh main `fa8ebe2b377784007b4a40b4e982f92a11224075` reproduced duplicate week
@@ -1117,9 +1144,21 @@ Added unit-labelled Y-axis ticks for each recorded channel, doubled running/walk
 Production build and diff whitespace checks also passed. Implementation is recorded in the chart refinement commit on codex/analysis-chart-axes.
 
 October 20 release verified: PR #147 merged as 34a3851d2d80d41874f7cf308a537176fe26fd4f. Exact-head Auth Smoke run 39465414228 passed: 505 regression, 4 integration, 207 browser journeys (3 skipped), 6 calendar acceptance, 2 free-access checks and production build. Vercel dpl_6ZHayeAZvQ6DpGoFR3jHQFz1Frb1 READY on mythreshold.co and www.mythreshold.co; GitHub deployment 7207208261 confirms the merge SHA. Signed-in production workout showed pace axis 5:24 /mi, 8:07 /mi, 10:49 /mi; cadence axis uses spm and summary is 174 spm. No workout data or service configuration changed. Existing suggested-match and participant acceptance follow-ups remain open.
+
+## October 27 open-PR conflict review
+
+- PR #146 merges main e3c50db, retaining the chart refinement release record and the pending public-interface work. Only the roadmap header required manual conflict resolution; application changes merged cleanly.
+- PRs #148, #149, #150 and #151 are independent branches targeting main, with no ancestry stack and no current base conflicts. Their existing release and real-participant acceptance limits remain open.
+- This review does not authorize merging PRs, production deployment or remote database changes.
+- Local merge verification on Node 22.23.4: 505 regression tests, four integration checks, production build, and 18 desktop/mobile public-interface/session-analysis browser checks passed. Exact remote-head CI is checked after pushing the merge; real-participant acceptance is unchanged.
+
 ### October 23 — Athlete attention navigation (local)
 
 - Implementation `1e140b9`, base main `e3c50db`. Daily coaching-question selections previously opened a protocol-focused drawer. They now use native athlete-review links. Attention cards and full-roster athlete names also link to the existing review page; background card/row clicks no longer open assignment. An explicit Assign protocol action retains the existing drawer in both views. Protocol-empty guidance now names that action.
 - Regression reproduced before implementation: expected keyboard-accessible attention link was absent. All 16 pilot-UX browser checks pass on desktop/390px mobile; four final attention-navigation cases pass with full-roster link/action checks. Covered keyboard destination, correct athlete href, no implicit drawer request, inert flag explanation and explicit assignment opening. Synthetic card screenshots inspected at both sizes.
 - Node 22.23.4: 505 regression tests, production build with loopback-only public placeholders, whitespace and design detector checks passed. Evidence: COACH_ATTENTION_NAVIGATION_VERIFICATION.md.
 - No protocol mutation, API authorization, schema, provider or production changes. Destination page rendering is intercepted in the focused navigation fixture; its actual data/authorization and real participant/phone acceptance remain separate. PR #148 and #149 were checked passing; neither merged or deployed by this run.
+
+### October 27 — Current-main conflict reconciliation for PR #150
+
+Main advanced to d10d95b after PR #146 merged. Retained both roadmap workstreams; only the roadmap conflicted and application files merged cleanly. No release or remote migration was performed. Local combined tree passed 505 full regression tests and all 16 desktop/mobile pilot UX and coach navigation checks. Logs: webapp/review-150-regression.log and review-150-browser.log. Full build and critical acceptance are verified by exact-head CI after pushing.

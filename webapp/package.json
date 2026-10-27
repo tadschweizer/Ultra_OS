@@ -37,7 +37,8 @@
     "verify:pilot-release": "node scripts/verify-pilot-release.mjs",
     "test:coach-report": "node --test tests/coach-report.test.mjs tests/me-client-recovery.test.mjs",
     "test:e2e:coach-report": "playwright test e2e/coach-report.spec.mjs e2e/coach-report-boundary.spec.mjs --workers=1",
-    "test:e2e:free-access": "playwright test --config playwright.free-access.config.mjs"
+    "test:e2e:free-access": "playwright test --config playwright.free-access.config.mjs",
+    "test:e2e:public-interface": "playwright test e2e/public-interface.spec.mjs --config playwright.public-interface.config.mjs --workers=1"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",

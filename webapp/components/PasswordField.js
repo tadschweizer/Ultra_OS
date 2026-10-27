@@ -36,7 +36,7 @@ export default function PasswordField({
         <button
           type="button"
           onClick={() => setVisible((current) => !current)}
-          className="text-xs font-semibold text-ink/45 transition hover:text-ink"
+          className="min-h-11 min-w-11 text-sm font-semibold text-ink/75 transition hover:text-ink"
         >
           {visible ? 'Hide' : 'Show'}
         </button>
@@ -66,7 +66,7 @@ export default function PasswordField({
               />
             ))}
           </div>
-          <p className={`mt-1.5 text-xs ${touched && problem ? 'text-red-600' : 'text-ink/45'}`}>
+          <p className={`mt-1.5 text-xs ${touched && problem ? 'text-red-600' : 'text-ink/75'}`}>
             {touched && problem
               ? problem
               : value

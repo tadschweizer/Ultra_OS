@@ -1,15 +1,8 @@
 import FreeAthleteAccess from '../components/FreeAthleteAccess';
 import { athleteOpenAccess } from '../lib/athleteAccessPolicy';
 import { useEffect, useState } from 'react';
-import NavMenu from '../components/NavMenu';
+import PublicHeader from '../components/PublicHeader';
 import { fetchMe } from '../lib/meClient';
-
-const navLinks = [
-  { href: '/', label: 'Home' },
-  { href: '/guide', label: 'How It Works' },
-  { href: '/content', label: 'Research' },
-  { href: '/login', label: 'Login' },
-];
 
 // Prices shown here must match the Stripe prices configured for each plan in
 // lib/billingPlans.js. Coach plans are listed but not sold while the coach
@@ -265,28 +258,7 @@ export default function PricingPage() {
     <main className="min-h-screen bg-paper text-ink">
 
       {/* ── Nav ─────────────────────────────────────────────────────── */}
-      <div className="sticky top-0 z-50 px-4 pt-4">
-        <div className="mx-auto max-w-6xl">
-          <div className="flex items-center justify-between rounded-full border border-ink/10 bg-white/80 px-4 py-3 shadow-sm backdrop-blur">
-            <a href="/" className="text-xs font-semibold uppercase tracking-[0.35em] text-accent">Threshold</a>
-            <div className="hidden items-center gap-7 lg:flex">
-              {(athleteId ? [{ href: '/dashboard', label: 'Dashboard' }, ...navLinks.slice(1, 3)] : navLinks.slice(0, 3)).map((link) => (
-                <a key={link.href} href={link.href} className="text-sm font-semibold text-ink/65 transition hover:text-ink">
-                  {link.label}
-                </a>
-              ))}
-              <a href={athleteId ? '/dashboard' : '/login'} className="ui-button-primary py-2.5">
-                {athleteId ? 'Open App' : 'Login'}
-              </a>
-            </div>
-            <NavMenu
-              label="Pricing navigation"
-              links={athleteId ? [{ href: '/dashboard', label: 'Dashboard' }, ...navLinks.slice(1)] : navLinks}
-              primaryLink={{ href: athleteId ? '/dashboard' : '/login', label: athleteId ? 'Open App' : 'Login' }}
-            />
-          </div>
-        </div>
-      </div>
+      <PublicHeader />
 
       <div className="mx-auto max-w-6xl px-4 pb-24">
 
