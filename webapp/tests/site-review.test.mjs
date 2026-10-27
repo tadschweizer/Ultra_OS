@@ -57,6 +57,7 @@ test('submitter is session identity; identical retries create one task and one e
   const tasks=(await f.invoke()).body.notes;assert.equal(tasks.length,1);assert.equal(tasks[0].athlete_id,beth);assert.equal(tasks[0].status,'pending_review');assert.equal(tasks[0].approved_by,null);
   assert.equal((await pg.query('select * from site_review_events')).rows.length,1);
   assert.equal((await f.invoke('POST',{...submission,note:'Changed retry'})).code,409);
+  assert.equal((await f.invoke('POST',submission)).code,200);assert.equal((await pg.query('select * from site_review_notes')).rows.length,1);assert.equal((await pg.query('select * from site_review_events')).rows.length,1);
 });
 test('owner sees all, Beth only own; arbitrary IDs and body claims cannot grant access',async()=>{
   await fixture(owner).invoke('POST',submission);

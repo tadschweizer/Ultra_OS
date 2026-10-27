@@ -35,6 +35,8 @@ export default function SiteReview() {
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState('');
   const pending = useRef({});
+  const pendingSubmission = useRef(null);
+  const [submissionPending, setSubmissionPending] = useState(false);
   const writing = useRef(false);
   const reading = useRef(false);
   const generation = useRef(0);
@@ -49,7 +51,7 @@ export default function SiteReview() {
     fetch('/api/site-review?access=1', { cache: 'no-store' }).then(async r => {
       const data = r.ok ? await r.json() : {};
       if (active) {
-        if (identity.current && identity.current !== data.actor) { generation.current++; setNotes([]); setDraft(null); setUpdates({}); pending.current = {}; }
+        if (identity.current && identity.current !== data.actor) { generation.current++; setNotes([]); setDraft(null); setUpdates({}); pending.current = {}; pendingSubmission.current = null; setSubmissionPending(false); }
         identity.current = data.actor;
         setEnabled(data.enabled === true);
         setCanManage(data.canManage === true);
@@ -112,7 +114,7 @@ export default function SiteReview() {
     const res = await fetch('/api/site-review', { cache: 'no-store', ...options });
     const data = await res.json();
     if (!res.ok) {
-      if (res.status === 401 || res.status === 403) { setNotes([]); setCanManage(false); if (!options?.method) { setEnabled(false); setPanel(false); setDraft(null); setUpdates({}); pending.current = {}; } }
+      if (res.status === 401 || res.status === 403) { setNotes([]); setCanManage(false); if (!options?.method) { setEnabled(false); setPanel(false); setDraft(null); setUpdates({}); pending.current = {}; pendingSubmission.current = null; setSubmissionPending(false); } }
       const error = new Error(data.error || 'Could not save. Please retry.'); error.status = res.status; throw error;
     }
     return data;
@@ -128,11 +130,21 @@ export default function SiteReview() {
   }
   async function save(event) {
     event.preventDefault(); if (writing.current) return; writing.current = true; generation.current++; setBusy(true); setMessage('');
+    // A lost response may have committed. Keep both UUID and payload unchanged
+    // until the original operation is confirmed; never create a replacement task.
+    const submission = pendingSubmission.current || { ...draft };
+    pendingSubmission.current = submission; setSubmissionPending(true);
     try {
-      await request({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draft) });
-      setDraft(null); setMessage('Feedback submitted for review. Work starts only after approval.');
+      await request({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(submission) });
+      pendingSubmission.current = null; setSubmissionPending(false);
+      setDraft(null); setFilter('all'); setSubmitter('all'); setMessage('Feedback submitted for review. Add any further details as an update to this task.');
       const data = await request(); setNotes(data.notes);
-    } catch (error) { setMessage(error.message); }
+    } catch (error) {
+      // These rejections are known not to have saved. Conflict/unknown outcomes
+      // retain the original request so the user cannot discard and duplicate it.
+      if ([400,401,403,405,413].includes(error.status)) { pendingSubmission.current = null; setSubmissionPending(false); }
+      setMessage(error.message);
+    }
     finally { writing.current = false; setBusy(false); }
   }
   async function change(note, status = null) {
@@ -184,8 +196,9 @@ export default function SiteReview() {
         {draft ? <form onSubmit={save}>
           <p className={styles.context}>{draft.pathname}<br />{draft.element.split(' · ')[0] || 'General page note'}</p>
           <label htmlFor="site-review-note">What would you like changed, or what went wrong?</label>
-          <textarea ref={noteRef} id="site-review-note" disabled={busy} required maxLength={5000} value={draft.note} onChange={e => setDraft({ ...draft, note: e.target.value })} placeholder="Example: I clicked Save but my workout did not appear." />
-          <div className={styles.actions}><button className={styles.primary} disabled={busy || !draft.note.trim()}>{busy ? 'Saving…' : 'Save note'}</button><button type="button" disabled={busy} onClick={() => { if (!draft.note || window.confirm('Discard this unsaved note?')) setDraft(null); }}>Discard draft</button></div>
+          <textarea ref={noteRef} id="site-review-note" disabled={busy || submissionPending} required maxLength={5000} value={draft.note} onChange={e => setDraft({ ...draft, note: e.target.value })} placeholder="Example: I clicked Save but my workout did not appear." />
+          {submissionPending && !busy && <p>The save response was not confirmed. Retry this unchanged submission first, then add further details as an update to the saved task.</p>}
+          <div className={styles.actions}><button className={styles.primary} disabled={busy || !draft.note.trim()}>{busy ? 'Saving…' : submissionPending ? 'Retry submission' : 'Save note'}</button><button type="button" disabled={busy || submissionPending} onClick={() => { if (!draft.note || window.confirm('Discard this unsaved note?')) setDraft(null); }}>Discard draft</button></div>
         </form> : <>
           <div className={styles.actions}><button className={styles.primary} onClick={() => { setPanel(false); setPicking(true); setMessage(''); }}>Select an element</button><button onClick={() => startDraft()}>General page note</button></div>
           <div className={styles.toolbar}><label>Show <select aria-label="Filter review notes" value={filter} onChange={e => setFilter(e.target.value)}><option value="active">Active tasks</option>{Object.entries(statuses).map(([value,label]) => <option key={value} value={value}>{label}</option>)}<option value="all">All tasks</option></select></label><button disabled={busy} onClick={() => loadNotes()}>Refresh</button><button disabled={!notes.length || busy} onClick={exportNotes}>Export</button></div>
