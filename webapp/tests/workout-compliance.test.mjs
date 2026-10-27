@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   compliancePct,
+  decorateSavedWorkout,
   complianceStatus,
   decorateWorkoutsWithCompliance,
   estimateTss,
@@ -202,4 +203,52 @@ test('reconciliation window: evening local-time activity stays on its calendar d
   });
   assert.equal(summary.completedCount, 1);
   assert.equal(summary.unplannedActivities.length, 0);
+});
+
+test('saved workout retains its known linked recording and comments while recomputing compliance', () => {
+  const activity = { id: 'recording', local_date: '2026-10-28', moving_time: 3600, distance: 10000, sport_type: 'Run' };
+  const raw = { id: 'plan', title: 'Before', workout_date: '2026-10-27', sport: 'run', status: 'completed', completed_activity_id: activity.id, completed_duration_min: 60, completed_distance_km: 10, planned_duration_min: 60 };
+  const previous = { ...decorateWorkoutsWithCompliance([raw], [activity])[0], comment_count: 3 };
+  const result = decorateSavedWorkout({ ...raw, title: 'After', planned_duration_min: 120 }, previous);
+  assert.equal(result.title, 'After');
+  assert.equal(result.display_date, '2026-10-28');
+  assert.equal(result.linked_activity, activity);
+  assert.equal(result.compliance_pct, 50);
+  assert.equal(result.compliance_status, 'yellow');
+  assert.equal(result.comment_count, 3);
+  assert.equal(previous.compliance_pct, 100);
+});
+
+test('saved suggested workout recomputes actuals and drops a match made invalid by editing', () => {
+  const activity = { id: 'suggestion', local_date: '2026-10-28', moving_time: 3600, distance: 10000, sport_type: 'Run' };
+  const raw = { id: 'plan', workout_date: '2026-10-27', sport: 'run', status: 'planned', activity_match_mode: 'auto', completed_duration_min: null, completed_distance_km: null, planned_duration_min: 60 };
+  const previous = { ...decorateWorkoutsWithCompliance([raw], [activity], { toleranceDays: 1 })[0], comment_count: 3 };
+  const result = decorateSavedWorkout({ ...raw, planned_duration_min: 120 }, previous);
+  assert.equal(result.status, 'completed');
+  assert.equal(result.matched_activity, activity);
+  assert.equal(result.completed_duration_min, 60);
+  assert.equal(result.completed_distance_km, 10);
+  assert.equal(result.display_date, '2026-10-28');
+  assert.equal(result.compliance_pct, 50);
+  for (const change of [{ workout_date: '2026-11-01' }, { sport: 'bike' }, { activity_match_mode: 'manual' }]) {
+    const changed = decorateSavedWorkout({ ...raw, ...change }, previous);
+    assert.equal(changed.matched_activity, null);
+    assert.equal(changed.status, 'planned');
+    assert.equal(changed.completed_duration_min, null);
+    assert.equal(changed.display_date, change.workout_date || raw.workout_date);
+    assert.equal(changed.comment_count, 3);
+  }
+});
+
+test('saved workout honors an explicit unlink and decorates new manual completions', () => {
+  const previous = { id: 'plan', linked_activity: { id: 'old', local_date: '2026-10-28' }, comment_count: 2 };
+  const saved = { id: 'plan', workout_date: '2026-10-27', status: 'planned', activity_match_mode: 'manual', completed_activity_id: null, completed_duration_min: null };
+  const unlinked = decorateSavedWorkout(saved, previous);
+  assert.equal(unlinked.linked_activity, null);
+  assert.equal(unlinked.activity_match_state, 'manual');
+  assert.equal(unlinked.display_date, '2026-10-27');
+  const created = decorateSavedWorkout({ id: 'new', workout_date: '2026-10-27', status: 'completed', completed_duration_min: 30, planned_duration_min: 30 });
+  assert.equal(created.display_date, '2026-10-27');
+  assert.equal(created.compliance_pct, 100);
+  assert.equal(created.matched_activity, null);
 });
