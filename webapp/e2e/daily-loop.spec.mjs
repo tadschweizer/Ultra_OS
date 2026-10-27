@@ -23,7 +23,7 @@ async function setup(page, { coach = false } = {}) {
     if (url.pathname === '/api/coach/relationships') data = {relationships:[{athlete_id:athleteId,status:'active',athlete:{name:'First athlete'}}]};
     if (url.pathname === '/api/planned-workouts') {
       if (request.method() === 'GET') {
-        const workouts = decorateWorkoutsWithCompliance(state.workouts,state.imported,{toleranceDays:1});
+        const workouts = decorateWorkoutsWithCompliance(state.workouts,state.imported,{toleranceDays:1}).map(workout => ({ ...workout, comment_count: state.commentCount || 0 }));
         const consumed = new Set(workouts.map(w=>String(w.completed_activity_id || w.matched_activity?.id || '')));
         const activities = state.imported.map(a=>({ ...a,activity_date:a.local_date,duration_min:a.moving_time == null ? null : a.moving_time/60,distance_km:a.distance == null ? null : a.distance/1000 }));
         data = {workouts,activities:activities.filter(a=>!consumed.has(String(a.id))),match_activities:activities.map(a=>({...a,linked_workout_id:state.workouts.find(w=>w.completed_activity_id===a.id)?.id||null}))};
@@ -386,4 +386,51 @@ test('reviewed copy retry survives reload, releases confirmed key before GET fai
   await page.reload();await copy();await expect.poll(()=>requests.length).toBe(5);
   expect(requests[4].client_request_id).not.toBe(uncertain);expect(requests[4].actor).toBe(secondId);expect(external).toEqual([]);
   await page.screenshot({path:`../output/review-transfer-native-copy-${info.project.name}.png`});
+});
+
+for (const confirmed of [true, false]) test(`edited ${confirmed ? 'confirmed' : 'suggested'} workout retains calendar enrichment through delayed and failed refresh`, async ({ page }) => {
+  const state = await setup(page);
+  addImported(state);
+  const actualDay = new Date(state.workouts[0].workout_date + 'T12:00:00');
+  actualDay.setDate(actualDay.getDate() + 1);
+  const day = actualDay.toLocaleDateString('en-CA');
+  state.imported = [{ ...state.imported[0], local_date: day, start_date: day + 'T12:00:00Z' }];
+  state.commentCount = 3;
+  if (confirmed) Object.assign(state.workouts[0], { status: 'completed', activity_match_mode: 'manual', completed_activity_id: firstActivity, completed_duration_min: 60, completed_distance_km: 10 });
+  await page.goto('/calendar?workout=workout-1');
+  const details = page.getByRole('dialog', { name: 'Workout details' });
+  await details.getByRole('button', { name: 'Edit workout', exact: true }).click();
+  await expect(page).not.toHaveURL(/workout=/);
+  const editor = page.getByRole('dialog', { name: 'Workout editor' });
+  await editor.getByLabel('Workout title', { exact: true }).fill('Edited imported run');
+  await editor.getByLabel('Planned duration (min)', { exact: true }).fill('120');
+  let releaseRefresh;
+  state.refreshGate = new Promise(resolve => { releaseRefresh = resolve; });
+  state.refreshFails = true;
+  async function assertEnrichment() {
+    const card = page.getByRole('button', { name: /Edited imported run/ });
+    await expect(card.getByTitle('3 comments')).toHaveText('3 notes');
+    await expect(card.locator('..').locator('..')).toContainText(actualDay.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }));
+    if (!(await details.isVisible())) await card.click();
+    await expect(details.getByText(/Completed.*1h.*50% of plan/)).toBeVisible();
+    await expect(details.getByText(confirmed ? 'Confirmed imported activity.' : /Suggested match to an imported activity/, { exact: confirmed })).toBeVisible();
+    await expect(details.getByText(/linked activity is no longer available/)).toHaveCount(0);
+    await details.getByRole('button', { name: 'Close', exact: true }).click();
+    await expect(page).not.toHaveURL(/workout=/);
+    await expect(details).not.toBeVisible();
+  }
+  try {
+    await editor.getByRole('button', { name: 'Save workout', exact: true }).click();
+    await expect(editor).not.toBeVisible();
+    await expect(page.getByRole('status').filter({ hasText: 'Workout saved. Refreshing calendar' })).toBeVisible();
+    await assertEnrichment();
+  } finally { releaseRefresh(); }
+  await expect(page.getByRole('status').filter({ hasText: 'Workout saved. Calendar refresh failed' })).toBeVisible();
+  await assertEnrichment();
+  expect(state.writes).toHaveLength(1);
+  state.refreshFails = false;
+  await page.getByRole('button', { name: 'Refresh saved calendar' }).click();
+  await expect(page.getByRole('status').filter({ hasText: /^Workout saved\.$/ })).toBeVisible();
+  await assertEnrichment();
+  expect(state.writes).toHaveLength(1);
 });

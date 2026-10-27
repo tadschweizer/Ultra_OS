@@ -384,3 +384,12 @@ export function summarizeWeek(workouts = []) {
     : null;
   return summary;
 }
+
+// Mutation responses contain database fields only. Recompute derived calendar
+// fields using this workout's already-known activity; do not assign an activity
+// from another workout before the authoritative calendar refresh arrives.
+export function decorateSavedWorkout(saved, previous) {
+  const knownActivities = [previous?.linked_activity, previous?.matched_activity].filter(Boolean);
+  const [decorated] = decorateWorkoutsWithCompliance([saved], knownActivities, { toleranceDays: 1 });
+  return { ...previous, ...decorated };
+}

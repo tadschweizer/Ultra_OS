@@ -20,6 +20,7 @@ import {
   STEP_TYPES,
   WORKOUT_SPORTS,
   estimateTss,
+  decorateSavedWorkout,
   summarizeStructure,
   toDateKey,
 } from '../lib/workoutCompliance';
@@ -1706,7 +1707,11 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
     if (result.ok) {
       if (adjustmentOrigin) setAdjustmentSavedFor(adjustmentOrigin);
       if (result.workout?.id) {
-        setWorkouts(previous => [...previous.filter(workout => workout.id !== result.workout.id), result.workout]);
+        setWorkouts(previous => {
+          const existing = previous.find(workout => workout.id === result.workout.id);
+          const saved = decorateSavedWorkout(result.workout, existing);
+          return existing ? previous.map(workout => workout.id === saved.id ? saved : workout) : [...previous, saved];
+        });
       }
       // The write is acknowledged. A slow or failed read must not keep the
       // editor in "Saving" or encourage submitting that write a second time.
