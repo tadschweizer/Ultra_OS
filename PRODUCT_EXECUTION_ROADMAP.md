@@ -2,8 +2,8 @@
 
 Last updated: 2026-10-27<br>
 Status: Athlete onboarding simplification deployed through PR #144 / merge 59e0667, Vercel dpl_4fbgop93jzn2LDJa9mv2MMsVwo8i READY on both domains; see ATHLETE_ONBOARDING_SIMPLIFICATION.md. Copy week destination picker released through PR #142 / merge 72e4ce5, Vercel dpl_F85PBT7KHehZze8RwKeUhXDHZD79 READY on both production domains. Weekly planning and coach/athlete review workflow deployed with owner authorization on mythreshold.co and www.mythreshold.co, PR #141 / main 0415ffe, Vercel dpl_EV67hYZtVjzAx4wRc7pVLEfe6BFG READY. Migration 20261017012725 applied; do not replay local 20261017003222. See WEEKLY_COACHING_RELEASE_2026-10-16.md. Owner review mode and prior security controls remain deployed.<br>
-Current milestone: M0 — email notification availability guidance and safe refresh locally verified in fb842e5; draft review preparation, not deployed. Suggested-match PR #148 merged into main as c42aab6; deployment acceptance was not reverified here. Existing deployed analysis and coaching releases remain in place. Public-interface PR #146 merged into main as d10d95b; deployment status was not reverified here.<br>
-Next item: Review notification availability PR #149 against the latest main. Preserve real confirmed-assigned/linked-coach recording acceptance, fresh invited-athlete/provider/physical-phone and mailbox/participant gates. Provider activation and any production release need separate owner authorization.
+Current milestone: M0 - athlete attention navigation locally verified; PR #150 conflict reconciliation against main 15304d5. Notification availability PR #149 and suggested-match PR #148 are merged; production acceptance was not reverified here. Existing deployed coaching/analysis releases and separate human gates remain in place.<br>
+Next item: Finish exact-head checks and review athlete attention navigation PR #150. Preserve confirmed-assigned/linked-coach recording acceptance, fresh invited-athlete/provider/physical-phone and mailbox/participant gates. No production release is authorized by local verification.
 
 ## Purpose
 
@@ -1177,3 +1177,22 @@ Main advanced to d10d95b after PR #146 merged. Retained both roadmap workstreams
 ### October 27 — Reconcile PR #149 with merged suggested-match work
 
 Main advanced again to c42aab6 after PR #148 merged by another action. Both roadmap histories are retained; application changes merged automatically. Combined tree passed 505 regression tests and 28 desktop/mobile messaging and session-analysis checks. Exact-head CI is checked after pushing. No PR merge or production action was performed by this task.
+
+### October 23 — Athlete attention navigation (local)
+
+- Implementation `1e140b9`, base main `e3c50db`. Daily coaching-question selections previously opened a protocol-focused drawer. They now use native athlete-review links. Attention cards and full-roster athlete names also link to the existing review page; background card/row clicks no longer open assignment. An explicit Assign protocol action retains the existing drawer in both views. Protocol-empty guidance now names that action.
+- Regression reproduced before implementation: expected keyboard-accessible attention link was absent. All 16 pilot-UX browser checks pass on desktop/390px mobile; four final attention-navigation cases pass with full-roster link/action checks. Covered keyboard destination, correct athlete href, no implicit drawer request, inert flag explanation and explicit assignment opening. Synthetic card screenshots inspected at both sizes.
+- Node 22.23.4: 505 regression tests, production build with loopback-only public placeholders, whitespace and design detector checks passed. Evidence: COACH_ATTENTION_NAVIGATION_VERIFICATION.md.
+- No protocol mutation, API authorization, schema, provider or production changes. Destination page rendering is intercepted in the focused navigation fixture; its actual data/authorization and real participant/phone acceptance remain separate. PR #148 and #149 were checked passing; neither merged or deployed by this run.
+
+### October 27 — Current-main conflict reconciliation for PR #150
+
+Main advanced to d10d95b after PR #146 merged. Retained both roadmap workstreams; only the roadmap conflicted and application files merged cleanly. No release or remote migration was performed. Local combined tree passed 505 full regression tests and all 16 desktop/mobile pilot UX and coach navigation checks. Logs: webapp/review-150-regression.log and review-150-browser.log. Full build and critical acceptance are verified by exact-head CI after pushing.
+
+### October 27 — Reconcile PR #150 with merged suggested-match work
+
+Main advanced again to c42aab6 after PR #148 merged by another action. Both roadmap histories are retained; application changes merged automatically. Combined tree passed 505 regression tests and 26 desktop/mobile pilot-navigation and session-analysis checks. Exact-head CI is checked after pushing. No PR merge or production action was performed by this task.
+
+### October 27 - Reconcile PR #150 after message availability merged
+
+Main advanced to 15304d55f2a123db5ed11e6b9f613001e7b293ac after PR #149 merged externally. Resolved roadmap-only conflicts by retaining both histories and updating the current milestone and next item. Message settings merged automatically; coach navigation feature behavior is unchanged. Combined tree passed 505 regression tests and 34 desktop/mobile navigation and messaging checks on Node 22.23.4. Logs: webapp/review-150-15304-regression.log and review-150-15304-browser.log. Exact-head CI is verified after the normal branch push. No PR merge or production action by this task.

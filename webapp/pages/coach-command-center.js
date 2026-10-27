@@ -1093,14 +1093,13 @@ export default function CoachCommandCenter() {
                           {bucket.athletes.length ? (
                             <div className="mt-3 flex flex-wrap gap-1.5">
                               {bucket.athletes.slice(0, 3).map((rel) => (
-                                <button
+                                <a
                                   key={rel.id}
-                                  type="button"
-                                  onClick={() => setOpenAthleteId(rel.athlete_id)}
+                                  href={`/coach/athletes/${rel.athlete_id}`}
                                   className="rounded-full border border-ink/10 bg-white px-2.5 py-1 text-xs font-semibold text-ink/75 transition hover:border-ink/30"
                                 >
                                   {rel.athlete?.name || 'Athlete'}
-                                </button>
+                                </a>
                               ))}
                               {bucket.athletes.length > 3 ? (
                                 <span className="px-1 py-1 text-xs text-ink/45">+{bucket.athletes.length - 3} more</span>
@@ -1131,19 +1130,19 @@ export default function CoachCommandCenter() {
                         return (
                           <article
                             key={rel.id}
-                            className="cursor-pointer rounded-[24px] border border-ink/10 bg-white/75 p-4 transition-colors hover:bg-white"
-                            onClick={() => setOpenAthleteId(rel.athlete_id)}
+                            aria-label={`${rel.athlete?.name || 'Athlete'} attention summary`}
+                            className="rounded-[24px] border border-ink/10 bg-white/75 p-4"
                           >
                             <div className="flex items-start justify-between gap-3">
                               <div>
-                                <p className="text-sm font-semibold text-ink">{rel.athlete?.name || 'Athlete'}</p>
+                                <a href={`/coach/athletes/${rel.athlete_id}`} className="text-sm font-semibold text-ink underline-offset-2 hover:underline">{rel.athlete?.name || 'Athlete'}</a>
                                 <div className="mt-1 flex flex-wrap gap-2">
                                   <a
                                     href={`/coach/athletes/${rel.athlete_id}`}
                                     className="inline-block text-xs font-semibold text-panel underline-offset-2 hover:underline"
                                     onClick={(e) => e.stopPropagation()}
                                   >
-                                    Open detail file →
+                                    Review athlete
                                   </a>
                                   <a
                                     href={messageHref(rel.athlete_id, suggestedTemplateForRelationship(rel), suggestedMessageForRelationship(rel))}
@@ -1175,7 +1174,10 @@ export default function CoachCommandCenter() {
                                 Protocol: {activeProto.protocol_name} · {activeProto.status}
                               </p>
                             )}
-                            <div className="mt-3 flex gap-2">
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <button type="button" onClick={() => setOpenAthleteId(rel.athlete_id)} className="min-h-11 rounded-full border border-ink/20 px-3 py-2 text-xs font-semibold text-ink">
+                                Assign protocol
+                              </button>
                               <a
                                 href={messageHref(rel.athlete_id, suggestedTemplateForRelationship(rel), suggestedMessageForRelationship(rel))}
                                 onClick={(e) => e.stopPropagation()}
@@ -1225,10 +1227,9 @@ export default function CoachCommandCenter() {
                               return (
                                 <tr
                                   key={rel.id}
-                                  className="cursor-pointer border-b border-ink/8 align-top hover:bg-paper/60"
-                                  onClick={() => setOpenAthleteId(rel.athlete_id)}
+                                  className="border-b border-ink/8 align-top hover:bg-paper/60"
                                 >
-                                  <td className="py-4 pr-5 font-semibold">{rel.athlete?.name || '—'}</td>
+                                  <td className="py-4 pr-5 font-semibold"><a href={`/coach/athletes/${rel.athlete_id}`} className="underline-offset-2 hover:underline">{rel.athlete?.name || 'Athlete'}</a></td>
                                   <td className="py-4 pr-5 text-ink/60">{rel.group_name || '—'}</td>
                                   <td className="py-4 pr-5">
                                     {rel.nextRace ? (
@@ -1252,6 +1253,7 @@ export default function CoachCommandCenter() {
                                   </td>
                                   <td className="py-4 text-ink/65">
                                     <div>{activeProto?.protocol_name || '—'}</div>
+                                    <button type="button" onClick={() => setOpenAthleteId(rel.athlete_id)} className="mt-2 min-h-11 rounded-full border border-ink/20 px-3 py-2 text-xs font-semibold text-ink">Assign protocol</button>
                                     <div className="mt-2 flex gap-2">
                                       <input
                                         value={quickNoteByAthlete[rel.athlete_id]?.content || ''}
@@ -1315,7 +1317,7 @@ export default function CoachCommandCenter() {
           {viewMode === 'advanced' && advancedOpen === 'protocols' && (
             <div className="mt-8 space-y-6">
               {protocols.length === 0 ? (
-                <EmptyStateCard icon="clipboard" title="No protocols assigned yet." body="Open an athlete from Triage to assign a protocol. If your roster is empty, choose Invite an athlete above." />
+                <EmptyStateCard icon="clipboard" title="No protocols assigned yet." body="Choose Assign protocol beside an athlete in Triage. If your roster is empty, choose Invite an athlete above." />
               ) : (
                 <div className="rounded-[30px] border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(19,24,22,0.06)]">
                   <p className="text-sm uppercase tracking-[0.25em] text-accent">All assigned protocols</p>
