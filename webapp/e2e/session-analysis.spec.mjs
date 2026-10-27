@@ -1,15 +1,19 @@
 import { test, expect } from '@playwright/test';
 const athlete = '11111111-1111-4111-8111-111111111111', workoutId = '44444444-4444-4444-8444-444444444444', activityId = '55555555-5555-4555-8555-555555555555';
 const day = new Date().toLocaleDateString('en-CA');
-async function setup(page, { assigned = false, manual = false, role = 'athlete' } = {}) {
-  const state = { fail: false, queries: [] };
+async function setup(page, { assigned = false, manual = false, suggested = false, role = 'athlete' } = {}) {
+  const state = { fail: false, queries: [], suggested };
   await page.route('**/api/**', async route => {
     const url = new URL(route.request().url());
     let status = 200, body = { workouts: [], notes: [], events: [], comments: [], settings: {}, conversations: [], messages: [] };
     if (url.pathname === '/api/me') body = { athlete: { id: athlete, name: 'QA athlete', onboarding_complete: true, subscription_tier: 'coach_pro', primary_role: role }, account: { primary_role: role, capabilities: { athlete: true, coach: role === 'coach' }, coach_access: { eligible: true }, coach_profile: { id: 'coach' } } };
     if (url.pathname === '/api/coach/relationships') body = { relationships: [{ athlete_id: athlete, status: 'active', athlete: { name: 'QA athlete' } }] };
-    if (url.pathname === '/api/planned-workouts') body = { workouts: assigned ? [{ id: workoutId, athlete_id: athlete, title: 'Completed intervals', sport: 'run', workout_date: day, status: 'completed', visibility: 'athlete_visible', planned_duration_min: 40, completed_duration_min: 30, planned_distance_km: 8, completed_distance_km: 6, completed_activity_id: manual ? null : activityId, structure: [{ type: 'warmup', duration_min: 5, target_type: 'heart_rate', target_min: 120, target_max: 140, target_units: 'bpm' }] }] : [],
-      activities: assigned ? [] : [{ id: activityId, name: 'Unplanned run', sport: 'run', activity_date: day, duration_min: 30, distance_km: 6, source: 'strava' }], match_activities: [], import_source: { strava_connected: true } };
+    if (url.pathname === '/api/planned-workouts') {
+      if (route.request().method() === 'PATCH') state.suggested = false;
+      const workout = { id: workoutId, athlete_id: athlete, title: 'Completed intervals', sport: 'run', workout_date: day, status: 'completed', visibility: 'athlete_visible', planned_duration_min: 40, completed_duration_min: 30, planned_distance_km: 8, completed_distance_km: 6, completed_activity_id: manual || state.suggested ? null : activityId, matched_activity: state.suggested ? { id: activityId, activity_date: day, name: 'Suggested run', sport: 'run', duration_min: 30, distance_km: 6 } : null, structure: [{ type: 'warmup', duration_min: 5, target_type: 'heart_rate', target_min: 120, target_max: 140, target_units: 'bpm' }] };
+      body = route.request().method() === 'PATCH' ? { workout } : { workouts: assigned ? [workout] : [],
+        activities: assigned ? [] : [{ id: activityId, name: 'Unplanned run', sport: 'run', activity_date: day, duration_min: 30, distance_km: 6, source: 'strava' }], match_activities: state.suggested ? [workout.matched_activity] : [], import_source: { strava_connected: true } };
+    }
     if (url.pathname === '/api/session-analysis') {
       state.queries.push(url.search);
       if (state.fail) { status = 503; body = { error: 'Recording temporarily unavailable' }; }
@@ -43,6 +47,30 @@ test('unassigned session: charts, split selection, laps, keyboard inspection and
   state.fail = true; await page.reload(); await expect(panel.getByRole('alert')).toHaveText('Recording temporarily unavailable');
   state.fail = false; await panel.getByRole('button', { name: 'Retry analysis' }).click(); await expect(panel.getByRole('img')).toHaveCount(5);
 });
+
+for (const role of ['athlete', 'coach']) {
+  test(`${role}: suggested completion waits for confirmation before requesting analysis`, async ({ page }) => {
+    const state = await setup(page, { assigned: true, suggested: true, role });
+    const dialog = page.getByRole('dialog', { name: 'Workout details' });
+    await expect(dialog.getByRole('heading', { name: 'Confirm the activity match to analyze this workout' })).toBeVisible();
+    await expect(dialog.getByText('Suggested completion', { exact: true })).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Retry analysis' })).toHaveCount(0);
+    expect(state.queries).toEqual([]);
+    await page.reload();
+    await expect(dialog.getByRole('heading', { name: 'Confirm the activity match to analyze this workout' })).toBeVisible();
+    expect(state.queries).toEqual([]);
+    expect(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
+    await page.screenshot({ path: `output/session-analysis/suggested-${role}-${test.info().project.name}.png` });
+    if (role === 'coach') {
+      await expect(dialog.getByText('Ask the athlete to confirm the imported activity match.')).toBeVisible();
+      await expect(dialog.getByRole('button', { name: 'Confirm activity match' })).toHaveCount(0);
+    } else {
+      await dialog.getByRole('button', { name: 'Confirm activity match' }).click();
+      await expect(dialog.getByRole('region', { name: 'Workout analysis' }).getByRole('img')).toHaveCount(5);
+      expect(state.queries).toContain(`?workout_id=${workoutId}`);
+    }
+  });
+}
 test('coach assigned session compares plan and uses the same recording tools', async ({ page }) => {
   const state = await setup(page, { assigned: true, role: 'coach' });
   const panel = page.getByRole('region', { name: 'Workout analysis' });

@@ -2,8 +2,8 @@
 
 Last updated: 2026-10-27<br>
 Status: Athlete onboarding simplification deployed through PR #144 / merge 59e0667, Vercel dpl_4fbgop93jzn2LDJa9mv2MMsVwo8i READY on both domains; see ATHLETE_ONBOARDING_SIMPLIFICATION.md. Copy week destination picker released through PR #142 / merge 72e4ce5, Vercel dpl_F85PBT7KHehZze8RwKeUhXDHZD79 READY on both production domains. Weekly planning and coach/athlete review workflow deployed with owner authorization on mythreshold.co and www.mythreshold.co, PR #141 / main 0415ffe, Vercel dpl_EV67hYZtVjzAx4wRc7pVLEfe6BFG READY. Migration 20261017012725 applied; do not replay local 20261017003222. See WEEKLY_COACHING_RELEASE_2026-10-16.md. Owner review mode and prior security controls remain deployed.<br>
-Current milestone: M0 — chart-axis, cadence and pace-scale refinement deployed through PR #147 / merge 34a3851; production verified (evidence below). Completed-session analysis deployed through PR #145 / merge 9da5854; Vercel dpl_8MPcctvLJzoUQyiKaSjc2zVvJmNF READY on both domains. Exact-head CI passed and real unassigned Strava analysis verified. Suggested-match presentation and real confirmed-assigned/linked-coach/phone acceptance remain open (COMPLETED_SESSION_ANALYSIS.md). Prior onboarding, free-athlete-access, owner-grant and coaching-loop releases remain in place. Public-interface improvements remain in open PR #146 / d485634; not deployed (PUBLIC_INTERFACE_IMPROVEMENTS.md).<br>
-Next item: Review the conflict-resolved PR #146 and the other open PRs before any separately authorized release. Clarify analysis for unconfirmed suggested activity matches; verify a confirmed assigned completion and linked-coach access with real recordings. Then verify fresh invited-athlete signup and provider connection on a physical phone. Preserve real-participant, mailbox, free-access-grant and coaching-loop acceptance gates.
+Current milestone: M0 — suggested-match analysis clarification locally verified in 1b3b87d, awaiting review/release. Existing analysis/chart releases remain deployed; confirmed-assigned, linked-coach and physical-phone acceptance remain open. Public-interface PR #146 merged into main as d10d95b; deployment status was not reverified here.<br>
+Next item: Review the suggested-match analysis clarification, then verify a confirmed assigned completion and linked-coach access with real recordings. Retain fresh invited-athlete/provider/physical-phone and mailbox/participant acceptance; no new release is authorized by this local verification.
 
 ## Purpose
 
@@ -1151,3 +1151,14 @@ October 20 release verified: PR #147 merged as 34a3851d2d80d41874f7cf308a537176f
 - PRs #148, #149, #150 and #151 are independent branches targeting main, with no ancestry stack and no current base conflicts. Their existing release and real-participant acceptance limits remain open.
 - This review does not authorize merging PRs, production deployment or remote database changes.
 - Local merge verification on Node 22.23.4: 505 regression tests, four integration checks, production build, and 18 desktop/mobile public-interface/session-analysis browser checks passed. Exact remote-head CI is checked after pushing the merge; real-participant acceptance is unchanged.
+
+### October 21 — Suggested completion analysis clarification (local)
+
+- Implementation commit `1b3b87d`, based on current main `e3c50db`. A calendar suggestion can decorate an unsaved plan as completed, but analysis correctly requires a persisted completion. The detail view now explains activity confirmation, does not mount/request completed-workout analysis for suggestions, and labels the displayed result Suggested completion. Athlete confirmation uses the existing service; coaches receive guidance without new permissions.
+- Reproduction: new suggested-match browser regression failed before the fix. Afterward, all 10 analysis browser checks passed on desktop and 390px mobile, including reload, no premature analysis requests, athlete confirmation → analysis, coach guidance, manual completion and unassigned recordings. A final four-case rerun passed with no dialog overflow; desktop/mobile screenshots inspected.
+- Node 22.23.3: full regression 505/505 passed; production build passed with loopback-only Supabase configuration; whitespace check passed. Impeccable detector returned zero findings. Evidence: `SUGGESTED_MATCH_ANALYSIS_VERIFICATION.md`.
+- No API authorization, matching algorithm, database, provider configuration or production data changes. This is local verification and draft review preparation, not production or physical-phone acceptance. No parent acceptance gate closed.
+
+### October 27 — Current-main conflict reconciliation for PR #148
+
+Main advanced to d10d95b after PR #146 merged. Retained both roadmap workstreams; only the roadmap conflicted and application files merged cleanly. No release or remote migration was performed. Local combined tree passed 505 full regression tests and all 10 desktop/mobile session-analysis checks. Logs: webapp/review-148-regression.log and review-148-browser.log. Full build and critical acceptance are verified by exact-head CI after pushing.
