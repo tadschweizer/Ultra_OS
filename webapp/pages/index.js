@@ -1,19 +1,9 @@
-import { athleteOpenAccess } from '../lib/athleteAccessPolicy';
+import { athleteOpenAccess, athleteAccessMessage } from '../lib/athleteAccessPolicy';
 import { useEffect, useState } from 'react';
 import Head from 'next/head';
-import NavMenu from '../components/NavMenu';
+import PublicHeader from '../components/PublicHeader';
+import CoachingExample from '../components/CoachingExample';
 
-const publicLinks = [
-  { href: '/guide', label: 'How it works' },
-  { href: '/content', label: 'Research' },
-  { href: '/pricing', label: 'Pricing' },
-];
-const pilotSteps = [
-  { title: 'Plan the week', body: 'Copy any week to another week or start from saved workouts. Preview and customize prescriptions for each athlete before publishing.' },
-  { title: 'Log what happened', body: 'Athletes record completion and actual values, or import supported activities. Keep planned and actual work distinct.' },
-  { title: 'Check in', body: 'Record legs feel, energy and RPE, with an optional note. The coach can review these alongside the training history.' },
-  { title: 'Review and reply', body: 'See completed sessions awaiting review and requests needing a reply. Reply, mark Reviewed—no change, or adjust an upcoming session.' },
-];
 const pilotFeatures = [
   { title: 'Coach calendar and roster', body: 'Plan workouts, review logged results and find the athlete you need to speak with.' },
   { title: 'Daily athlete check-ins', body: 'Record how the session felt and ask your coach for a response. Your feedback stays with the assigned session.' },
@@ -35,32 +25,21 @@ export default function LandingPage() {
     }).catch(() => {});
     return () => controller.abort();
   }, []);
-  const loginHref = athleteId ? '/dashboard' : '/login';
   const coachHref = athleteId ? '/coach-command-center' : '/signup?role=coach';
 
   return (
-    <main className="min-h-screen bg-paper text-ink">
+    <main className="public-site min-h-screen bg-paper text-ink">
       <Head>
         <title>Threshold | Training plans, check-ins and coach feedback</title>
         <meta name="description" content="Copy and customize a training week, review planned versus actual results, and reply or adjust the next session. Coach access requires approval." />
         <meta property="og:title" content="Threshold | Plan, log, review and reply" />
         <meta property="og:description" content="Weekly planning, completed-session review and coach replies together. Coach access requires approval." />
       </Head>
-      <header className="sticky top-0 z-50 px-4 pt-4">
-        <div className="mx-auto flex max-w-6xl items-center justify-between rounded-full border border-ink/10 bg-white/90 px-4 py-3 backdrop-blur">
-          <a href="/" className="text-xs font-semibold uppercase tracking-[0.25em] text-ink">Threshold</a>
-          <nav aria-label="Public navigation" className="hidden items-center gap-7 lg:flex">
-            {publicLinks.map(link => <a key={link.href} href={link.href} className="text-sm font-semibold text-ink">{link.label}</a>)}
-            <a href={loginHref} className="ui-button-primary">{athleteId ? 'Open Threshold' : 'Log In'}</a>
-          </nav>
-          <NavMenu label="Homepage navigation" links={publicLinks} primaryLink={{ href: loginHref, label: athleteId ? 'Open App' : 'Login' }} />
-        </div>
-      </header>
+      <PublicHeader />
       <div className="mx-auto max-w-6xl px-4 pb-10">
-        <section className="mt-6 grid gap-8 rounded-[32px] border border-ink/10 bg-[linear-gradient(145deg,#f7f2ea,#eadcc7)] p-6 md:p-10 lg:grid-cols-[1.4fr_1fr]">
+        <section className="mt-8 grid items-start gap-8 py-4 md:py-8 lg:grid-cols-[1.2fr_1fr] lg:gap-12">
           <div>
-            <p className="ui-eyebrow !text-ink">Closed coach pilot</p>
-            <h1 className="font-display mt-4 text-4xl font-semibold leading-tight md:text-6xl">Plan the week. Review the result. Keep coaching.</h1>
+            <h1 className="font-display text-4xl font-semibold leading-tight md:text-6xl">Plan the week. Review the result. Keep coaching.</h1>
             <p className="mt-5 max-w-2xl text-base leading-8 text-ink/75">
               Copy a training week, tailor each athlete’s sessions, then review the prescription, results and feedback together. Reply or adjust the next workout while the session is still in view.
             </p>
@@ -68,31 +47,13 @@ export default function LandingPage() {
               <a href={coachHref} className="ui-button-primary">Create a pilot account</a>
               <a href="/guide" className="ui-button-secondary">See how it works</a>
             </div>
-            <p className="mt-4 text-sm text-ink/70">Coach approval required. Up to five athletes per approved pilot coach.</p>
+            <p className="mt-4 text-sm leading-6 text-ink/80">Closed coach pilot. Approval required, with up to five athletes per approved coach.</p>
+            <p className="mt-5 text-base leading-7 text-ink/80">Here for your own training? <a href={athleteId ? '/dashboard' : '/signup'} className="inline-flex min-h-11 items-center font-semibold text-ink underline">Start as an athlete</a>.</p>
+            {athleteOpenAccess() && <p className="mt-3 max-w-[65ch] text-sm leading-6 text-ink/80"><strong>Free athlete access.</strong> {athleteAccessMessage()} <a href="/pricing" className="font-semibold text-ink underline">See access details</a>.</p>}
           </div>
-          <aside aria-label="Illustrative training week" className="rounded-2xl border border-ink/10 bg-white p-5">
-            <p className="text-xs font-semibold uppercase tracking-wider text-ink">Illustration only</p>
-            <h2 className="mt-3 text-xl font-semibold">A simple training week</h2>
-            <p className="mt-2 text-sm text-ink/70">Example entries, not live athlete data.</p>
-            <ol className="mt-5 space-y-4 text-sm">
-              <li className="rounded-xl bg-paper p-4"><strong>Monday: easy run</strong><p className="mt-1">Coach writes the session instructions.</p></li>
-              <li className="rounded-xl bg-paper p-4"><strong>After the run</strong><p className="mt-1">Athlete records completion and a check-in.</p></li>
-              <li className="rounded-xl bg-paper p-4"><strong>Coach review</strong><p className="mt-1">Review the result and send a reply.</p></li>
-            </ol>
-          </aside>
+          <CoachingExample compact />
         </section>
-        {athleteOpenAccess() && <p className="mt-6 rounded-2xl border border-ink/10 bg-white p-5 text-sm"><strong>Free athlete access.</strong> All currently available athlete features are free during early access. No card needed. <a href="/pricing" className="text-ink underline">See access details</a>.</p>}
-        <section className="mt-12">
-          <h2 className="text-3xl font-semibold">From a planned week to the next coaching decision</h2>
-          <div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {pilotSteps.map((step, index) => <article key={step.title} className="ui-card">
-              <p className="font-mono text-sm text-ink">0{index + 1}</p>
-              <h3 className="mt-3 text-lg font-semibold">{step.title}</h3>
-              <p className="mt-3 text-sm leading-7 text-ink/75">{step.body}</p>
-            </article>)}
-          </div>
-        </section>
-        <section className="mt-12 rounded-[28px] border border-ink/10 bg-white p-6 md:p-8">
+        <section className="mt-10 border-t border-ink/15 py-9">
           <h2 className="text-3xl font-semibold">What you can use in the pilot</h2>
           <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {pilotFeatures.map(feature => <article key={feature.title}>
@@ -101,7 +62,7 @@ export default function LandingPage() {
             </article>)}
           </div>
         </section>
-        <section className="mt-12 rounded-[28px] bg-panel p-6 text-paper md:p-8">
+        <section className="mt-10 rounded-2xl bg-panel p-6 text-paper md:p-8">
           <h2 className="text-3xl font-semibold">A small pilot, with clear limits</h2>
           <p className="mt-4 max-w-3xl text-sm leading-7">
             We are testing the daily coach-athlete workflow with a small group. Coach access is approved
@@ -115,14 +76,7 @@ export default function LandingPage() {
           </p>
           <a href={coachHref} className="mt-6 inline-flex rounded-full bg-white px-5 py-3 text-sm font-semibold text-ink">Join the coach pilot</a>
         </section>
-        <section className="mt-8 rounded-2xl border border-ink/10 bg-white p-6">
-          <h2 className="text-xl font-semibold">Training on your own?</h2>
-          <p className="mt-3 text-sm leading-7 text-ink/75">Keep your workout, race and intervention history together. Review available calculated comparisons alongside your training records.</p>
-          <a href={athleteId ? '/dashboard' : '/signup'} className="ui-button-secondary mt-4">Start as an athlete</a>
-        </section>
-        <footer className="mt-10 flex flex-wrap gap-5 text-sm">
-          <a href="/privacy" className="text-ink">Privacy</a><a href="/terms" className="text-ink">Terms</a><a href="/support" className="text-ink">Support</a>
-        </footer>
+
       </div>
     </main>
   );

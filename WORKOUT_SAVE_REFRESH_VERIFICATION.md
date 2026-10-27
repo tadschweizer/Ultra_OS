@@ -29,3 +29,7 @@ Validation on Node 22.23.4:
 - Production build with loopback public placeholders passed; git diff --check passed.
 
 Local logs: webapp/review-151-before.log, review-151-unit.log, review-151-regression.log, review-151-integrations.log, review-151-focused.log, review-151-browser.log and review-151-build.log. Initial test-locator and asynchronous calendar-selection synchronization issues were corrected before the final passing suite. No production deployment, PR merge, API, database, provider or credential change occurred. Hosted exact-head CI follows the branch push; real participant and physical-device acceptance remain separate.
+
+### Verification after main advanced
+
+Reconciled main d10d95b after PR #146 merged by another action. Only the roadmap conflicted; application changes merged cleanly. On the combined tree, 508 regression tests, 50 desktop/mobile daily-flow/public-interface checks, and the production build passed. Logs: webapp/review-151-combined-regression.log, review-151-combined-browser.log and review-151-combined-build.log. Exact-head CI follows this normal merge push.
