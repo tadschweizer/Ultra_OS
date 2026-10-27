@@ -2,8 +2,8 @@
 
 Last updated: 2026-10-27<br>
 Status: Athlete onboarding simplification deployed through PR #144 / merge 59e0667, Vercel dpl_4fbgop93jzn2LDJa9mv2MMsVwo8i READY on both domains; see ATHLETE_ONBOARDING_SIMPLIFICATION.md. Copy week destination picker released through PR #142 / merge 72e4ce5, Vercel dpl_F85PBT7KHehZze8RwKeUhXDHZD79 READY on both production domains. Weekly planning and coach/athlete review workflow deployed with owner authorization on mythreshold.co and www.mythreshold.co, PR #141 / main 0415ffe, Vercel dpl_EV67hYZtVjzAx4wRc7pVLEfe6BFG READY. Migration 20261017012725 applied; do not replay local 20261017003222. See WEEKLY_COACHING_RELEASE_2026-10-16.md. Owner review mode and prior security controls remain deployed.<br>
-Current milestone: M0 — workout save acknowledgement separated from calendar refresh, with the PR #151 calendar-enrichment repair locally verified; release and live acceptance pending (WORKOUT_SAVE_REFRESH_VERIFICATION.md). Existing draft PRs #149–150 remain separate. Suggested-match PR #148 merged into main as c42aab6; deployment acceptance was not reverified here. Chart-axis, cadence and pace-scale refinement deployed through PR #147 / merge 34a3851; production verified (evidence below). Completed-session analysis deployed through PR #145 / merge 9da5854; Vercel dpl_8MPcctvLJzoUQyiKaSjc2zVvJmNF READY on both domains. Exact-head CI passed and real unassigned Strava analysis verified. Suggested-match release verification and real confirmed-assigned/linked-coach/phone acceptance remain open (COMPLETED_SESSION_ANALYSIS.md). Prior onboarding, free-athlete-access, owner-grant and coaching-loop releases remain in place. Public-interface PR #146 is now merged into main as d10d95b; deployment status was not reverified in this local review.<br>
-Next item: Review the repaired workout-save PR #151 and pending draft PRs #149–150; suggested-match clarification is now in main via #148, with release acceptance separate. Verify a confirmed assigned completion and linked-coach access with real recordings. Then verify fresh invited-athlete signup and provider connection on a physical phone. Preserve real-participant, mailbox, free-access-grant and coaching-loop acceptance gates.
+Current milestone: M0 — workout save acknowledgement separated from calendar refresh, with the PR #151 calendar-enrichment repair locally verified; release and live acceptance pending (WORKOUT_SAVE_REFRESH_VERIFICATION.md). Message availability PR #149 and coach navigation PR #150 have merged into main, now f004a11. Suggested-match PR #148 merged into main as c42aab6; deployment acceptance was not reverified here. Chart-axis, cadence and pace-scale refinement deployed through PR #147 / merge 34a3851; production verified (evidence below). Completed-session analysis deployed through PR #145 / merge 9da5854; Vercel dpl_8MPcctvLJzoUQyiKaSjc2zVvJmNF READY on both domains. Exact-head CI passed and real unassigned Strava analysis verified. Suggested-match release verification and real confirmed-assigned/linked-coach/phone acceptance remain open (COMPLETED_SESSION_ANALYSIS.md). Prior onboarding, free-athlete-access, owner-grant and coaching-loop releases remain in place. Public-interface PR #146 is now merged into main as d10d95b; deployment status was not reverified in this local review.<br>
+Next item: Review the repaired workout-save PR #151 against main f004a11; suggested-match clarification is now in main via #148, with release acceptance separate. Verify a confirmed assigned completion and linked-coach access with real recordings. Then verify fresh invited-athlete signup and provider connection on a physical phone. Preserve real-participant, mailbox, free-access-grant and coaching-loop acceptance gates.
 
 ## Purpose
 
@@ -1163,6 +1163,40 @@ October 20 release verified: PR #147 merged as 34a3851d2d80d41874f7cf308a537176f
 
 Main advanced to d10d95b after PR #146 merged. Retained both roadmap workstreams; only the roadmap conflicted and application files merged cleanly. No release or remote migration was performed. Local combined tree passed 505 full regression tests and all 10 desktop/mobile session-analysis checks. Logs: webapp/review-148-regression.log and review-148-browser.log. Full build and critical acceptance are verified by exact-head CI after pushing.
 
+### October 22 — Message notification availability (local)
+
+- Implementation `fb842e5`, base main `e3c50db`. The email checkbox is intentionally disabled when the preference endpoint reports delivery unavailable. Preserve that safeguard; no server/provider enablement is included. The UI now explains what is unavailable and which choices remain usable, associates the explanation with the checkbox, and provides an availability refresh without saving or replacing unsaved choices. Saving also uses the server's latest availability result.
+- New recovery expectation failed before the update. Afterward, all 18 existing/new critical messaging browser checks passed across desktop and 390px mobile. Four final availability cases passed again: failed refresh preserves choices, recovered availability permits selection, refresh performs no preference write, save/reload persists choices, and existing email alerts can be switched off while delivery is unavailable. Desktop/mobile settings screenshots inspected.
+- Node 22.23.4: full regression 505 passed; production build passed with loopback public Supabase placeholders; whitespace passed; Impeccable detector returned zero findings. Evidence: MESSAGE_NOTIFICATION_AVAILABILITY_VERIFICATION.md.
+- This verifies isolated interface recovery, not real email delivery or a production fix. No API/database/provider/service changes or production writes. Human mailbox and participant gates remain open. Separate PR #148 was checked: Auth Smoke and preview checks pass, with no merge/release performed.
+
+### October 27 — Current-main conflict reconciliation for PR #149
+
+Main advanced to d10d95b after PR #146 merged. Retained both roadmap workstreams; only the roadmap conflicted and application files merged cleanly. No release or remote migration was performed. Local combined tree passed 505 full regression tests and all 18 desktop/mobile critical messaging checks. Logs: webapp/review-149-regression.log and review-149-browser.log. Full build and critical acceptance are verified by exact-head CI after pushing.
+
+### October 27 — Reconcile PR #149 with merged suggested-match work
+
+Main advanced again to c42aab6 after PR #148 merged by another action. Both roadmap histories are retained; application changes merged automatically. Combined tree passed 505 regression tests and 28 desktop/mobile messaging and session-analysis checks. Exact-head CI is checked after pushing. No PR merge or production action was performed by this task.
+
+### October 23 — Athlete attention navigation (local)
+
+- Implementation `1e140b9`, base main `e3c50db`. Daily coaching-question selections previously opened a protocol-focused drawer. They now use native athlete-review links. Attention cards and full-roster athlete names also link to the existing review page; background card/row clicks no longer open assignment. An explicit Assign protocol action retains the existing drawer in both views. Protocol-empty guidance now names that action.
+- Regression reproduced before implementation: expected keyboard-accessible attention link was absent. All 16 pilot-UX browser checks pass on desktop/390px mobile; four final attention-navigation cases pass with full-roster link/action checks. Covered keyboard destination, correct athlete href, no implicit drawer request, inert flag explanation and explicit assignment opening. Synthetic card screenshots inspected at both sizes.
+- Node 22.23.4: 505 regression tests, production build with loopback-only public placeholders, whitespace and design detector checks passed. Evidence: COACH_ATTENTION_NAVIGATION_VERIFICATION.md.
+- No protocol mutation, API authorization, schema, provider or production changes. Destination page rendering is intercepted in the focused navigation fixture; its actual data/authorization and real participant/phone acceptance remain separate. PR #148 and #149 were checked passing; neither merged or deployed by this run.
+
+### October 27 — Current-main conflict reconciliation for PR #150
+
+Main advanced to d10d95b after PR #146 merged. Retained both roadmap workstreams; only the roadmap conflicted and application files merged cleanly. No release or remote migration was performed. Local combined tree passed 505 full regression tests and all 16 desktop/mobile pilot UX and coach navigation checks. Logs: webapp/review-150-regression.log and review-150-browser.log. Full build and critical acceptance are verified by exact-head CI after pushing.
+
+### October 27 — Reconcile PR #150 with merged suggested-match work
+
+Main advanced again to c42aab6 after PR #148 merged by another action. Both roadmap histories are retained; application changes merged automatically. Combined tree passed 505 regression tests and 26 desktop/mobile pilot-navigation and session-analysis checks. Exact-head CI is checked after pushing. No PR merge or production action was performed by this task.
+
+### October 27 - Reconcile PR #150 after message availability merged
+
+Main advanced to 15304d55f2a123db5ed11e6b9f613001e7b293ac after PR #149 merged externally. Resolved roadmap-only conflicts by retaining both histories and updating the current milestone and next item. Message settings merged automatically; coach navigation feature behavior is unchanged. Combined tree passed 505 regression tests and 34 desktop/mobile navigation and messaging checks on Node 22.23.4. Logs: webapp/review-150-15304-regression.log and review-150-15304-browser.log. Exact-head CI is verified after the normal branch push. No PR merge or production action by this task.
+
 ### 2026-10-27 — Workout save acknowledgement and calendar refresh
 
 - Implementation `6c0b6ea`, branch `codex/workout-save-refresh` from verified main `e3c50db`. Acknowledged editor saves update the calendar from the returned record and close immediately; background read failures have an explicit read-only recovery action. Latest-request guards prevent old refreshes from replacing newer calendar state.
@@ -1179,3 +1213,7 @@ October 27 base refresh: main advanced to d10d95b when PR #146 was merged by ano
 ### October 27 — Reconcile PR #151 with merged suggested-match work
 
 Main advanced again to c42aab6 after PR #148 merged by another action. Both roadmap histories are retained; application changes merged automatically. Combined tree passed 508 regression tests, 60 desktop/mobile daily-flow, session-analysis and public-interface checks, and the production build. Exact-head CI is checked after pushing. No PR merge or production action was performed by this task.
+
+### October 27 - Reconcile PR #151 after message and navigation merges
+
+Main advanced to f004a11698fe45372c7a5d600000be5744535aec following external merges of PRs #149 and #150. Resolved roadmap-only conflicts, retaining all histories and the save-refresh acceptance gates. Application files merged automatically; the save-refresh implementation and calendar-enrichment regressions are unchanged. Combined tree passed 508 regression tests and 72 desktop/mobile daily-flow, messaging and navigation checks on Node 22.23.4. Logs: webapp/review-151-f004-regression.log and review-151-f004-browser.log. Exact-head CI is verified after the normal branch push. No PR merge or production action by this task.

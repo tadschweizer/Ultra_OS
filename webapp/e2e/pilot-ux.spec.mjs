@@ -126,3 +126,35 @@ test('coach calendar explains disconnected imports without hiding stored trainin
   await loaded;
   await expect(notice).toHaveCount(0);
 });
+
+const reviewRelationships = [{id:'rel-review',athlete_id:'runner-review',status:'active',athlete:{name:'Pilot Runner'},pendingReviews:1,alertLevel:'red',flagReasons:['Completed session awaits review'],flagSuggestion:'Review the completed session',daysSinceLog:1}];
+
+test('attention athlete selection opens review context with a keyboard-accessible link', async ({page})=>{
+  await mockAccount(page,{coach:true,relationships:reviewRelationships});
+  let drawerReads=0;page.on('request',request=>{if(new URL(request.url()).pathname==='/api/coach/notes')drawerReads++;});
+  await page.route('**/coach/athletes/runner-review',route=>route.fulfill({contentType:'text/html',body:'<h1>Pilot Runner review context</h1>'}));
+  await page.goto('/coach-command-center');
+  const bucket=page.getByText('Who needs attention?',{exact:true}).locator('..').locator('..');
+  const athlete=bucket.getByRole('link',{name:'Pilot Runner',exact:true});
+  await expect(athlete).toHaveAttribute('href','/coach/athletes/runner-review');
+  await athlete.focus();await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/\/coach\/athletes\/runner-review$/);
+  await expect(page.getByRole('heading',{name:'Pilot Runner review context'})).toBeVisible();
+  expect(drawerReads).toBe(0);
+});
+
+test('triage review links and explicit protocol action stay separate',async({page},info)=>{
+  await mockAccount(page,{coach:true,relationships:reviewRelationships});await page.goto('/coach-command-center');
+  const card=page.getByRole('article',{name:'Pilot Runner attention summary'});
+  await expect(card.getByRole('link',{name:'Pilot Runner',exact:true})).toHaveAttribute('href','/coach/athletes/runner-review');
+  await expect(card.getByRole('link',{name:'Review athlete',exact:true})).toHaveAttribute('href','/coach/athletes/runner-review');
+  const rosterRow=page.getByRole('row').filter({hasText:'Pilot Runner'});
+  await expect(rosterRow.getByRole('link',{name:'Pilot Runner',exact:true})).toHaveAttribute('href','/coach/athletes/runner-review');
+  await expect(rosterRow.getByRole('button',{name:'Assign protocol',exact:true})).toBeVisible();
+  await card.getByText('Why flagged:',{exact:true}).click();
+  await expect(page.getByPlaceholder('Protocol name')).toHaveCount(0);
+  await card.screenshot({path:`output/coach-attention/triage-${info.project.name}.png`});
+  await card.getByRole('button',{name:'Assign protocol',exact:true}).click();
+  await expect(page.getByPlaceholder('Protocol name')).toBeVisible();
+  await noOverflow(page);
+});
