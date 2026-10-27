@@ -1194,7 +1194,7 @@ function ActivityDetail({ activity, role, distanceUnit = 'mi', onCountChange, on
           <StatTile label="IF" value={activity.intensity_factor != null ? activity.intensity_factor : null} />
           <StatTile label="Calories" value={activity.calories ? `${activity.calories.toLocaleString()} kcal` : null} />
           <StatTile label="Work" value={activity.kilojoules ? `${activity.kilojoules.toLocaleString()} kJ` : null} />
-          <StatTile label="Avg cadence" value={activity.average_cadence || null} />
+          <StatTile label="Avg cadence" value={activity.average_cadence == null ? null : `${Math.round(activity.average_cadence * (/run|walk|hik/i.test(activity.sport || '') ? 2 : 1))} ${/run|walk|hik/i.test(activity.sport || '') ? 'spm' : 'rpm'}`} />
           <StatTile label="Relative effort" value={activity.suffer_score || null} />
           <StatTile label="High point" value={fmtElevation(activity.elev_high_m, distanceUnit)} />
           <StatTile label="Low point" value={fmtElevation(activity.elev_low_m, distanceUnit)} />

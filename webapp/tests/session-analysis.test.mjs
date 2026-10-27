@@ -1,9 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { sessionPoints, rangeStats, distanceSplits, hrDistribution, planComparison, peakEfforts, plannedTimeSegments } from '../lib/sessionAnalysis.js';
+import { chartDomain, sessionPoints, rangeStats, distanceSplits, hrDistribution, planComparison, peakEfforts, plannedTimeSegments } from '../lib/sessionAnalysis.js';
 import { createSessionAnalysisHandler } from '../pages/api/session-analysis.js';
 
 const streams = { time: { data: [0, 10, 30] }, distance: { data: [0, 100, 300] }, heartrate: { data: [100, 160, 180] }, watts: { data: [100, 200, 300] } };
+test('pace viewport resists stopped samples without changing source data', () => {
+  const points = [300, 320, 340, 360, 40000].map(pace => ({ pace }));
+  const domain = chartDomain(points, 'pace');
+  assert.equal(domain.low, 300);
+  assert.ok(domain.high < 600);
+  assert.equal(domain.clipped, true);
+  assert.equal(points.at(-1).pace, 40000);
+  assert.ok(chartDomain([{ pace: 900 }], 'pace').high > 900);
+  assert.deepEqual(chartDomain([{ hr: null }], 'hr'), { low: 0, high: 1, clipped: false });
+  assert.ok(chartDomain([{ cadence: 170 }], 'cadence').low < 170);
+});
 test('irregular samples are time weighted and selection clips interval edges', () => {
   const points = sessionPoints(streams), all = rangeStats(points);
   assert.equal(all.hr, 140); assert.equal(all.distance, 300); assert.equal(all.pace, 100);

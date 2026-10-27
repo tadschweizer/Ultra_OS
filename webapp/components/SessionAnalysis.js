@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useWorkspaceTransport } from '../lib/WorkspaceTransport';
-import { distanceSplits, hrDistribution, planComparison, rangeStats, peakEfforts, plannedTimeSegments } from '../lib/sessionAnalysis';
+import { chartDomain, distanceSplits, hrDistribution, planComparison, rangeStats, peakEfforts, plannedTimeSegments } from '../lib/sessionAnalysis';
 
 const clock = seconds => { if (seconds == null || !Number.isFinite(seconds)) return '—'; const s = Math.round(seconds); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 const value = (n, digits = 1) => n == null || !Number.isFinite(n) ? '—' : n.toFixed(digits);
@@ -24,7 +24,7 @@ export default function SessionAnalysis({ workout = null, activity = null, dista
   }, [request, subject, scope, retry, workout?.updated_at]);
   const points = data?.points || [];
   const paceSport = /run|walk|hik/i.test(workout?.sport || activity?.sport || data?.activity?.sport || '');
-  const chartPoints = useMemo(() => points.map(p => ({ ...p, pace: p.speed > 0 ? 1000 / p.speed : null })), [data]);
+  const chartPoints = useMemo(() => points.map(p => ({ ...p, cadence: p.cadence == null ? null : p.cadence * (paceSport ? 2 : 1), pace: p.speed > 0 ? 1000 / p.speed : null })), [data, paceSport]);
   const chartTracks = tracks.map(track => track[0] === 'speed' && paceSport ? ['pace', 'Pace', track[2]] : track);
   const first = points[0]?.t || 0, last = points.at(-1)?.t || 0;
   const start = range?.[0] ?? first, end = range?.[1] ?? last;
@@ -38,7 +38,7 @@ export default function SessionAnalysis({ workout = null, activity = null, dista
   const rows = tab === 'laps' ? laps : tab === 'plan' ? planned : splits;
   const selected = chartPoints[Math.min(cursor, points.length - 1)];
   const pace = seconds => `${clock(seconds == null ? null : seconds * unitMeters / 1000)} /${distanceUnit}`;
-  const channelValue = (key, n) => key === 'pace' ? pace(n) : key === 'speed' ? `${value(n == null ? null : n * 3600 / unitMeters)} ${distanceUnit}/h` : key === 'elevation' ? `${value(n == null ? null : n * (distanceUnit === 'mi' ? 3.28084 : 1), 0)} ${distanceUnit === 'mi' ? 'ft' : 'm'}` : `${value(n, 0)} ${{ hr: 'bpm', power: 'W', cadence: 'rpm' }[key]}`;
+  const channelValue = (key, n) => key === 'pace' ? pace(n) : key === 'speed' ? `${value(n == null ? null : n * 3600 / unitMeters)} ${distanceUnit}/h` : key === 'elevation' ? `${value(n == null ? null : n * (distanceUnit === 'mi' ? 3.28084 : 1), 0)} ${distanceUnit === 'mi' ? 'ft' : 'm'}` : `${value(n, 0)} ${{ hr: 'bpm', power: 'W', cadence: paceSport ? 'spm' : 'rpm' }[key]}`;
   const comparison = planComparison(workout, data?.activity);
   return <section aria-label="Workout analysis" className="mt-5 overflow-hidden rounded-2xl border border-ink/20 bg-white text-ink">
     <div className="border-b border-ink/10 p-4 sm:p-5">
@@ -63,8 +63,7 @@ export default function SessionAnalysis({ workout = null, activity = null, dista
         <p className="mb-3 text-xs text-ink/65">Select a split or lap, or set a time range below. Each channel uses its own vertical scale.</p>
         {chartTracks.filter(([key]) => chartPoints.some(p => p[key] != null)).map(([key, label, color]) => {
           const visible = chartPoints.filter(p => p.t >= start && p.t <= end);
-          let low = Infinity, high = -Infinity;
-          for (const p of visible) if (p[key] != null) { low = Math.min(low, p[key]); high = Math.max(high, p[key]); }
+          const { low, high, clipped } = chartDomain(visible, key);
           // Render at most ~1200 points per channel; calculations use all samples.
           const stride = Math.max(1, Math.ceil(visible.length / 1200));
           let path = '', connected = false;
@@ -72,22 +71,28 @@ export default function SessionAnalysis({ workout = null, activity = null, dista
             if (p[key] == null || i > 0 && p.t - visible[i - 1].t > 30) connected = false;
             if (p[key] == null || i % stride !== 0 && i !== visible.length - 1) return;
             const x = (p.t - start) / Math.max(1, end - start) * 800;
-            const scaled = (p[key] - low) / Math.max(1, high - low) * 60;
+            const scaled = (Math.max(low, Math.min(high, p[key])) - low) / (high - low) * 60;
             const y = key === 'pace' ? 10 + scaled : 70 - scaled;
             path += `${connected ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)} `; connected = true;
           });
           return <div key={key} className="border-b border-ink/10 py-2">
             <div className="flex flex-wrap justify-between gap-1 text-xs"><strong style={{ color }}>{label}</strong><span>{channelValue(key, selected?.[key])} · range {channelValue(key, Number.isFinite(low) ? low : null)}–{channelValue(key, Number.isFinite(high) ? high : null)}</span></div>
-            <svg role="img" aria-label={`${label} over elapsed time`} viewBox="0 0 800 80" className="h-20 w-full" preserveAspectRatio="none" onPointerMove={event => {
+            <div className="flex">
+            <div aria-label={`${label} Y axis`} className="relative h-20 w-24 shrink-0 text-right text-[10px] tabular-nums text-ink/70">
+              {[0, 0.5, 1].map(fraction => <span key={fraction} className="absolute right-2 -translate-y-1/2 whitespace-nowrap" style={{ top: `${10 + fraction * 60}px` }}>{channelValue(key, key === 'pace' ? low + fraction * (high - low) : high - fraction * (high - low))}</span>)}
+            </div>
+            <svg role="img" aria-label={`${label} over elapsed time`} viewBox="0 0 800 80" className="h-20 min-w-0 flex-1" preserveAspectRatio="none" onPointerMove={event => {
               const rect = event.currentTarget.getBoundingClientRect(); const t = start + (event.clientX - rect.left) / rect.width * (end - start);
               let lo = 0, hi = points.length - 1; while (lo < hi) { const mid = (lo + hi) >> 1; if (points[mid].t < t) lo = mid + 1; else hi = mid; } setCursor(lo);
             }}>
               <path d="M0 70H800 M0 40H800 M0 10H800" stroke="#e5e7eb" fill="none"/><path d={path} stroke={color} strokeWidth="1.7" fill="none" vectorEffect="non-scaling-stroke"/>
               {selected && selected.t >= start && selected.t <= end && <line x1={(selected.t - start) / Math.max(1, end - start) * 800} x2={(selected.t - start) / Math.max(1, end - start) * 800} y1="0" y2="80" stroke="#334155" strokeDasharray="3 3"/>}
             </svg>
+            </div>
+            {clipped && <p className="text-xs text-ink/60">Slower pace samples sit at the lower edge. Inspect the recording for their exact values; averages include them.</p>}
           </div>;
         })}
-        <div className="mt-1 flex justify-between text-xs tabular-nums"><span>{clock(start)}</span><span>Elapsed time</span><span>{clock(end)}</span></div>
+        <div className="ml-24 mt-1 flex justify-between text-xs tabular-nums"><span>{clock(start)}</span><span>Elapsed time</span><span>{clock(end)}</span></div>
         <label className="mt-3 block text-xs">Inspect recording at {clock(selected?.t)}<input aria-label="Inspect recording" type="range" min="0" max={points.length - 1} value={cursor} onChange={e => setCursor(Number(e.target.value))} className="block min-h-11 w-full"/></label>
         <div className="grid grid-cols-2 gap-3">
           <label className="text-sm">Start (seconds)<input aria-label="Analysis start seconds" type="number" min={first} max={end - 1} value={Math.round(start)} onChange={e => { if (e.target.value !== '') setRange([Math.max(first, Math.min(end - 1, Number(e.target.value))), end]); }} className="mt-1 min-h-11 w-full rounded border p-2"/></label>

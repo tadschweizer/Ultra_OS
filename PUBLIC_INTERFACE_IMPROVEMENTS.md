@@ -89,3 +89,11 @@ branch's hosted CI and preview build run again after pushing the merge.
 Implementation and local verification do not establish deployed behavior, physical-phone acceptance, or screen-reader usability with actual assistive technology. No production deployment or service change was authorized by this work. Real invited-athlete, mailbox/provider and participant gates remain open.
 
 The test-managed local servers completed and stopped normally. Automatic approval review subsequently blocked a persistent local preview-server launch without a more specific reason. Verified screenshots remain available under `webapp/output/public-interface/`.
+
+### October 27 conflict reconciliation
+
+Merged current main e3c50db into PR #146 in an isolated local D: checkout. The only manual conflict was the roadmap header: retain both the deployed chart refinement and the pending public-interface work. Chart implementation and tests remain identical to main; no additional application behavior was changed.
+
+On Node 22.23.4, the merged tree passed 505 regression tests, four integration availability checks, the production build using loopback placeholders, and all 18 public-interface/session-analysis browser checks on desktop and mobile Chromium. Logs are retained locally in webapp/review-regression.log, review-integrations.log, review-build.log and review-browser-open-access.log.
+
+An initial browser run against a build without the early-access build flag passed 14 checks and failed four open-access copy expectations. Rerunning with the suite's intended local open-access configuration passed all 18; no source change was needed. Hosted exact-head checks run after the branch push. No production deployment or remote migration was performed.

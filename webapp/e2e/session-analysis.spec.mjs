@@ -25,6 +25,9 @@ test('unassigned session: charts, split selection, laps, keyboard inspection and
   const panel = page.getByRole('region', { name: 'Workout analysis' });
   await expect(panel.getByText('Session timeline', { exact: true })).toBeVisible();
   await expect(panel.getByRole('img')).toHaveCount(5);
+  await expect(panel.getByLabel('Cadence Y axis')).toContainText('170 spm');
+  await expect(panel.getByLabel('Pace Y axis')).toContainText('/mi');
+  await expect(panel.getByLabel('Heart rate Y axis')).toContainText('bpm');
   await panel.getByRole('button', { name: 'Analyze split 1', exact: true }).click();
   await expect(panel.getByLabel('Selected range statistics')).toContainText('Selected range');
   await panel.getByRole('button', { name: 'Recorded laps', exact: true }).click();

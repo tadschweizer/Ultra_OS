@@ -2,6 +2,22 @@
 // default physiological thresholds. Gaps over 30 seconds are unobserved.
 export const numberOrNull = value => value == null || value === '' || !Number.isFinite(Number(value)) ? null : Number(value);
 const channels = { hr: 'heartrate', power: 'watts', cadence: 'cadence', elevation: 'altitude', speed: 'velocity_smooth', distance: 'distance' };
+export function chartDomain(points, key) {
+  const values = points.map(p => p[key]).filter(Number.isFinite).sort((a, b) => a - b);
+  if (!values.length) return { low: 0, high: 1, clipped: false };
+  let low = values[0], high = values.at(-1);
+  // Pace is seconds/km. Ignore near-stationary readings when choosing the
+  // viewport, but retain them for inspection and all recorded-time statistics.
+  if (key === 'pace') {
+    const moving = values.filter(v => v > 0 && v <= 1200);
+    if (moving.length) {
+      low = moving[0];
+      high = Math.min(high, Math.max(low + 60, moving[Math.floor((moving.length - 1) * 0.9)] * 1.25));
+    }
+  }
+  if (low === high) { const padding = Math.max(1, Math.abs(low) * 0.05); low -= padding; high += padding; }
+  return { low, high, clipped: values.at(-1) > high };
+}
 export function sessionPoints(streams = {}) {
   const times = streams.time?.data;
   if (!Array.isArray(times)) return [];
