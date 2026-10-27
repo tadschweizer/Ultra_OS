@@ -1531,8 +1531,12 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
   const rangeEnd = toDateKey(addDays(anchorMonday, futureWeeks * 7 + 6));
   const todayKey = toDateKey(today || new Date());
   const athleteParam = athleteId ? `&athlete_id=${encodeURIComponent(athleteId)}` : '';
+  const reloadVersion = useRef(0);
+  const saveNoticeVersion = useRef(0);
+  const [saveNotice, setSaveNotice] = useState('');
 
   const reload = useCallback(async () => {
+    const version = ++reloadVersion.current;
     setError('');
     try {
       const [workoutsRes, notesRes, eventsRes] = await Promise.all([
@@ -1540,22 +1544,24 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
         request(`/api/calendar-notes?start=${rangeStart}&end=${rangeEnd}${athleteParam}`),
         role === 'athlete' ? request('/api/race-events') : Promise.resolve(null),
       ]);
+      if (version !== reloadVersion.current) return;
       if (!workoutsRes.ok) {
         const d = await workoutsRes.json().catch(() => ({}));
-        setError(d.error || 'Could not load the training calendar.');
+        if (version === reloadVersion.current) setError(d.error || 'Could not load the training calendar.');
         return;
       }
       const workoutsData = await workoutsRes.json();
+      const notesData = notesRes?.ok ? await notesRes.json() : null;
+      const eventsData = eventsRes?.ok ? await eventsRes.json() : null;
+      if (version !== reloadVersion.current) return;
       setWorkouts(workoutsData.workouts || []);
       setActivities(workoutsData.activities || []);
       setStravaConnected(workoutsData.import_source?.strava_connected !== false);
       setMatchActivities(workoutsData.match_activities || []);
-      if (notesRes?.ok) {
-        const notesData = await notesRes.json();
+      if (notesData) {
         setNotes(notesData.notes || []);
       }
-      if (eventsRes?.ok) {
-        const eventsData = await eventsRes.json();
+      if (eventsData) {
         setEvents(eventsData.events || []);
       }
       // Refresh shared load headers after actuals change; a failed refresh does
@@ -1563,16 +1569,36 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
       if (role === 'athlete') void refreshAccount?.();
       return workoutsData;
     } catch {
-      setError('Could not load the training calendar.');
+      if (version === reloadVersion.current) setError('Could not load the training calendar.');
     } finally {
-      setLoading(false);
-      setLoadingEarlier(false);
-      extendingRef.current = false;
+      if (version === reloadVersion.current) {
+        setLoading(false);
+        setLoadingEarlier(false);
+        extendingRef.current = false;
+      }
     }
   }, [rangeStart, rangeEnd, athleteParam, role, request, refreshAccount]);
 
   useEffect(() => {
     reload();
+    return () => { ++reloadVersion.current; };
+  }, [reload]);
+
+  useEffect(() => {
+    ++saveNoticeVersion.current;
+    setSaveNotice('');
+    return () => { ++saveNoticeVersion.current; };
+  }, [athleteId, role]);
+
+  const refreshSavedCalendar = useCallback(async () => {
+    const version = ++saveNoticeVersion.current;
+    setSaveNotice('refreshing');
+    const readVersion = reloadVersion.current + 1;
+    const refreshed = await reload();
+    if (version === saveNoticeVersion.current) {
+      // A newer range/read supersedes this one; the write still succeeded.
+      setSaveNotice(refreshed || readVersion !== reloadVersion.current ? 'saved' : 'refreshFailed');
+    }
   }, [reload]);
 
   // Distance-unit preference — new workouts default to it (per-workout choice
@@ -1677,9 +1703,17 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
     const result = await calendarMutation('/api/planned-workouts', {
       method: form.id ? 'PATCH' : 'POST', body: { ...form, athlete_id: athleteId || undefined },
     });
-    if (result.ok) {if(adjustmentOrigin)setAdjustmentSavedFor(adjustmentOrigin);await reload();}
+    if (result.ok) {
+      if (adjustmentOrigin) setAdjustmentSavedFor(adjustmentOrigin);
+      if (result.workout?.id) {
+        setWorkouts(previous => [...previous.filter(workout => workout.id !== result.workout.id), result.workout]);
+      }
+      // The write is acknowledged. A slow or failed read must not keep the
+      // editor in "Saving" or encourage submitting that write a second time.
+      void refreshSavedCalendar();
+    }
     return result;
-  }, [athleteId, reload, calendarMutation,adjustmentOrigin]);
+  }, [athleteId, refreshSavedCalendar, calendarMutation,adjustmentOrigin]);
 
   const updateWorkout = useCallback(async (id, updates) => {
     const result = await calendarMutation('/api/planned-workouts', { method: 'PATCH', body: { id, ...updates } });
@@ -1971,6 +2005,10 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
         </div>
       </div>
 
+      {saveNotice && <div role="status" className="mt-3 text-sm text-ink">
+        {saveNotice === 'refreshing' ? 'Workout saved. Refreshing calendar…' : saveNotice === 'refreshFailed' ? 'Workout saved. Calendar refresh failed; you do not need to save again.' : 'Workout saved.'}
+        {saveNotice === 'refreshFailed' && <button type="button" className="ml-2 min-h-11 underline" onClick={refreshSavedCalendar}>Refresh saved calendar</button>}
+      </div>}
       {error && <p role="alert" className="mt-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>}
       {role==='coach'&&(libraryCreate.pending||libraryCreate.error)&&(
         <div className="mt-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-ink">

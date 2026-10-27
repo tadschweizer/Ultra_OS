@@ -43,7 +43,7 @@ async function setup(page, { coach = false } = {}) {
           if(state.completionLoad)state.loadMetrics=state.completionLoad;
           if(state.loseNextResponse) {state.loseNextResponse=false;await route.abort('failed');return;}
         }
-        else { const workout = { ...body, id: 'new-workout' }; state.workouts.push(workout); data = { workout }; }
+        else { const workout = { ...body, id: `new-workout-${state.writes.length}` }; state.workouts.push(workout); data = { workout }; }
       }
     }
     if (url.pathname === '/api/coach/messages') {
@@ -59,6 +59,10 @@ async function setup(page, { coach = false } = {}) {
     if (url.pathname === '/api/message-center') {
       if (request.method() === 'POST') { state.acknowledgements.push(request.postDataJSON()); data={success:true}; }
       else data={has_messaging:true,role:coach?'coach':'athlete',unread_total:1,workout_threads:[],conversations:[{athlete_id:athleteId,name:'First athlete',unread:1}]};
+    }
+    if (url.pathname === '/api/planned-workouts' && request.method() === 'GET' && state.writes.length) {
+      if (state.refreshGate) await state.refreshGate;
+      if (state.refreshFails) { status = 503; data = { error: 'Calendar refresh unavailable.' }; }
     }
     await route.fulfill({ status, contentType:'application/json', body:JSON.stringify(data) });
   });
@@ -101,6 +105,69 @@ test('athlete can log an unplanned workout from the mobile entry point', async (
   await expect(dialog).not.toBeVisible();
   expect(state.writes[0].status).toBe('completed'); expect(state.writes[0].completed_duration_min).toBe(18);
   expect(state.writes[0].planned_duration_min).toBeNull();
+});
+
+for (const coach of [false, true]) test(`confirmed workout save closes promptly and failed refresh retries only the read (${coach ? 'coach' : 'athlete'})`, async ({ page }, info) => {
+  const state = await setup(page, { coach });
+  await page.goto(coach ? `/coach/training-calendar?athlete=${athleteId}` : '/calendar?log=1');
+  if (coach) await page.getByRole('button', { name: '+ Plan workout', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Workout editor' });
+  await dialog.getByLabel('Workout title', { exact: true }).fill('Saved afternoon walk');
+  if (!coach) await dialog.getByLabel('Actual duration (min)', { exact: true }).fill('18');
+  const save = dialog.getByRole('button', { name: coach ? 'Save workout' : 'Save completed workout', exact: true });
+  state.fail = true;
+  await save.click();
+  await expect(dialog.getByText('Save unavailable. Please retry.', { exact: true })).toBeVisible();
+  await expect(dialog.getByLabel('Workout title', { exact: true })).toHaveValue('Saved afternoon walk');
+  state.fail = false;
+  let releaseRefresh;
+  state.refreshGate = new Promise(resolve => { releaseRefresh = resolve; });
+  state.refreshFails = true;
+  try {
+    await save.click();
+    await expect(dialog).not.toBeVisible();
+    await expect(page.getByRole('status').filter({ hasText: 'Workout saved. Refreshing calendar' })).toBeVisible();
+    await expect(page.getByText(/Saved afternoon walk/)).toBeVisible();
+  } finally { releaseRefresh(); }
+  await expect(page.getByRole('status').filter({ hasText: 'Workout saved. Calendar refresh failed' })).toBeVisible();
+  expect(state.writes).toHaveLength(2);
+  expect(state.workouts).toHaveLength(2);
+  await page.getByRole('button', { name: 'Refresh saved calendar' }).scrollIntoViewIfNeeded();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: `../output/workout-save-refresh-${coach ? 'coach' : 'athlete'}-${info.project.name}.png` });
+  state.refreshFails = false;
+  await page.getByRole('button', { name: 'Refresh saved calendar' }).click();
+  await expect(page.getByRole('status').filter({ hasText: /^Workout saved\.$/ })).toBeVisible();
+  expect(state.writes).toHaveLength(2);
+});
+
+test('an older background refresh cannot replace a newer saved calendar', async ({ page }) => {
+  const state = await setup(page, { coach: true });
+  await page.goto(`/coach/training-calendar?athlete=${athleteId}`);
+  const dialog = page.getByRole('dialog', { name: 'Workout editor' });
+  async function assign(title) {
+    await page.getByRole('button', { name: '+ Plan workout', exact: true }).click();
+    await dialog.getByLabel('Workout title', { exact: true }).fill(title);
+    await dialog.getByRole('button', { name: 'Save workout', exact: true }).click();
+    await expect(dialog).not.toBeVisible();
+  }
+  let releaseRefresh;
+  state.refreshGate = new Promise(resolve => { releaseRefresh = resolve; });
+  const firstRefresh = page.waitForRequest(request => request.url().includes('/api/planned-workouts?') && request.method() === 'GET');
+  try {
+    await assign('First saved session');
+    await firstRefresh;
+    state.refreshGate = null;
+    await assign('Second saved session');
+    await expect(page.getByRole('status').filter({ hasText: /^Workout saved\.$/ })).toBeVisible();
+    const olderResponse = page.waitForResponse(response => response.url().includes('/api/planned-workouts?'));
+    releaseRefresh();
+    await olderResponse;
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    await expect(page.getByText('First saved session', { exact: true })).toBeVisible();
+    await expect(page.getByText('Second saved session', { exact: true })).toBeVisible();
+    expect(state.writes).toHaveLength(2);
+  } finally { releaseRefresh(); }
 });
 
 test('recipient drafts stay separate and failed retries reuse the same message identity', async ({ page }) => {
