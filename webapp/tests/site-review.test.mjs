@@ -28,10 +28,10 @@ beforeEach(async()=>{await pg.exec('reset role; truncate site_review_notes casca
 function fixture(actor=owner, version=1) {
   const calls=[];
   const client={from(table){
-    calls.push(table);const filters=[];const values=[];
-    const q={select(){return this;},eq(k,v){filters.push(`${k}=$${values.push(v)}`);return this;},order(){return this;},limit(){return this;},
+    calls.push(table);const filters=[];const values=[];let fields,insert,update;
+    const q={select(v){fields=v;return this;},upsert(v){insert=v;return this;},update(v){update=v;return this;},eq(k,v){filters.push(`${k}=$${values.push(v)}`);return this;},order(){return this;},limit(){return this;},
       async execute(single){
-        try {const result=await pg.query(`select * from ${table}${filters.length?' where '+filters.join(' and '):''}`,values);return {data:single?result.rows[0]||null:result.rows};}catch(error){return {error};}
+        try {if(insert){await pg.query("insert into site_review_notes(id,athlete_id,pathname,element,viewport,note) values($1,$2,$3,$4,$5,$6) on conflict(id) do nothing",[insert.id,insert.athlete_id,insert.pathname,insert.element,insert.viewport,insert.note]);return {data:null};} if(update){const result=await pg.query("update site_review_notes set status=$1 where id=$2 and athlete_id=$3 returning *",[update.status,...values]);return {data:result.rows[0]||null};} const result=await pg.query(`select ${table === "site_reviewers" ? fields : "*"} from ${table}${filters.length?' where '+filters.join(' and '):''}`,values);return {data:single?result.rows[0]||null:result.rows};}catch(error){return {error};}
       },maybeSingle(){return this.execute(true);},then(resolve,reject){return this.execute(false).then(resolve,reject);}};return q;
   },async rpc(name,args){
     calls.push(name);
@@ -134,4 +134,24 @@ test('review-only provisioning requires the corrected exact verified identity an
   await pg.query('update auth.users set email_confirmed_at=now() where id=$1',[beth]);await pg.exec(script);
   assert.equal((await pg.query('select role from site_reviewers where athlete_id=$1',[beth])).rows[0].role,'contributor');
   assert.equal((await pg.query('select * from site_reviewers where athlete_id=$1',[other])).rows.length,0);
+});
+
+test('pre-migration schema retains existing reviewer button, private notes and retry-safe saves without new grants',async()=>{
+  const modern=pg;pg=new PGlite();
+  try {
+    await pg.exec('create role anon; create role authenticated; create role service_role bypassrls; create table athletes(id uuid primary key,session_version integer default 1);');
+    await pg.exec(readFileSync(new URL('../supabase/migrations/20261016195233_private_site_review.sql',import.meta.url),'utf8'));
+    await pg.exec(`insert into athletes(id) values('${owner}'),('${beth}'),('${other}'); insert into site_reviewers values('${owner}'),('${beth}');`);
+    const access=await fixture(owner).invoke('GET',{}, {},{access:'1'});assert.equal(access.code,200);assert.equal(access.body.enabled,true);assert.equal(access.body.legacy,true);assert.equal(access.body.canManage,false);
+    for(let i=0;i<2;i++) assert.equal((await fixture(owner).invoke('POST',submission)).code,200);
+    assert.equal((await fixture(owner).invoke('POST',{...submission,note:'Changed replay'})).code,409);
+    assert.equal((await fixture(owner).invoke('POST',submission)).code,200);
+    assert.equal((await fixture(owner).invoke()).body.notes.length,1);assert.equal((await fixture(beth).invoke()).body.notes.length,0);
+    assert.equal((await fixture(other).invoke()).code,403);
+    assert.equal((await fixture(beth).invoke('PATCH',{id,status:'resolved'})).code,404);
+    assert.equal((await fixture(owner).invoke('PATCH',{id,status:'resolved'})).code,200);
+    assert.equal((await fixture(owner).invoke('PATCH',transition(1,'approved'))).code,400);
+    assert.equal((await pg.query('select * from site_review_notes')).rows.length,1);
+    assert.equal((await pg.query('select * from site_reviewers')).rows.length,2);
+  } finally {await pg.close();pg=modern;}
 });

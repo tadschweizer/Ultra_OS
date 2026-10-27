@@ -1,21 +1,21 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-async function setup(page,{enabled=true,owner=true}={}) {
+async function setup(page,{enabled=true,owner=true,legacy=false}={}) {
   const state={notes:[],submissions:[],failSave:true,failLoad:false,reads:0};
   await page.route('**/api/**',async route=>{
     const req=route.request(),url=new URL(req.url());let status=200,body={};
     if(url.pathname==='/api/me')status=401;
     if(url.pathname==='/api/site-review') {
       if(!enabled){status=403;body={error:'Not permitted'};}
-      else if(url.searchParams.has('access'))body={enabled:true,canManage:owner,actor:owner?'owner':'beth'};
+      else if(url.searchParams.has('access'))body={enabled:true,canManage:owner&&!legacy,legacy,actor:owner?'owner':'beth'};
       else if(req.method()==='GET'){
         state.reads++; if(state.loadDelay) await new Promise(resolve=>setTimeout(resolve,state.loadDelay));
         if(state.failLoad){status=503;body={error:'Temporary load failure'};}
-        else body={notes:state.notes,canManage:owner,actor:owner?'owner':'beth'};
+        else body={notes:state.notes,canManage:owner&&!legacy,legacy,actor:owner?'owner':'beth'};
       } else if(req.method()==='POST') {
         const draft=req.postDataJSON();const original=state.submissions.find(s=>s.id===draft.id);state.submissions.push(draft);
         // Persist before a lost response to exercise exactly the same retry UUID.
-        if(!state.notes.some(n=>n.id===draft.id))state.notes.push({...draft,athlete_id:owner?'owner':'beth',submitter:{display_name:owner?'Tad':'Beth'},version:1,status:'pending_review',created_at:new Date().toISOString(),history:[]});
+        if(!state.notes.some(n=>n.id===draft.id))state.notes.push({...draft,athlete_id:owner?'owner':'beth',submitter:{display_name:owner?'Tad':'Beth'},version:1,status:legacy?'open':'pending_review',created_at:new Date().toISOString(),history:[]});
         if(state.failSave){state.failSave=false;status=503;body={error:'Temporary save failure. Please retry.'};}
         else body={saved:true};if(original && JSON.stringify(original)!==JSON.stringify(draft)){status=409;body={error:'Changed replay conflicts with the original submission.'};}
       } else {
@@ -80,4 +80,15 @@ test('uncertain submission locks edits and discard until exact replay, then adds
   await page.getByLabel('Add an update').fill('Additional detail after confirmation');await page.getByRole('button',{name:'Save update',exact:true}).click();
   expect(state.notes).toHaveLength(1);expect(state.notes[0].note).toBe('Original feedback');expect(state.notes[0].history).toHaveLength(1);
   await page.getByText('Updates and history',{exact:true}).click();await expect(page.getByText('Additional detail after confirmation',{exact:true})).toBeVisible();
+});
+
+test('existing reviewer keeps feedback controls when the approval migration is not released',async({page})=>{
+  const state=await setup(page,{legacy:true});await open(page);
+  await expect(page.getByText('Your private site notes.',{exact:false})).toBeVisible();
+  await page.getByRole('button',{name:'General page note'}).click();await page.getByLabel('What would you like changed, or what went wrong?').fill('Existing private feedback');
+  await page.getByRole('button',{name:'Save note',exact:true}).click();await page.getByRole('button',{name:'Retry submission',exact:true}).click();
+  await expect(page.getByText('Existing private feedback',{exact:true})).toBeVisible();expect(state.notes).toHaveLength(1);
+  await expect(page.getByRole('button',{name:'Approve task'})).toHaveCount(0);await expect(page.getByLabel('Add an update')).toHaveCount(0);
+  await page.getByRole('button',{name:'Mark resolved',exact:true}).click();await page.getByLabel('Filter review notes').selectOption('resolved');await expect(page.getByRole('button',{name:'Reopen',exact:true})).toBeVisible();
+  await page.reload();await page.getByRole('button',{name:'Leave feedback',exact:true}).click();await page.getByLabel('Filter review notes').selectOption('all');await expect(page.getByText('Existing private feedback',{exact:true})).toBeVisible();
 });
