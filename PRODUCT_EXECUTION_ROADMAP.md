@@ -2,8 +2,8 @@
 
 Last updated: 2026-10-27<br>
 Status: Athlete onboarding simplification deployed through PR #144 / merge 59e0667, Vercel dpl_4fbgop93jzn2LDJa9mv2MMsVwo8i READY on both domains; see ATHLETE_ONBOARDING_SIMPLIFICATION.md. Copy week destination picker released through PR #142 / merge 72e4ce5, Vercel dpl_F85PBT7KHehZze8RwKeUhXDHZD79 READY on both production domains. Weekly planning and coach/athlete review workflow deployed with owner authorization on mythreshold.co and www.mythreshold.co, PR #141 / main 0415ffe, Vercel dpl_EV67hYZtVjzAx4wRc7pVLEfe6BFG READY. Migration 20261017012725 applied; do not replay local 20261017003222. See WEEKLY_COACHING_RELEASE_2026-10-16.md. Owner review mode and prior security controls remain deployed.<br>
-Current milestone: M0 — athlete attention navigation locally verified in 1e140b9, awaiting draft review/release. Suggested-match analysis PR #148 and email availability PR #149 have passing checks and await review; deployed coaching/analysis releases and separate human gates remain in place. Public-interface PR #146 merged into main as d10d95b; deployment status was not reverified here.<br>
-Next item: Review the focused athlete attention navigation change, PR #148 and PR #149 separately. Verify real confirmed-assigned and linked-coach recording acceptance, then fresh invited-athlete/provider/physical-phone journeys. Preserve mailbox/participant gates; no production release authorized by local verification.
+Current milestone: M0 — athlete attention navigation locally verified in 1e140b9, awaiting draft review/release. Suggested-match PR #148 merged into main as c42aab6; email availability PR #149 awaits review; deployed coaching/analysis releases and separate human gates remain in place. Public-interface PR #146 merged into main as d10d95b; deployment status was not reverified here.<br>
+Next item: Review athlete attention navigation PR #150 and notification availability PR #149 separately. Verify real confirmed-assigned and linked-coach recording acceptance, then fresh invited-athlete/provider/physical-phone journeys. Preserve mailbox/participant gates; no production release authorized by local verification.
 
 ## Purpose
 
@@ -1152,6 +1152,17 @@ October 20 release verified: PR #147 merged as 34a3851d2d80d41874f7cf308a537176f
 - This review does not authorize merging PRs, production deployment or remote database changes.
 - Local merge verification on Node 22.23.4: 505 regression tests, four integration checks, production build, and 18 desktop/mobile public-interface/session-analysis browser checks passed. Exact remote-head CI is checked after pushing the merge; real-participant acceptance is unchanged.
 
+### October 21 — Suggested completion analysis clarification (local)
+
+- Implementation commit `1b3b87d`, based on current main `e3c50db`. A calendar suggestion can decorate an unsaved plan as completed, but analysis correctly requires a persisted completion. The detail view now explains activity confirmation, does not mount/request completed-workout analysis for suggestions, and labels the displayed result Suggested completion. Athlete confirmation uses the existing service; coaches receive guidance without new permissions.
+- Reproduction: new suggested-match browser regression failed before the fix. Afterward, all 10 analysis browser checks passed on desktop and 390px mobile, including reload, no premature analysis requests, athlete confirmation → analysis, coach guidance, manual completion and unassigned recordings. A final four-case rerun passed with no dialog overflow; desktop/mobile screenshots inspected.
+- Node 22.23.3: full regression 505/505 passed; production build passed with loopback-only Supabase configuration; whitespace check passed. Impeccable detector returned zero findings. Evidence: `SUGGESTED_MATCH_ANALYSIS_VERIFICATION.md`.
+- No API authorization, matching algorithm, database, provider configuration or production data changes. This is local verification and draft review preparation, not production or physical-phone acceptance. No parent acceptance gate closed.
+
+### October 27 — Current-main conflict reconciliation for PR #148
+
+Main advanced to d10d95b after PR #146 merged. Retained both roadmap workstreams; only the roadmap conflicted and application files merged cleanly. No release or remote migration was performed. Local combined tree passed 505 full regression tests and all 10 desktop/mobile session-analysis checks. Logs: webapp/review-148-regression.log and review-148-browser.log. Full build and critical acceptance are verified by exact-head CI after pushing.
+
 ### October 23 — Athlete attention navigation (local)
 
 - Implementation `1e140b9`, base main `e3c50db`. Daily coaching-question selections previously opened a protocol-focused drawer. They now use native athlete-review links. Attention cards and full-roster athlete names also link to the existing review page; background card/row clicks no longer open assignment. An explicit Assign protocol action retains the existing drawer in both views. Protocol-empty guidance now names that action.
@@ -1162,3 +1173,7 @@ October 20 release verified: PR #147 merged as 34a3851d2d80d41874f7cf308a537176f
 ### October 27 — Current-main conflict reconciliation for PR #150
 
 Main advanced to d10d95b after PR #146 merged. Retained both roadmap workstreams; only the roadmap conflicted and application files merged cleanly. No release or remote migration was performed. Local combined tree passed 505 full regression tests and all 16 desktop/mobile pilot UX and coach navigation checks. Logs: webapp/review-150-regression.log and review-150-browser.log. Full build and critical acceptance are verified by exact-head CI after pushing.
+
+### October 27 — Reconcile PR #150 with merged suggested-match work
+
+Main advanced again to c42aab6 after PR #148 merged by another action. Both roadmap histories are retained; application changes merged automatically. Combined tree passed 505 regression tests and 26 desktop/mobile pilot-navigation and session-analysis checks. Exact-head CI is checked after pushing. No PR merge or production action was performed by this task.
