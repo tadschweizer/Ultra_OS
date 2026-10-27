@@ -1,7 +1,8 @@
+import { athleteAccessMessage, athleteOpenAccess } from '../lib/athleteAccessPolicy';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { createClient } from '@supabase/supabase-js';
-import NavMenu from '../components/NavMenu';
+import PublicHeader from '../components/PublicHeader';
 import PasswordField from '../components/PasswordField';
 import { validatePassword } from '../lib/auth/contracts.js';
 import { buildOnboardingPath, isCoachInvitationPath, safePostAuthPath } from '../lib/auth/redirects.js';
@@ -18,17 +19,17 @@ const ROLE_OPTIONS = [
   {
     id: 'coach',
     label: "I'm a coach",
-    description: 'Manage athletes, assign protocols, and run your roster from the Command Center.',
+    description: 'Plan training, review completed sessions, and give your athletes feedback.',
   },
   {
     id: 'athlete-with-coach',
     label: "I'm an athlete joining a coach",
-    description: 'Connect to your coach with their coach code so they see what you log.',
+    description: 'Accept your coach’s invitation or enter their code to share training and feedback.',
   },
   {
     id: 'individual',
     label: "I'm an individual athlete",
-    description: 'Self-coached. Log interventions and learn from your own data.',
+    description: 'Plan your own training, record workouts, and review your progress.',
   },
 ];
 
@@ -125,7 +126,7 @@ export default function SignupPage() {
         ? nextPath
         : buildOnboardingPath(nextPath);
     } catch {
-      setError('Something went wrong. Please try again.');
+      setError('Could not connect to Threshold. Check your connection and try again. Your entries are still here.');
       setLoading(false);
     }
   }
@@ -164,98 +165,86 @@ export default function SignupPage() {
     }
   }
 
-  if (checking) return null;
+  if (checking) return <main className="public-site min-h-screen bg-paper text-ink"><PublicHeader /><p role="status" className="mx-auto max-w-md px-4 py-10">Checking your session…</p></main>;
 
   return (
     <main className="min-h-screen bg-paper text-ink">
-      <div className="sticky top-0 z-50 px-4 pt-4">
-        <div className="mx-auto max-w-6xl">
-          <div className="flex items-center justify-between rounded-full border border-ink/10 bg-white/80 px-4 py-3 shadow-sm backdrop-blur">
-            <a href="/" className="text-xs font-semibold uppercase tracking-[0.35em] text-accent">Threshold</a>
-            <NavMenu
-              label="Signup navigation"
-              links={[
-                { href: '/guide', label: 'How It Works' },
-                { href: '/content', label: 'Research' },
-                { href: '/pricing', label: 'Pricing' },
-              ]}
-              primaryLink={{ href: `/login?next=${encodeURIComponent(nextPath)}`, label: 'Log In' }}
-            />
-          </div>
-        </div>
-      </div>
+      <PublicHeader primaryLink={{ href: `/login?next=${encodeURIComponent(nextPath)}`, label: 'Log in' }} />
 
       <div className="mx-auto max-w-md px-4 py-16">
-        <div className="rounded-[32px] border border-ink/10 bg-white px-8 py-10 shadow-[0_8px_32px_rgba(19,24,22,0.07)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-accent">Free to start</p>
+        <div className="rounded-2xl border border-ink/10 bg-white px-5 py-7 sm:px-8">
           <h1 className="mt-3 text-3xl font-semibold text-ink">Create your account</h1>
-          <p className="mt-2 text-sm text-ink/55">
-            Already have an account? <a href={`/login?next=${encodeURIComponent(nextPath)}`} className="font-semibold text-accent hover:underline">Log in</a>
+          <p className="mt-2 text-sm text-ink/75">
+            Already have an account? <a href={`/login?next=${encodeURIComponent(nextPath)}`} className="font-semibold text-ink hover:underline">Log in</a>
           </p>
 
-          {isCoachInvitationPath(nextPath) ? <p className="mt-6 rounded-xl bg-paper p-4 text-sm leading-6">You’re creating an athlete account for your coach’s invitation. After signup, accept the invitation to connect.</p> : <div className="mt-6">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-ink/50">How will you use Threshold?</p>
+          {isCoachInvitationPath(nextPath) ? <p className="mt-6 rounded-xl bg-paper p-4 text-sm leading-6">You’re creating an athlete account for your coach’s invitation. After signup, accept the invitation to connect.</p> : <fieldset className="mt-6">
+            <legend className="mb-3 text-sm font-semibold text-ink">How will you use Threshold?</legend>
             <div className="space-y-2">
               {ROLE_OPTIONS
                 .filter((option) => !isCoachInvitationPath(nextPath) || option.id !== 'coach')
                 .map((option) => {
                 const active = role === option.id;
                 return (
-                  <button
+                  <label
                     key={option.id}
-                    type="button"
-                    onClick={() => selectRole(option.id)}
-                    className={`w-full rounded-[14px] border px-4 py-3 text-left transition ${
+                    className={`flex w-full cursor-pointer items-start gap-3 rounded-[14px] border px-4 py-3 text-left transition focus-within:ring-2 focus-within:ring-ink ${
                       active
                         ? 'border-accent bg-accent/8 ring-2 ring-accent/20'
                         : 'border-ink/12 bg-paper hover:border-ink/25'
                     }`}
                   >
-                    <p className={`text-sm font-semibold ${active ? 'text-accent' : 'text-ink'}`}>{option.label}</p>
-                    <p className="mt-0.5 text-xs leading-5 text-ink/55">{option.description}</p>
-                  </button>
+                    <input type="radio" name="signup-role" value={option.id} checked={active}
+                      onChange={() => selectRole(option.id)} aria-labelledby={`role-${option.id}-label`} aria-describedby={`role-${option.id}-description`} className="mt-1 h-4 w-4 shrink-0 accent-ink" />
+                    <span>
+                    <span id={`role-${option.id}-label`} className={`block text-sm font-semibold ${active ? 'text-ink' : 'text-ink'}`}>{option.label}</span>
+                    <span id={`role-${option.id}-description`} className="mt-1 block text-sm leading-5 text-ink/75">{option.description}</span>
+                    </span>
+                  </label>
                 );
               })}
             </div>
-          </div>}
+          </fieldset>}
 
           <div className="mt-5 rounded-[14px] border border-accent/20 bg-accent/8 px-4 py-3">
-            <p className="text-xs font-semibold text-accent">Free tier includes</p>
-            <p className="mt-1 text-xs leading-5 text-ink/65">
+            <p className="text-xs font-semibold text-ink">{role === 'coach' ? 'Coach pilot access' : athleteOpenAccess() ? 'Free athlete access' : 'Athlete access'}</p>
+            <p className="mt-1 text-sm leading-6 text-ink/80" aria-live="polite">
               {role === 'coach'
                 ? 'Create your coach account for the closed pilot. An administrator must approve pilot access separately. Choosing Coach does not activate a pilot or paid plan. No card is required for the pilot.'
-                : 'Free: 15 intervention logs and 3 check-ins per rolling seven days. An active relationship with an eligible pilot or paid coach includes daily check-ins, without other premium features. No card required.'}
+                : athleteAccessMessage()}
             </p>
           </div>
 
           {error ? (
-            <div className="mt-5 rounded-[14px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div role="alert" className="mt-5 rounded-[14px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {error}
             </div>
           ) : null}
 
           <form onSubmit={handleEmailSignup} className="mt-7 space-y-4">
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.2em] text-ink/50">Name</label>
+              <label htmlFor="signup-name" className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.2em] text-ink/75">Name</label>
               <input
+                id="signup-name"
                 type="text"
                 autoComplete="name"
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 placeholder="Your name"
-                className="w-full rounded-[14px] border border-ink/12 bg-paper px-4 py-3 text-sm text-ink placeholder-ink/30 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                className="w-full rounded-[14px] border border-ink/12 bg-paper px-4 py-3 text-base text-ink placeholder-ink/60 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.2em] text-ink/50">Email</label>
+              <label htmlFor="signup-email" className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.2em] text-ink/75">Email</label>
               <input
+                id="signup-email"
                 type="email"
                 required
                 autoComplete="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="you@example.com"
-                className="w-full rounded-[14px] border border-ink/12 bg-paper px-4 py-3 text-sm text-ink placeholder-ink/30 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                className="w-full rounded-[14px] border border-ink/12 bg-paper px-4 py-3 text-base text-ink placeholder-ink/60 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
               />
             </div>
             <PasswordField
@@ -275,7 +264,7 @@ export default function SignupPage() {
 
           <div className="my-6 flex items-center gap-3">
             <div className="h-px flex-1 bg-ink/8" />
-            <span className="text-xs text-ink/35">or sign up with</span>
+            <span className="text-xs text-ink/75">or sign up with</span>
             <div className="h-px flex-1 bg-ink/8" />
           </div>
 
