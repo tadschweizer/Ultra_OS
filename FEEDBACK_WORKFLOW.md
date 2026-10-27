@@ -41,3 +41,5 @@ The panel refreshes every 10 seconds while open and visible and on window focus.
 - PostgreSQL tests use local PGlite with synthetic local IDs. Browser API fixtures are simulations, not production acceptance.
 - Production build: `npm run build -- --webpack` passed (existing Sentry/React/middleware warnings). Default Turbopack startup/build stalled in this environment; the repository already uses webpack for isolated browser verification.
 - Official Supabase function/security documentation checked through docs search. Changelog markdown retrieval was unavailable; no dependency/API-version change was made.
+
+Draft PR: [#152](https://github.com/tadschweizer/Ultra_OS/pull/152). Implementation: 68b85f1; rebased-tree verification record: 6882ec1. All checks above passed locally against main 241b047 plus this feature. GitHub CI is separate and may still be pending. No merge or production action.
