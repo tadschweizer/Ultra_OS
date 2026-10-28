@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
-Last updated: 2026-10-27<br>
+Last updated: 2026-10-28<br>
 Status: Athlete onboarding simplification deployed through PR #144 / merge 59e0667, Vercel dpl_4fbgop93jzn2LDJa9mv2MMsVwo8i READY on both domains; see ATHLETE_ONBOARDING_SIMPLIFICATION.md. Copy week destination picker released through PR #142 / merge 72e4ce5, Vercel dpl_F85PBT7KHehZze8RwKeUhXDHZD79 READY on both production domains. Weekly planning and coach/athlete review workflow deployed with owner authorization on mythreshold.co and www.mythreshold.co, PR #141 / main 0415ffe, Vercel dpl_EV67hYZtVjzAx4wRc7pVLEfe6BFG READY. Migration 20261017012725 applied; do not replay local 20261017003222. See WEEKLY_COACHING_RELEASE_2026-10-16.md. Owner review mode and prior security controls remain deployed.<br>
-Current milestone: M0 - feedback workflow migration 20261027211954 and Tad owner access are live; repository reconciliation of append-only history permissions is under review (FEEDBACK_HISTORY_PERMISSIONS.md).<br>
-Next item: Review the feedback history permission reconciliation; do not replay hosted migrations. Beth must complete normal email verification before her contributor grant. Preserve existing participant acceptance gates.
+Current milestone: M0 — coaching calendar readability and sport distance comparisons locally verified in 095aa41; exact-head CI/review and production acceptance remain pending. Feedback history permissions are reconciled in merged PR #154; hosted migrations must not be replayed.<br>
+Next item: Complete exact-head checks/review for the focused calendar presentation change, release under the owner-authorized bounded feedback workflow, and verify actual live behavior. Resolve review-queue/import scope and shared-library questions separately. Preserve real participant, physical-phone, provider and mailbox acceptance; contributor access remains separately gated.
 
 
 ## Purpose
@@ -1232,3 +1232,9 @@ Verified external merge/deployment of PR #152 before the role-column migration. 
 ## Feedback history permission reconciliation - 2026-10-27
 
 Production default privileges reproduced locally; explicit service_role revocation now precedes SELECT/INSERT. All 13 focused PostgreSQL/API tests pass, including UPDATE/DELETE/TRUNCATE denial. Historical migration version mapping and non-destructive recovery constraints documented in FEEDBACK_HISTORY_PERMISSIONS.md. Review-only branch; no production action in this reconciliation.
+
+### October 28 — Coaching calendar readability and sport comparisons
+
+- Implementation 095aa41 from verified main 7c78f6d, branch codex/feedback-calendar-fixes. Workout titles wrap, workout detail no longer offers its raw export action, and weekly distance comparisons stay within each sport while duration can aggregate. The coach calendar identifies its selected athlete; the command center uses a functional heading, status-tinted triage cards and an aligned nudge link.
+- Local Node 22.23.4 verification: 516 regression tests; 62 desktop/mobile daily-flow and pilot-UX browser cases; production webpack build with loopback public placeholders; whitespace and design detector checks passed. Synthetic responsive captures inspected. Browser fixtures do not establish real participant acceptance.
+- Application presentation only: no schema, access, provider, billing, authentication or training-record mutations. Private request context stays outside Git. Exact-head hosted checks and independent automated review precede normal merge/deployment. Live results and owner final acceptance remain distinct.
