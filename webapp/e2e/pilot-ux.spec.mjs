@@ -129,6 +129,14 @@ test('coach calendar explains disconnected imports without hiding stored trainin
 
 const reviewRelationships = [{id:'rel-review',athlete_id:'runner-review',status:'active',athlete:{name:'Pilot Runner'},pendingReviews:1,alertLevel:'red',flagReasons:['Completed session awaits review'],flagSuggestion:'Review the completed session',daysSinceLog:1}];
 
+for (const [level, color] of [['green','emerald'],['yellow','amber'],['red','rose']]) test(`attention card preserves ${level} status with a matching tint`, async ({page}) => {
+  await mockAccount(page,{coach:true,relationships:[{...reviewRelationships[0],alertLevel:level}]});
+  await page.goto('/coach-command-center');
+  const card=page.getByRole('article',{name:'Pilot Runner attention summary'});
+  await expect(card).toHaveClass(new RegExp(`bg-${color}-50`));
+  await expect(card.getByRole('link',{name:'Review athlete',exact:true})).toBeVisible();
+});
+
 test('attention athlete selection opens review context with a keyboard-accessible link', async ({page})=>{
   await mockAccount(page,{coach:true,relationships:reviewRelationships});
   let drawerReads=0;page.on('request',request=>{if(new URL(request.url()).pathname==='/api/coach/notes')drawerReads++;});
@@ -146,6 +154,9 @@ test('attention athlete selection opens review context with a keyboard-accessibl
 test('triage review links and explicit protocol action stay separate',async({page},info)=>{
   await mockAccount(page,{coach:true,relationships:reviewRelationships});await page.goto('/coach-command-center');
   const card=page.getByRole('article',{name:'Pilot Runner attention summary'});
+  await expect(page.getByRole('heading',{level:1,name:'Coach command center',exact:true})).toBeVisible();
+  const nudge=card.getByRole('link',{name:'Send nudge',exact:true});
+  expect(await nudge.evaluate(el=>getComputedStyle(el).alignItems)).toBe('center');
   await expect(card.getByRole('link',{name:'Pilot Runner',exact:true})).toHaveAttribute('href','/coach/athletes/runner-review');
   await expect(card.getByRole('link',{name:'Review athlete',exact:true})).toHaveAttribute('href','/coach/athletes/runner-review');
   const rosterRow=page.getByRole('row').filter({hasText:'Pilot Runner'});

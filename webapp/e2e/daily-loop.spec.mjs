@@ -69,6 +69,30 @@ async function setup(page, { coach = false } = {}) {
   return state;
 }
 
+test('calendar keeps sport distances separate, wraps titles and identifies the selected athlete', async ({ page }, info) => {
+  const state = await setup(page, { coach: true });
+  const day = state.workouts[0].workout_date;
+  const title = 'Comfortable endurance ride with a deliberately long readable workout title';
+  state.workouts[0].title = title;
+  state.workouts.push({ ...state.workouts[0], id: 'bike-plan', title: 'Steady bike', sport: 'bike', planned_distance_km: 30 });
+  state.imported.push({ id: 'run-import', sport: 'run', sport_type: 'Run', local_date: day, moving_time: 1800, distance: 4000 });
+  await page.goto(`/coach/training-calendar?athlete=${athleteId}&week=${day}`);
+  await expect(page.getByRole('heading', { level: 1, name: 'First athlete', exact: true })).toBeVisible();
+  const distances = page.locator('[aria-label="Distances by sport"]:visible');
+  await expect(distances).toContainText('RUN distance');
+  await expect(distances).toContainText('BIKE distance');
+  const text = page.getByTitle(title, { exact: true });
+  await expect(text).toBeVisible();
+  expect(await text.evaluate(el => getComputedStyle(el).whiteSpace)).not.toBe('nowrap');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: `../output/calendar-readability-${info.project.name}.png`, fullPage: true });
+  await text.click();
+  const details = page.getByRole('dialog', { name: 'Workout details' });
+  await expect(details).toBeVisible();
+  await expect(details.getByRole('link', { name: 'Export JSON', exact: true })).toHaveCount(0);
+  await expect(details.getByRole('button', { name: 'Edit workout', exact: true })).toBeVisible();
+});
+
 test('completion keeps unknown actuals blank, recovers from failure, permits correction and undo', async ({ page }, info) => {
   const state = await setup(page); await page.goto('/calendar?workout=workout-1');
   const dialog = page.getByRole('dialog', { name:'Workout details' });
