@@ -12,6 +12,17 @@ export function summarizeCalendarWeek(days) {
   const actualDurationMin = planned.completedDurationMin + sumBy(imported, (activity) => activity.duration_min);
   const actualDistanceKm = planned.completedDistanceKm + sumBy(imported, (activity) => activity.distance_km);
   const actualLoad = summarizeActualTss(completedWorkouts, imported);
+  const distances = new Map();
+  const addDistance = (sport, plannedKm = 0, actualKm = 0) => {
+    const key = sport || 'other';
+    const row = distances.get(key) || { sport: key, plannedKm: 0, actualKm: 0 };
+    row.plannedKm += Number(plannedKm) || 0;
+    row.actualKm += Number(actualKm) || 0;
+    distances.set(key, row);
+  };
+  workouts.forEach(workout => addDistance(workout.sport, workout.planned_distance_km,
+    workout.status === 'completed' ? workout.completed_distance_km : 0));
+  imported.forEach(activity => addDistance(activity.sport, 0, activity.distance_km));
 
   // These fields are recorded on the activity, not duplicated onto the plan.
   // Identity deduplication also protects legacy rows or repeated references.
@@ -41,6 +52,8 @@ export function summarizeCalendarWeek(days) {
     importedActivityCount: imported.length,
     actualDurationMin,
     actualDistanceKm,
+    distanceSports: [...distances.values()].filter(row => row.plannedKm > 0 || row.actualKm > 0)
+      .sort((a, b) => a.sport.localeCompare(b.sport)),
     missingActualDurationCount: completedWorkouts.filter(w=>w.completed_duration_min==null).length+imported.filter(a=>a.duration_min==null).length,
     missingActualDistanceCount: completedWorkouts.filter(w=>w.completed_distance_km==null).length+imported.filter(a=>a.distance_km==null).length,
     actualTss: actualLoad.tss,

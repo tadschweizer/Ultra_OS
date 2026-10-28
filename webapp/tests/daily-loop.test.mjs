@@ -5,6 +5,21 @@ import { calendarMutation } from '../lib/calendarMutation.js';
 import { decorateWorkoutsWithCompliance } from '../lib/workoutCompliance.js';
 import { insertMessageOnce, loadMessagePage, parseMessageCursor } from '../lib/directMessages.js';
 import { mergeMessages } from '../lib/messageClient.js';
+import { summarizeCalendarWeek } from '../lib/calendarSummary.js';
+
+test('calendar distance comparisons stay within each sport while time can aggregate', () => {
+  const result = summarizeCalendarWeek([{ workouts: [
+    { sport: 'run', status: 'completed', planned_distance_km: 5, completed_distance_km: 4, completed_duration_min: 30 },
+    { sport: 'bike', status: 'planned', planned_distance_km: 20 },
+    { sport: 'row', status: 'completed', planned_distance_km: null, completed_distance_km: null, completed_duration_min: 10 },
+  ], activities: [{ sport: 'bike', distance_km: 30, duration_min: 60 }] }]);
+  assert.deepEqual(result.distanceSports, [
+    { sport: 'bike', plannedKm: 20, actualKm: 30 },
+    { sport: 'run', plannedKm: 5, actualKm: 4 },
+  ]);
+  assert.equal(result.actualDurationMin, 100);
+  assert.equal(result.missingActualDistanceCount, 1);
+});
 
 test('completion accepts partial actuals and rejects invalid scores, negative values and impossible dates', () => {
   assert.equal(validateWorkoutFields({ status: 'completed', completed_duration_min: 15, completed_distance_km: null, athlete_rpe: 7 }), null);

@@ -83,7 +83,7 @@ const NOTE_META = {
 // week becomes a stacked day list. From `sm` up it is seven equal columns plus
 // an optional week-totals rail. `minmax(0,…)` is what keeps a long workout title
 // from widening its column and pushing the calendar into a horizontal scroll —
-// the title truncates instead.
+// long titles wrap inside their column.
 const WEEK_GRID_COLUMNS =
   'grid-cols-1 sm:grid-cols-[repeat(7,minmax(0,1fr))] lg:grid-cols-[repeat(7,minmax(0,1fr))_minmax(0,150px)]';
 
@@ -478,16 +478,6 @@ export function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, o
               <option value="power">Primary target: power</option>
               <option value="rpe">Primary target: RPE</option>
             </select>
-            <input
-              type="number"
-              min="0"
-              step={libraryEdit ? 'any' : '0.01'}
-              disabled={!canEditPlan || saving}
-              placeholder="Planned IF"
-              value={form.planned_if ?? ''}
-              onChange={(e) => setField('planned_if', e.target.value)}
-              className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink disabled:opacity-60"
-            />
             <select
               disabled={!canEditPlan || saving}
               aria-label="Workout visibility" value={form.visibility || 'athlete_visible'}
@@ -1093,12 +1083,6 @@ function WorkoutDetail({ workout, matchActivities = [], role, onUpdate, onEdit, 
 
         {/* Edit / delete */}
         <div className="mt-5 flex flex-wrap gap-2 items-center justify-between border-t border-ink/8 pt-4">
-          <a
-            href={`/api/workout-export?id=${workout.id}`}
-            className="rounded-full border border-ink/10 px-4 py-2 text-sm font-semibold text-ink/70 hover:bg-ink/5"
-          >
-            Export JSON
-          </a>
           {(role === 'coach' || !workout.coach_id) ? (
             <button disabled={busy} onClick={() => onEdit(workout)} className="rounded-full border border-ink/10 px-4 py-2 text-sm font-semibold text-ink/70 hover:bg-ink/5">
               Edit workout
@@ -2178,7 +2162,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
                           >
                             <div className="flex min-w-0 items-center gap-1">
                               <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${COMPLIANCE_DOT[w.compliance_status] || COMPLIANCE_DOT.none}`} />
-                              <span className="truncate text-xs font-semibold text-ink" title={w.title}>
+                              <span className="min-w-0 whitespace-normal break-words text-xs font-semibold text-ink" title={w.title}>
                                 {w.status === 'completed' ? '✓ ' : ''}{w.title}
                               </span>
                             </div>
@@ -2233,7 +2217,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
                             className="block w-full min-w-0 rounded-xl border border-sky-200 bg-sky-50/70 px-1.5 py-1.5 text-left transition hover:border-sky-400 sm:px-2"
                           >
                             <div className="flex min-w-0 items-center gap-1">
-                              <span className="truncate text-xs font-semibold text-ink" title={activity.name}>{activity.name}</span>
+                              <span className="min-w-0 whitespace-normal break-words text-xs font-semibold text-ink" title={activity.name}>{activity.name}</span>
                             </div>
                             <p className={`${CELL_METRIC_LINE} font-semibold text-sky-900`}>
                               <span className="font-normal text-sky-800/50">{sportCode(activity.sport)} · </span>
@@ -2292,13 +2276,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
                       planned={week.summary.plannedDurationMin}
                       formatValue={(v) => fmtDuration(v) || '0m'}
                     />
-                    <ProgressMeter
-                      label="Distance"
-                      actual={week.summary.actualDistanceKm}
-                      planned={week.summary.plannedDistanceKm}
-                      formatValue={(v) => kmToUnit(v, distanceUnitPref) || 0}
-                      unit={` ${distanceUnitPref}`}
-                    />
+                    <SportDistances summary={week.summary} unit={distanceUnitPref} />
                     {(week.summary.missingActualDurationCount>0||week.summary.missingActualDistanceCount>0)&&<p className="text-xs">Partial totals: duration unknown for {week.summary.missingActualDurationCount} sessions; distance unknown for {week.summary.missingActualDistanceCount}. Unknown values are excluded.</p>}
 
                     {(week.summary.elevationGainM > 0 || week.summary.kilojoules > 0) && (
@@ -2356,14 +2334,15 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
                 )}
                 <span className="font-semibold text-ink/45">{week.days[0].date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} wk</span>
                 <span>
-                  Planned {fmtDuration(week.summary.plannedDurationMin) || '0m'} · {kmToUnit(week.summary.plannedDistanceKm, distanceUnitPref) || 0} {distanceUnitPref}
+                  Planned {fmtDuration(week.summary.plannedDurationMin) || '0m'}
                 </span>
                 {week.summary.hasActuals && (
                   <span className="font-semibold text-ink/75">
-                    Actual {fmtDuration(week.summary.actualDurationMin) || '0m'} · {kmToUnit(week.summary.actualDistanceKm, distanceUnitPref) || 0} {distanceUnitPref}
+                    Actual {fmtDuration(week.summary.actualDurationMin) || '0m'}
                     {week.summary.elevationGainM > 0 ? ` · ${fmtElevation(week.summary.elevationGainM, distanceUnitPref)}` : ''}
                   </span>
                 )}
+                <SportDistances summary={week.summary} unit={distanceUnitPref} />
                 <span>{week.summary.completedSessionCount} completed{week.summary.importedActivityCount ? ` · ${week.summary.importedActivityCount} imported` : ''}</span>
                 {(week.summary.missingActualDurationCount>0||week.summary.missingActualDistanceCount>0)&&<span>Partial totals: {week.summary.missingActualDurationCount} durations and {week.summary.missingActualDistanceCount} distances unknown.</span>}
               </div>
@@ -2373,6 +2352,17 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
       )}
     </div>
   );
+}
+
+function SportDistances({ summary, unit }) {
+  if (!summary.distanceSports.length) return null;
+  return <div aria-label="Distances by sport" className="space-y-1 text-xs">
+    {summary.distanceSports.map(row => <div key={row.sport}>
+      <span className="font-semibold">{sportCode(row.sport)} distance</span>{' '}
+      <span>Actual {kmToUnit(row.actualKm, unit) || 0} {unit}</span>
+      {row.plannedKm > 0 && <span> / Planned {kmToUnit(row.plannedKm, unit)} {unit}</span>}
+    </div>)}
+  </div>;
 }
 
 function LibraryCard({ item, onApply, onDelete, onEdit }) {
