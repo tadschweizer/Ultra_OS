@@ -72,10 +72,10 @@ test('coach role alone is locked; approved pilot opens workspace; revocation sur
   await routeAccount(page, db, coachOwnerId);
   await page.goto('/coach-command-center');
   await expect(page.getByText('Closed coach pilot', { exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Pilot Coach' })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Coach command center', exact: true })).toHaveCount(0);
   db.tables.coach_pilot_entitlements = pilotDb().tables.coach_pilot_entitlements;
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'Pilot Coach' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Coach command center', exact: true })).toBeVisible();
   db.tables.coach_pilot_entitlements[0].revoked_at = fixedNow.toISOString();
   await page.reload();
   await expect(page.getByText('Closed coach pilot', { exact: true })).toBeVisible();
@@ -131,11 +131,11 @@ test('entitlement failure removes cached pilot claim and displays a retry messag
   const db = pilotDb();
   await routeAccount(page, db, coachOwnerId);
   await page.goto('/coach-command-center');
-  await expect(page.getByRole('heading', { name: 'Pilot Coach' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Coach command center', exact: true })).toBeVisible();
   await page.route('**/api/me', route => route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Access could not be verified.' }) }));
   await page.reload();
   await expect(page.getByRole('alert').filter({ hasText: 'Access could not be verified.' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Pilot Coach' })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Coach command center', exact: true })).toHaveCount(0);
 });
 
 test('entitlement failure is explicit in a new session without cached account data', async ({ page }) => {
@@ -146,7 +146,7 @@ test('entitlement failure is explicit in a new session without cached account da
   }));
   await page.goto('/coach-command-center');
   await expect(page.getByRole('alert').filter({ hasText: 'Access could not be verified.' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Pilot Coach' })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Coach command center', exact: true })).toHaveCount(0);
   await page.goto('/dashboard');
   await expect(page.getByRole('alert').filter({ hasText: 'Access could not be verified.' })).toBeVisible();
   await expect(page.getByText('Application error')).toHaveCount(0);

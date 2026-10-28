@@ -478,16 +478,6 @@ export function WorkoutEditor({ initial, canEditPlan, onSave, onSaveToLibrary, o
               <option value="power">Primary target: power</option>
               <option value="rpe">Primary target: RPE</option>
             </select>
-            <input
-              type="number"
-              min="0"
-              step={libraryEdit ? 'any' : '0.01'}
-              disabled={!canEditPlan || saving}
-              placeholder="Planned IF"
-              value={form.planned_if ?? ''}
-              onChange={(e) => setField('planned_if', e.target.value)}
-              className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink disabled:opacity-60"
-            />
             <select
               disabled={!canEditPlan || saving}
               aria-label="Workout visibility" value={form.visibility || 'athlete_visible'}

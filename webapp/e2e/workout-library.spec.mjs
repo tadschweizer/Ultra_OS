@@ -57,7 +57,7 @@ test('O1 edits preserve exact fields, recover lost PATCH acknowledgement, cancel
     await page.goto('/coach/training-calendar');await page.getByRole('button',{name:'Library (2)',exact:true}).click();
     let editor=await open();await expect(editor.getByLabel('Workout date')).toHaveCount(0);
     await expect(editor.getByRole('button',{name:'Save to library',exact:true})).toHaveCount(0);
-    await expect(editor.getByPlaceholder('Planned IF',{exact:true})).toHaveValue('0');
+    await expect(editor.getByPlaceholder('Planned IF',{exact:true})).toHaveCount(0);
     await expect(editor.getByLabel('Planned TSS',{exact:true})).toHaveValue('0');
     await expect(editor.getByText('min/km',{exact:true})).toBeVisible();
     await page.screenshot({path:`../output/library-o1-open-${info.project.name}.png`});
@@ -81,13 +81,13 @@ test('O1 edits preserve exact fields, recover lost PATCH acknowledgement, cancel
     await editor.getByLabel('Distance unit').selectOption('km');await editor.getByRole('button',{name:'Save template',exact:true}).click();await expect(editor).not.toBeVisible();
     expect((await row()).planned_distance_km).toBe(9.656064);expect((await row()).planned_distance_unit).toBe('km');
     editor=await open('Revised hill template');await editor.getByLabel('Planned duration (min)',{exact:true}).fill('0');
-    await editor.getByPlaceholder('Planned IF',{exact:true}).fill('');await editor.getByLabel('Planned TSS',{exact:true}).fill('');
+    await editor.getByLabel('Planned TSS',{exact:true}).fill('');
     await editor.getByLabel('Planned distance',{exact:true}).fill('0');await editor.getByLabel('Template tags (one per line)').fill('');
     await editor.getByPlaceholder('Workout objective / purpose',{exact:true}).fill('');
     await page.screenshot({path:`../output/library-o1-editor-${info.project.name}.png`,fullPage:true});
     await editor.getByRole('button',{name:'Save template',exact:true}).dblclick();await expect(editor).not.toBeVisible();
     saved=await row();expect(saved.planned_duration_min).toBe(0);expect(saved.planned_distance_km).toBe(0);
-    expect(saved.planned_if).toBe(null);expect(saved.planned_tss).toBe(null);expect(saved.objective).toBe(null);expect(saved.tags).toBe(null);
+    expect(saved.planned_if).toBe(0);expect(saved.planned_tss).toBe(null);expect(saved.objective).toBe(null);expect(saved.tags).toBe(null);
     expect(saved.structure).toEqual(structure);expect((await f.pg.query('select count(*)::int n from workout_library')).rows[0].n).toBe(2);
     editor=await open('Revised hill template');await editor.getByLabel('Workout title',{exact:true}).fill('x'.repeat(201));
     await editor.getByRole('button',{name:'Save template',exact:true}).click();await expect(editor.getByText('Invalid name.',{exact:true})).toBeVisible();
@@ -147,7 +147,7 @@ for(const refresh of [false,true])test(`F7 committed response loss retries once 
     await page.getByRole('button',{name:'+ Plan workout',exact:true}).click();
     let editor=page.getByRole('dialog',{name:'Workout editor'});
     await editor.getByLabel('Workout title',{exact:true}).fill('Uncertain trail save');
-    await editor.getByPlaceholder('Planned IF',{exact:true}).fill('0');
+    await expect(editor.getByPlaceholder('Planned IF',{exact:true})).toHaveCount(0);
     await editor.getByLabel('Workout visibility').selectOption('coach_private');
     await editor.getByRole('button',{name:'Save to library',exact:true}).click();
     await expect(editor.getByText('Could not save to library.',{exact:true})).toBeVisible();
@@ -160,7 +160,7 @@ for(const refresh of [false,true])test(`F7 committed response loss retries once 
       await expect(editor.getByText('Saved to library.',{exact:true})).toBeVisible();
     }
     let rows=(await f.invokeLibrary()).body.workouts.filter(w=>w.name==='Uncertain trail save');
-    expect(rows).toHaveLength(1);expect(Number(rows[0].planned_if)).toBe(0);expect(rows[0].visibility).toBe('coach_private');
+    expect(rows).toHaveLength(1);expect(rows[0].planned_if).toBeNull();expect(rows[0].visibility).toBe('coach_private');
     expect(writes[0].client_request_id).toMatch(/^[0-9a-f-]{36}$/);expect(writes[1].client_request_id).toBe(writes[0].client_request_id);
     await page.screenshot({path:`../output/library-f7-${refresh?'refresh':'editor'}-${info.project.name}.png`,fullPage:true});
     if(refresh){
@@ -254,7 +254,7 @@ test('real calendar editor saves a full prescription through the signed library 
     await editor.getByPlaceholder('Coach instructions / session goal').fill('Runnable uphill repeats');
     await editor.getByPlaceholder('Workout objective / purpose').fill('Steady climbing economy');
     await editor.getByPlaceholder('Coach instructions (separate from description)',{exact:true}).fill('Walk recoveries; keep form relaxed');
-    await editor.getByPlaceholder('Planned IF',{exact:true}).fill('0.82');
+    await expect(editor.getByPlaceholder('Planned IF',{exact:true})).toHaveCount(0);
     await editor.getByLabel('Primary target').selectOption('heart_rate');
     await editor.getByLabel('Workout visibility').selectOption('coach_private');
     await editor.getByLabel('Planned duration (min)',{exact:true}).fill('58');
@@ -264,12 +264,12 @@ test('real calendar editor saves a full prescription through the signed library 
     // Existing calendar editor stores canonical km rounded to two decimals.
     expect(writes).toHaveLength(1);expect(writes[0].planned_distance_km).toBe(9.66);
     expect(writes[0].objective).toBe('Steady climbing economy');expect(writes[0].coach_instructions).toBe('Walk recoveries; keep form relaxed');
-    expect(writes[0].planned_if).toBe(0.82);expect(writes[0].target_metric).toBe('heart_rate');expect(writes[0].visibility).toBe('coach_private');
+    expect(writes[0].planned_if).toBeNull();expect(writes[0].target_metric).toBe('heart_rate');expect(writes[0].visibility).toBe('coach_private');
     await editor.getByRole('button',{name:'Close',exact:true}).click();await page.reload();
     await page.getByRole('button',{name:'Library (2)',exact:true}).click();
     await expect(page.getByText('Trail economy prescription',{exact:true})).toBeVisible();
     const row=(await f.invokeLibrary()).body.workouts.find(w=>w.name==='Trail economy prescription');
-    expect(row.objective).toBe('Steady climbing economy');expect(row.coach_instructions).toBe('Walk recoveries; keep form relaxed');expect(Number(row.planned_if)).toBe(0.82);
+    expect(row.objective).toBe('Steady climbing economy');expect(row.coach_instructions).toBe('Walk recoveries; keep form relaxed');expect(row.planned_if).toBeNull();
     expect(row.target_metric).toBe('heart_rate');expect(row.visibility).toBe('coach_private');expect(row.planned_distance_unit).toBe('mi');
     await page.screenshot({path:`../output/library-${info.project.name}.png`,fullPage:true});
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
