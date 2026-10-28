@@ -1251,3 +1251,8 @@ Production default privileges reproduced locally; explicit service_role revocati
 - Added separate email/text switches, verified phone opt-in, signed STOP handling, durable event capture, service-only delivery queue, revocation/visibility/preference rechecks, and Resend/Twilio adapters. All switches and the rollout flag default off. No provider account, scheduler, production migration, deployment, or real send occurred.
 - Verification: focused related regression 66/66; full authentication/critical regression 523/523; final notification suite 9/9 after the text destination-link check; desktop/mobile browser and accessibility 4/4; webpack production bundle passed with existing framework/Sentry warnings. PGlite and intercepted browser/provider fixtures are local evidence only.
 - Production gates remain open: hosted CI, schema/dependency inspection, explicit rollout authorization, sender/provider setup, scheduler, opted-in mailbox/physical-phone checks, and normal participant acceptance. No M0 parent item marked complete. Preserve earlier feedback-history work and Beth's email-verification requirement.
+
+### 2026-10-28 — Notification PR and text configuration baseline
+
+- Opened PR #156: https://github.com/tadschweizer/Ultra_OS/pull/156. Includes the disabled-by-default Twilio/Resend environment template, phone consent/verification, signed opt-out webhook and scheduler setup instructions.
+- Merged current main fbeb164 into the feature branch and preserved the calendar release evidence and gates. Post-merge head 496e5af passed all 525 local authentication/critical regression checks. Hosted Auth Smoke is running; GitHub reports the PR mergeable. No production activation or real send performed.
