@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
-Last updated: 2026-10-27<br>
+Last updated: 2026-10-28<br>
 Status: Athlete onboarding simplification deployed through PR #144 / merge 59e0667, Vercel dpl_4fbgop93jzn2LDJa9mv2MMsVwo8i READY on both domains; see ATHLETE_ONBOARDING_SIMPLIFICATION.md. Copy week destination picker released through PR #142 / merge 72e4ce5, Vercel dpl_F85PBT7KHehZze8RwKeUhXDHZD79 READY on both production domains. Weekly planning and coach/athlete review workflow deployed with owner authorization on mythreshold.co and www.mythreshold.co, PR #141 / main 0415ffe, Vercel dpl_EV67hYZtVjzAx4wRc7pVLEfe6BFG READY. Migration 20261017012725 applied; do not replay local 20261017003222. See WEEKLY_COACHING_RELEASE_2026-10-16.md. Owner review mode and prior security controls remain deployed.<br>
-Current milestone: M0 - feedback workflow migration 20261027211954 and Tad owner access are live; repository reconciliation of append-only history permissions is under review (FEEDBACK_HISTORY_PERMISSIONS.md).<br>
-Next item: Review the feedback history permission reconciliation; do not replay hosted migrations. Beth must complete normal email verification before her contributor grant. Preserve existing participant acceptance gates.
+Current milestone: M0 - owner-prioritized workout email/text notifications implemented and locally verified in 4ac6bf9; not deployed or activated. See COACHING_NOTIFICATIONS.md. Feedback workflow migration 20261027211954 and Tad owner access remain live; append-only history permission reconciliation remains under review (FEEDBACK_HISTORY_PERMISSIONS.md).<br>
+Next item: Review notifications and obtain explicit authorization for provider setup, the new migration, scheduler configuration and deployment; then verify opted-in real email and physical-phone delivery. Preserve feedback history reconciliation, Beth's normal email verification before her contributor grant, and all existing participant acceptance gates. Do not replay hosted migrations.
 
 
 ## Purpose
@@ -1232,3 +1232,11 @@ Verified external merge/deployment of PR #152 before the role-column migration. 
 ## Feedback history permission reconciliation - 2026-10-27
 
 Production default privileges reproduced locally; explicit service_role revocation now precedes SELECT/INSERT. All 13 focused PostgreSQL/API tests pass, including UPDATE/DELETE/TRUNCATE denial. Historical migration version mapping and non-destructive recovery constraints documented in FEEDBACK_HISTORY_PERMISSIONS.md. Review-only branch; no production action in this reconciliation.
+
+### 2026-10-28 — Opt-in workout email and text notifications (local)
+
+- Owner prioritized coach alerts for Beth's uploaded/completed workouts and independent athlete choices for comments and newly assigned workouts.
+- Implementation commit `4ac6bf9` on `codex/workout-email-sms-notifications`, isolated from the dirty D: checkout in the attached `workout-notifications` worktree. Details and release prerequisites: `COACHING_NOTIFICATIONS.md`.
+- Added separate email/text switches, verified phone opt-in, signed STOP handling, durable event capture, service-only delivery queue, revocation/visibility/preference rechecks, and Resend/Twilio adapters. All switches and the rollout flag default off. No provider account, scheduler, production migration, deployment, or real send occurred.
+- Verification: focused related regression 66/66; full authentication/critical regression 523/523; final notification suite 9/9 after the text destination-link check; desktop/mobile browser and accessibility 4/4; webpack production bundle passed with existing framework/Sentry warnings. PGlite and intercepted browser/provider fixtures are local evidence only.
+- Production gates remain open: hosted CI, schema/dependency inspection, explicit rollout authorization, sender/provider setup, scheduler, opted-in mailbox/physical-phone checks, and normal participant acceptance. No M0 parent item marked complete. Preserve earlier feedback-history work and Beth's email-verification requirement.
