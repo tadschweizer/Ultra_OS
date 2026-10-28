@@ -13,6 +13,7 @@ const withPWA = require('@ducanh2912/next-pwa').default({
     // Private reviewer access and notes must never survive in an offline cache.
     runtimeCaching: [
       { urlPattern: ({ url }) => url.pathname === '/api/site-review', handler: 'NetworkOnly' },
+      { urlPattern: ({ url }) => url.pathname.startsWith('/api/coaching-notification'), handler: 'NetworkOnly' },
       ...require('@ducanh2912/next-pwa').runtimeCaching,
     ],
   },

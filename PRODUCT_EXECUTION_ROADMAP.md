@@ -2,8 +2,8 @@
 
 Last updated: 2026-10-28<br>
 Status: Athlete onboarding simplification deployed through PR #144 / merge 59e0667, Vercel dpl_4fbgop93jzn2LDJa9mv2MMsVwo8i READY on both domains; see ATHLETE_ONBOARDING_SIMPLIFICATION.md. Copy week destination picker released through PR #142 / merge 72e4ce5, Vercel dpl_F85PBT7KHehZze8RwKeUhXDHZD79 READY on both production domains. Weekly planning and coach/athlete review workflow deployed with owner authorization on mythreshold.co and www.mythreshold.co, PR #141 / main 0415ffe, Vercel dpl_EV67hYZtVjzAx4wRc7pVLEfe6BFG READY. Migration 20261017012725 applied; do not replay local 20261017003222. See WEEKLY_COACHING_RELEASE_2026-10-16.md. Owner review mode and prior security controls remain deployed.<br>
-Current milestone: M0 — coaching calendar readability, sport distance comparisons and editor IF removal locally verified in 095aa41/efa674b; exact-head CI/review and production acceptance remain pending. Feedback history permissions are reconciled in merged PR #154; hosted migrations must not be replayed.<br>
-Next item: Complete exact-head checks/review for the focused calendar presentation change, release under the owner-authorized bounded feedback workflow, and verify actual live behavior. Resolve review-queue/import scope and shared-library questions separately. Preserve real participant, physical-phone, provider and mailbox acceptance; contributor access remains separately gated.
+Current milestone: M0 — workout email/text notifications implemented locally in 4ac6bf9, not deployed or activated (COACHING_NOTIFICATIONS.md); coaching calendar readability, sport distance comparisons and editor IF removal locally verified in 095aa41/efa674b; exact-head CI/review and production acceptance remain pending. Feedback history permissions are reconciled in merged PR #154; hosted migrations must not be replayed.<br>
+Next item: Review the notification PR and text configuration baseline; provider setup, migration, scheduler and deployment require separate owner authorization. Complete exact-head checks/review for the focused calendar presentation change, release under the owner-authorized bounded feedback workflow, and verify actual live behavior. Resolve review-queue/import scope and shared-library questions separately. Preserve real participant, physical-phone, provider and mailbox acceptance; contributor access remains separately gated.
 
 
 ## Purpose
@@ -1243,3 +1243,16 @@ Production default privileges reproduced locally; explicit service_role revocati
 - Owner selected removal of the editor IF input. Follow-up implementation efa674b removes that control in workout/template editors while retaining existing stored values. Does not remove recorded analysis values or change API/storage fields.
 - Existing access tests still expected the old personal-name heading; the first hosted run failed four such assertions while 239 other browser cases passed. Updated positive and negative heading assertions to the functional command-center heading, retaining entitlement, failure and revocation checks.
 - Combined local evidence: 516 regressions, 62 daily-flow/pilot-UX browser cases, 18 library persistence/retry cases and 12 access/revocation cases across desktop/mobile. Updated webpack build passed with loopback public placeholders; screenshots inspected. The changed head requires fresh hosted CI and independent review; prior head approval is not reused.
+
+### 2026-10-28 — Opt-in workout email and text notifications (local)
+
+- Owner prioritized coach alerts for Beth's uploaded/completed workouts and independent athlete choices for comments and newly assigned workouts.
+- Implementation commit `4ac6bf9` on `codex/workout-email-sms-notifications`, isolated from the dirty D: checkout in the attached `workout-notifications` worktree. Details and release prerequisites: `COACHING_NOTIFICATIONS.md`.
+- Added separate email/text switches, verified phone opt-in, signed STOP handling, durable event capture, service-only delivery queue, revocation/visibility/preference rechecks, and Resend/Twilio adapters. All switches and the rollout flag default off. No provider account, scheduler, production migration, deployment, or real send occurred.
+- Verification: focused related regression 66/66; full authentication/critical regression 523/523; final notification suite 9/9 after the text destination-link check; desktop/mobile browser and accessibility 4/4; webpack production bundle passed with existing framework/Sentry warnings. PGlite and intercepted browser/provider fixtures are local evidence only.
+- Production gates remain open: hosted CI, schema/dependency inspection, explicit rollout authorization, sender/provider setup, scheduler, opted-in mailbox/physical-phone checks, and normal participant acceptance. No M0 parent item marked complete. Preserve earlier feedback-history work and Beth's email-verification requirement.
+
+### 2026-10-28 — Notification PR and text configuration baseline
+
+- Opened PR #156: https://github.com/tadschweizer/Ultra_OS/pull/156. Includes the disabled-by-default Twilio/Resend environment template, phone consent/verification, signed opt-out webhook and scheduler setup instructions.
+- Merged current main fbeb164 into the feature branch and preserved the calendar release evidence and gates. Post-merge head 496e5af passed all 525 local authentication/critical regression checks. Hosted Auth Smoke is running; GitHub reports the PR mergeable. No production activation or real send performed.

@@ -3,6 +3,7 @@ export const EXPORT_TABLES = [
   'interventions', 'athlete_settings', 'athlete_supplements', 'races', 'planned_workouts',
   'calendar_notes', 'strava_activities', 'coros_activities', 'coach_athlete_relationships',
   'message_preferences', 'message_drafts', 'message_email_deliveries',
+  'coaching_notification_settings', 'coaching_notification_deliveries',
   'coach_protocol_assignments', 'assigned_protocols', 'coach_messages', 'trainingpeaks_import_jobs',
 ];
 const sensitive = /token|secret|password|api[_-]?key|session[_-]?version|supabase_user_id|stripe_/i;
@@ -19,10 +20,10 @@ export async function collectAccountExport(admin, athlete, { pageSize = 1000, ma
   for (const table of EXPORT_TABLES) {
     const records = [];
     for (let offset = 0; ; offset += pageSize) {
-      const ownerColumn = table === 'message_drafts' ? 'owner_id' : table === 'message_email_deliveries' ? 'recipient_id' : 'athlete_id';
+      const ownerColumn = table === 'message_drafts' ? 'owner_id' : ['message_email_deliveries', 'coaching_notification_deliveries'].includes(table) ? 'recipient_id' : 'athlete_id';
       const orderColumns = table === 'message_drafts' ? ['coach_id', 'athlete_id', 'sender_role']
         : table === 'message_email_deliveries' ? ['message_id']
-        : ['message_preferences', 'athlete_settings'].includes(table) ? ['athlete_id'] : ['id'];
+        : ['message_preferences', 'athlete_settings', 'coaching_notification_settings'].includes(table) ? ['athlete_id'] : ['id'];
       let query = admin.from(table).select('*').eq(ownerColumn, athlete.id);
       // This is the athlete's personal archive, not the assigning coach's draft
       // workspace. Filter before pagination so hidden rows cannot leak or make

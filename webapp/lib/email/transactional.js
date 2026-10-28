@@ -10,6 +10,8 @@
  * must never fail the signup/reset request that triggered it.
  */
 
+import { notificationText } from '../coachingNotifications.js';
+
 const FROM = 'Threshold <hello@mythreshold.co>';
 
 export function getSiteUrl() {
@@ -172,4 +174,14 @@ export async function sendMessageNotificationEmail({ email, messageId, mode, ath
       <p style="${BODY}">Sign in to Threshold to read your conversation.</p>
       ${button(escapeHtml(url), 'Open Messages')}
       <p style="${FINE}">You can turn these emails off in Messages → Notification preferences.</p>`) });
+}
+
+export async function sendCoachingNotificationEmail({ email, id, event, mode, athlete_id }) {
+  if (!process.env.RESEND_API_KEY) return { ok: false, failureCategory: 'unconfigured' };
+  const path = mode === 'coach' ? `/coach/athletes/${encodeURIComponent(athlete_id)}` : '/calendar';
+  return send({ to: email, subject: 'Training update in Threshold', idempotencyKey: `threshold-coaching/${id}`,
+    html: layout(`<p style="${HEADING}">${escapeHtml(notificationText(event))}</p>
+      <p style="${BODY}">Sign in to see the workout and continue the conversation.</p>
+      ${button(escapeHtml(`${getSiteUrl()}${path}`), 'Open Threshold')}
+      <p style="${FINE}">Manage email and text alerts on your <a href="${escapeHtml(`${getSiteUrl()}/notifications`)}">Notifications page</a>.</p>`) });
 }

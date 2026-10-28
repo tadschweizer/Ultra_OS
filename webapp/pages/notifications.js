@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import DashboardTabs from '../components/DashboardTabs';
 import NavMenu from '../components/NavMenu';
+import CoachingNotificationSettings from '../components/CoachingNotificationSettings';
 
 const NOTIFICATION_FIELDS = [
   { key: 'coach_note_reply', label: 'Replies to coach notes and threads' },
@@ -88,10 +89,11 @@ export default function NotificationsPage() {
         <section className="overflow-hidden rounded-[40px] border border-ink/10 bg-[linear-gradient(145deg,#f3ebdf_0%,#d8cab4_48%,#987c5a_100%)] p-6 md:p-10">
           <p className="text-sm uppercase tracking-[0.35em] text-accent">Notifications</p>
           <h1 className="font-display mt-4 text-5xl leading-tight md:text-7xl">Notification preferences</h1>
-          <p className="mt-4 max-w-2xl text-sm text-ink/70">Control notifications for threaded coach conversations and evidence-card based alerts.</p>
+          <p className="mt-4 max-w-2xl text-sm text-ink/70">Choose how you hear about workouts, comments, and coaching updates.</p>
         </section>
 
 
+        <CoachingNotificationSettings />
         <section className="mt-12 rounded-3xl border border-ink/10 bg-white p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
