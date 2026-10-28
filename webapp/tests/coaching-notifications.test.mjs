@@ -186,3 +186,52 @@ test('text alert opens the correct athlete and keeps private workout details out
       { outcome: 'accepted', providerId: 'SMtest', stopped: false });
   } finally { globalThis.fetch = previous; }
 });
+
+test('disabled pre-migration settings load safely but authenticated writes and enabled reads fail', async () => {
+  const f = await calendarFixture();
+  try {
+    const admin = client(f.pg);
+    const invoke = async ({ enabled = false, channels = { email: false, sms: false }, method = 'GET', version = 1, actor = owner } = {}) => {
+      const handler = createCoachingSettingsHandler({ getClient: () => admin, enabled: () => enabled, availability: () => channels });
+      const res = response();
+      await handler({ method, body: { preferences: { workout_completed_email: false } }, headers: {
+        origin: 'http://localhost:3000', 'content-type': 'application/json', cookie: actor ? `athlete_id=${signAthleteSession(actor, version)}` : '',
+      } }, res);
+      return res;
+    };
+    const res = await invoke();
+    assert.equal(res.code, 200);
+    assert.deepEqual(res.body.preferences, EMPTY_COACHING_PREFERENCES);
+    assert.deepEqual(res.body.available, { email: false, sms: false });
+    assert.equal(res.body.phone, null);
+    assert.equal(res.body.phone_verified, false);
+    assert.equal((await invoke({ method: 'PATCH' })).code, 503);
+    assert.equal((await invoke({ enabled: true })).code, 503);
+    assert.equal((await invoke({ channels: { email: true, sms: false } })).code, 503);
+    assert.equal((await invoke({ actor: null })).code, 401);
+    assert.equal((await invoke({ version: 2 })).code, 401);
+  } finally { await f.close(); }
+});
+
+test('disabled fallback only handles missing tables and preserves migrated opt-out controls', async () => {
+  const f = await fixture();
+  try {
+    await f.enable(owner);
+    const invoke = async (admin, method = 'GET', body) => {
+      const handler = createCoachingSettingsHandler({ getClient: () => admin, enabled: () => false, availability: () => ({ email: false, sms: false }) });
+      const res = response();
+      await handler({ method, body, headers: { origin: 'http://localhost:3000', 'content-type': 'application/json', cookie: `athlete_id=${signAthleteSession(owner, 1)}` } }, res);
+      return res;
+    };
+    assert.equal((await invoke(f.admin)).body.preferences.workout_completed_email, true);
+    const optedOut = await invoke(f.admin, 'PATCH', { preferences: { workout_completed_email: false } });
+    assert.equal(optedOut.code, 200);
+    assert.equal(optedOut.body.preferences.workout_completed_email, false);
+    for (const [code, expected] of [['PGRST205', 200], ['42501', 503], ['42703', 503], ['PGRST204', 503], ['ETIMEDOUT', 503]]) {
+      const admin = { ...f.admin, from: table => table !== 'coaching_notification_settings' ? f.admin.from(table) : {
+        select() { return this; }, eq() { return this; }, maybeSingle: async () => ({ error: { code } }),
+      } };
+      assert.equal((await invoke(admin)).code, expected, code);
+    }
+  } finally { await f.close(); }
+});

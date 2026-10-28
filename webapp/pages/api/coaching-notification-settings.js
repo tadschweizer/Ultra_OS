@@ -4,7 +4,7 @@ import { getViewAsIdFromRequest } from '../../lib/auth/sessionCookies.js';
 import { requireSameOriginJson } from '../../lib/billingSecurity.js';
 import { coachingAvailability, EMPTY_COACHING_PREFERENCES, validateCoachingPreferences } from '../../lib/coachingNotifications.js';
 
-export function createCoachingSettingsHandler({ getClient = getSupabaseAdminClient, availability = coachingAvailability } = {}) {
+export function createCoachingSettingsHandler({ getClient = getSupabaseAdminClient, availability = coachingAvailability, enabled = () => process.env.COACHING_NOTIFICATIONS_ENABLED === 'true' } = {}) {
   return async function handler(req, res) {
     res.setHeader('Cache-Control', 'private, no-store');
     if (!['GET', 'PATCH'].includes(req.method)) return res.status(405).json({ error: 'Method not allowed.' });
@@ -17,8 +17,17 @@ export function createCoachingSettingsHandler({ getClient = getSupabaseAdminClie
       const { data: account, error: accountError } = await admin.from('athletes').select('email_verified_at').eq('id', id).single();
       if (accountError) throw accountError;
       const { data: stored, error } = await admin.from('coaching_notification_settings').select('*').eq('athlete_id', id).maybeSingle();
-      if (error) throw error;
       const channels = availability();
+      if (error) {
+        // A disabled rollout may precede its migration. Only a missing table on
+        // read is expected; never hide enabled-state, permission or transport errors.
+        if (req.method === 'GET' && !enabled() && !channels.email && !channels.sms &&
+          ['42P01', 'PGRST205'].includes(error.code)) {
+          return res.status(200).json({ preferences: { ...EMPTY_COACHING_PREFERENCES }, available: channels,
+            email_verified: Boolean(account?.email_verified_at), phone: null, phone_verified: false, sms_stopped: false });
+        }
+        throw error;
+      }
       let preferences = { ...EMPTY_COACHING_PREFERENCES, ...stored?.preferences };
       if (req.method === 'PATCH') {
         const patch = validateCoachingPreferences(req.body?.preferences);
