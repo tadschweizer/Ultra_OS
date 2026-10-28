@@ -95,7 +95,7 @@ export default function CoachTrainingCalendarPage() {
         <section className="overflow-hidden rounded-[28px] border border-ink/10 bg-[linear-gradient(140deg,#1b2421_0%,#26332f_42%,#857056_100%)] px-6 py-4 text-white">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h1 className="font-display text-3xl leading-tight">Training Calendar</h1>
+              <h1 className="font-display break-words text-3xl leading-tight">{selectedRelationship?.athlete?.name || 'Training Calendar'}</h1>
               <p className="mt-1 max-w-lg text-xs leading-5 text-white/65">
                 Build structured workouts on each athlete&apos;s calendar — scroll for past and future months,
                 click a day to add sessions, notes, or rest days.
