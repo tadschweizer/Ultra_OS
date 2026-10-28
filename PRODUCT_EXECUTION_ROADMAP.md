@@ -2,8 +2,8 @@
 
 Last updated: 2026-10-28<br>
 Status: Athlete onboarding simplification deployed through PR #144 / merge 59e0667, Vercel dpl_4fbgop93jzn2LDJa9mv2MMsVwo8i READY on both domains; see ATHLETE_ONBOARDING_SIMPLIFICATION.md. Copy week destination picker released through PR #142 / merge 72e4ce5, Vercel dpl_F85PBT7KHehZze8RwKeUhXDHZD79 READY on both production domains. Weekly planning and coach/athlete review workflow deployed with owner authorization on mythreshold.co and www.mythreshold.co, PR #141 / main 0415ffe, Vercel dpl_EV67hYZtVjzAx4wRc7pVLEfe6BFG READY. Migration 20261017012725 applied; do not replay local 20261017003222. See WEEKLY_COACHING_RELEASE_2026-10-16.md. Owner review mode and prior security controls remain deployed.<br>
-Current milestone: M0 — workout email/text notifications implemented locally in 4ac6bf9, not deployed or activated (COACHING_NOTIFICATIONS.md); coaching calendar readability, sport distance comparisons and editor IF removal locally verified in 095aa41/efa674b; exact-head CI/review and production acceptance remain pending. Feedback history permissions are reconciled in merged PR #154; hosted migrations must not be replayed.<br>
-Next item: Review the notification PR and text configuration baseline; provider setup, migration, scheduler and deployment require separate owner authorization. Complete exact-head checks/review for the focused calendar presentation change, release under the owner-authorized bounded feedback workflow, and verify actual live behavior. Resolve review-queue/import scope and shared-library questions separately. Preserve real participant, physical-phone, provider and mailbox acceptance; contributor access remains separately gated.
+Current milestone: Authorized Garmin privacy wording release in progress; implementation gates remain open. Existing M0 — workout email/text notifications implemented locally in 4ac6bf9, not deployed or activated (COACHING_NOTIFICATIONS.md); coaching calendar readability, sport distance comparisons and editor IF removal locally verified in 095aa41/efa674b; exact-head CI/review and production acceptance remain pending. Feedback history permissions are reconciled in merged PR #154; hosted migrations must not be replayed.<br>
+Next item: Verify Garmin privacy publication while keeping Garmin disabled; implement and verify its consent, recipient restrictions, and token/history deletion before activation. Existing queue: Review the notification PR and text configuration baseline; provider setup, migration, scheduler and deployment require separate owner authorization. Complete exact-head checks/review for the focused calendar presentation change, release under the owner-authorized bounded feedback workflow, and verify actual live behavior. Resolve review-queue/import scope and shared-library questions separately. Preserve real participant, physical-phone, provider and mailbox acceptance; contributor access remains separately gated.
 
 
 ## Purpose
@@ -1256,3 +1256,10 @@ Production default privileges reproduced locally; explicit service_role revocati
 
 - Opened PR #156: https://github.com/tadschweizer/Ultra_OS/pull/156. Includes the disabled-by-default Twilio/Resend environment template, phone consent/verification, signed opt-out webhook and scheduler setup instructions.
 - Merged current main fbeb164 into the feature branch and preserved the calendar release evidence and gates. Post-merge head 496e5af passed all 525 local authentication/critical regression checks. Hosted Auth Smoke is running; GitHub reports the PR mergeable. No production activation or real send performed.
+
+
+### 2026-10-28 — Garmin privacy wording
+
+- Owner authorized lasting conditional policy, publication before applying, and implementation before Garmin activation. All current disclosures including notifications are preserved. No universal-provider restriction was added.
+- Independent copy review passed after correcting the publication date. Focused integration/AI/account/Strava lifecycle tests: 41 passed. See docs/garmin-privacy-review-2026-10-28.md and docs/integration-privacy-extension-review.md for evidence and activation gates.
+- Release/hosted verification pending; no milestone or integration acceptance is claimed.
