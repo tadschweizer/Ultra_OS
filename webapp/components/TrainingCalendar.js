@@ -1,4 +1,6 @@
 import CopyWeekDialog from './CopyWeekDialog';
+import CalendarTransferDialog from './CalendarTransferDialog';
+import { canMoveCalendarWorkout } from '../lib/calendarTransfer';
 import { useWorkspaceTransport } from '../lib/WorkspaceTransport';
 import WorkoutReview from './WorkoutReview';
 import SessionAnalysis from './SessionAnalysis';
@@ -782,7 +784,7 @@ function CommentThread({ subject, role, onCountChange, onSaved, readOnly=false }
   );
 }
 
-function WorkoutDetail({ workout, matchActivities = [], role, onUpdate, onEdit, onDelete, onClose, onAdjust, reviewerCoachId, adjustmentNotice }) {
+function WorkoutDetail({ workout, matchActivities = [], role, onUpdate, onEdit, onDelete, onClose, onAdjust, onMove, reviewerCoachId, adjustmentNotice }) {
   const assigningCoach=role==='coach'&&workout.coach_id===reviewerCoachId;
   const {getAccountScope}=useWorkspaceTransport();
   const draftKey=`threshold.completion.v1:${getAccountScope?.()}:${role}:${workout.id}`;
@@ -911,9 +913,7 @@ function WorkoutDetail({ workout, matchActivities = [], role, onUpdate, onEdit, 
           <section aria-label="Activity match confirmation" className="mt-5 border-y border-ink/20 py-4">
             <h4 className="font-semibold text-ink">Confirm the activity match to analyze this workout</h4>
             <p className="mt-2 text-sm text-ink/75">An imported activity may match this plan, but the match has not been saved.</p>
-            <p className="mt-2 text-sm text-ink/75">{role === 'athlete'
-              ? 'Confirm the activity match below, or choose another imported session. Analysis will load after confirmation.'
-              : 'Ask the athlete to confirm the imported activity match.'}</p>
+            <p className="mt-2 text-sm text-ink/75">Confirm the activity match below, or choose another imported session. Analysis will load after confirmation.</p>
           </section>
         ) : workout.status === 'completed' && <SessionAnalysis key={workout.id} workout={workout} distanceUnit={distanceUnit} />}
 
@@ -952,7 +952,7 @@ function WorkoutDetail({ workout, matchActivities = [], role, onUpdate, onEdit, 
           )}
         </div>
 
-        {role === 'athlete' && (currentMatch || workout.completed_activity_id || matchCandidates.length > 0
+        {(currentMatch || workout.completed_activity_id || matchCandidates.length > 0
           || (workout.activity_match_mode === 'manual' && workout.status === 'planned')) && (
           <div className="mt-4 rounded-2xl border border-ink/10 bg-white p-4">
             <p className="text-sm font-semibold text-ink">Imported activity match</p>
@@ -979,6 +979,8 @@ function WorkoutDetail({ workout, matchActivities = [], role, onUpdate, onEdit, 
             {(currentMatch || workout.completed_activity_id) && <p className="mt-2 text-xs text-ink/60">Unlinking or rejecting clears the imported actuals and leaves the workout planned. The imported activity is kept in your calendar. Automatic matching stays off until you enable it.</p>}
           </div>
         )}
+
+        {onMove && <button type="button" disabled={busy} onClick={onMove} className="mt-4 min-h-11 rounded-full border border-ink/20 px-4 py-2 text-sm font-semibold disabled:opacity-50">Move workout to another day</button>}
 
         {/* Athlete completion form */}
         {role === 'athlete' && (
@@ -1496,6 +1498,14 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
   const [loadingEarlier, setLoadingEarlier] = useState(false);
   const [error, setError] = useState('');
   const [editorInitial, setEditorInitial] = useState(null);
+  const [transfer, setTransfer] = useState(null);
+  const [transferNotice, setTransferNotice] = useState('');
+  const [moving, setMoving] = useState(false);
+  const movingRef = useRef(false);
+  const dragged = useRef(null);
+  const [dropDay, setDropDay] = useState(null);
+  const transferScope = getAccountScope?.() || 'isolated-workspace';
+  useEffect(() => { dragged.current = null; setTransfer(null); setTransferNotice(''); }, [athleteId, transferScope]);
   const [adjustmentOrigin,setAdjustmentOrigin]=useState(null);
   const [adjustmentSavedFor,setAdjustmentSavedFor]=useState(null);
   const [libraryEditor, setLibraryEditor] = useState(null);
@@ -1531,14 +1541,14 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
   const saveNoticeVersion = useRef(0);
   const [saveNotice, setSaveNotice] = useState('');
 
-  const reload = useCallback(async () => {
+  const reload = useCallback(async ({ signal } = {}) => {
     const version = ++reloadVersion.current;
     setError('');
     try {
       const [workoutsRes, notesRes, eventsRes] = await Promise.all([
-        request(`/api/planned-workouts?start=${rangeStart}&end=${rangeEnd}${athleteParam}`),
-        request(`/api/calendar-notes?start=${rangeStart}&end=${rangeEnd}${athleteParam}`),
-        role === 'athlete' ? request('/api/race-events') : Promise.resolve(null),
+        request(`/api/planned-workouts?start=${rangeStart}&end=${rangeEnd}${athleteParam}`, { signal }),
+        request(`/api/calendar-notes?start=${rangeStart}&end=${rangeEnd}${athleteParam}`, { signal }),
+        role === 'athlete' ? request('/api/race-events', { signal }) : Promise.resolve(null),
       ]);
       if (version !== reloadVersion.current) return;
       if (!workoutsRes.ok) {
@@ -1586,11 +1596,11 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
     return () => { ++saveNoticeVersion.current; };
   }, [athleteId, role]);
 
-  const refreshSavedCalendar = useCallback(async () => {
+  const refreshSavedCalendar = useCallback(async (options = {}) => {
     const version = ++saveNoticeVersion.current;
     setSaveNotice('refreshing');
     const readVersion = reloadVersion.current + 1;
-    const refreshed = await reload();
+    const refreshed = await reload(options);
     if (version === saveNoticeVersion.current) {
       // A newer range/read supersedes this one; the write still succeeded.
       setSaveNotice(refreshed || readVersion !== reloadVersion.current ? 'saved' : 'refreshFailed');
@@ -1723,6 +1733,52 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
     }
     return result;
   }, [reload, calendarMutation]);
+
+  const transferWorkout = async (workout, updates) => {
+    if (movingRef.current) return { ok: false, error: 'Wait for the current calendar change to finish.' };
+    movingRef.current = true; setMoving(true); setError(''); setTransferNotice('Saving calendar change…');
+    try {
+      const result = await performCalendarMutation('/api/planned-workouts', { method: 'PATCH', request: (url, options) => request(url, {...options, signal: AbortSignal.timeout(15000)}), body: {
+        id: workout.id, expected_updated_at: workout.updated_at, ...updates,
+      } });
+      if (!result.ok) { setTransferNotice(''); setError(result.error); return result; }
+      // Acknowledge the write before the read. Never leave the old date visible
+      // merely because enrichment is slow or fails after a successful move.
+      if (result.workout?.id) setWorkouts(previous => previous.map(item => item.id === result.workout.id
+        ? decorateSavedWorkout(result.workout, item) : item));
+      setTransferNotice(updates.action === 'move' ? `Workout moved to ${updates.workout_date}.` : 'Activity match saved.');
+      selectCalendarDetail();
+      // Keep transfer gestures disabled until the calendar read settles, so a
+      // second drag cannot begin on a card being replaced by that response.
+      await refreshSavedCalendar({ signal: AbortSignal.timeout(15000) });
+      return result;
+    } finally { movingRef.current = false; setMoving(false); }
+  };
+
+  const beginDrag = (event, kind, item) => {
+    if (movingRef.current) { event.preventDefault(); return; }
+    dragged.current = { kind, id: item.id, athleteId };
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', kind === 'workout' ? item.title : item.name);
+  };
+  const finishDrag = () => { dragged.current = null; setDropDay(null); };
+  const dropOnDay = (event, day) => {
+    event.preventDefault(); event.stopPropagation();
+    const item = dragged.current; finishDrag();
+    const workout = item?.athleteId === athleteId && item.kind === 'workout' && workouts.find(w => w.id === item.id);
+    if (!workout || !canMoveCalendarWorkout(workout, role, libraryOwnerId) || workout.workout_date === day) return;
+    void transferWorkout(workout, { action: 'move', workout_date: day });
+  };
+  const dropOnSession = (event, kind, target) => {
+    const item = dragged.current;
+    if (!item || item.athleteId !== athleteId || item.kind === kind) return;
+    event.preventDefault(); event.stopPropagation(); finishDrag();
+    const workout = kind === 'workout' ? target : workouts.find(w => w.id === item.id);
+    const activity = kind === 'activity' ? target : matchActivities.find(a => a.id === item.id);
+    if (workout && activity && (!activity.linked_workout_id || activity.linked_workout_id === workout.id)) {
+      selectCalendarDetail(); setTransfer({ workout, activity });
+    }
+  };
 
   const deleteWorkout = useCallback(async (id) => {
     const result = await calendarMutation(`/api/planned-workouts?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
@@ -1916,6 +1972,8 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
           onClose={() => selectCalendarDetail()}
         />
       )}
+      {transfer && <CalendarTransferDialog key={`${transfer.workout.id}:${transfer.activity?.id || 'move'}`} {...transfer}
+        onSave={updates => transferWorkout(transfer.workout, updates)} onClose={() => setTransfer(null)} />}
       {detailWorkout && (
         <WorkoutDetail
           key={detailWorkout.id}
@@ -1925,6 +1983,9 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
           matchActivities={matchActivities}
           role={role}
           onUpdate={updateWorkout}
+          onMove={canMoveCalendarWorkout(detailWorkout, role, libraryOwnerId) ? () => {
+            selectCalendarDetail(); setTransfer({ workout: detailWorkout });
+          } : null}
           onAdjust={()=>{
             const next=workouts.filter(w=>w.workout_date>detailWorkout.workout_date&&w.status==='planned'&&w.coach_id===detailWorkout.coach_id).sort((a,b)=>a.workout_date.localeCompare(b.workout_date)||a.order_index-b.order_index)[0];
             if(next){setAdjustmentOrigin(detailWorkout.id);setAdjustmentSavedFor(null);editExistingWorkout(next);}
@@ -1989,6 +2050,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
           <span className="w-full text-xs text-ink/55 sm:w-auto">
             Completed sessions are green; imported activity is blue. Click any session for stats and comments, or a day to plan.
           </span>
+          <span className="w-full text-xs text-ink/65">Drag an unfinished workout to another day, or onto an imported activity to match it. On phones or with a keyboard, open the workout to move it or confirm a match.</span>
         </div>
         <div className="flex items-center gap-2">
           {role === 'coach' && (
@@ -2005,6 +2067,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
         </div>
       </div>
 
+      {transferNotice && <p role="status" className="mt-3 text-sm text-ink">{transferNotice}</p>}
       {saveNotice && <div role="status" className="mt-3 text-sm text-ink">
         {saveNotice === 'refreshing' ? 'Workout saved. Refreshing calendar…' : saveNotice === 'refreshFailed' ? 'Workout saved. Calendar refresh failed; you do not need to save again.' : 'Workout saved.'}
         {saveNotice === 'refreshFailed' && <button type="button" className="ml-2 min-h-11 underline" onClick={refreshSavedCalendar}>Refresh saved calendar</button>}
@@ -2107,10 +2170,20 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
                   return (
                     <div
                       key={day.key}
+                      data-calendar-day={day.key}
+                      onDragOver={event => {
+                        const item = dragged.current;
+                        const workout = item?.kind === 'workout' && workouts.find(w => w.id === item.id);
+                        if (item?.athleteId === athleteId && canMoveCalendarWorkout(workout, role, libraryOwnerId)) {
+                          event.preventDefault(); event.dataTransfer.dropEffect = 'move'; setDropDay(day.key);
+                        }
+                      }}
+                      onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget)) setDropDay(null); }}
+                      onDrop={event => dropOnDay(event, day.key)}
                       onClick={() => setDayMenuKey(day.key)}
                       className={`group min-w-0 cursor-pointer rounded-2xl border p-2 transition sm:min-h-[132px] sm:p-2 ${
                         isEmpty ? 'hidden sm:block' : ''
-                      } ${
+                      } ${dropDay === day.key ? 'outline outline-2 outline-accent' : ''} ${
                         isToday
                           ? 'border-accent/50 bg-accent/5 ring-1 ring-accent/30'
                           : isPast
@@ -2151,6 +2224,12 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
                         {day.workouts.map((w) => (
                           <button
                             key={w.id}
+                            data-calendar-workout={w.id}
+                            draggable={!moving && !w.completed_activity_id && (w.status === 'planned' || w.activity_match_state === 'suggested')}
+                            onDragStart={event => beginDrag(event, 'workout', w)}
+                            onDragEnd={finishDrag}
+                            onDragOver={event => { if (dragged.current?.kind === 'activity') { event.preventDefault(); event.stopPropagation(); } }}
+                            onDrop={event => dropOnSession(event, 'workout', w)}
                             onClick={(e) => { e.stopPropagation(); selectCalendarDetail({ workout: w.id }); }}
                             className={`block w-full min-w-0 rounded-xl border px-1.5 py-1.5 text-left transition hover:border-ink/30 sm:px-2 ${
                               w.status === 'completed'
@@ -2212,6 +2291,12 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
                         {day.activities.map((activity) => (
                           <button
                             key={`activity-${activity.id}`}
+                            data-calendar-activity={activity.id}
+                            draggable={!moving}
+                            onDragStart={event => beginDrag(event, 'activity', activity)}
+                            onDragEnd={finishDrag}
+                            onDragOver={event => { if (dragged.current?.kind === 'workout') { event.preventDefault(); event.stopPropagation(); } }}
+                            onDrop={event => dropOnSession(event, 'activity', activity)}
                             onClick={(e) => { e.stopPropagation(); selectCalendarDetail({ activity: activity.id }); }}
                             title="Imported activity with no planned workout — open for stats and comments"
                             className="block w-full min-w-0 rounded-xl border border-sky-200 bg-sky-50/70 px-1.5 py-1.5 text-left transition hover:border-sky-400 sm:px-2"

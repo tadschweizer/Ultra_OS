@@ -23,6 +23,10 @@ const source = name => readFileSync(new URL(`../../supabase/migrations/${name}`,
 function client(pg) {
   return {
     async rpc(name, args) {
+      if (name === 'move_calendar_workout') {
+        try { return {data:(await pg.query('select public.move_calendar_workout($1,$2,$3,$4) as value',Object.values(args))).rows[0].value}; }
+        catch(error) { return {error}; }
+      }
       if (name === 'create_workout_library_once') {
         try { return {data:(await pg.query('select public.create_workout_library_once($1,$2,$3) as value',Object.values(args))).rows[0].value}; }
         catch(error) { return {error}; }

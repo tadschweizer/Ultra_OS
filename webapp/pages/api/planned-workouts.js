@@ -1,5 +1,6 @@
 import { validateWorkoutFields, validWorkoutRequestId, sameWorkoutRequest } from '../../lib/workoutValidation.js';
 import { decideWorkoutMatch } from '../../lib/workoutMatch.js';
+import { moveCalendarWorkout } from '../../lib/calendarTransfer.js';
 import { getSupabaseAdminClient } from '../../lib/authServer.js';
 import { canReadWorkout, filterReadableWorkouts } from '../../lib/workoutVisibility.js';
 
@@ -442,8 +443,19 @@ return async function handler(req, res) {
       const isOwnCalendar = existing.athlete_id === sessionAthleteId;
       if (isOwnCalendar && !canReadWorkout(existing, { athleteId: sessionAthleteId })) return res.status(404).json({ error: 'Workout not found.' });
       if (body.match_action !== undefined) {
-        if (!isOwnCalendar) return res.status(403).json({ error: 'Only the athlete can change this workout match.' });
+        if (!isOwnCalendar) {
+          const profile = await getCoachProfileFor(admin, sessionAthleteId, existing.athlete_id);
+          if (!profile || !canReadWorkout(existing, { coachId: profile.id })) return res.status(403).json({ error: 'No access to this workout match.' });
+        }
         const result = await decideWorkoutMatch(admin, sessionAthleteId, body);
+        return res.status(result.status).json(result.error ? { error: result.error } : { workout: result.workout });
+      }
+      if (body.action === 'move') {
+        if (!isOwnCalendar) {
+          const profile = await getCoachProfileFor(admin, sessionAthleteId, existing.athlete_id);
+          if (!profile || existing.coach_id !== profile.id) return res.status(403).json({ error: 'Only the athlete or assigning coach can move this workout.' });
+        }
+        const result = await moveCalendarWorkout(admin, sessionAthleteId, body);
         return res.status(result.status).json(result.error ? { error: result.error } : { workout: result.workout });
       }
       if (body.completed_activity_id != null || body.activity_match_mode !== undefined) {
