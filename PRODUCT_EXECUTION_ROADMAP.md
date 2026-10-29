@@ -2,8 +2,8 @@
 
 Last updated: 2026-10-29<br>
 Status: Athlete onboarding simplification deployed through PR #144 / merge 59e0667, Vercel dpl_4fbgop93jzn2LDJa9mv2MMsVwo8i READY on both domains; see ATHLETE_ONBOARDING_SIMPLIFICATION.md. Copy week destination picker released through PR #142 / merge 72e4ce5, Vercel dpl_F85PBT7KHehZze8RwKeUhXDHZD79 READY on both production domains. Weekly planning and coach/athlete review workflow deployed with owner authorization on mythreshold.co and www.mythreshold.co, PR #141 / main 0415ffe, Vercel dpl_EV67hYZtVjzAx4wRc7pVLEfe6BFG READY. Migration 20261017012725 applied; do not replay local 20261017003222. See WEEKLY_COACHING_RELEASE_2026-10-16.md. Owner review mode and prior security controls remain deployed.<br>
-Current milestone: M0 — calendar date moves and coach activity matching locally verified in PR #158 (initial implementation 9175d3c, with independent-review follow-up); production migration and permission release await specific owner approval. Earlier calendar readability/editor changes are deployed through PR #155 / fbeb164 with live verification recorded October 28. Notification code merged through PR #156, with provider/schema/activation and real delivery still gated; Garmin privacy wording merged through PR #157 with integration acceptance still open.<br>
-Next item: Obtain specific approval for the calendar move/match migration after exact-head checks and review, then apply only that migration and release normally; verify the deployed commit and live controls without fabricated training records. Keep other pending feedback questions and the separate editor branch visible. Notification/provider setup, Garmin consent/data deletion, real participant, physical-phone and mailbox acceptance remain separately gated.
+Current milestone: M0 remains open; owner-prioritized Workout Analysis and Coach Review is the high-priority product workstream. Start WA-01 in WORKOUT_ANALYSIS_WORKSTREAM.md. Existing analysis is a foundation, not acceptance of the requested depth. Calendar matching PR #158 merged as 8fd599e on October 29; deployment and database acceptance are not re-verified by this documentation change. Preserve other release evidence and pilot gates.<br>
+Next item: WA-01 — verify current-main recording paths, then implement dedicated interactive analysis for assigned and unassigned activities. Replace the Completion card with separate distance/time Plan completion scales, and allow candidate-recording analysis without confirming a suggested match. Follow WORKOUT_ANALYSIS_WORKSTREAM.md. Notification/provider, real participant, physical-phone, mailbox and other acceptance gates remain open.
 
 
 ## Purpose
@@ -649,6 +649,11 @@ Goal: Planned work reaches the devices athletes already use, and completed work 
 - [ ] A planned structured workout is delivered to a physical device, completed, synced back,
   reconciled with the plan, and shown to the coach with no manual file handling.
 
+## Dedicated priority — Workout Analysis and Coach Review
+
+Owner direction on October 29 promotes session analysis into its own high-priority workstream.
+[WORKOUT_ANALYSIS_WORKSTREAM.md](WORKOUT_ANALYSIS_WORKSTREAM.md) defines coaching questions, source gaps, data contracts, four delivery slices and acceptance. WA-01 is next; WA-02 adds durable sections/comparison/feedback, WA-03 planned execution and terrain, and WA-04 deeper interpretation/history. This brings ANA-003 and its necessary ANA-001/004 dependencies forward without marking M0 or M5 complete. Existing production authorization rules remain in force.
+
 ## M5 — Performance analytics
 
 Goal: Coaches can understand load, fitness, fatigue, workout execution, and trends without exporting
@@ -1276,3 +1281,10 @@ Production default privileges reproduced locally; explicit service_role revocati
 - Draft PR https://github.com/tadschweizer/Ultra_OS/pull/158. Independent review identified that an automatic suggestion still represents an unfinished database plan. The move affordance now accepts this state; an explicit move clears tentative automatic association so the card stays on its chosen day. Recorded completions remain immovable. No production change performed.
 - Reverified 531 regressions and 14 focused matching/movement cases, including coach replacement, zero-distance actuals and duplicate-link rejection. Expanded desktop/mobile transfer suite: 16 passed, 4 deliberate native-drag phone skips; phone date-picker/selector paths and rescheduled-suggestion persistence pass. The updated webpack build, whitespace and detector checks also pass. Fresh exact-head hosted checks/review are required after the follow-up; the earlier head cannot authorize release.
 - Production application of migration 20261029150644 and permission behavior still require specific owner approval. Preserve the normal exact-head release and owner final-acceptance gates.
+
+### 2026-10-29 — Workout analysis workstream requirements
+
+- Owner prioritized deep workout investigation, selectable sections and comparisons, with Intervals.icu as an interaction reference. Added WORKOUT_ANALYSIS_WORKSTREAM.md with questions, data contracts, staged implementation and acceptance.
+- Follow-up requires analysis for unassigned activities, removal of the standalone Completion card, separate valid distance/time Plan completion percentages, and candidate-recording access without automatic matching. No fake compliance score for unassigned sessions.
+- Requirements only; no new UI, calculations, application tests or production service changes. Verified document references, scope and whitespace. Owner authorized merge/deploy of these changes; application implementation remains WA-01, not a shipped claim.
+- Release branch: codex/workout-analysis-workstream. Hosted check and merge evidence will be recorded in the pull request; existing milestone acceptance remains open.
