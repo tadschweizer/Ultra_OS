@@ -18,7 +18,7 @@ async function setup(page, { coach = false } = {}) {
     let status = 200; let data = { notes: [], events: [], comments: [], settings: {}, workouts: [], messages: [], conversations: [] };
     if (url.pathname === '/api/me') {
       state.meRequests=(state.meRequests || 0)+1;
-      data = { athlete: { id: athleteId, name: 'QA athlete', onboarding_complete: true, subscription_tier: coach ? 'coach_pro' : 'free', primary_role: coach ? 'coach' : 'athlete' }, account: { primary_role: coach ? 'coach' : 'athlete', capabilities: { athlete: true, coach }, coach_access:{eligible:coach} },...(state.loadMetrics?{load_metrics:state.loadMetrics}:{}) };
+      data = { athlete: { id: athleteId, name: 'QA athlete', onboarding_complete: true, subscription_tier: coach ? 'coach_pro' : 'free', primary_role: coach ? 'coach' : 'athlete' }, account: { primary_role: coach ? 'coach' : 'athlete', capabilities: { athlete: true, coach }, coach_access:{eligible:coach}, coach_profile: coach ? {id:'test-coach'} : null },...(state.loadMetrics?{load_metrics:state.loadMetrics}:{}) };
     }
     if (url.pathname === '/api/coach/relationships') data = {relationships:[{athlete_id:athleteId,status:'active',athlete:{name:'First athlete'}}]};
     if (url.pathname === '/api/planned-workouts') {
@@ -67,6 +67,110 @@ async function setup(page, { coach = false } = {}) {
     await route.fulfill({ status, contentType:'application/json', body:JSON.stringify(data) });
   });
   return state;
+}
+
+async function dragCalendarSession(page, source, target) {
+  await source.scrollIntoViewIfNeeded(); await target.scrollIntoViewIfNeeded();
+  const from = await source.boundingBox(); const to = await target.boundingBox();
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(from.x + from.width / 2 + 10, from.y + from.height / 2, {steps:3});
+  await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, {steps:12});
+  await page.mouse.up();
+}
+
+for (const coach of [false, true]) {
+  test(`calendar transfers: date picker, failure recovery and completed lock (${coach ? 'coach' : 'athlete'})`, async ({page},info) => {
+    const state = await setup(page,{coach});
+    state.workouts[0].coach_id = 'test-coach';
+    const original = state.workouts[0].workout_date;
+    const next = new Date(original+'T12:00:00'); next.setDate(next.getDate()+1);
+    const target = next.toLocaleDateString('en-CA');
+    await page.goto(coach ? `/coach/training-calendar?athlete=${athleteId}&workout=workout-1` : '/calendar?workout=workout-1');
+    await page.getByRole('button',{name:'Move workout to another day',exact:true}).click();
+    const move = page.getByRole('dialog',{name:'Move workout',exact:true});
+    await move.getByLabel('Move to date').fill(target);
+    await page.screenshot({path:`../output/calendar-move-picker-${coach?'coach':'athlete'}-${info.project.name}.png`});
+    state.fail = true;
+    await move.getByRole('button',{name:'Move workout',exact:true}).click();
+    await expect(move.getByRole('alert')).toContainText('Save unavailable');
+    await expect(move.getByLabel('Move to date')).toHaveValue(target);
+    expect(state.workouts[0].workout_date).toBe(original);
+    state.fail = false;
+    await move.getByRole('button',{name:'Move workout',exact:true}).click();
+    await expect(move).not.toBeVisible();
+    await expect.poll(()=>state.workouts[0].workout_date).toBe(target);
+    await expect(page.locator(`[data-calendar-day="${target}"] [data-calendar-workout="workout-1"]`)).toBeVisible();
+    await page.screenshot({path:`../output/calendar-transfer-${coach?'coach':'athlete'}-${info.project.name}.png`});
+    await page.reload();
+    await page.locator('[data-calendar-workout="workout-1"]').click();
+    await expect(page.getByRole('button',{name:'Move workout to another day',exact:true})).toBeVisible();
+    state.workouts[0].status='completed'; state.workouts[0].completed_duration_min=45;
+    await page.reload();
+    await expect(page.getByRole('dialog',{name:'Workout details'})).toBeVisible();
+    await expect(page.getByRole('button',{name:'Move workout to another day',exact:true})).toHaveCount(0);
+    await expect(page.locator('[data-calendar-workout="workout-1"]')).toHaveAttribute('draggable','false');
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  });
+
+  test(`calendar transfers: two date drags swap sessions, activity drop requires confirmation (${coach?'coach':'athlete'})`, async ({page},info) => {
+    test.skip(info.project.name.includes('mobile'),'Native drag is desktop; phone uses the tested date picker and match selector.');
+    const state=await setup(page,{coach});
+    const first=state.workouts[0]; first.coach_id='test-coach'; first.activity_match_mode='manual';
+    const date=new Date(first.workout_date+'T12:00:00');date.setDate(date.getDate()+1);
+    const otherDay=date.toLocaleDateString('en-CA');
+    state.workouts.push({...first,id:'second-plan',title:'Sunday ride',workout_date:otherDay,sport:'bike'});
+    await page.goto(coach?`/coach/training-calendar?athlete=${athleteId}`:'/calendar');
+    await dragCalendarSession(page,page.locator('[data-calendar-workout="workout-1"]'),page.locator(`[data-calendar-day="${otherDay}"]`));
+    await expect.poll(()=>first.workout_date).toBe(otherDay);
+    const originalDay=new Date(otherDay+'T12:00:00');originalDay.setDate(originalDay.getDate()-1);
+    const previous=originalDay.toLocaleDateString('en-CA');
+    await expect(page.getByRole('status').filter({hasText:`Workout moved to ${otherDay}.`})).toBeVisible();
+    await expect(page.locator(`[data-calendar-day="${otherDay}"] [data-calendar-workout="workout-1"]`)).toBeVisible();
+    await expect(page.locator('[data-calendar-workout="second-plan"]')).toHaveAttribute('draggable','true');
+    await dragCalendarSession(page,page.locator('[data-calendar-workout="second-plan"]'),page.locator(`[data-calendar-day="${previous}"]`));
+    await expect.poll(()=>state.workouts[1].workout_date).toBe(previous);
+    addImported(state);
+    await page.reload();
+    await dragCalendarSession(page,page.locator('[data-calendar-workout="workout-1"]'),page.locator(`[data-calendar-activity="${firstActivity}"]`));
+    const confirm=page.getByRole('dialog',{name:'Confirm activity match',exact:true});
+    await expect(confirm).toBeVisible();
+    expect(first.completed_activity_id).toBeUndefined();
+    await confirm.getByRole('button',{name:'Cancel',exact:true}).click();
+    expect(first.completed_activity_id).toBeUndefined();
+    await dragCalendarSession(page,page.locator(`[data-calendar-activity="${firstActivity}"]`),page.locator('[data-calendar-workout="workout-1"]'));
+    state.fail=true;await confirm.getByRole('button',{name:'Confirm match',exact:true}).click();
+    await expect(confirm.getByRole('alert')).toContainText('Save unavailable');
+    state.fail=false;await confirm.getByRole('button',{name:'Confirm match',exact:true}).click();
+    await expect(confirm).not.toBeVisible();
+    await expect.poll(()=>first.completed_activity_id).toBe(firstActivity);
+    await page.reload();
+    await page.locator('[data-calendar-workout="workout-1"]').click();
+    await expect(page.getByText('Confirmed imported activity.',{exact:true})).toBeVisible();
+  });
+
+  test(`calendar transfers: accessible match selector supports ${coach?'coach':'athlete'}`, async ({page})=>{
+    const state=await setup(page,{coach});state.workouts[0].coach_id='test-coach';addImported(state);
+    await page.goto(coach?`/coach/training-calendar?athlete=${athleteId}&workout=workout-1`:'/calendar?workout=workout-1');
+    const details=page.getByRole('dialog',{name:'Workout details'});
+    await details.getByLabel('Choose an imported activity').selectOption(firstActivity);
+    await details.getByRole('button',{name:'Confirm activity match',exact:true}).click();
+    await expect.poll(()=>state.workouts[0].completed_activity_id).toBe(firstActivity);
+    await expect(details.getByText('Confirmed imported activity.',{exact:true})).toBeVisible();
+  });
+
+  test(`calendar transfers: suggested plan can be dragged to a different recording (${coach?'coach':'athlete'})`, async ({page},info)=>{
+    test.skip(info.project.name.includes('mobile'),'Phone matching uses the tested selector.');
+    const state=await setup(page,{coach});state.workouts[0].coach_id='test-coach';addImported(state);
+    await page.goto(coach?`/coach/training-calendar?athlete=${athleteId}`:'/calendar');
+    await expect(page.locator('[data-calendar-workout="workout-1"]')).toHaveAttribute('draggable','true');
+    await dragCalendarSession(page,page.locator('[data-calendar-workout="workout-1"]'),page.locator(`[data-calendar-activity="${secondActivity}"]`));
+    const confirm=page.getByRole('dialog',{name:'Confirm activity match',exact:true});
+    await expect(confirm).toBeVisible();
+    await confirm.getByRole('button',{name:'Confirm match',exact:true}).click();
+    await expect(confirm).not.toBeVisible();
+    expect(state.workouts[0].completed_activity_id).toBe(secondActivity);
+  });
 }
 
 test('calendar keeps sport distances separate, wraps titles and identifies the selected athlete', async ({ page }, info) => {
@@ -323,13 +427,14 @@ test('confirmed match survives a lost response and a retry of the same selection
   expect(state.writes[0].expected_updated_at).toBe(state.writes[1].expected_updated_at);
 });
 
-test('coach can inspect a suggested match but athlete match controls stay absent', async ({page}) => {
+test('coach can confirm a suggested match without gaining athlete manual-completion controls', async ({page}) => {
   const state=await setup(page,{coach:true}); addImported(state);
   await page.goto(`/coach/training-calendar?athlete=${athleteId}&workout=workout-1`);
   const dialog=page.getByRole('dialog',{name:'Workout details'});
   await expect(dialog.getByText(/Suggested match to an imported activity/)).toBeVisible();
-  await expect(dialog.getByLabel('Choose an imported activity')).toHaveCount(0);
-  await expect(dialog.getByRole('button',{name:'Confirm activity match'})).toHaveCount(0);
+  await expect(dialog.getByLabel('Choose an imported activity')).toBeVisible();
+  await expect(dialog.getByRole('button',{name:'Confirm activity match'})).toBeVisible();
+  await expect(dialog.getByLabel('Actual duration in minutes')).toHaveCount(0);
 });
 
 test('triage template opens once and does not refill the composer after sending', async ({ page }) => {

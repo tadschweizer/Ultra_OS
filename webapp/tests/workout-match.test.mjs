@@ -81,6 +81,12 @@ async function fixture({ stravaConnected = true } = {}) {
   await pg.exec(source('20260617120000_trainingpeaks_parity_foundation.sql').split('CREATE TABLE IF NOT EXISTS public.workout_comments')[0]);
   await pg.exec(source('20260721120000_workout_units_and_targets.sql'));
   await pg.exec(source('20260725000000_activity_sync_persistence.sql'));
+  await pg.exec(`alter table athletes add column name text, add column primary_role text default 'athlete',
+    add column subscription_tier text default 'free', add column onboarding_complete boolean default true;
+    alter table coach_profiles add column display_name text, add column coach_code text, add column bio text,
+    add column specialties text, add column certifications text, add column avatar_url text, add column max_athletes integer,
+    add column subscription_status text, add column subscription_tier text, add column created_at timestamptz, add column updated_at timestamptz;
+    create table coach_athlete_relationships(id uuid default gen_random_uuid(),coach_id uuid,athlete_id uuid,status text,group_name text);`);
   await pg.exec(`create table workout_comments(planned_workout_id uuid, activity_id text);
     insert into athletes(id) values('${owner}'),('${other}');
     insert into coach_profiles values('${coach}','${other}');

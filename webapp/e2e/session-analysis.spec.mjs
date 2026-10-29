@@ -61,14 +61,9 @@ for (const role of ['athlete', 'coach']) {
     expect(state.queries).toEqual([]);
     expect(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
     await page.screenshot({ path: `output/session-analysis/suggested-${role}-${test.info().project.name}.png` });
-    if (role === 'coach') {
-      await expect(dialog.getByText('Ask the athlete to confirm the imported activity match.')).toBeVisible();
-      await expect(dialog.getByRole('button', { name: 'Confirm activity match' })).toHaveCount(0);
-    } else {
-      await dialog.getByRole('button', { name: 'Confirm activity match' }).click();
-      await expect(dialog.getByRole('region', { name: 'Workout analysis' }).getByRole('img')).toHaveCount(5);
-      expect(state.queries).toContain(`?workout_id=${workoutId}`);
-    }
+    await dialog.getByRole('button', { name: 'Confirm activity match' }).click();
+    await expect(dialog.getByRole('region', { name: 'Workout analysis' }).getByRole('img')).toHaveCount(5);
+    expect(state.queries).toContain(`?workout_id=${workoutId}`);
   });
 }
 test('coach assigned session compares plan and uses the same recording tools', async ({ page }) => {
