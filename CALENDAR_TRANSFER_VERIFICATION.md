@@ -11,6 +11,7 @@ Updated: 2026-10-29. Prepared locally; production migration and release are not 
 - Phones and keyboards: open a workout and choose **Move workout to another day**, select a date, then **Move workout**. The existing imported-activity selector and **Confirm activity match** work for both roles.
 - Duplicate matches are refused. Atomic PostgreSQL decisions retain the existing unique-link constraint, notes, prescription and feedback. Version conflicts return HTTP 409. Identical retries after a lost response do not rewrite the saved result.
 - Automatic matching remains a conservative suggestion until explicitly confirmed. This change does not broaden automatic matching to unrelated sessions.
+- Unconfirmed suggested plans are still movable. A deliberate date move turns automatic matching off for that plan, clearing its tentative association so it stays on the chosen day. A later explicit match or **Use automatic matching** can restore that behavior.
 
 ## Local verification
 
@@ -28,6 +29,8 @@ The focused SQL tests execute actual PostgreSQL semantics through PGlite behind 
 Final results and commit/PR evidence are recorded in the implementation branch roadmap. Local and preview results do not establish hosted schema readiness, real participant acceptance or physical-phone acceptance.
 
 Local results on October 29: 531 authentication/critical regressions passed; 14 focused matching/movement checks passed, including signed SQL fixtures. Daily-loop/session-analysis browser run passed 60 cases with two deliberate native-drag skips on phones. After allowing unconfirmed suggested cards to be dragged to a different recording, the final focused run passed all 12 applicable cases, with four phone-native-drag skips (the phone date picker and selector are covered). Webpack production build, whitespace check and Impeccable detector passed. Desktop and phone screenshots were inspected. Initial fixture-schema expectations and instant automated drag sequencing failures were repaired; no failure was waived.
+
+Independent review identified that an unconfirmed automatic suggestion must also remain eligible for a date move. That case is corrected, including clearing tentative automatic association on an explicit move. After the correction: 531 regressions and 14 focused cases pass; the expanded desktop/mobile transfer suite passes all 16 applicable cases with four deliberate phone-native-drag skips. Dedicated reload assertions prove that a rescheduled suggestion stays on the chosen day. Matching correction covers valid replacement, zero distance and duplicate-link rejection under the updated function.
 
 ## Production gate
 

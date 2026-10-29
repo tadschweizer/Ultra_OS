@@ -5,6 +5,8 @@ import { planFixture, owner, other, coach, plan } from './helpers/plan-prescript
 import { canMoveCalendarWorkout } from '../lib/calendarTransfer.js';
 
 const activity = '55555555-5555-4555-8555-555555555555';
+const replacement = '66666666-6666-4666-8666-666666666666';
+const secondPlan = '44444444-4444-4444-8444-444444444444';
 const foreign = '77777777-7777-4777-8777-777777777777';
 const migration = readFileSync(new URL('../supabase/migrations/20261029150644_calendar_move_and_coach_matches.sql', import.meta.url), 'utf8');
 async function fixture() {
@@ -29,6 +31,7 @@ test('signed API + PostgreSQL: athlete and assigning coach move unfinished plans
     assert.equal(Number(moved.planned_duration_min), 60);
     assert.equal(moved.athlete_comment, 'Keep my note');
     assert.equal(moved.coach_feedback, 'Keep coach feedback');
+    assert.equal(moved.activity_match_mode, 'manual');
     assert.equal((await f.move('2026-10-05', owner, version)).code, 200);
     assert.equal((await f.row()).updated_at.toISOString(), moved.updated_at.toISOString());
     assert.equal((await f.move('2026-10-06', owner, version)).code, 409);
@@ -46,6 +49,12 @@ test('signed API + PostgreSQL: coach confirms/replays/replaces a same-athlete ma
     assert.equal(result.body.workout.completed_duration_min,30);
     assert.equal(result.body.workout.athlete_comment,'Keep my note');
     assert.equal((await f.match(other,activity,version)).code,200);
+    const corrected = await f.match(other,replacement);
+    assert.equal(corrected.code,200);
+    assert.equal(corrected.body.workout.completed_duration_min,40);
+    assert.equal(corrected.body.workout.completed_distance_km,0);
+    assert.equal((await f.invoke({id:secondPlan,match_action:'confirm',activity_id:replacement,
+      expected_updated_at:(await f.row(secondPlan)).updated_at.toISOString()},{actor:other})).code,409);
     assert.equal((await f.match(other,foreign)).code,400);
     assert.equal((await f.move('2026-10-08')).code,409);
     assert.equal((await f.move('2026-10-04')).code,409);
@@ -53,7 +62,7 @@ test('signed API + PostgreSQL: coach confirms/replays/replaces a same-athlete ma
     assert.equal((await f.match()).code,403);
     assert.equal((await f.move('2026-10-09',other)).code,403);
     // The athlete retains their own authority after the relationship ends.
-    assert.equal((await f.match(owner)).code,200);
+    assert.equal((await f.match(owner,replacement)).code,200);
   } finally { await f.close(); }
 });
 
@@ -82,6 +91,7 @@ test('calendar movement affordance excludes recorded/skipped sessions and other 
   assert.equal(canMoveCalendarWorkout(workout,'coach',coach),true);
   assert.equal(Boolean(canMoveCalendarWorkout(workout,'coach','different')),false);
   assert.equal(canMoveCalendarWorkout({...workout,status:'completed'},'athlete'),false);
+  assert.equal(canMoveCalendarWorkout({...workout,status:'completed',activity_match_state:'suggested'},'athlete'),true);
   assert.equal(canMoveCalendarWorkout({...workout,completed_activity_id:activity},'athlete'),false);
   assert.equal(canMoveCalendarWorkout({...workout,status:'skipped'},'athlete'),false);
 });

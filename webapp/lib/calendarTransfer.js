@@ -1,8 +1,8 @@
 import { validateWorkoutFields } from './workoutValidation.js';
 
 export function canMoveCalendarWorkout(workout, role, coachId) {
-  return workout?.status === 'planned' && !workout.completed_activity_id
-    && (role === 'athlete' || (coachId && workout.coach_id === coachId));
+  return Boolean(workout && (workout.status === 'planned' || workout.activity_match_state === 'suggested') && !workout.completed_activity_id
+    && (role === 'athlete' || (coachId && workout.coach_id === coachId)));
 }
 
 export async function moveCalendarWorkout(admin, actorId, body) {

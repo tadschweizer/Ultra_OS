@@ -34,6 +34,7 @@ export default function CalendarTransferDialog({ workout, activity, onSave, onCl
         <input id="move-workout-date" type="date" required min="1900-01-01" max="2200-12-31" value={date} disabled={busy}
           onChange={event => setDate(event.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-ink/20 bg-white px-3 py-2" />
         <p className="mt-2 text-sm">Moves this unfinished workout. Other sessions on that day stay in place.</p>
+        <p className="mt-2 text-sm">Any unconfirmed activity suggestion is cleared. You can match an activity again afterward.</p>
       </>}
       {error && <p role="alert" className="mt-4 text-sm text-rose-700">{error}</p>}
       <div className="mt-5 flex flex-wrap gap-2">

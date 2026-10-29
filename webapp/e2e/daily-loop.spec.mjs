@@ -38,7 +38,8 @@ async function setup(page, { coach = false } = {}) {
               const a=state.imported.find(a=>a.id===body.activity_id);
               Object.assign(workout,{status:'completed',activity_match_mode:'manual',completed_activity_id:a.id,completed_duration_min:a.moving_time==null?null:a.moving_time/60,completed_distance_km:a.distance==null?null:a.distance/1000});
             } else Object.assign(workout,{status:'planned',activity_match_mode:body.match_action==='auto'?'auto':'manual',completed_activity_id:null,completed_duration_min:null,completed_distance_km:null});
-          } else Object.assign(workout,body);
+          } else if(body.action==='move') Object.assign(workout,{workout_date:body.workout_date,activity_match_mode:'manual'});
+          else Object.assign(workout,body);
           workout.updated_at=new Date().toISOString(); data={workout};
           if(state.completionLoad)state.loadMetrics=state.completionLoad;
           if(state.loseNextResponse) {state.loseNextResponse=false;await route.abort('failed');return;}
@@ -170,6 +171,23 @@ for (const coach of [false, true]) {
     await confirm.getByRole('button',{name:'Confirm match',exact:true}).click();
     await expect(confirm).not.toBeVisible();
     expect(state.workouts[0].completed_activity_id).toBe(secondActivity);
+  });
+
+  test(`calendar transfers: an unconfirmed suggestion can be rescheduled without snapping back (${coach?'coach':'athlete'})`, async ({page})=>{
+    const state=await setup(page,{coach});state.workouts[0].coach_id='test-coach';addImported(state);
+    const next=new Date(state.workouts[0].workout_date+'T12:00:00');next.setDate(next.getDate()+1);
+    const target=next.toLocaleDateString('en-CA');
+    await page.goto(coach?`/coach/training-calendar?athlete=${athleteId}&workout=workout-1`:'/calendar?workout=workout-1');
+    await page.getByRole('button',{name:'Move workout to another day',exact:true}).click();
+    const move=page.getByRole('dialog',{name:'Move workout',exact:true});
+    await move.getByLabel('Move to date').fill(target);
+    await move.getByRole('button',{name:'Move workout',exact:true}).click();
+    await expect(move).not.toBeVisible();
+    await expect(page.locator(`[data-calendar-day="${target}"] [data-calendar-workout="workout-1"]`)).toBeVisible();
+    expect(state.workouts[0].status).toBe('planned');
+    await page.reload();
+    await expect(page.locator(`[data-calendar-day="${target}"] [data-calendar-workout="workout-1"]`)).toBeVisible();
+    await expect(page.locator(`[data-calendar-activity="${firstActivity}"]`)).toBeVisible();
   });
 }
 

@@ -49,7 +49,10 @@ begin
   if w.updated_at is distinct from p_expected_updated_at then
     raise exception 'Workout changed' using errcode='PT409';
   end if;
-  update public.planned_workouts set workout_date=p_date,updated_at=clock_timestamp()
+  -- Moving is an explicit planning decision: do not immediately reattach an
+  -- unconfirmed automatic suggestion on a neighboring day. Recorded links were
+  -- rejected above; manual confirmation/automatic matching can be chosen later.
+  update public.planned_workouts set workout_date=p_date,activity_match_mode='manual',updated_at=clock_timestamp()
     where id=w.id returning * into w;
   return to_jsonb(w);
 end $$;
