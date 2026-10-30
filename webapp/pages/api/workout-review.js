@@ -13,6 +13,14 @@ export function createWorkoutReviewHandler({ getAdmin=getSupabaseAdminClient, ac
       const admin=getAdmin(), actor=await actorFor(req,admin,{preferCoach:false});
       if(!actor)return res.status(401).json({error:'Sign in to review training.'});
       const body=req.method==='GET'?req.query:req.body||{};
+      if(body.activity_id){
+        if(req.method!=='POST'||body.workout_id||!validWorkoutRequestId(body.activity_id)||!validWorkoutRequestId(body.request_id)
+          ||body.action!=='review'||typeof body.revision!=='string'||!/^[a-f0-9]{32}$/.test(body.revision))return res.status(400).json({error:'Refresh this uploaded workout before reviewing it.'});
+        if(!actor.access.capabilities.coach)return res.status(403).json({error:'Coach access required.'});
+        if(!(await loadCoachEntitlement(admin,actor.access.coachProfile,actor.access.athlete)).eligible)return res.status(403).json({error:'An active coach subscription or pilot grant is required.'});
+        const {data,error}=await admin.rpc('coaching_uploaded_activity_review',{p_actor_id:actor.id,p_activity_id:body.activity_id,p_revision:body.revision});
+        if(error)throw error;return res.json(data);
+      }
       if(req.method==='GET'&&!body.workout_id){
         if(actor.role!=='coach'||!actor.access.capabilities.coach)return res.status(403).json({error:'Coach access required.'});
         if(!(await loadCoachEntitlement(admin,actor.access.coachProfile,actor.access.athlete)).eligible)return res.status(403).json({error:'An active coach subscription or pilot grant is required.'});
@@ -29,7 +37,7 @@ export function createWorkoutReviewHandler({ getAdmin=getSupabaseAdminClient, ac
       if(error)throw error;return res.json(data);
     } catch(error){
       const status=error.code==='PT409'?409:error.code==='42501'?403:error.code==='22023'?400:503;
-      return res.status(status).json({error:status===409?'New feedback arrived or this action already saved. Refresh the review before retrying.':status===403?'Review requires a published workout and its active assigning coach.':'Review is unavailable. Your draft is preserved; retry after refreshing.'});
+      return res.status(status).json({error:status===409?'The workout changed. Refresh the review before retrying.':status===403?'Review requires an active authorized coach and a visible workout.':'Review is unavailable. Your draft is preserved; retry after refreshing.'});
     }
   };
 }
