@@ -3,13 +3,17 @@ import AxeBuilder from '@axe-core/playwright';
 const athlete='11111111-1111-4111-8111-111111111111',activity='66666666-6666-4666-8666-666666666666',plan='44444444-4444-4444-8444-444444444444';
 const day=new Date().toLocaleDateString('en-CA'),revision='a'.repeat(32);
 async function setup(page){
- const state={writes:[],fail:false,stale:false,failRead:false,marked:false,unit:'mi',calls:[]};
+ const state={writes:[],fail:false,stale:false,failRead:false,marked:false,unit:'mi',calls:[],consumed:false};
  await page.route('**/api/**',async route=>{
   const request=route.request(),url=new URL(request.url());let status=200,body={workouts:[],notes:[],events:[],comments:[],conversations:[],messages:[],settings:{}};
   if(url.pathname==='/api/me')body={athlete:{id:'22222222-2222-4222-8222-222222222222',name:'Synthetic coach',primary_role:'coach',onboarding_complete:true,subscription_tier:'coach_pro'},account:{primary_role:'coach',capabilities:{athlete:true,coach:true},coach_access:{eligible:true},coach_profile:{id:'33333333-3333-4333-8333-333333333333'}}};
   if(url.pathname==='/api/coach/relationships')body={relationships:[{athlete_id:athlete,status:'active',athlete:{name:'Synthetic runner'}}]};
   if(url.pathname==='/api/settings')body={settings:{distance_unit:state.unit}};
-  if(url.pathname==='/api/planned-workouts')body={workouts:[],activities:[{id:activity,athlete_id:athlete,name:'Unassigned swim',sport:'swim',activity_date:day,duration_min:30,distance_km:1.5,source:'fixture'}],match_activities:[],import_source:{strava_connected:false}};
+  if(url.pathname==='/api/planned-workouts'){
+   const recording={id:activity,athlete_id:athlete,name:'Unassigned swim',sport:'swim',activity_date:day,duration_min:30,distance_km:1.5,source:'fixture'};
+   body={workouts:state.consumed?[{id:plan,athlete_id:athlete,title:'Private linked plan',sport:'swim',workout_date:day,status:'completed',visibility:'coach_private',coach_id:'33333333-3333-4333-8333-333333333333',completed_activity_id:activity,structure:[]}]:[],
+     activities:state.consumed?[]:[recording],match_activities:state.consumed?[{...recording,linked_workout_id:plan}]:[],import_source:{strava_connected:false}};
+  }
   if(url.pathname==='/api/session-analysis')body={activity:{moving_time:1800,distance:1500},points:[],laps:[],availability:{status:'summary_only'},source:{label:'Fixture'},warnings:[]};
   if(url.pathname==='/api/workout-review'){
    state.calls.push(url.search);
@@ -47,6 +51,15 @@ test('failed acknowledgement retries the same identity and stale results require
  expect(state.writes[0].request_id).toBe(state.writes[1].request_id);await expect(button).toBeDisabled();
  state.stale=false;await queue.getByRole('button',{name:'Refresh reviews'}).click();await expect(button).toBeEnabled();await button.click();await expect(queue.getByText('Unassigned swim',{exact:false})).toHaveCount(0);
  expect(state.writes[2].request_id).not.toBe(state.writes[1].request_id);
+});
+
+test('uploaded recording consumed by a readable plan still opens directly from its review row',async({page})=>{
+ const state=await setup(page);state.consumed=true;await page.goto('/coach/training-calendar');
+ const row=page.getByRole('region',{name:'Workouts to review'}).getByRole('listitem').filter({hasText:'Unassigned swim'});
+ await row.getByRole('link').click();
+ const details=page.getByRole('dialog',{name:'Workout details'});await expect(details).toBeVisible();
+ await expect(details.getByRole('heading',{name:'Unassigned swim',exact:true})).toBeVisible();
+ expect(state.writes.length).toBe(0,'opening the underlying recording never matches or acknowledges it');
 });
 
 test('saved review remains acknowledged when background refresh fails, with read-only recovery',async({page})=>{

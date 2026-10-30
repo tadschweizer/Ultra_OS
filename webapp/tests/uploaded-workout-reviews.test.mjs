@@ -41,6 +41,8 @@ test('explicit upload review is persistent, idempotent, stale-safe and ignores u
   assert.deepEqual((await f.pg.query('select * from strava_activities where id=$1',[activity])).rows[0],before,'review does not edit the recording');
   await f.pg.query('update strava_activities set updated_at=now(),synced_at=now() where id=$1',[activity]);
   assert.equal((await f.queue()).body.items.length,0,'routine sync does not reopen unchanged activity');
+  await f.pg.exec("set time zone 'America/Denver'");
+  assert.equal((await f.queue()).body.items.length,0,'session timezone cannot change the review fingerprint');
   await f.pg.query('update strava_activities set moving_time=1900 where id=$1',[activity]);
   assert.equal((await f.queue()).body.items.length,1,'changed result reopens review');
   assert.equal((await f.mark(row.review_revision)).code,409,'old snapshot cannot acknowledge new data');
@@ -57,6 +59,9 @@ test('matched uploads appear once and retain the existing assigned-workout revie
   assert.equal((await f.queue()).body.items.length,0,'reviewed matched upload is not duplicated as unassigned');
   await f.pg.query("update planned_workouts set visibility='coach_private' where id=$1",[plan]);
   assert.equal((await f.queue()).body.items[0].id,activity,'private plan cannot conceal a visible recording');
+  const calendar=await f.invoke('calendar',{actor:owner,query:{athlete_id:athlete,start:'2026-10-01',end:'2026-10-31'}});
+  assert.equal(calendar.code,200,JSON.stringify(calendar.body));assert.equal(calendar.body.activities.length,0,'matched recording is consumed, not a duplicate calendar card');
+  assert.ok(calendar.body.match_activities.some(a=>a.id===activity),'authorized recording remains available for details');
  }finally{await f.close();}
 });
 

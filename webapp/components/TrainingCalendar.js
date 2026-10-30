@@ -1632,8 +1632,12 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
     const workoutId = typeof router.query.workout === 'string' ? router.query.workout : '';
     const activityId = typeof router.query.activity === 'string' ? router.query.activity : '';
     setDetailId(workoutId && workouts.some((workout) => workout.id === workoutId) ? workoutId : null);
-    setActivityDetailId(!workoutId && activityId ? activities.find((activity) => String(activity.id) === activityId)?.id ?? null : null);
-  }, [router.isReady, router.query.workout, router.query.activity, workouts, activities]);
+    // Confirmed/suggested recordings can be consumed by readable plan cards.
+    // Their authorized summaries remain in matchActivities for direct review.
+    const recording = activities.find((activity) => String(activity.id) === activityId)
+      || matchActivities.find((activity) => String(activity.id) === activityId);
+    setActivityDetailId(!workoutId && activityId ? recording?.id ?? null : null);
+  }, [router.isReady, router.query.workout, router.query.activity, workouts, activities, matchActivities]);
 
   // Initial position: scroll the container so this week sits at the top.
   useLayoutEffect(() => {
@@ -1917,13 +1921,15 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
   }, [anchorMonday, pastWeeks, futureWeeks, workoutsByDate, notesByDate, eventsByDate, activitiesByDate]);
 
   const detailWorkout = detailId ? workouts.find((w) => w.id === detailId) || null : null;
-  const detailActivity = activityDetailId ? activities.find((a) => a.id === activityDetailId) || null : null;
+  const detailActivity = activityDetailId ? activities.find((a) => a.id === activityDetailId)
+    || matchActivities.find((a) => a.id === activityDetailId) || null : null;
   const dayMenuDate = dayMenuKey ? new Date(`${dayMenuKey}T00:00:00`) : null;
 
   // Keeps the card's comment badge honest after a comment is posted, without
   // refetching the whole calendar range.
   const setActivityCommentCount = useCallback((activityId, count) => {
     setActivities((prev) => prev.map((a) => (a.id === activityId ? { ...a, comment_count: count } : a)));
+    setMatchActivities((prev) => prev.map((a) => (a.id === activityId ? { ...a, comment_count: count } : a)));
   }, []);
 
   function openWorkoutEditor(dateKey, sport = 'run') {

@@ -17,7 +17,7 @@ create index uploaded_workout_reviews_coach on public.uploaded_workout_coach_rev
 -- Sync writes updated_at/synced_at even when nothing changed. Only actual
 -- persisted summary changes reopen a review; never expose the source payload.
 create function public.uploaded_workout_review_revision(a public.strava_activities)
-returns text language sql immutable security invoker set search_path='' as $$
+returns text language sql immutable security invoker set search_path='' set timezone='UTC' as $$
   select md5((to_jsonb(a)-array['updated_at','synced_at','inserted_at','raw_payload'])::text);
 $$;
 revoke all on function public.uploaded_workout_review_revision(public.strava_activities) from public,anon,authenticated;
