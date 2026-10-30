@@ -45,14 +45,36 @@ export default function WorkoutReview({workout,role,onReply,onAdjust,refreshToke
 }
 
 export function CoachReviewQueue(){
-  const {request}=useWorkspaceTransport();const [items,setItems]=useState([]),[page,setPage]=useState(0),[more,setMore]=useState(false),[error,setError]=useState(''),[loading,setLoading]=useState(false);
-  const load=useCallback(async()=>{setLoading(true);setError('');try{const response=await request(`/api/workout-review?mode=coach&page=${page}`);const data=await response.json();if(!response.ok)throw new Error(data.error);setItems(data.items||[]);setMore(data.has_more);}catch(e){setError(e.message||'Could not load reviews.');}finally{setLoading(false);}},[request,page]);
-  useEffect(()=>{load();},[load]);
+  const {request}=useWorkspaceTransport();const [items,setItems]=useState([]),[page,setPage]=useState(0),[more,setMore]=useState(false),[error,setError]=useState(''),[loading,setLoading]=useState(false),[busy,setBusy]=useState(false),[mustRefresh,setMustRefresh]=useState(false);
+  const [distanceUnit,setDistanceUnit]=useState('mi');
+  const readVersion=useRef(0),writeLock=useRef(false),receipts=useRef(new Map());
+  useEffect(()=>{let active=true;request('/api/settings').then(r=>r.ok?r.json():null).then(data=>{if(active&&['mi','km'].includes(data?.settings?.distance_unit))setDistanceUnit(data.settings.distance_unit);}).catch(()=>{});return()=>{active=false;};},[request]);
+  const load=useCallback(async()=>{const version=++readVersion.current;setLoading(true);setError('');try{const response=await request(`/api/workout-review?mode=coach&page=${page}`,{signal:AbortSignal.timeout(15000)});const data=await response.json();if(version!==readVersion.current)return;if(!response.ok){if([401,403].includes(response.status))setItems([]);throw new Error(data.error);}setItems(data.items||[]);setMore(data.has_more);setMustRefresh(false);}catch(e){if(version===readVersion.current)setError(e.message||'Could not load reviews.');}finally{if(version===readVersion.current)setLoading(false);}},[request,page]);
+  useEffect(()=>{load();return()=>{readVersion.current++;};},[load]);
+  async function reviewUpload(item){
+    if(writeLock.current||mustRefresh)return;writeLock.current=true;setBusy(true);setError('');
+    const key=`${item.id}:${item.review_revision}`;
+    if(!receipts.current.has(key))receipts.current.set(key,{activity_id:item.id,action:'review',revision:item.review_revision,request_id:crypto.randomUUID(),mode:'coach'});
+    try{
+      const response=await request('/api/workout-review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(receipts.current.get(key)),signal:AbortSignal.timeout(15000)});
+      const data=await response.json();
+      if(!response.ok){if([400,401,403,409].includes(response.status)){receipts.current.delete(key);setMustRefresh(true);}if([401,403].includes(response.status))setItems([]);throw new Error(data.error||'Could not save this review.');}
+      receipts.current.delete(key);setItems(current=>current.filter(row=>!(row.id===item.id&&row.source_kind==='activity')));
+      await load();
+    }catch(e){setError(e.message||'Review could not be confirmed. Retry to check the same saved action.');}
+    finally{writeLock.current=false;setBusy(false);}
+  }
   return <section className="my-5 rounded-2xl border bg-white p-4" aria-label="Workouts to review"><h2 className="text-xl font-semibold">Workouts to review</h2>
-    <p className="text-sm">Completed assigned sessions and explicit response requests. Opening a message does not complete a review.</p>
+    <p className="text-sm">All uploaded workouts, completed assigned sessions and explicit response requests. A matched upload appears once. Opening a workout or message does not mark it reviewed.</p>
     {error?<p role="alert">{error}</p>:!loading&&!items.length?<p className="py-3">No outstanding session reviews on this page.</p>:null}
-    {!error&&items.map(w=><a key={w.id} className="my-2 block rounded border p-3" href={`/coach/training-calendar?athlete=${w.athlete_id}&week=${w.workout_date}&workout=${w.id}`}>
-      <strong>{w.name} — {w.title}</strong><span className="block text-sm">{w.workout_date} · {w.request_open?'Response requested':'Completed, awaiting review'}</span></a>)}
-    <div className="flex flex-wrap gap-2"><button disabled={loading} onClick={load} className="min-h-11 rounded border px-3">Refresh reviews</button>{page>0&&<button disabled={loading} onClick={()=>setPage(p=>p-1)}>Previous page</button>}{more&&<button disabled={loading} onClick={()=>setPage(p=>p+1)}>Next page</button>}</div>
+    <ul>{items.map(w=><li key={`${w.source_kind||'workout'}:${w.id}`} className="my-2 min-w-0 break-words rounded border p-3">
+      {w.workout_date?<a className="block py-2 text-ink underline" href={`/coach/training-calendar?athlete=${w.athlete_id}&week=${w.workout_date}&${w.source_kind==='activity'?'activity':'workout'}=${w.id}`}><strong>{w.name} — {w.title}</strong></a>:<strong>{w.name} — {w.title}</strong>}
+      <p className="text-sm">{w.workout_date||'Date unavailable'} · {w.request_open?'Response requested':w.source_kind==='activity'?'Uploaded workout, awaiting review':'Completed, awaiting review'}</p>
+      {w.source_kind==='activity'&&<>
+        <p className="my-2 text-sm">{w.completed_duration_min!=null?`${w.completed_duration_min} min`:'Duration unavailable'} · {w.completed_distance_km!=null?`${Number((Number(w.completed_distance_km)*(distanceUnit==='mi'?0.621371:1)).toFixed(2))} ${distanceUnit}`:'Distance unavailable'}</p>
+        <button disabled={busy||loading||mustRefresh} onClick={()=>reviewUpload(w)} className="min-h-11 rounded border px-3 disabled:opacity-50">Reviewed — no change</button>
+      </>}
+    </li>)}</ul>
+    <div className="flex flex-wrap gap-2"><button disabled={loading||busy} onClick={load} className="min-h-11 rounded border px-3">Refresh reviews</button>{page>0&&<button disabled={loading||busy} onClick={()=>setPage(p=>p-1)}>Previous page</button>}{more&&<button disabled={loading||busy} onClick={()=>setPage(p=>p+1)}>Next page</button>}</div>
   </section>;
 }
