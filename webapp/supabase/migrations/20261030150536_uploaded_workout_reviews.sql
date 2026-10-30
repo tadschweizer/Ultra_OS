@@ -51,12 +51,12 @@ grant execute on function public.coaching_uploaded_activity_review(uuid,uuid,tex
 create function public.coaching_pending_review_items(p_actor_id uuid)
 returns table(id uuid,athlete_id uuid,name text,workout_date date,title text,status text,
   completed_duration_min numeric,completed_distance_km numeric,athlete_rpe integer,
-  request_open boolean,source_kind text,review_revision text)
+  request_open boolean,source_kind text,review_revision text,needs_review boolean)
 language sql stable security invoker set search_path='' as $$
   select w.id,w.athlete_id,a.name,w.workout_date,w.title,w.status,
     w.completed_duration_min,w.completed_distance_km,w.athlete_rpe,
     w.response_requested and coalesce(r.resolved_revision<w.completion_revision,true),
-    'workout'::text,null::text
+    'workout'::text,null::text,w.status='completed' and coalesce(r.reviewed_revision<w.completion_revision,true)
   from public.planned_workouts w join public.coach_profiles c on c.id=w.coach_id and c.athlete_id=p_actor_id
   join public.athletes a on a.id=w.athlete_id
   left join public.workout_coach_reviews r on r.workout_id=w.id and r.coach_id=c.id
@@ -68,7 +68,7 @@ language sql stable security invoker set search_path='' as $$
   select a.id,a.athlete_id,ath.name,coalesce(a.local_date,a.start_date_local::date,(a.start_date at time zone 'UTC')::date),
     coalesce(nullif(a.name,''),'Uploaded workout'),'completed'::text,
     round(a.moving_time::numeric/60,1),round(a.distance/1000,2),null::integer,false,'activity'::text,
-    public.uploaded_workout_review_revision(a)
+    public.uploaded_workout_review_revision(a),true
   from public.strava_activities a join public.athletes ath on ath.id=a.athlete_id
   join public.coach_profiles c on c.athlete_id=p_actor_id
   left join public.uploaded_workout_coach_reviews r on r.activity_id=a.id and r.coach_id=c.id
@@ -94,7 +94,7 @@ $$;
 create or replace function public.coaching_review_counts(p_actor_id uuid)
 returns jsonb language sql security invoker set search_path='' as $$
   select coalesce(jsonb_agg(to_jsonb(c) order by c.athlete_id),'[]') from (
-    select athlete_id,count(*) filter(where status='completed') as pending_reviews,
+    select athlete_id,count(*) filter(where needs_review) as pending_reviews,
       count(*) filter(where request_open) as response_requests
     from public.coaching_pending_review_items(p_actor_id) group by athlete_id
   ) c;

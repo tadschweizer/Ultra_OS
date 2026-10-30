@@ -60,6 +60,20 @@ test('matched uploads appear once and retain the existing assigned-workout revie
  }finally{await f.close();}
 });
 
+test('acknowledged assigned result clears review count while an unanswered response request stays open',async()=>{
+ const f=await fixture();try{
+  await f.pg.query("update planned_workouts set visibility='athlete_visible',completed_activity_id=$1 where id=$2",[activity,plan]);
+  let state=(await f.invoke('review',{actor:athlete,query:{workout_id:plan}})).body;
+  assert.equal((await f.invoke('review',{actor:athlete,method:'POST',body:{workout_id:plan,action:'request',revision:state.revision,request_id:randomUUID()}})).code,200);
+  state=(await f.invoke('review',{actor:owner,query:{workout_id:plan}})).body;
+  assert.equal((await f.admin.rpc('coaching_review_counts',{p_actor_id:owner})).data[0].pending_reviews,1);
+  assert.equal((await f.invoke('review',{actor:owner,method:'POST',body:{workout_id:plan,action:'review',revision:state.revision,request_id:randomUUID()}})).code,200);
+  const queue=(await f.queue()).body.items;assert.equal(queue.length,1);assert.equal(queue[0].request_open,true);assert.equal(queue[0].needs_review,false);
+  const counts=(await f.admin.rpc('coaching_review_counts',{p_actor_id:owner})).data[0];
+  assert.equal(counts.pending_reviews,0);assert.equal(counts.response_requests,1);
+ }finally{await f.close();}
+});
+
 test('upload reviews require real active coach access, rechecked even for a retry; public roles are denied',async()=>{
  const f=await fixture();try{
   const revision=(await f.queue()).body.items[0].review_revision;
