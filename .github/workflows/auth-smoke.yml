@@ -33,6 +33,8 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Run desktop/mobile critical journeys and accessibility smoke
         run: npm run test:e2e:critical
+      - name: Verify calendar month headings across phone and grid layouts
+        run: npx playwright test e2e/calendar-month-headings.spec.mjs --workers=1
       - name: Run calendar copy/privacy/load acceptance with isolated SQL fixtures
         run: npm run test:e2e:calendar-gaps
       - name: Verify free athlete access and public copy

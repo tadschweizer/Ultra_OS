@@ -15,7 +15,7 @@ import { summarizeCalendarWeek } from '../lib/calendarSummary';
 import { useDialogFocus } from '../lib/useDialogFocus';
 import { calendarMutation as performCalendarMutation } from '../lib/calendarMutation';
 import { createCopyWeekRequests } from '../lib/copyWeekRequest';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import {
   INTENSITY_ZONES,
@@ -1916,6 +1916,20 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
     });
   }, [anchorMonday, pastWeeks, futureWeeks, workoutsByDate, notesByDate, eventsByDate, activitiesByDate]);
 
+  // The phone list hides empty days. Mark the first visible day of each month,
+  // rather than the beginning of a week that happens to contain the first.
+  const mobileMonthLabels = useMemo(() => {
+    const labels = new Map();
+    let previousMonth = null;
+    for (const week of weeks) for (const day of week.days) {
+      if (!day.workouts.length && !day.activities.length && !day.notes.length && !day.events.length) continue;
+      const month = day.key.slice(0, 7);
+      if (month !== previousMonth) labels.set(day.key, day.date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }));
+      previousMonth = month;
+    }
+    return labels;
+  }, [weeks]);
+
   const detailWorkout = detailId ? workouts.find((w) => w.id === detailId) || null : null;
   const detailActivity = activityDetailId ? activities.find((a) => a.id === activityDetailId) || null : null;
   const dayMenuDate = dayMenuKey ? new Date(`${dayMenuKey}T00:00:00`) : null;
@@ -2155,7 +2169,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
           {weeks.map((week) => (
             <div key={week.key} data-week-key={week.key} ref={(selectedWeek?week.key===toDateKey(anchorMonday):week.isCurrentWeek) ? todayRowRef : null}>
               {week.monthLabel && (
-                <div className="my-3 flex items-center gap-3">
+                <div className="my-3 hidden items-center gap-3 sm:flex">
                   <span className="rounded-full bg-panel px-4 py-1.5 text-xs font-bold uppercase tracking-[0.22em] text-paper">{week.monthLabel}</span>
                   <span className="h-px flex-1 bg-ink/10" />
                 </div>
@@ -2168,8 +2182,12 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
                   // nothing to say, so it only appears once there is a grid.
                   const isEmpty = !day.events.length && !day.workouts.length && !day.activities.length && !day.notes.length;
                   return (
+                    <Fragment key={day.key}>
+                    {mobileMonthLabels.has(day.key) && <div className="my-3 flex items-center gap-3 sm:hidden">
+                      <span className="rounded-full bg-panel px-4 py-1.5 text-xs font-bold uppercase tracking-[0.22em] text-paper">{mobileMonthLabels.get(day.key)}</span>
+                      <span className="h-px flex-1 bg-ink/10" />
+                    </div>}
                     <div
-                      key={day.key}
                       data-calendar-day={day.key}
                       onDragOver={event => {
                         const item = dragged.current;
@@ -2345,6 +2363,7 @@ export default function TrainingCalendar({ athleteId = null, athleteName = '', r
                         })}
                       </div>
                     </div>
+                    </Fragment>
                   );
                 })}
 
