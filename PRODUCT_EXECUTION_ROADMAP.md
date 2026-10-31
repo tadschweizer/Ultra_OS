@@ -1,9 +1,9 @@
 # Threshold Product Execution Roadmap
 
-Last updated: 2026-10-29<br>
+Last updated: 2026-10-31<br>
 Status: Athlete onboarding simplification deployed through PR #144 / merge 59e0667, Vercel dpl_4fbgop93jzn2LDJa9mv2MMsVwo8i READY on both domains; see ATHLETE_ONBOARDING_SIMPLIFICATION.md. Copy week destination picker released through PR #142 / merge 72e4ce5, Vercel dpl_F85PBT7KHehZze8RwKeUhXDHZD79 READY on both production domains. Weekly planning and coach/athlete review workflow deployed with owner authorization on mythreshold.co and www.mythreshold.co, PR #141 / main 0415ffe, Vercel dpl_EV67hYZtVjzAx4wRc7pVLEfe6BFG READY. Migration 20261017012725 applied; do not replay local 20261017003222. See WEEKLY_COACHING_RELEASE_2026-10-16.md. Owner review mode and prior security controls remain deployed.<br>
-Current milestone: M0 remains open; owner-prioritized Workout Analysis and Coach Review is the high-priority product workstream. Start WA-01 in WORKOUT_ANALYSIS_WORKSTREAM.md. Existing analysis is a foundation, not acceptance of the requested depth. Calendar matching PR #158 merged as 8fd599e on October 29; deployment and database acceptance are not re-verified by this documentation change. Preserve other release evidence and pilot gates.<br>
-Next item: WA-01 — verify current-main recording paths, then implement dedicated interactive analysis for assigned and unassigned activities. Replace the Completion card with separate distance/time Plan completion scales, and allow candidate-recording analysis without confirming a suggested match. Follow WORKOUT_ANALYSIS_WORKSTREAM.md. Notification/provider, real participant, physical-phone, mailbox and other acceptance gates remain open.
+Current milestone: M0 remains open. A reproduced phone calendar month-order defect is locally verified in this isolated branch. Separate uploaded-workout review PR #160 passed checks/review but still needs specific database approval; its migration is not included here. The owner-prioritized analysis implementation remains separate and local-only pending review and source/service decisions. Existing participant and owner acceptance gates remain open.<br>
+Next item: Finish exact-head CI/review for the focused mobile month-divider fix, release normally under the standing owner-feedback authorization, and verify the live responsive result. Do not apply PR #160's migration or publish the separate local analysis without the required approvals. Preserve HR-zone and other unresolved scope questions, physical-phone and mailbox/provider gates.
 
 
 ## Purpose
@@ -1288,3 +1288,9 @@ Production default privileges reproduced locally; explicit service_role revocati
 - Follow-up requires analysis for unassigned activities, removal of the standalone Completion card, separate valid distance/time Plan completion percentages, and candidate-recording access without automatic matching. No fake compliance score for unassigned sessions.
 - Requirements only; no new UI, calculations, application tests or production service changes. Verified document references, scope and whitespace. Owner authorized merge/deploy of these changes; application implementation remains WA-01, not a shipped claim.
 - Release branch: codex/workout-analysis-workstream. Hosted check and merge evidence will be recorded in the pull request; existing milestone acceptance remains open.
+
+### 2026-10-31 — Mobile month divider ordering
+
+- Implementation d95d7781257fd3fe658de7b285252070fa05add9, isolated codex/calendar-month-headings from verified main 72a2f63. Reproduced new-month headings preceding the previous month's final entries in the phone list. Headings now precede each month's first visible entry, even when day one is empty. Existing wider week/grid behavior and all records preserved.
+- Node 22.23.4: 531 regressions, ten month/load-layout browser cases and final eight month cases with explicit tablet/desktop row geometry pass; webpack build, detector, whitespace and inspected phone screenshots pass. See CALENDAR_MONTH_HEADING_VERIFICATION.md. Current-head hosted CI and independent review remain required before release; no deployment or acceptance claimed here.
+- Separate PR #160's reviewed migration still requires explicit approval. Canonical mixed analysis work and its local-only instruction preserved; only the private action list changes in the canonical checkout.
